@@ -18,6 +18,21 @@ export class DemoController {
     });
     res.json({ success: true, data: result });
   }
+
+  async clear(req: AuthenticatedRequest, res: Response) {
+    const result = await demoService.clearDemoData(req.user!.organizationId);
+    await auditService.log({
+      organizationId: req.user!.organizationId,
+      userId: req.user!.userId,
+      action: "DELETED",
+      entityType: "organization",
+      entityId: req.user!.organizationId,
+      description: "Demo data cleared",
+      metadata: result,
+      traceId: req.traceId!,
+    });
+    res.json({ success: true, data: result });
+  }
 }
 
 export const demoController = new DemoController();

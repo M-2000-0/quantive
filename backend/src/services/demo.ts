@@ -36,6 +36,7 @@ export class DemoService {
           tags: JSON.stringify(w.tags),
           riskScore: w.tags.includes("sanctioned") ? 0.95 : w.tags.includes("mixer") ? 0.85 : w.tags.includes("scam") ? 0.7 : Math.random() * 0.3,
           riskLevel: w.tags.includes("sanctioned") ? "CRITICAL" : w.tags.includes("mixer") ? "HIGH" : w.tags.includes("scam") ? "HIGH" : "LOW",
+          isDemo: true,
           organizationId,
         },
       });
@@ -147,6 +148,35 @@ export class DemoService {
       transactions: counts[0],
       alerts: counts[1],
       cases: counts[2],
+    };
+  }
+
+  /**
+   * Remove all demo-generated data for an organization (wallets tagged isDemo,
+   * transactions ingested via "demo", and their alerts/cases/comments).
+   * Real monitored data is untouched.
+   */
+  async clearDemoData(organizationId: string) {
+    const demoTxFilter = { organizationId, ingestedVia: "demo" };
+    const demoAlertFilter = { organizationId, transaction: { ingestedVia: "demo" } };
+
+    const commentCount = await prisma.comment.deleteMany({
+      where: { case: { organizationId, alerts: { some: { transaction: { ingestedVia: "demo" } } } } },
+    });
+    const caseCount = await prisma.case.deleteMany({
+      where: { organizationId, alerts: { some: { transaction: { ingestedVia: "demo" } } } },
+    });
+    const alertCount = await prisma.alert.deleteMany({ where: demoAlertFilter });
+    const txCount = await prisma.transaction.deleteMany({ where: demoTxFilter });
+    const walletCount = await prisma.wallet.deleteMany({ where: { organizationId, isDemo: true } });
+
+    return {
+      message: "Demo data cleared",
+      wallets: walletCount.count,
+      transactions: txCount.count,
+      alerts: alertCount.count,
+      cases: caseCount.count,
+      comments: commentCount.count,
     };
   }
 }

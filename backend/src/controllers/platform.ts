@@ -51,11 +51,23 @@ export class PlatformController {
   // Webhook handling (no auth)
   async stripeWebhook(req: AuthenticatedRequest, res: Response) {
     const sig = req.headers["stripe-signature"] as string;
+    const secret = process.env.STRIPE_WEBHOOK_SECRET || "";
     if (!sig) {
       res.status(400).json({ success: false, error: "Missing stripe signature" });
       return;
     }
-    await subscriptionService.handleWebhook(req.body);
+    if (!secret || secret.includes("placeholder")) {
+      res.status(503).json({ success: false, error: "Stripe webhook secret not configured" });
+      return;
+    }
+    let event: any;
+    try {
+      event = subscriptionService.verifyWebhookSignature(req.body, sig, secret);
+    } catch (e: any) {
+      res.status(400).json({ success: false, error: "Invalid stripe signature", detail: e?.message });
+      return;
+    }
+    await subscriptionService.handleWebhook(event);
     res.json({ received: true });
   }
 }

@@ -1,18 +1,23 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
 
-// These are integration tests that require a running database
-describe("Database Schema", () => {
-  const prisma = new PrismaClient();
+// These are integration tests that require a running database (see CI: postgres service).
+// Probe connectivity once at module load; without a reachable Postgres the whole suite
+// is skipped instead of failing.
+const prisma = new PrismaClient();
 
-  beforeAll(async () => {
-    await prisma.$connect();
-  });
+let dbAvailable = true;
+try {
+  await prisma.$connect();
+} catch {
+  dbAvailable = false;
+}
 
-  afterAll(async () => {
-    await prisma.$disconnect();
-  });
+afterAll(async () => {
+  await prisma.$disconnect().catch(() => undefined);
+});
 
+describe.skipIf(!dbAvailable)("Database Schema", () => {
   it("can create an organization", async () => {
     const org = await prisma.organization.create({
       data: { name: "Test Org", slug: `test-${Date.now()}` },

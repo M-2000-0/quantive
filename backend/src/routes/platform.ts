@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { demoController } from "../controllers/demo";
+import { gdprController } from "../controllers/gdpr";
 import { platformController } from "../controllers/platform";
 import { authenticate } from "../middleware/auth";
 import { requireOrganization } from "../middleware/tenant";
@@ -13,6 +14,7 @@ router.get("/onboarding", (req, res, next) => platformController.getOnboarding(r
 
 // Demo data
 router.post("/demo/generate", (req, res, next) => platformController.loadDemo(req, res).catch(next));
+router.post("/demo/clear", (req, res, next) => demoController.clear(req, res).catch(next));
 
 // Compliance frameworks
 router.get("/compliance/frameworks", (req, res, next) => platformController.getFrameworks(req, res).catch(next));
@@ -22,6 +24,10 @@ router.get("/compliance/assessment", (req, res, next) => platformController.asse
 // Subscription
 router.get("/subscription", (req, res, next) => platformController.getSubscription(req, res).catch(next));
 router.post("/subscription/checkout", (req, res, next) => platformController.createCheckout(req, res).catch(next));
+
+// GDPR / DSAR
+router.get("/account/export", (req, res, next) => gdprController.exportData(req, res).catch(next));
+router.post("/account/erasure", (req, res, next) => gdprController.erase(req, res).catch(next));
 
 // Blockchain integrations
 router.post("/integrations/blockchain/validate", async (req, res, next) => {

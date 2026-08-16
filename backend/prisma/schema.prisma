@@ -108,6 +108,7 @@ model Wallet {
   riskLevel      String  @default("LOW")
   firstSeenAt    DateTime @default(now())
   lastSeenAt     DateTime @default(now())
+  isDemo         Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
