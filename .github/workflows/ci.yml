@@ -13,6 +13,10 @@ jobs:
       run:
         working-directory: backend
 
+    env:
+      DATABASE_URL: postgresql://quantive:quantive@localhost:5432/quantive
+      REDIS_URL: redis://localhost:6379
+
     steps:
       - uses: actions/checkout@v4
 
