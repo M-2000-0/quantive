@@ -36,3 +36,4 @@ Ventas/
 
 # Old prototype
 APP/
+# CI workflow — enable once token has workflow scope (gh auth refresh -h github.com -s workflow), then: git add -f .github/workflows/ci.yml && git commit && git push
