@@ -13,30 +13,6 @@ jobs:
       run:
         working-directory: backend
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: quantive
-          POSTGRES_USER: quantive
-          POSTGRES_PASSWORD: quantive
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready -U quantive
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +21,19 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: backend/package-lock.json
+
+      # Postgres + Redis via apt (no Docker dependency — hosted runners have
+      # flaky Docker daemons; apt services are always available).
+      - name: Start Postgres + Redis
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql postgresql-contrib redis-server
+          sudo service postgresql start
+          sudo -u postgres psql -c "CREATE USER quantive PASSWORD 'quantive'"
+          sudo -u postgres psql -c "CREATE DATABASE quantive OWNER quantive"
+          sudo service redis-server start || redis-server --daemonize yes
+          pg_isready -h localhost -p 5432 -U quantive
+          redis-cli ping
 
       - run: npm ci
       - run: npx prisma generate
