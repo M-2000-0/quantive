@@ -73,7 +73,7 @@
 
 ## WHAT'S NEXT
 
-1. **Push CI**: run `gh auth refresh -h github.com -s workflow` (browser approval), then `git add -f .github/workflows/ci.yml && git commit && git push` — the workflow itself is correct and locally verified.
+1. **CI is live** ✅ — `workflow` scope granted; the pipeline was pushed and is **green** on GitHub (postgres/redis via apt after the hosted runner's Docker daemon failed; `DATABASE_URL`/`REDIS_URL` set for the job).
 2. **Live Stripe**: add real keys to `.env` (secret key, 3 price IDs, webhook secret), re-run the checkout flow end-to-end.
 3. **Apply schema**: `prisma migrate deploy` against the real Postgres, then `prisma db seed`.
 4. First real customer onboarding → exercise export/erasure endpoints against production data.
