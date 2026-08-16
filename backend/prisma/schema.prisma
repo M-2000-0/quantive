@@ -1,0 +1,353 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  roles        Role[]
+  wallets         Wallet[]
+  transactions    Transaction[]
+  alerts          Alert[]
+  cases           Case[]
+  reports         Report[]
+  integrations    Integration[]
+  auditLogs       AuditLog[]
+  subscriptions   Subscription[]
+  webhookEndpoints WebhookEndpoint[]
+
+  plan         String  @default("starter")
+  stripeCustomerId String?
+  stripeSubscriptionId String?
+  creditsUsed  Int     @default(0)
+  creditsLimit Int     @default(10000)
+}
+
+model Subscription {
+  id             String   @id @default(uuid())
+  plan           String   // starter, business, enterprise
+  status         String   // active, cancelled, past_due, trialing
+  stripePriceId  String?
+  stripeSubId    String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  trialEndsAt    DateTime?
+  cancelAtPeriodEnd Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String
+  name           String
+  avatarUrl      String?
+  isActive       Boolean  @default(true)
+  lastLoginAt    DateTime?
+  refreshToken   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  roleId         String
+  role           Role         @relation(fields: [roleId], references: [id])
+
+  assignedCases  Case[]     @relation("CaseAssignee")
+  comments       Comment[]
+  auditLogs      AuditLog[]
+  reports        Report[]
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Role {
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  permissions    String  // JSON array of permission keys
+  isSystem       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  users User[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model Wallet {
+  id             String   @id @default(uuid())
+  address        String
+  chain          String   // e.g. ethereum, solana, polygon
+  label          String?
+  tags           String  // JSON array e.g. ["exchange", "mixer"]
+  riskScore      Float   @default(0)
+  riskLevel      String  @default("LOW")
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  transactionsFrom Transaction[] @relation("TxFromWallet")
+  transactionsTo   Transaction[] @relation("TxToWallet")
+
+  @@unique([organizationId, chain, address])
+  @@index([organizationId])
+  @@index([chain, address])
+}
+
+model Transaction {
+  id             String   @id @default(uuid())
+  txHash         String
+  chain          String
+  blockNumber    Int?
+  timestamp      DateTime
+  fromAddress    String
+  toAddress      String
+  value          Float   @default(0)
+  token          String?
+  tokenAmount    Float?
+  tokenDecimals  Int?
+  gasUsed        Int?
+  gasPrice       Float?
+  status         String   @default("confirmed") // pending, confirmed, failed
+  rawData        String?
+  riskScore       Float   @default(0)
+  riskLevel       String  @default("LOW")
+  riskReasonCodes String  // JSON array e.g. ["HIGH_VALUE", "MIXER_INTERACTION"]
+  ingestedVia    String   // api, webhook, csv
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  fromWalletId   String?
+  fromWallet     Wallet?  @relation("TxFromWallet", fields: [fromWalletId], references: [id])
+  toWalletId     String?
+  toWallet       Wallet?  @relation("TxToWallet", fields: [toWalletId], references: [id])
+
+  alerts         Alert[]
+  auditLogs      AuditLog[]
+
+  @@unique([organizationId, chain, txHash])
+  @@index([organizationId])
+  @@index([chain, txHash])
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@index([timestamp])
+}
+
+model Alert {
+  id             String      @id @default(uuid())
+  title          String
+  description    String
+  severity       String  // LOW, MEDIUM, HIGH, CRITICAL
+  status         String  @default("OPEN")
+  reasonCode     String
+  metadata       String?
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  dismissedAt    DateTime?
+  dismissedBy    String?
+  dismissedReason String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  transactionId  String?
+  transaction    Transaction? @relation(fields: [transactionId], references: [id])
+
+  caseId         String?
+  case           Case?        @relation(fields: [caseId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model Case {
+  id             String       @id @default(uuid())
+  title          String
+  description    String
+  status         String  @default("OPEN")
+  priority       String  @default("MEDIUM")
+  riskLevel      String  @default("MEDIUM")
+  findings       String?
+  resolution     String?
+  closedAt       DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  assigneeId     String?
+  assignee       User?        @relation("CaseAssignee", fields: [assigneeId], references: [id])
+
+  alerts         Alert[]
+  comments       Comment[]
+  auditLogs      AuditLog[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([priority])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  caseId String
+  case   Case @relation(fields: [caseId], references: [id])
+
+  authorId String
+  author   User @relation(fields: [authorId], references: [id])
+
+  @@index([caseId])
+}
+
+model Report {
+  id             String   @id @default(uuid())
+  title          String
+  type           String   // case_summary, transaction_log, risk_overview, audit_trail
+  format         String   // csv, pdf
+  parameters     String?  // JSON query params used to generate report
+  fileUrl        String?
+  fileSize       Int?
+  generatedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  generatedById  String?
+  generatedBy    User?    @relation(fields: [generatedById], references: [id])
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+model Integration {
+  id              String            @id @default(uuid())
+  name            String
+  type            String  // BLOCKCHAIN_API, WEBHOOK, CSV_IMPORT
+  config          String  // encrypted config JSON
+  status          String  @default("ACTIVE")
+  lastSyncAt      DateTime?
+  lastErrorAt     DateTime?
+  lastErrorMessage String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id])
+
+  webhooks        WebhookEndpoint[]
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+model WebhookEndpoint {
+  id            String   @id @default(uuid())
+  url           String
+  secret        String   // HMAC secret
+  events        String  // JSON array e.g. ["alert.created", "case.updated", "transaction.ingested"]
+  isActive      Boolean  @default(true)
+  retryCount    Int      @default(0)
+  lastTriggeredAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  integrationId String?
+  integration   Integration? @relation(fields: [integrationId], references: [id])
+  organizationId String
+  organization  Organization @relation(fields: [organizationId], references: [id])
+
+  deliveries    WebhookDelivery[]
+
+  @@index([organizationId])
+}
+
+model WebhookDelivery {
+  id          String   @id @default(uuid())
+  event       String
+  payload     String
+  status      Int?     // HTTP status code
+  response    String?
+  success     Boolean  @default(false)
+  attempt     Int      @default(1)
+  nextRetryAt DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime @default(now())
+
+  endpointId String
+  endpoint   WebhookEndpoint @relation(fields: [endpointId], references: [id])
+
+  @@index([endpointId])
+  @@index([success])
+}
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  action         String
+  entityType     String   // user, organization, wallet, transaction, alert, case, report, integration
+  entityId       String
+  description    String
+  metadata       String?
+  ipAddress      String?
+  userAgent      String?
+  traceId        String
+  createdAt      DateTime    @default(now())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id])
+
+  transactionId  String?
+  transaction    Transaction? @relation(fields: [transactionId], references: [id])
+
+  caseId         String?
+  case           Case?       @relation(fields: [caseId], references: [id])
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([traceId])
+}

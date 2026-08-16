@@ -1,0 +1,59 @@
+QUANTIVE — FOUNDING PILOT
+━━━━━━━━━━━━━━━━━━━━━━━
+
+POSITIONING
+"Quantive helps crypto teams cut manual compliance review, detect risk faster, and generate audit-ready reports without enterprise bloat."
+
+
+THE PROBLEM
+- 90%+ false positive rates from rules-only screening tools
+- Wallet, alert, and case data scattered across separate systems
+- Audit prep takes days instead of minutes
+- Legacy compliance tools are overbuilt for small teams and underbuilt for real workflows
+
+
+THE SOLUTION
+
+Real-time transaction monitoring — Ingest and score across Ethereum, Solana, Polygon, BNB Chain, Arbitrum, and Avalanche.
+
+Risk scoring engine — 9 configurable dimensions (high value, mixer interaction, sanctioned addresses, new wallet interaction, rapid successive txs, unusual gas, zero-value dusting, exchange wallets, velocity checks). Every flag includes a human-readable reason code.
+
+Alerting with context — Automatic alerts for HIGH and CRITICAL scores with transaction details, wallet profiles, and triggered rules. Route to Slack, Teams, Discord, PagerDuty, Jira, or email via webhooks.
+
+Case management — Built-in investigation workflow with assignment, comments, escalation, and resolution tracking. Full audit trail on every action.
+
+Compliance reporting — Generate transaction logs, risk overviews, case summaries, and audit trail exports in CSV or PDF with one click.
+
+Role-based access — Admin, analyst, and viewer roles with granular permissions per user.
+
+Immutable audit logs — Every action logged with unique trace IDs and timestamps.
+
+Automation — 55+ n8n workflow templates for alert routing, report scheduling, onboarding sequences, and compliance digests.
+
+
+IDEAL CUSTOMER PROFILE
+- Crypto exchanges
+- OTC desks
+- Wallet providers
+- Payment processors working with crypto
+- Web3 startups with compliance obligations
+- Small compliance teams that cannot afford a large internal risk stack
+
+
+FOUNDING PILOT OFFER
+
+Term: 30-day or 60-day pilot
+Onboarding: White-glove setup — we configure wallet monitoring, risk rules, and data sources
+Features: Full platform access (monitoring, scoring, alerts, cases, reports, automations)
+Support: Direct access to product team with weekly check-ins
+Pricing: Founding customer rates that persist beyond the pilot
+Roadmap: Priority feature requests and direct influence on product direction
+
+Limited spots available.
+
+
+WHY NOW
+- Regulatory pressure (FATF Travel Rule, MiCA, FinCEN) is increasing
+- Crypto transaction volume is growing faster than manual review capacity
+- Existing tools are either enterprise-expensive or too basic to be useful
+- Teams need a focused solution that delivers clear ROI in weeks, not months

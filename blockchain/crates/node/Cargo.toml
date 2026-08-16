@@ -1,0 +1,21 @@
+[package]
+name = "omnichain-node"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+omnichain-types = { path = "../types" }
+omnichain-consensus = { path = "../consensus" }
+omnichain-execution = { path = "../execution" }
+omnichain-networking = { path = "../networking" }
+omnichain-storage = { path = "../storage" }
+omnichain-crosschain = { path = "../crosschain" }
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+clap.workspace = true
+jsonrpsee.workspace = true
+futures.workspace = true

@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantive — Blockchain Compliance & Risk Monitoring Platform</title>
+  <meta name="description" content="Quantive helps crypto exchanges, wallet providers, and compliance teams monitor blockchain transactions, score wallet risk, and generate audit-ready reports.">
+  <meta name="keywords" content="blockchain compliance software, crypto transaction monitoring, wallet risk scoring, AML/KYT tools, blockchain analytics">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0..1&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       RESET & VARIABLES
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --surface: #131313;
+      --surface-low: #1b1b1b;
+      --surface-container: #1f1f1f;
+      --surface-high: #2a2a2a;
+      --surface-variant: #353535;
+      --primary: #facc15;
+      --primary-dim: #e6b800;
+      --primary-bg: rgba(250, 204, 21, 0.1);
+      --primary-border: rgba(250, 204, 21, 0.2);
+      --on-surface: #e2e2e2;
+      --on-surface-variant: #a0a0a4;
+      --on-surface-muted: #646468;
+      --error: #ffb4ab;
+      --error-bg: rgba(255, 180, 171, 0.1);
+      --success: #4ade80;
+      --border: rgba(255,255,255,0.07);
+      --border-light: rgba(255,255,255,0.04);
+      --radius-sm: 6px;
+      --radius: 8px;
+      --radius-card: 10px;
+      --max-width: 1240px;
+      --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      background: var(--surface);
+      color: var(--on-surface);
+    }
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 32px; }
+    @media (max-width: 768px) { .container { padding: 0 20px; } }
+    a { color: var(--primary); text-decoration: none; }
+
+    /* ============================================================
+       NAV
+       ============================================================ */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(19,19,19,0.92); backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .container { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .logo { font-weight: 700; font-size: 1.05rem; color: var(--on-surface); display: flex; align-items: center; gap: 8px; }
+    .logo-mark { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; }
+    .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
+    .nav-links a { color: var(--on-surface-variant); font-size: 0.8125rem; font-weight: 500; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--on-surface); }
+    .nav-cta {
+      background: var(--primary); color: #000 !important; padding: 7px 20px; border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 0.8125rem; transition: background 0.15s;
+    }
+    .nav-cta:hover { background: #ffd84d !important; color: #000 !important; }
+    .mobile-toggle { display: none; background: none; border: none; color: var(--on-surface); font-size: 1.25rem; cursor: pointer; padding: 4px; }
+
+    /* ============================================================
+       BUTTONS
+       ============================================================ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 24px; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.875rem;
+      border: none; cursor: pointer; transition: background 0.15s, border-color 0.15s; text-decoration: none; line-height: 1.4;
+    }
+    .btn-primary { background: var(--primary); color: #000; }
+    .btn-primary:hover { background: #ffd84d; }
+    .btn-secondary { background: transparent; color: var(--on-surface); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+
+    /* ============================================================
+       SECTIONS
+       ============================================================ */
+    section { padding: 100px 0; }
+    @media (max-width: 768px) { section { padding: 56px 0; } }
+    .section-label {
+      font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--primary); margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 2.25rem; font-weight: 600; color: var(--on-surface); line-height: 1.2;
+      letter-spacing: -0.5px; margin-bottom: 14px;
+    }
+    @media (max-width: 768px) { .section-title { font-size: 1.5rem; } }
+    .section-sub { font-size: 0.9375rem; color: var(--on-surface-variant); max-width: 560px; line-height: 1.7; }
+
+    /* ============================================================
+       ANIMATIONS
+       ============================================================ */
+    .fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    .fade-in { opacity: 0; transition: opacity 0.8s ease; }
+    .fade-in.visible { opacity: 1; }
+
+    /* ============================================================
+       HERO
+       ============================================================ */
+    #hero { padding: 140px 0 80px; position: relative; overflow: hidden; }
+    #hero::before {
+      content: ''; position: absolute; top: -30%; right: -10%; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(250,204,21,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    @media (max-width: 1024px) { .hero-grid { grid-template-columns: 1fr; gap: 40px; } }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 4px;
+      font-size: 0.71875rem; color: var(--on-surface-variant); border: 1px solid var(--border); font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: 3.25rem; font-weight: 700; color: var(--on-surface); line-height: 1.08;
+      letter-spacing: -1.2px; margin-bottom: 20px;
+    }
+    .hero h1 .hl { color: var(--primary); }
+    @media (max-width: 1024px) { .hero h1 { font-size: 2.5rem; } }
+    @media (max-width: 768px) { .hero h1 { font-size: 2rem; } }
+    .hero p { font-size: 1.05rem; color: var(--on-surface-variant); line-height: 1.7; max-width: 480px; margin-bottom: 32px; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-metrics {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
+      margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--border);
+    }
+    @media (max-width: 768px) { .hero-metrics { grid-template-columns: 1fr; gap: 12px; } }
+    .hero-metric h3 { font-size: 1.5rem; font-weight: 600; color: var(--primary); margin-bottom: 2px; }
+    .hero-metric p { font-size: 0.75rem; color: var(--on-surface-muted); margin-bottom: 0; }
+
+    /* Dashboard preview (matching real product) */
+    .dash-preview {
+      background: var(--surface-container); border: 1px solid var(--border);
+      border-radius: var(--radius-card); overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+    .dash-sidebar {
+      background: var(--surface); width: 56px; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 20px;
+    }
+    .dash-sidebar .ms { font-size: 20px; color: var(--on-surface-muted); }
+    .dash-sidebar .ms.active { color: var(--primary); }
+    .dash-main { flex: 1; }
+    .dash-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface-low);
+    }
+    .dash-topbar .search { display: flex; align-items: center; gap: 8px; color: var(--on-surface-muted); font-size: 0.75rem; }
+    .dash-topbar .search .ms { font-size: 16px; }
+    .dash-topbar .status { display: flex; align-items: center; gap: 6px; font-size: 0.625rem; color: var(--on-surface-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .dash-topbar .status-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; }
+    .dash-body { padding: 16px; }
+    .dash-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .dash-kpi {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .dash-kpi .label { font-size: 0.625rem; color: var(--on-surface-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .dash-kpi .value { font-size: 1.25rem; font-weight: 600; margin-top: 2px; }
+    .dash-kpi .value.gold { color: var(--primary); }
+    .dash-kpi .value.white { color: var(--on-surface); }
+    .dash-kpi .value.red { color: var(--error); }
+    .dash-kpi .sub { font-size: 0.625rem; color: var(--on-surface-muted); display: flex; align-items: center; gap: 4px; }
+    .dash-section-title { font-size: 0.6875rem; color: var(--on-surface-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .dash-table { width: 100%; border-collapse: collapse; font-size: 0.6875rem; }
+    .dash-table th { text-align: left; padding: 8px 6px; color: var(--on-surface-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; border-bottom: 1px solid var(--border); font-size: 0.625rem; }
+    .dash-table td { padding: 8px 6px; border-bottom: 1px solid var(--border-light); }
+    .dash-table .mono { font-family: var(--font-mono); font-size: 0.625rem; color: var(--on-surface-variant); }
+    .dash-table .val { font-weight: 500; }
+    .risk-badge { font-size: 0.5625rem; font-weight: 600; padding: 2px 7px; border-radius: 2px; }
+    .risk-low { background: rgba(74,222,128,0.12); color: #4ade80; }
+    .risk-med { background: var(--primary-bg); color: var(--primary); }
+    .risk-high { background: var(--error-bg); color: var(--error); }
+    .risk-crit { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+    .dash-chart {
+      display: flex; align-items: flex-end; gap: 4px; height: 48px; margin: 8px 0 12px; padding: 0 2px;
+    }
+    .dash-chart .bar {
+      flex: 1; background: var(--primary); border-radius: 2px 2px 0 0; opacity: 0.6; height: var(--h);
+      transition: opacity 0.2s;
+    }
+    .dash-chart .bar:nth-child(-n+3) { background: var(--error); }
+
+    /* ============================================================
+       CONTEXT / PROBLEM
+       ============================================================ */
+    #context { background: var(--surface-low); }
+    .context-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    @media (max-width: 768px) { .context-grid { grid-template-columns: 1fr; gap: 40px; } }
+    .context-list { list-style: none; margin-top: 24px; }
+    .context-list li {
+      display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border-light);
+    }
+    .context-list li:last-child { border-bottom: none; }
+    .context-marker { width: 5px; height: 5px; min-width: 5px; background: var(--error); border-radius: 50%; margin-top: 8px; }
+    .context-list strong { color: var(--on-surface); font-weight: 500; font-size: 0.9375rem; display: block; margin-bottom: 2px; }
+    .context-list p { font-size: 0.8125rem; color: var(--on-surface-muted); line-height: 1.6; }
+
+    .cost-card {
+      background: var(--surface-container); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px;
+    }
+    .cost-card h4 { color: var(--on-surface); font-size: 0.875rem; font-weight: 500; margin-bottom: 20px; }
+    .cost-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 0.8125rem; }
+    .cost-row:last-of-type { border-bottom: none; }
+    .cost-label { color: var(--on-surface-muted); }
+    .cost-value { color: var(--on-surface); font-weight: 500; }
+    .cost-total {
+      margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(250,204,21,0.3);
+      display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9375rem;
+    }
+    .cost-total .cost-label { color: var(--primary); }
+    .cost-total .cost-value { color: var(--primary); }
+
+    /* ============================================================
+       HOW IT WORKS
+       ============================================================ */
+    #how-it-works { text-align: center; }
+    #how-it-works .section-sub { margin: 0 auto; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; text-align: left; }
+    @media (max-width: 768px) { .steps { grid-template-columns: 1fr; } }
+    .step {
+      background: var(--surface-container); border: 1px solid var(--border); border-radius: var(--radius-card);
+      padding: 28px; position: relative; transition: border-color 0.2s;
+    }
+    .step:hover { border-color: var(--primary-border); }
+    .step-num {
+      font-size: 0.6875rem; font-weight: 600; color: var(--primary); letter-spacing: 1px;
+      margin-bottom: 14px; text-transform: uppercase;
+    }
+    .step h3 { font-size: 1rem; font-weight: 600; color: var(--on-surface); margin-bottom: 8px; letter-spacing: -0.2px; }
+    .step p { font-size: 0.8125rem; color: var(--on-surface-muted); line-height: 1.7; }
+    .step-icon {
+      width: 36px; height: 36px; background: var(--primary-bg); border: 1px solid var(--primary-border);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px; color: var(--primary); font-size: 0.75rem;
+    }
+
+    /* ============================================================
+       FEATURES
+       ============================================================ */
+    #features { background: var(--surface-low); }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 1024px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .features-grid { grid-template-columns: 1fr; } }
+    .feature-card {
+      background: var(--surface-container); border: 1px solid var(--border); border-radius: var(--radius-card);
+      padding: 28px; transition: border-color 0.15s;
+    }
+    .feature-card:hover { border-color: var(--primary-border); }
+    .feature-icon {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px; color: var(--primary); background: var(--primary-bg); border-radius: var(--radius-sm);
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .feature-card h3 { font-size: 0.9375rem; font-weight: 600; color: var(--on-surface); margin-bottom: 6px; }
+    .feature-card p { font-size: 0.8125rem; color: var(--on-surface-muted); line-height: 1.65; }
+
+    /* ============================================================
+       DASHBOARD SLIDE (full-width product preview)
+       ============================================================ */
+    #product-preview { padding: 0 0 100px; }
+    #product-preview .container { max-width: 1100px; }
+    .product-mockup {
+      background: var(--surface-container); border: 1px solid var(--border); border-radius: var(--radius-card);
+      overflow: hidden;
+    }
+    .mockup-header {
+      display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+      border-bottom: 1px solid var(--border); background: var(--surface);
+    }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mockup-dot:nth-child(1) { background: #ff5f56; }
+    .mockup-dot:nth-child(2) { background: #ffbd2e; }
+    .mockup-dot:nth-child(3) { background: #27c93f; }
+    .mockup-title { font-size: 0.75rem; color: var(--on-surface-muted); margin-left: 4px; }
+    .mockup-body { display: flex; min-height: 340px; }
+    .mockup-sidebar {
+      width: 56px; background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 20px;
+    }
+    .mockup-sidebar .ms { font-size: 20px; color: var(--on-surface-muted); }
+    .mockup-sidebar .ms.active { color: var(--primary); }
+    .mockup-content {
+      flex: 1; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+    .mockup-col { display: flex; flex-direction: column; gap: 14px; }
+    .mockup-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px;
+    }
+    .mockup-card .mc-label { font-size: 0.625rem; color: var(--on-surface-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .mockup-card .mc-value { font-size: 1.5rem; font-weight: 600; margin-top: 4px; }
+    .mockup-card .mc-value.gold { color: var(--primary); }
+    .mockup-card .mc-value.white { color: var(--on-surface); }
+    .mockup-card .mc-value.red { color: var(--error); }
+    .mockup-card .mc-bar {
+      height: 4px; background: var(--surface-variant); border-radius: 2px; margin-top: 8px; overflow: hidden;
+    }
+    .mockup-card .mc-bar-fill { height: 100%; background: var(--primary); border-radius: 2px; width: var(--w, 60%); }
+    .mockup-card .mc-bar-fill.red { background: var(--error); }
+    .mockup-card .mc-row {
+      display: flex; justify-content: space-between; align-items: center; padding: 6px 0;
+      border-bottom: 1px solid var(--border-light); font-size: 0.6875rem;
+    }
+    .mockup-card .mc-row:last-child { border-bottom: none; }
+    .mockup-card .mc-row .mono { font-family: var(--font-mono); font-size: 0.625rem; color: var(--on-surface-variant); }
+    .mockup-card .mc-row .r { font-weight: 500; font-size: 0.6875rem; display: flex; align-items: center; gap: 6px; }
+
+    /* ============================================================
+       SECURITY
+       ============================================================ */
+    #security { text-align: center; }
+    #security .section-sub { margin: 0 auto; }
+    .security-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 44px; text-align: left; }
+    @media (max-width: 1024px) { .security-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .security-grid { grid-template-columns: 1fr; } }
+    .security-item { background: var(--surface-container); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .security-item h4 { color: var(--on-surface); font-size: 0.875rem; font-weight: 500; margin-bottom: 4px; }
+    .security-item p { font-size: 0.75rem; color: var(--on-surface-muted); line-height: 1.6; }
+    .security-item .ms { font-size: 20px; color: var(--primary); display: block; margin-bottom: 10px; }
+
+    /* ============================================================
+       USE CASES
+       ============================================================ */
+    #use-cases { background: var(--surface-low); text-align: center; }
+    #use-cases .section-sub { margin: 0 auto; }
+    .usecases-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; text-align: left; }
+    @media (max-width: 768px) { .usecases-grid { grid-template-columns: 1fr; } }
+    .usecase-card {
+      background: var(--surface-container); border: 1px solid var(--border); border-radius: var(--radius-card);
+      padding: 28px; transition: border-color 0.15s;
+    }
+    .usecase-card:hover { border-color: var(--primary-border); }
+    .usecase-card .ms { font-size: 24px; color: var(--primary); display: block; margin-bottom: 12px; }
+    .usecase-card h3 { color: var(--on-surface); font-size: 0.9375rem; font-weight: 600; margin-bottom: 6px; }
+    .usecase-card p { font-size: 0.8125rem; color: var(--on-surface-muted); line-height: 1.65; }
+
+    /* ============================================================
+       TESTIMONIALS
+       ============================================================ */
+    #testimonials { text-align: center; }
+    #testimonials .section-sub { margin: 0 auto; }
+    .testimonial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 44px; text-align: left; }
+    @media (max-width: 768px) { .testimonial-grid { grid-template-columns: 1fr; } }
+    .testimonial-card {
+      background: var(--surface-container); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 28px;
+    }
+    .testimonial-card blockquote { font-size: 0.875rem; color: var(--on-surface); line-height: 1.7; margin-bottom: 20px; }
+    .testimonial-author { display: flex; align-items: center; gap: 10px; }
+    .testimonial-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--surface-variant);
+      display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 600; font-size: 0.6875rem;
+    }
+    .testimonial-name { font-weight: 500; color: var(--on-surface); font-size: 0.8125rem; }
+    .testimonial-role { font-size: 0.6875rem; color: var(--on-surface-muted); }
+
+    /* ============================================================
+       FAQ
+       ============================================================ */
+    #faq { max-width: 680px; margin: 0 auto; }
+    #faq .section-label, #faq .section-title { text-align: center; }
+    .faq-item { border-bottom: 1px solid var(--border-light); }
+    .faq-question {
+      width: 100%; background: none; border: none; color: var(--on-surface);
+      font-size: 0.9375rem; font-weight: 500; padding: 18px 0; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center; text-align: left;
+      font-family: inherit; transition: color 0.15s;
+    }
+    .faq-question:hover { color: var(--primary); }
+    .faq-question::after { content: '+'; font-size: 1.125rem; color: var(--on-surface-muted); font-weight: 400; }
+    .faq-item.open .faq-question::after { content: '\2212'; }
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+    .faq-item.open .faq-answer { max-height: 300px; padding-bottom: 18px; }
+    .faq-answer p { font-size: 0.8125rem; color: var(--on-surface-muted); line-height: 1.7; }
+
+    /* ============================================================
+       CTA
+       ============================================================ */
+    #cta { text-align: center; padding: 100px 0; position: relative; overflow: hidden; }
+    #cta::before {
+      content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(250,204,21,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    #cta h2 { font-size: 2.25rem; font-weight: 600; color: var(--on-surface); margin-bottom: 10px; letter-spacing: -0.5px; }
+    @media (max-width: 768px) { #cta h2 { font-size: 1.5rem; } }
+    #cta p { font-size: 0.9375rem; color: var(--on-surface-variant); max-width: 440px; margin: 0 auto 24px; }
+    #cta .hero-actions { justify-content: center; }
+
+    /* ============================================================
+       FOOTER
+       ============================================================ */
+    footer { border-top: 1px solid var(--border); padding: 32px 0; }
+    footer .container { display: flex; justify-content: space-between; align-items: center; }
+    @media (max-width: 768px) { footer .container { flex-direction: column; gap: 12px; text-align: center; } }
+    footer p { font-size: 0.75rem; color: var(--on-surface-muted); }
+    .footer-links { display: flex; gap: 20px; list-style: none; }
+    .footer-links a { font-size: 0.75rem; color: var(--on-surface-muted); transition: color 0.15s; }
+    .footer-links a:hover { color: var(--on-surface-variant); }
+
+    /* ============================================================
+       MOBILE NAV
+       ============================================================ */
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none; position: absolute; top: 60px; left: 0; right: 0;
+        background: var(--surface-low); flex-direction: column; padding: 20px 32px; gap: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .nav-links.open { display: flex; }
+      .mobile-toggle { display: block; }
+      .product-mockup { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <div class="logo"><span class="logo-mark"></span> Quantive</div>
+    <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">&#9776;</button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#security">Security</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#pilot" class="nav-cta">Join founding pilot</a></li>
+    </ul>
+  </div>
+</nav>
+
+<section id="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="fade-up">
+        <div class="hero-tag">Founding pilot &middot; Limited spots available</div>
+        <h1>Cut manual compliance review <span class="hl">without enterprise bloat</span>.</h1>
+        <p>Quantive helps crypto teams detect risky transactions, score wallets, and generate audit-ready reports — minus the noise.</p>
+        <div class="hero-actions">
+          <a href="#pilot" class="btn btn-primary">Apply for founding pilot</a>
+          <a href="#product-preview" class="btn btn-secondary">See the product</a>
+        </div>
+        <div class="hero-metrics">
+          <div class="hero-metric">
+            <h3>30–60 day</h3>
+            <p>Founding pilot term</p>
+          </div>
+          <div class="hero-metric">
+            <h3>9 risk</h3>
+            <p>Scoring dimensions</p>
+          </div>
+          <div class="hero-metric">
+            <h3>&lt;200ms</h3>
+            <p>Per-transaction assessment</p>
+          </div>
+        </div>
+      </div>
+      <div class="fade-in">
+        <div class="dash-preview">
+          <div style="display:flex;">
+            <div class="dash-sidebar">
+              <span class="material-symbols-outlined ms active">dashboard</span>
+              <span class="material-symbols-outlined ms">swap_horiz</span>
+              <span class="material-symbols-outlined ms">warning</span>
+              <span class="material-symbols-outlined ms">folder_shared</span>
+              <span class="material-symbols-outlined ms">assessment</span>
+              <span class="material-symbols-outlined ms">settings</span>
+            </div>
+            <div class="dash-main">
+              <div class="dash-topbar">
+                <div class="search"><span class="material-symbols-outlined">search</span> Search transactions, wallets, or cases...</div>
+                <div class="status"><span class="status-dot"></span> Ethereum Mainnet</div>
+              </div>
+              <div class="dash-body">
+                <div class="dash-kpis">
+                  <div class="dash-kpi">
+                    <div class="label">Total risk score</div>
+                    <div class="value red">78.4</div>
+                    <div class="sub"><span style="color:var(--error);">+12%</span> vs yesterday</div>
+                  </div>
+                  <div class="dash-kpi">
+                    <div class="label">Active alerts</div>
+                    <div class="value gold">142</div>
+                    <div class="sub"><span style="color:#4ade80;">&bull;</span> 8 critical</div>
+                  </div>
+                  <div class="dash-kpi">
+                    <div class="label">Pending cases</div>
+                    <div class="value white">24</div>
+                    <div class="sub"><span style="color:#4ade80;">&darr;</span> 4 resolved today</div>
+                  </div>
+                  <div class="dash-kpi">
+                    <div class="label">Volume 24h</div>
+                    <div class="value gold">$1.2B</div>
+                    <div class="sub">Across 6 chains</div>
+                  </div>
+                </div>
+                <div class="dash-section-title">Recent high-risk transactions</div>
+                <table class="dash-table">
+                  <thead>
+                    <tr><th>Tx hash</th><th>From</th><th>To</th><th>Amount</th><th>Risk</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">0x8f3a...b1e2</td>
+                      <td class="mono">0x1a2b...c3d4</td>
+                      <td class="mono">0x9e8f...7a6b</td>
+                      <td class="val">892 ETH</td>
+                      <td><span class="risk-badge risk-high">High</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">0xd4e5...f6a7</td>
+                      <td class="mono">0x4d5e...f6g7</td>
+                      <td class="mono">0x2h3i...j8k9</td>
+                      <td class="val">2,450 ETH</td>
+                      <td><span class="risk-badge risk-crit">Critical</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">0xb8c9...d0e1</td>
+                      <td class="mono">0x7l8m...n9o0</td>
+                      <td class="mono">0x1p2q...r3s4</td>
+                      <td class="val">0.02 ETH</td>
+                      <td><span class="risk-badge risk-med">Medium</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">0xa2b3...c4d5</td>
+                      <td class="mono">0x5t6u...v7w8</td>
+                      <td class="mono">0x9x0y...z1a2</td>
+                      <td class="val">14.5 ETH</td>
+                      <td><span class="risk-badge risk-low">Low</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="context">
+  <div class="container">
+    <div class="context-grid">
+      <div class="fade-up">
+        <span class="section-label">The problem</span>
+        <h2 class="section-title">Manual compliance does not scale onchain.</h2>
+        <p class="section-sub">Legacy screening tools generate excessive false positives, scatter data across silos, and require days of preparation for audits.</p>
+        <ul class="context-list">
+          <li>
+            <span class="context-marker"></span>
+            <div>
+              <strong>False positive overload</strong>
+              <p>Rules-only engines flag 90%+ false positives, consuming analyst hours on non-risks.</p>
+            </div>
+          </li>
+          <li>
+            <span class="context-marker"></span>
+            <div>
+              <strong>Fragmented data</strong>
+              <p>Wallets, transactions, alerts, and cases live across separate systems with no unified view.</p>
+            </div>
+          </li>
+          <li>
+            <span class="context-marker"></span>
+            <div>
+              <strong>Slow audit preparation</strong>
+              <p>Compiling audit trails and compliance reports takes days instead of minutes.</p>
+            </div>
+          </li>
+          <li>
+            <span class="context-marker"></span>
+            <div>
+              <strong>Volume bottlenecks</strong>
+              <p>As transaction volume grows, legacy infrastructure cannot keep pace.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="fade-up">
+        <div class="cost-card">
+          <h4>Estimated annual cost of manual compliance</h4>
+          <div class="cost-row"><span class="cost-label">Analyst time on false positives</span><span class="cost-value">$127,000</span></div>
+          <div class="cost-row"><span class="cost-label">Audit preparation</span><span class="cost-value">$48,000</span></div>
+          <div class="cost-row"><span class="cost-label">Unflagged risk incidents</span><span class="cost-value">$320,000</span></div>
+          <div class="cost-row"><span class="cost-label">Tooling and infrastructure</span><span class="cost-value">$85,000</span></div>
+          <div class="cost-total"><span class="cost-label">Total per year</span><span class="cost-value">$580,000+</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works">
+  <div class="container">
+    <span class="section-label">How it works</span>
+    <h2 class="section-title">From transaction to decision in three steps.</h2>
+    <p class="section-sub">Quantive ingests blockchain data, applies risk rules, and surfaces actionable cases for analyst review &mdash; no black boxes.</p>
+    <div class="steps">
+      <div class="step fade-up">
+        <div class="step-icon"><span class="material-symbols-outlined" style="font-size:18px;">download</span></div>
+        <div class="step-num">Step 1</div>
+        <h3>Ingest and normalize</h3>
+        <p>Connect via blockchain APIs, webhooks, or CSV import. Data is normalized across chains into a single queryable format with wallet resolution.</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-icon"><span class="material-symbols-outlined" style="font-size:18px;">speed</span></div>
+        <div class="step-num">Step 2</div>
+        <h3>Score and alert</h3>
+        <p>Rule-based risk scoring evaluates every transaction across nine dimensions. High-risk events trigger alerts with specific reason codes for full transparency.</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-icon"><span class="material-symbols-outlined" style="font-size:18px;">description</span></div>
+        <div class="step-num">Step 3</div>
+        <h3>Review and report</h3>
+        <p>Analysts investigate cases, document findings, and close with resolution notes. Generate audit-ready reports in CSV or PDF with one click.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <span class="section-label">Capabilities</span>
+    <h2 class="section-title">Everything a compliance team needs.</h2>
+    <p class="section-sub" style="margin-bottom:48px;">Built for teams that require speed, accuracy, and complete audit trails across every action.</p>
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">monitoring</span></div>
+        <h3>Real-time monitoring</h3>
+        <p>Ingest and score transactions across Ethereum, Solana, Polygon, and more. Sub-200ms assessment per transaction at any volume.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">scale</span></div>
+        <h3>Rule-based risk scoring</h3>
+        <p>Configurable engine with nine risk dimensions. Every flag includes a specific reason code. AI-assisted scoring available but never final without human review.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">notifications_active</span></div>
+        <h3>Alerting with context</h3>
+        <p>Multi-severity alerts include the specific rules triggered, transaction details, and wallet profiles so analysts understand every flag immediately.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">folder_shared</span></div>
+        <h3>Case management</h3>
+        <p>Built-in workflow for assigning, commenting, escalating, and closing cases. Full audit trail on every action with timestamps and actor IDs.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">assessment</span></div>
+        <h3>Audit-ready reports</h3>
+        <p>Export transaction logs, risk overviews, case summaries, and full audit trails as CSV or PDF. Ready for regulators in one click.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">security</span></div>
+        <h3>Role-based access</h3>
+        <p>Granular permissions per user. Admins, analysts, and viewers each see only what they need. SSO and SAML available for enterprise.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">receipt_long</span></div>
+        <h3>Immutable audit logs</h3>
+        <p>Every action &mdash; every view, edit, and decision &mdash; is logged with unique trace IDs and timestamps. Tamper-proof by design.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">api</span></div>
+        <h3>API and webhooks</h3>
+        <p>REST API for programmatic access. Webhooks for alerting Slack, Teams, PagerDuty, or any custom endpoint with automatic retry.</p>
+      </div>
+      <div class="feature-card fade-up">
+        <div class="feature-icon"><span class="material-symbols-outlined" style="font-size:18px;">layers</span></div>
+        <h3>Multi-tenant architecture</h3>
+        <p>Fully isolated data per organization. Suitable for MSPs, multi-jurisdiction firms, and holding companies with strict data boundaries.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="product-preview">
+  <div class="container">
+    <div class="fade-up">
+      <div class="product-mockup">
+        <div class="mockup-header">
+          <span class="mockup-dot"></span>
+          <span class="mockup-dot"></span>
+          <span class="mockup-dot"></span>
+          <span class="mockup-title">Quantive &mdash; Compliance Dashboard</span>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-sidebar">
+            <span class="material-symbols-outlined ms active">dashboard</span>
+            <span class="material-symbols-outlined ms">swap_horiz</span>
+            <span class="material-symbols-outlined ms">warning</span>
+            <span class="material-symbols-outlined ms">folder_shared</span>
+            <span class="material-symbols-outlined ms">assessment</span>
+            <span class="material-symbols-outlined ms">settings</span>
+          </div>
+          <div class="mockup-content">
+            <div class="mockup-col">
+              <div class="mockup-card">
+                <div class="mc-label">Overall risk score</div>
+                <div class="mc-value gold">42.6</div>
+                <div style="display:flex;gap:16px;margin-top:6px;font-size:0.625rem;color:var(--on-surface-muted);">
+                  <span>High: 32%</span>
+                  <span>Medium: 48%</span>
+                  <span>Low: 20%</span>
+                </div>
+                <div class="mc-bar"><div class="mc-bar-fill red" style="width:32%;"></div></div>
+              </div>
+              <div class="mockup-card">
+                <div class="mc-label">Active alerts by severity</div>
+                <div style="display:flex;gap:6px;margin-top:8px;">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <span style="font-size:1.25rem;font-weight:600;color:var(--error);">12</span>
+                    <span style="font-size:0.5625rem;color:var(--on-surface-muted);text-transform:uppercase;">Critical</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <span style="font-size:1.25rem;font-weight:600;color:var(--primary);">38</span>
+                    <span style="font-size:0.5625rem;color:var(--on-surface-muted);text-transform:uppercase;">High</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <span style="font-size:1.25rem;font-weight:600;color:var(--on-surface);">72</span>
+                    <span style="font-size:0.5625rem;color:var(--on-surface-muted);text-transform:uppercase;">Medium</span>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                    <span style="font-size:1.25rem;font-weight:600;color:#4ade80;">20</span>
+                    <span style="font-size:0.5625rem;color:var(--on-surface-muted);text-transform:uppercase;">Low</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mockup-col">
+              <div class="mockup-card">
+                <div class="mc-label" style="margin-bottom:6px;">Risk distribution</div>
+                <div class="dash-chart">
+                  <div class="bar" style="--h:100%;"></div>
+                  <div class="bar" style="--h:85%;"></div>
+                  <div class="bar" style="--h:92%;"></div>
+                  <div class="bar" style="--h:45%;"></div>
+                  <div class="bar" style="--h:60%;"></div>
+                  <div class="bar" style="--h:30%;"></div>
+                  <div class="bar" style="--h:55%;"></div>
+                  <div class="bar" style="--h:70%;"></div>
+                  <div class="bar" style="--h:40%;"></div>
+                  <div class="bar" style="--h:25%;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.5625rem;color:var(--on-surface-muted);">
+                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+              </div>
+              <div class="mockup-card" style="flex:1;">
+                <div class="mc-label" style="margin-bottom:6px;">Recent transactions</div>
+                <div class="mc-row"><span class="mono">0x8f3a...b1e2</span><span class="r">892 ETH <span class="risk-badge risk-high">High</span></span></div>
+                <div class="mc-row"><span class="mono">0xd4e5...f6a7</span><span class="r">2,450 ETH <span class="risk-badge risk-crit">Critical</span></span></div>
+                <div class="mc-row"><span class="mono">0xb8c9...d0e1</span><span class="r">0.02 ETH <span class="risk-badge risk-med">Medium</span></span></div>
+                <div class="mc-row"><span class="mono">0xa2b3...c4d5</span><span class="r">14.5 ETH <span class="risk-badge risk-low">Low</span></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="security">
+  <div class="container">
+    <span class="section-label">Trust and security</span>
+    <h2 class="section-title">Built for regulated environments.</h2>
+    <p class="section-sub">Architected from the ground up for security, privacy, and compliance.</p>
+    <div class="security-grid">
+      <div class="security-item fade-up"><span class="material-symbols-outlined">lock</span><h4>Encryption at rest and in transit</h4><p>AES-256 for stored data. TLS 1.3 for all communications.</p></div>
+      <div class="security-item fade-up"><span class="material-symbols-outlined">layers</span><h4>Data isolation</h4><p>Strict multi-tenant separation. Your data is never commingled.</p></div>
+      <div class="security-item fade-up"><span class="material-symbols-outlined">qr_code</span><h4>Traceable actions</h4><p>Every event tagged with a unique trace ID. Full chain of custody.</p></div>
+      <div class="security-item fade-up"><span class="material-symbols-outlined">psychology</span><h4>Explainable decisions</h4><p>Every risk score includes readable reason codes. AI assists, humans decide.</p></div>
+      <div class="security-item fade-up"><span class="material-symbols-outlined">speed</span><h4>Rate-limited APIs</h4><p>Configurable per-organization rate limits. Protection against abuse.</p></div>
+      <div class="security-item fade-up"><span class="material-symbols-outlined">replay</span><h4>Retry and recovery</h4><p>Automatic retries with exponential backoff. No data loss on failures.</p></div>
+      <div class="security-item fade-up"><span class="material-symbols-outlined">file_copy</span><h4>Audit trail export</h4><p>Full logs exportable on demand. Ready for SOC 2 and regulatory review.</p></div>
+      <div class="security-item fade-up"><span class="material-symbols-outlined">badge</span><h4>SSO integration</h4><p>SAML and OIDC support for enterprise customers. Role mapping from your IdP.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="use-cases">
+  <div class="container">
+    <span class="section-label">Who it is for</span>
+    <h2 class="section-title">Purpose-built for crypto and fintech teams.</h2>
+    <p class="section-sub">Quantive is designed for the specific workflows of each team in the crypto compliance ecosystem.</p>
+    <div class="usecases-grid">
+      <div class="usecase-card fade-up"><span class="material-symbols-outlined">account_balance</span><h3>Crypto exchanges</h3><p>Monitor deposits and withdrawals for AML compliance. Detect suspicious patterns before regulators ask.</p></div>
+      <div class="usecase-card fade-up"><span class="material-symbols-outlined">wallet</span><h3>Wallet providers</h3><p>Score wallet risk in real time. Flag interactions with mixers, sanctioned addresses, and high-risk counterparties.</p></div>
+      <div class="usecase-card fade-up"><span class="material-symbols-outlined">currency_exchange</span><h3>OTC desks</h3><p>Screen block trades before settlement. Generate compliance reports per counterparty automatically.</p></div>
+      <div class="usecase-card fade-up"><span class="material-symbols-outlined">credit_card</span><h3>Payment platforms</h3><p>Monitor crypto-to-fiat flows. Maintain audit-ready records for every transaction in one place.</p></div>
+      <div class="usecase-card fade-up"><span class="material-symbols-outlined">badge</span><h3>Compliance teams</h3><p>Replace spreadsheets with a unified case management system. Automate KYT and AML workflows.</p></div>
+      <div class="usecase-card fade-up"><span class="material-symbols-outlined">rocket_launch</span><h3>Web3 startups</h3><p>Deploy compliance infrastructure from day one. Scale monitoring as your user base grows without rebuilding.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="testimonials">
+  <div class="container">
+    <span class="section-label">Customer stories</span>
+    <h2 class="section-title">Trusted by compliance teams.</h2>
+    <div class="testimonial-grid">
+      <div class="testimonial-card fade-up">
+        <blockquote>"Quantive cut our false positive rate by 73% in the first month. Our analysts focus on real risks instead of triaging noise."</blockquote>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">MK</div>
+          <div><div class="testimonial-name">Maria Kowalski</div><div class="testimonial-role">Head of Compliance, Nova Exchange</div></div>
+        </div>
+      </div>
+      <div class="testimonial-card fade-up">
+        <blockquote>"Audit preparation went from three days to fifteen minutes. The reporting infrastructure alone saved our team hundreds of hours."</blockquote>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">JR</div>
+          <div><div class="testimonial-name">James Reiner</div><div class="testimonial-role">CCO, Solstice Payments</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pilot">
+  <div class="container">
+    <div class="context-grid" style="text-align:left;">
+      <div class="fade-up">
+        <span class="section-label">Founding pilot</span>
+        <h2 class="section-title">Be an early customer, shape the product.</h2>
+        <p class="section-sub">We are selecting a small number of crypto compliance teams for a structured founding pilot. This is not beta access — it is a real product with dedicated support and direct influence on the roadmap.</p>
+        <ul class="context-list">
+          <li>
+            <span class="context-marker" style="background:var(--primary);"></span>
+            <div>
+              <strong>30-day or 60-day pilot</strong>
+              <p>Choose the term that fits your evaluation cycle. Full platform access from day one.</p>
+            </div>
+          </li>
+          <li>
+            <span class="context-marker" style="background:var(--primary);"></span>
+            <div>
+              <strong>White-glove onboarding</strong>
+              <p>We set up wallet monitoring, configure risk rules, and connect your data sources. Done for you.</p>
+            </div>
+          </li>
+          <li>
+            <span class="context-marker" style="background:var(--primary);"></span>
+            <div>
+              <strong>Founding customer pricing</strong>
+              <p>Lock in preferential rates that persist beyond the pilot. No enterprise markups.</p>
+            </div>
+          </li>
+          <li>
+            <span class="context-marker" style="background:var(--primary);"></span>
+            <div>
+              <strong>Direct access to product team</strong>
+              <p>Your feedback goes straight to the roadmap. Priority feature requests and weekly check-ins.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="fade-up">
+        <div class="cost-card" style="padding:32px;">
+          <h4 style="font-size:1rem;margin-bottom:8px;">What you get</h4>
+          <div class="cost-row"><span class="cost-label">Wallet monitoring setup</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div class="cost-row"><span class="cost-label">Alert review workflow</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div class="cost-row"><span class="cost-label">Custom compliance reporting</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div class="cost-row"><span class="cost-label">Audit-ready exports (CSV / PDF)</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div class="cost-row"><span class="cost-label">Risk scoring engine</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div class="cost-row"><span class="cost-label">Multi-chain support</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div class="cost-row"><span class="cost-label">n8n automation workflows</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div class="cost-row"><span class="cost-label">Priority feature requests</span><span class="cost-value" style="color:var(--success);">&checkmark;</span></div>
+          <div style="margin-top:20px;">
+            <a href="#" class="btn btn-primary" style="width:100%;">Apply for founding pilot</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <span class="section-label">FAQ</span>
+    <h2 class="section-title">Frequently asked questions.</h2>
+    <div class="faq-item">
+      <button class="faq-question">What blockchains do you support?</button>
+      <div class="faq-answer"><p>Quantive supports Ethereum, Solana, Polygon, BNB Chain, Avalanche, and Arbitrum. Additional chains can be added on request during the pilot.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">How does risk scoring work?</button>
+      <div class="faq-answer"><p>The risk engine uses a configurable rule-based system. Each transaction is evaluated across nine dimensions including value thresholds, mixer interactions, sanctioned address lookups, and new wallet patterns. Every flag includes a specific reason code.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">What is the founding pilot?</button>
+      <div class="faq-answer"><p>It is a structured 30-day or 60-day program for crypto compliance teams. You get white-glove onboarding, full product access, direct communication with the product team, and founding customer pricing that carries over post-pilot. Limited spots are available.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">How long does implementation take?</button>
+      <div class="faq-answer"><p>With white-glove onboarding, most teams are operational within a day. We handle the setup — connect your data sources, configure risk rules, and set up reporting.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">Is my data secure?</button>
+      <div class="faq-answer"><p>All data is encrypted at rest (AES-256) and in transit (TLS 1.3). Multi-tenant isolation ensures data separation. Every action is logged with trace IDs for full audit trails.</p></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question">What happens after the pilot ends?</button>
+      <div class="faq-answer"><p>You can continue with your founding pricing, upgrade or downgrade your plan, or walk away — no lock-in. Pilot participants get priority access to new features and roadmap input.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="container">
+    <h2>Ready to cut compliance noise?</h2>
+    <p>Limited founding pilot spots open for crypto teams that need a better compliance workflow.</p>
+    <div class="hero-actions">
+      <a href="#pilot" class="btn btn-primary">Apply for founding pilot</a>
+      <a href="#product-preview" class="btn btn-secondary">See the product</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2026 Quantive. All rights reserved.</p>
+    <ul class="footer-links">
+      <li><a href="#">Privacy policy</a></li>
+      <li><a href="#">Terms of service</a></li>
+      <li><a href="#">Security</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+  // Mobile nav
+  (function(){
+    var t = document.getElementById('mobileToggle'), n = document.getElementById('navLinks');
+    if(t) t.addEventListener('click', function(){ n.classList.toggle('open'); });
+    if(n) n.querySelectorAll('a').forEach(function(l){ l.addEventListener('click', function(){ n.classList.remove('open'); }); });
+  })();
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-question').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var item = btn.parentElement, isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(function(i){ i.classList.remove('open'); });
+      if(!isOpen) item.classList.add('open');
+    });
+  });
+
+  // Scroll-triggered fade-up animations
+  (function(){
+    var els = document.querySelectorAll('.fade-up, .fade-in');
+    function check(){
+      for(var i=0;i<els.length;i++){
+        var rect = els[i].getBoundingClientRect();
+        if(rect.top < window.innerHeight - 60) els[i].classList.add('visible');
+      }
+    }
+    window.addEventListener('load', check);
+    window.addEventListener('scroll', check);
+    window.addEventListener('resize', check);
+    check();
+  })();
+</script>
+</body>
+</html>

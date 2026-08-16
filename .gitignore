@@ -1,0 +1,38 @@
+# Environment files
+.env
+.env.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+
+# Uploads
+uploads/
+
+# SQLite dev db
+*.db
+*.db-journal
+
+# Private business docs
+Equity/
+Ventas/
+
+# Old prototype
+APP/
