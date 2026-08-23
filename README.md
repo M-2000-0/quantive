@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quantive — Public Debt Optimization Engine
 
-## Getting Started
+Quantive models a sovereign debt portfolio, defines an optimization problem
+(financing requirement, objective weights, policy constraints, macro
+scenarios), solves it with multiple solver backends, benchmarks them, generates
+a set of distinct strategies, and stress-tests every strategy across Monte Carlo
+scenarios.
 
-First, run the development server:
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pip install -r requirements.txt        # or: pip install -e .
+python scripts/demo.py                 # end-to-end pipeline on the demo portfolio
+python -m pytest tests -q              # run the test suite
+uvicorn quantive.api.main:app --reload --port 8000   # REST API (docs at /docs)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`scripts/demo.py` runs the full pipeline with 10,000 Monte Carlo scenarios and
+prints the main strategy, four profile strategies, the solver benchmark, and the
+stress-test summary (~30 s).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What it does
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Model** — instruments (currencies, fixed/floating coupons, liquidity,
+   capacity, maturities), portfolios, problems, scenarios.
+2. **Compile** — `ProblemSpec`: a numpy-ready, solver-agnostic form of
+   portfolio + problem + scenarios (cost matrix, risk vectors, flags, buckets,
+   weights, constraint limits).
+3. **Solve** — three interchangeable backends behind one interface:
+   - `milp_cbc` — classical MILP/LP solved exactly with CBC (globally optimal);
+   - `simulated_annealing` — classical heuristic, no optimality guarantee;
+   - `qubo_annealing` — quantum-inspired QUBO-encoded annealing on a **classical
+     simulator**, explicitly labelled `QUANTUM_INSPIRED` / `SIMULATOR`.
+4. **Benchmark** — every backend on the same spec, ranked with
+   feasibility-gated, weighted min-max normalized metrics.
+5. **Strategies** — four distinct allocations (best overall, lowest risk,
+   lowest cost, stress-resilient robust minimax) under the *same* constraints.
+6. **Stress** — per-strategy average/worst financing cost and constraint
+   satisfaction across all scenarios.
 
-## Learn More
+## Documentation
 
-To learn more about Next.js, take a look at the following resources:
+- `docs/architecture.md` — system layers and design principles
+- `docs/optimization-model.md` — the mathematical model
+- `docs/solver-interface.md` — solver contract and honest quantum reporting
+- `docs/scenario-engine.md` — named + Monte Carlo scenarios and the cost model
+- `docs/benchmarking.md` — ranking methodology
+- `docs/api.md` — REST API reference
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Honest reporting
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Quantive treats quantum as a computational capability, not a marketing claim.
+Every result carries `solver_type` and `execution_backend`; the QUBO path runs
+on a classical simulator, is never claimed to come from real quantum hardware,
+and is never assumed superior to the classical solvers. The benchmark decides
+that question with data.
 
-## Deploy on Vercel
+## Repository layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+quantive/
+  models/       Pydantic domain models and enums
+  data/         synthetic portfolio generator, fixtures
+  scenarios/    named + Monte Carlo scenario engine
+  objectives/   costs, ProblemSpec, feasibility checks
+  solvers/      milp, simulated annealing, qubo, repair, registry
+  benchmark/    metrics + ranking engine
+  stress/       stress tester
+  strategies.py profile-based strategy generation
+  orchestration.py  full pipeline
+  api/          FastAPI app and routers
+  jobs/         async job manager
+tests/          pytest suite
+scripts/demo.py end-to-end demo
+docs/           this documentation
+```

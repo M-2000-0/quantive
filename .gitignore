@@ -32,9 +32,24 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+.venv/
+
+# database
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
 
 # typescript
 *.tsbuildinfo

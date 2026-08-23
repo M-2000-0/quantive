@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=change-me-in-production-use-random-value
+      - DATABASE_URL=sqlite:///./quantive.db
+      - CORS_ORIGINS=http://localhost:5173
+      - DEBUG=true
+      - RATE_LIMIT_PER_MINUTE=2000
+    volumes:
+      - backend-data:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  backend-data:
