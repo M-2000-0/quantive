@@ -75,7 +75,7 @@ export default function ReportsPage() {
   useEffect(() => {
     api.optimizations
       .list()
-      .then(setJobs)
+      .then((res) => setJobs((res as { data: OptimizationJob[] }).data || []))
       .catch(() => setJobs([]))
       .finally(() => setLoading(false));
   }, []);

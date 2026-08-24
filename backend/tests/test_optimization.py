@@ -1,5 +1,6 @@
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 
 
@@ -20,6 +21,7 @@ def test_create_optimization(auth_client, sample_portfolio_data):
     assert data["name"] == "Test Optimization"
 
 
+@pytest.mark.slow
 def test_optimization_completes(auth_client, sample_portfolio_data):
     portfolio_resp = auth_client.post("/api/portfolios", json=sample_portfolio_data)
     portfolio_id = portfolio_resp.json()["id"]
@@ -64,7 +66,9 @@ def test_list_optimizations(auth_client, sample_portfolio_data):
     })
     resp = auth_client.get("/api/optimizations")
     assert resp.status_code == 200
-    assert len(resp.json()) > 0
+    data = resp.json()
+    assert data["meta"]["total"] > 0
+    assert len(data["data"]) > 0
 
 
 def test_optimization_invalid_portfolio(auth_client):

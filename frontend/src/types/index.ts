@@ -212,3 +212,185 @@ export interface OptimizationStep {
   label: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
 }
+
+// ── Market Data Types ──────────────────────────────────────────────
+
+export interface YieldCurvePoint {
+  label: string;
+  rate_pct: number;
+  months: number;
+}
+
+export interface YieldCurve {
+  date: string;
+  source: string;
+  maturities: YieldCurvePoint[];
+  twoTenSpreadBps: number | null;
+}
+
+export interface FxRate {
+  currency: string;
+  rate: number;
+  name: string;
+  source: string;
+  date: string;
+}
+
+export interface InterestRate {
+  name: string;
+  value: number;
+  unit: string;
+  source: string;
+  date: string;
+  description: string;
+}
+
+export interface EconomicIndicator {
+  name: string;
+  value: number;
+  unit: string;
+  date: string;
+  country: string;
+  description: string;
+}
+
+export interface MarketSnapshot {
+  yield_curve: {
+    date: string;
+    source: string;
+    maturities: YieldCurvePoint[];
+    twoTenSpreadBps: number | null;
+  } | null;
+  interest_rates: {
+    rates: InterestRate[];
+    summary: Record<string, number>;
+  } | null;
+  fx_rates: Record<string, number> | null;
+  snapshot_time: string;
+}
+
+// ── Risk Types ─────────────────────────────────────────────────────
+
+export interface InvestmentScenario {
+  scenario_name: string;
+  investment: number;
+  return_amount: number;
+  return_pct: number;
+  probability: number;
+  description: string;
+}
+
+export interface RiskScore {
+  score: number;
+  label: string;
+  color: string;
+  components: Record<string, { score: number; weight: number; description: string }>;
+  recommendations: string[];
+}
+
+export interface VaRResult {
+  confidence: number;
+  horizon_days: number;
+  var_amount: number;
+  var_pct: number;
+  cvar_amount: number;
+  cvar_pct: number;
+}
+
+export interface RiskSummary {
+  portfolio_id: string;
+  portfolio_name: string;
+  investment_scenarios: InvestmentScenario[];
+  risk_score: RiskScore;
+  var_analysis: VaRResult[];
+  generated_at: string;
+}
+
+// ── Notification Types ─────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  resource_type: string | null;
+  resource_id: string | null;
+  created_at: string;
+}
+
+// ── Watchlist Types ────────────────────────────────────────────────
+
+export interface Watchlist {
+  id: string;
+  name: string;
+  description: string;
+  org_id: string;
+  created_by: string;
+  created_at: string;
+  items: WatchlistItem[];
+}
+
+export interface WatchlistItem {
+  id: string;
+  watchlist_id: string;
+  instrument_id: string;
+  instrument_name: string;
+  alert_above_pct: number | null;
+  alert_below_pct: number | null;
+  created_at: string;
+}
+
+// ── Tag Types ──────────────────────────────────────────────────────
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  org_id: string;
+  created_at: string;
+}
+
+// ── Activity Types ─────────────────────────────────────────────────
+
+export interface ActivityEvent {
+  id: string;
+  user_id: string;
+  user_email: string;
+  action: string;
+  resource_type: string;
+  resource_id: string;
+  details: Record<string, unknown>;
+  ip_address: string;
+  created_at: string;
+}
+
+// ── Comment Types ──────────────────────────────────────────────────
+
+export interface Comment {
+  id: string;
+  user_id: string;
+  user_email: string;
+  content: string;
+  resource_type: string;
+  resource_id: string;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Export Types ───────────────────────────────────────────────────
+
+export interface ExportJob {
+  id: string;
+  org_id: string;
+  user_id: string;
+  format: string;
+  status: string;
+  progress: number;
+  file_path: string | null;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+}

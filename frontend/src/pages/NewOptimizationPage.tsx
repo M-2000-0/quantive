@@ -28,7 +28,7 @@ export default function NewOptimizationPage() {
 
   useEffect(() => {
     api.portfolios.list()
-      .then(res => setPortfolios(res.portfolios))
+      .then((res) => setPortfolios((res as { data: Portfolio[] }).data || []))
       .catch(() => addToast('Failed to load portfolios', 'error'))
       .finally(() => setLoadingPortfolios(false));
   }, [addToast]);

@@ -2,6 +2,9 @@ import logging
 import threading
 from datetime import datetime, timezone
 
+import numpy as np
+
+from app.job_store import get_singleton_job_store
 from app.models import (
     BenchmarkResult,
     DebtInstrument,
@@ -15,24 +18,54 @@ from app.optimization import BenchmarkRunner, ScenarioGenerator, StrategyGenerat
 
 logger = logging.getLogger("quantive.jobs")
 
+# Get the job store instance
+_job_store = get_singleton_job_store()
+
+# Keep legacy cancel events for backwards compatibility
 _cancel_events: dict[str, threading.Event] = {}
 
 
+def _to_native(obj):
+    if isinstance(obj, dict):
+        return {k: _to_native(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_native(v) for v in obj]
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
+
 def request_cancel(job_id: str):
+    # Use the job store
+    _job_store.request_cancel(job_id)
+    # Also set legacy event for in-process cancellation
     event = _cancel_events.get(job_id)
     if event:
         event.set()
 
 
 def _check_cancelled(job_id: str):
+    # Check both job store and legacy events
+    if _job_store.is_cancelled(job_id):
+        raise InterruptedError(f"Job {job_id} was cancelled")
     event = _cancel_events.get(job_id)
     if event and event.is_set():
         raise InterruptedError(f"Job {job_id} was cancelled")
 
 
 def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
+    # Register cancel event for in-process cancellation
     cancel_event = threading.Event()
     _cancel_events[job_id] = cancel_event
+
+    # Update job store with progress
+    _job_store.update_job_progress(job_id, "running", 0.0)
 
     db = db_factory()
     try:
@@ -77,6 +110,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         job.status = JobStatus.SCENARIO_GENERATION
         job.progress = 0.1
         db.commit()
+        _job_store.update_job_progress(job_id, "scenario_generation", 0.1)
         logger.info(f"Job {job_id}: Generating scenarios")
 
         scenario_config = job.scenario_config or {}
@@ -107,6 +141,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         job.status = JobStatus.SOLVING
         job.progress = 0.3
         db.commit()
+        _job_store.update_job_progress(job_id, "solving", 0.3)
         logger.info(f"Job {job_id}: Running solvers")
 
         solver_names = job.solver_config.get("solvers", ["greedy", "mean_variance", "scenario_based"])
@@ -119,16 +154,19 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
 
         job.progress = 0.6
         db.commit()
+        _job_store.update_job_progress(job_id, "solving", 0.6)
 
         # Phase 3: Benchmark
         job.status = JobStatus.BENCHMARKING
         job.progress = 0.7
         db.commit()
+        _job_store.update_job_progress(job_id, "benchmarking", 0.7)
         logger.info(f"Job {job_id}: Benchmarking solvers")
 
         _check_cancelled(job_id)
         benchmark_runner = BenchmarkRunner()
         benchmarks = benchmark_runner.run_benchmarks(instruments_data, job.objectives, job.constraints, scenarios_data, seed)
+        benchmarks = _to_native(benchmarks)
         for bm in benchmarks:
             bench_result = BenchmarkResult(
                 job_id=job_id,
@@ -145,6 +183,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         # Phase 4: Generate strategies
         job.progress = 0.8
         db.commit()
+        _job_store.update_job_progress(job_id, "benchmarking", 0.8)
         logger.info(f"Job {job_id}: Generating strategies")
 
         _check_cancelled(job_id)
@@ -155,6 +194,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         job.status = JobStatus.STRESS_TESTING
         job.progress = 0.85
         db.commit()
+        _job_store.update_job_progress(job_id, "stress_testing", 0.85)
         logger.info(f"Job {job_id}: Stress testing")
 
         stress_runner = StressTestRunner()
@@ -162,6 +202,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
             _check_cancelled(job_id)
             stress_results = stress_runner.run_stress_test(instruments_data, strat_data["allocations"], scenarios_data, seed)
             strat_data["stress_test_results"] = stress_results
+            strat_data = _to_native(strat_data)
 
             strategy = Strategy(
                 job_id=job_id,
@@ -176,6 +217,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         db.commit()
 
         # Phase 6: Save results
+        all_results = _to_native(all_results)
         best_solver = min(all_results.items(), key=lambda x: x[1]["objective_value"])
         result_record = OptimizationResult(
             job_id=job_id,
@@ -195,6 +237,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         job.progress = 1.0
         job.completed_at = datetime.now(timezone.utc)
         db.commit()
+        _job_store.complete_job(job_id, result={"status": "completed"})
         logger.info(f"Job {job_id}: Completed successfully")
 
     except InterruptedError:
@@ -204,6 +247,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
             job.status = JobStatus.CANCELLED
             job.completed_at = datetime.now(timezone.utc)
             db.commit()
+        _job_store.complete_job(job_id, error="Cancelled")
     except Exception as e:
         logger.exception(f"Job {job_id}: Failed with error")
         job = db.query(OptimizationJob).filter(OptimizationJob.id == job_id).first()
@@ -212,6 +256,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
             job.error_message = str(e)[:2000]
             job.completed_at = datetime.now(timezone.utc)
             db.commit()
+        _job_store.complete_job(job_id, error=str(e)[:2000])
     finally:
         _cancel_events.pop(job_id, None)
         db.close()

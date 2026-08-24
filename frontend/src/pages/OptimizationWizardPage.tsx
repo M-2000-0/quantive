@@ -117,9 +117,10 @@ export default function OptimizationWizardPage() {
     setLoadingPortfolios(true);
     api.portfolios.list()
       .then((res) => {
-        setPortfolios(res.portfolios);
+        const list = (res as { data: Portfolio[] }).data || [];
+        setPortfolios(list);
         if (preselectId) {
-          const p = res.portfolios.find((x) => x.id === preselectId);
+          const p = list.find((x) => x.id === preselectId);
           if (p) setState((s) => ({ ...s, portfolio: p }));
         }
       })

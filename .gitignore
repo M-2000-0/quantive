@@ -51,6 +51,9 @@ venv/
 *.db-wal
 *.sqlite
 
+# runtime logs
+logs/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

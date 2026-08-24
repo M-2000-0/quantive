@@ -73,6 +73,15 @@ class ConstraintType(str, Enum):
     FLOATING_RATE_LIMIT = "floating_rate_limit"
     MATURITY_CONCENTRATION = "maturity_concentration"
     MAX_INSTRUMENTS = "max_instruments"
+    DURATION_TARGET = "duration_target"
+    DURATION_BAND = "duration_band"
+    CONVEXITY_TARGET = "convexity_target"
+    CONVEXITY_BAND = "convexity_band"
+    DV01_LIMIT = "dv01_limit"
+    VAR_LIMIT = "var_limit"
+    CVAR_LIMIT = "cvar_limit"
+    MAX_SINGLE_ISSUER = "max_single_issuer"
+    LEVERAGE_RATIO = "leverage_ratio"
     CUSTOM = "custom"
 
 

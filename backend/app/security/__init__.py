@@ -45,6 +45,44 @@ def decode_token(token: str) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
 
 
+def get_token_jti(token: str) -> Optional[str]:
+    """Extract jti from a JWT without validation (for blacklisting)."""
+    try:
+        payload = jwt.get_unverified_claims(token)
+        return payload.get("jti")
+    except Exception:
+        return None
+
+
+def is_token_revoked(jti: str, db: Session) -> bool:
+    """Check if a token has been revoked (blacklisted)."""
+    from app.models.password_reset import RevokedToken
+    return db.query(RevokedToken).filter(RevokedToken.jti == jti).first() is not None
+
+
+def revoke_token(token: str, db: Session) -> None:
+    """Add a token to the revocation list."""
+    from app.models.password_reset import RevokedToken
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM], options={"verify_exp": False})
+        jti = payload.get("jti")
+        user_id = payload.get("sub")
+        exp = payload.get("exp")
+        if jti and user_id:
+            # Check if already revoked
+            existing = db.query(RevokedToken).filter(RevokedToken.jti == jti).first()
+            if not existing:
+                revoked = RevokedToken(
+                    jti=jti,
+                    user_id=user_id,
+                    expires_at=datetime.fromtimestamp(exp, tz=timezone.utc) if exp else datetime.now(timezone.utc) + timedelta(days=7),
+                )
+                db.add(revoked)
+                db.commit()
+    except JWTError:
+        pass
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
     db: Session = Depends(get_db),
@@ -52,6 +90,12 @@ def get_current_user(
     payload = decode_token(credentials.credentials)
     if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+
+    # Check if token is revoked
+    jti = payload.get("jti")
+    if jti and is_token_revoked(jti, db):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")

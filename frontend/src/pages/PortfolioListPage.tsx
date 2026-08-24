@@ -28,7 +28,7 @@ export default function PortfolioListPage() {
   useEffect(() => {
     api.portfolios
       .list()
-      .then((res) => setPortfolios(res.portfolios))
+      .then((res) => setPortfolios((res as { data: Portfolio[] }).data || []))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
   }, []);

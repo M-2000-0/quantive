@@ -7,6 +7,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.database import Base
 from app.models import *  # noqa: ensure all models are imported
+from app.models.password_reset import *  # noqa: ensure auth security models imported
+from app.models.extended import *  # noqa: ensure extended models imported
 
 config = context.config
 if config.config_file_name is not None:

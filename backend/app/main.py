@@ -5,10 +5,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy import text
 
 from app.api import router
 from app.config import get_settings
-from app.database import Base, engine
+from app.database import engine
 from app.security.middleware import (
     GlobalExceptionHandler,
     RateLimitMiddleware,
@@ -19,7 +20,7 @@ from app.security.middleware import (
 
 settings = get_settings()
 
-if not settings.DEBUG and settings.SECRET_KEY == "change-me-to-a-random-secret-key-in-production":
+if settings.ENVIRONMENT == "production" and settings.SECRET_KEY == "change-me-to-a-random-secret-key-in-production":
     raise RuntimeError("SECRET_KEY must be set in production. Refusing to start with default value.")
 
 logging.basicConfig(
@@ -30,8 +31,19 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    # Startup: verify DB connectivity (engine is synchronous)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("SELECT 1"))
+        print("✅ Database connectivity verified")
+    except Exception as e:
+        print(f"⚠️ Database connection failed at startup: {e}")
+        raise
+
     yield
+
+    # Shutdown: cleanup
+    print("🛑 Quantive shutting down gracefully...")
 
 
 app = FastAPI(

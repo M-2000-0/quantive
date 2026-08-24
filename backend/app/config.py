@@ -11,15 +11,17 @@ class Settings(BaseSettings):
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    DEBUG: bool = True
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    DEBUG: bool = False
+    CORS_ORIGINS: str = "http://localhost:5173"
     RATE_LIMIT_PER_MINUTE: int = 2000
     MAX_UPLOAD_SIZE_MB: int = 50
-    MAX_SCENARIOS: int = 50000
-    DEFAULT_SCENARIOS: int = 10000
-    OPTIMIZATION_TIMEOUT_SECONDS: int = 300
-    SOLVER_TIMEOUT_SECONDS: int = 120
+    MAX_SCENARIO: int = 10000     # Gov-facing cap (was 50000)
+    DEFAULT_SCENARIO: int = 1000  # Default for agency use
+    OPTIMIZATION_TIMEOUT_SECONDS: int = 120   # Gov SLA
+    SOLVER_TIMEOUT_SECONDS: int = 60        # Per-solver timeout
     LOG_LEVEL: str = "INFO"
+    ENABLE_PROVENANCE: bool = True      # Track model origins
+    ENVIRONMENT: str = "development"    # "production" enforces real SECRET_KEY
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -28,6 +30,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 @lru_cache

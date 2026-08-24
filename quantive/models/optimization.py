@@ -135,6 +135,13 @@ class OptimizationProblem(BaseModel):
     reference_currency: Currency = Currency.USD
     profile: StrategyProfile = Field(StrategyProfile.BEST_OVERALL, description="Objective profile this problem targets")
     created_at: datetime = Field(default_factory=_utcnow)
+    provenance: Dict = Field(
+        default_factory=lambda: {
+            "synthetic_data": True,
+            "model_version": "quantive-engine/0.1.0",
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+        }
+    )
 
     @field_validator("id")
     @classmethod

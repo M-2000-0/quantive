@@ -20,6 +20,11 @@ from quantive.solvers.registry import get_solver
 from quantive.stress.tester import stress_test
 from quantive.strategies import generate_strategies, strategy_from_result
 
+try:
+    from app.audit.logger import AuditLogger
+except ImportError:
+    AuditLogger = None
+
 
 def materialize_scenarios(problem: OptimizationProblem,
                           seed: Optional[int] = None) -> List:
@@ -126,6 +131,15 @@ def run_full_job(
     stress: Dict[str, StressTestResult] = {}
     for strategy in strategies:
         stress[strategy.id] = stress_test(strategy, spec)
+
+    if AuditLogger is not None:
+        AuditLogger.log_optimization_complete(
+            result_id=result.id,
+            user=getattr(problem, "owner", None),
+            feasible=result.strategy.feasible,
+            objective_value=result.strategy.objective_value,
+            runtime=result.runtime,
+        )
 
     return {
         "result": result,

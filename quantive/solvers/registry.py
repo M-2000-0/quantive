@@ -8,11 +8,20 @@ from quantive.solvers.heuristic import SimulatedAnnealingSolver
 from quantive.solvers.milp import MILPSolver
 from quantive.solvers.qubo import QUBOSolver
 
-_REGISTRY: Dict[str, Type[SolverInterface]] = {
-    "milp": MILPSolver,
-    "simulated_annealing": SimulatedAnnealingSolver,
-    "qubo": QUBOSolver,
-}
+try:
+    from quantive.solvers.highs_solver import HiGHSSolver
+    _REGISTRY: Dict[str, Type[SolverInterface]] = {
+        "milp": MILPSolver,
+        "highs": HiGHSSolver,
+        "simulated_annealing": SimulatedAnnealingSolver,
+        "qubo": QUBOSolver,
+    }
+except ImportError:
+    _REGISTRY: Dict[str, Type[SolverInterface]] = {
+        "milp": MILPSolver,
+        "simulated_annealing": SimulatedAnnealingSolver,
+        "qubo": QUBOSolver,
+    }
 
 DEFAULT_SOLVER_ORDER: List[str] = ["milp", "simulated_annealing", "qubo"]
 

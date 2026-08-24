@@ -2,9 +2,12 @@ import json
 import os
 import time
 
+import pytest
+
 DEMO_PATH = os.path.join(os.path.dirname(__file__), "..", "demo", "synthetic_portfolio.json")
 
 
+@pytest.mark.slow
 def test_e2e_full_workflow(client):
     resp = client.post("/api/auth/register", json={
         "email": "analyst@treasury.gov",

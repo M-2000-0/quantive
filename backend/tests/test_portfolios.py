@@ -10,7 +10,9 @@ def test_list_portfolios(auth_client, sample_portfolio_data):
     auth_client.post("/api/portfolios", json=sample_portfolio_data)
     resp = auth_client.get("/api/portfolios")
     assert resp.status_code == 200
-    assert resp.json()["total"] == 1
+    data = resp.json()
+    assert data["meta"]["total"] == 1
+    assert len(data["data"]) == 1
 
 
 def test_get_portfolio(auth_client, sample_portfolio_data):
@@ -97,7 +99,7 @@ def test_portfolios_isolated_by_org(auth_client, sample_portfolio_data):
     client2.headers["Authorization"] = f"Bearer {token2}"
 
     resp = client2.get("/api/portfolios")
-    assert resp.json()["total"] == 0
+    assert resp.json()["meta"]["total"] == 0
 
     from tests.conftest import override_get_db
     auth_client.app.dependency_overrides[get_db] = override_get_db

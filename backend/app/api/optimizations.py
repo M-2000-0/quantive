@@ -17,6 +17,13 @@ from app.models import (
     User,
     UserRole,
 )
+from app.pagination import (
+    FilterQuery,
+    PaginationQuery,
+    apply_filters,
+    create_paginated_response,
+    paginate_query,
+)
 from app.schemas import (
     BenchmarkResponse,
     OptimizationCreate,
@@ -31,12 +38,38 @@ settings = get_settings()
 router = APIRouter(prefix="/api/optimizations", tags=["optimizations"])
 
 
-@router.get("", response_model=list[OptimizationResponse])
-def list_optimizations(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    jobs = db.query(OptimizationJob).filter(
-        OptimizationJob.org_id == user.org_id
-    ).order_by(OptimizationJob.created_at.desc()).all()
-    return [OptimizationResponse.model_validate(j) for j in jobs]
+@router.get("")
+def list_optimizations(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    pagination: PaginationQuery = Depends(),
+    filters: FilterQuery = Depends(),
+):
+    query = db.query(OptimizationJob).filter(OptimizationJob.org_id == user.org_id)
+
+    # Apply filters
+    query = apply_filters(query, filters, OptimizationJob)
+
+    # Search in name
+    items, total = paginate_query(
+        query,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        cursor=pagination.cursor,
+        search=pagination.search,
+        search_fields=["name"],
+        sort_by=pagination.sort_by or "created_at",
+        sort_order=pagination.sort_order,
+        model=OptimizationJob,
+    )
+
+    return create_paginated_response(
+        items=items,
+        total=total,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        serializer=lambda j: OptimizationResponse.model_validate(j).model_dump(mode="json"),
+    )
 
 
 @router.post("", response_model=OptimizationResponse, status_code=201)
@@ -60,11 +93,11 @@ def create_optimization(data: OptimizationCreate, user: User = Depends(get_curre
 
     scenario_config = data.scenario_config or {}
     if not scenario_config.get("num_scenarios"):
-        scenario_config["num_scenarios"] = settings.DEFAULT_SCENARIOS
-    if scenario_config.get("num_scenarios", 0) > settings.MAX_SCENARIOS:
+        scenario_config["num_scenarios"] = settings.DEFAULT_SCENARIO
+    if scenario_config.get("num_scenarios", 0) > settings.MAX_SCENARIO:
         raise HTTPException(
             status_code=422,
-            detail=f"num_scenarios cannot exceed {settings.MAX_SCENARIOS}",
+            detail=f"num_scenarios cannot exceed {settings.MAX_SCENARIO}",
         )
 
     job = OptimizationJob(

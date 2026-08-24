@@ -31,11 +31,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      api.portfolios.list().catch(() => ({ portfolios: [] as Portfolio[], total: 0 })),
-      api.optimizations.list().catch(() => [] as OptimizationJob[]),
+      api.portfolios.list().catch(() => ({ data: [] as Portfolio[], meta: { total: 0 } })),
+      api.optimizations.list().catch(() => ({ data: [] as OptimizationJob[], meta: { total: 0 } })),
     ]).then(([p, j]) => {
-      setPortfolios(p.portfolios);
-      setJobs(j);
+      setPortfolios((p as { data: Portfolio[] }).data || []);
+      setJobs((j as { data: OptimizationJob[] }).data || []);
       setLoading(false);
     });
   }, []);

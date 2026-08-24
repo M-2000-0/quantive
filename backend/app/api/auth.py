@@ -125,8 +125,14 @@ def refresh_token(data: TokenRefresh, db: Session = Depends(get_db)):
 
 
 @router.post("/logout", status_code=204)
-def logout(user: User = Depends(get_current_user)):
-    pass
+def logout(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Revoke the access token
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "")
+    if token:
+        from app.security import revoke_token
+        revoke_token(token, db)
+    log_audit_event(db, user, "user.logout", "user", user.id)
 
 
 @router.get("/me", response_model=UserResponse)

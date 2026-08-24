@@ -6,16 +6,27 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import DebtInstrument, Portfolio, User, UserRole
+from app.pagination import (
+    FilterQuery,
+    PaginationQuery,
+    apply_filters,
+    create_paginated_response,
+    paginate_query,
+)
 from app.schemas import (
     DebtInstrumentCreate,
     DebtInstrumentResponse,
     InstrumentUpdate,
     PortfolioCreate,
-    PortfolioListResponse,
     PortfolioResponse,
     PortfolioUpdate,
 )
 from app.security import get_current_user, log_audit_event, require_role
+from app.security.portfolio_rbac import (
+    PortfolioRole,
+    require_portfolio_access,
+    require_portfolio_write,
+)
 
 router = APIRouter(prefix="/api/portfolios", tags=["portfolios"])
 
@@ -23,16 +34,46 @@ MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 VALID_CURRENCIES = {"USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "CNY", "INR", "BRL"}
 
 
-@router.get("", response_model=PortfolioListResponse)
-def list_portfolios(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    portfolios = db.query(Portfolio).filter(Portfolio.org_id == user.org_id).all()
-    return PortfolioListResponse(portfolios=[PortfolioResponse.model_validate(p) for p in portfolios], total=len(portfolios))
+@router.get("")
+def list_portfolios(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    pagination: PaginationQuery = Depends(),
+    filters: FilterQuery = Depends(),
+):
+    query = db.query(Portfolio).filter(Portfolio.org_id == user.org_id)
+
+    # Apply filters
+    query = apply_filters(query, filters, Portfolio)
+
+    # Search in name and description
+    items, total = paginate_query(
+        query,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        cursor=pagination.cursor,
+        search=pagination.search,
+        search_fields=["name", "description"],
+        sort_by=pagination.sort_by or "created_at",
+        sort_order=pagination.sort_order,
+        model=Portfolio,
+    )
+
+    return create_paginated_response(
+        items=items,
+        total=total,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        serializer=lambda p: PortfolioResponse.model_validate(p).model_dump(mode="json"),
+    )
 
 
 @router.post("", response_model=PortfolioResponse, status_code=201)
-def create_portfolio(data: PortfolioCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if user.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Viewers cannot create portfolios")
+def create_portfolio(
+    data: PortfolioCreate,
+    user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
+    db: Session = Depends(get_db),
+):
 
     portfolio = Portfolio(
         name=data.name.strip(),
@@ -68,21 +109,24 @@ def create_portfolio(data: PortfolioCreate, user: User = Depends(get_current_use
 
 
 @router.get("/{portfolio_id}", response_model=PortfolioResponse)
-def get_portfolio(portfolio_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    portfolio = db.query(Portfolio).filter(
-        Portfolio.id == portfolio_id, Portfolio.org_id == user.org_id
-    ).first()
+def get_portfolio(
+    portfolio_id: str,
+    user: User = Depends(require_portfolio_access(PortfolioRole.VIEWER)),
+    db: Session = Depends(get_db),
+):
+    portfolio = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
     return PortfolioResponse.model_validate(portfolio)
 
 
 @router.delete("/{portfolio_id}", status_code=204)
-def delete_portfolio(portfolio_id: str, user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
-                     db: Session = Depends(get_db)):
-    portfolio = db.query(Portfolio).filter(
-        Portfolio.id == portfolio_id, Portfolio.org_id == user.org_id
-    ).first()
+def delete_portfolio(
+    portfolio_id: str,
+    user: User = Depends(require_portfolio_access(PortfolioRole.OWNER)),
+    db: Session = Depends(get_db),
+):
+    portfolio = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
 
@@ -92,12 +136,13 @@ def delete_portfolio(portfolio_id: str, user: User = Depends(require_role(UserRo
 
 
 @router.put("/{portfolio_id}", response_model=PortfolioResponse)
-def update_portfolio(portfolio_id: str, data: PortfolioUpdate,
-                     user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
-                     db: Session = Depends(get_db)):
-    portfolio = db.query(Portfolio).filter(
-        Portfolio.id == portfolio_id, Portfolio.org_id == user.org_id
-    ).first()
+def update_portfolio(
+    portfolio_id: str,
+    data: PortfolioUpdate,
+    user: User = Depends(require_portfolio_access(PortfolioRole.EDITOR)),
+    db: Session = Depends(get_db),
+):
+    portfolio = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
 
@@ -114,12 +159,13 @@ def update_portfolio(portfolio_id: str, data: PortfolioUpdate,
 
 
 @router.delete("/{portfolio_id}/instruments/{instrument_id}", status_code=204)
-def delete_instrument(portfolio_id: str, instrument_id: str,
-                      user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
-                      db: Session = Depends(get_db)):
-    portfolio = db.query(Portfolio).filter(
-        Portfolio.id == portfolio_id, Portfolio.org_id == user.org_id
-    ).first()
+def delete_instrument(
+    portfolio_id: str,
+    instrument_id: str,
+    user: User = Depends(require_portfolio_access(PortfolioRole.EDITOR)),
+    db: Session = Depends(get_db),
+):
+    portfolio = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
 
@@ -135,12 +181,14 @@ def delete_instrument(portfolio_id: str, instrument_id: str,
 
 
 @router.put("/{portfolio_id}/instruments/{instrument_id}", response_model=DebtInstrumentResponse)
-def update_instrument(portfolio_id: str, instrument_id: str, data: InstrumentUpdate,
-                      user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
-                      db: Session = Depends(get_db)):
-    portfolio = db.query(Portfolio).filter(
-        Portfolio.id == portfolio_id, Portfolio.org_id == user.org_id
-    ).first()
+def update_instrument(
+    portfolio_id: str,
+    instrument_id: str,
+    data: InstrumentUpdate,
+    user: User = Depends(require_portfolio_access(PortfolioRole.EDITOR)),
+    db: Session = Depends(get_db),
+):
+    portfolio = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
 
@@ -166,10 +214,12 @@ def update_instrument(portfolio_id: str, instrument_id: str, data: InstrumentUpd
 
 
 @router.post("/{portfolio_id}/instruments", response_model=DebtInstrumentResponse, status_code=201)
-def add_instrument(portfolio_id: str, data: DebtInstrumentCreate,
-                   user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if user.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Viewers cannot modify portfolios")
+def add_instrument(
+    portfolio_id: str,
+    data: DebtInstrumentCreate,
+    user: User = Depends(require_portfolio_access(PortfolioRole.EDITOR)),
+    db: Session = Depends(get_db),
+):
 
     portfolio = db.query(Portfolio).filter(
         Portfolio.id == portfolio_id, Portfolio.org_id == user.org_id
@@ -207,11 +257,9 @@ async def upload_portfolio(
     file: UploadFile = File(...),
     name: str = Form("Uploaded Portfolio"),
     description: str = Form(""),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
     db: Session = Depends(get_db),
 ):
-    if user.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403, detail="Viewers cannot upload portfolios")
 
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:

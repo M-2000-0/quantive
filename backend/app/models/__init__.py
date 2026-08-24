@@ -82,6 +82,9 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     organization: Mapped["Organization"] = relationship(back_populates="users")
+    portfolio_accesses: Mapped[list["PortfolioAccess"]] = relationship(
+        back_populates="user", foreign_keys="[PortfolioAccess.user_id]"
+    )
 
 
 class Portfolio(Base):
@@ -97,6 +100,9 @@ class Portfolio(Base):
 
     organization: Mapped["Organization"] = relationship(back_populates="portfolios")
     instruments: Mapped[list["DebtInstrument"]] = relationship(back_populates="portfolio", cascade="all, delete-orphan")
+    access_grants: Mapped[list["PortfolioAccess"]] = relationship(
+        back_populates="portfolio", cascade="all, delete-orphan"
+    )
 
 
 class DebtInstrument(Base):
@@ -224,3 +230,43 @@ class AuditEvent(Base):
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# ── Extended models (auth security, user prefs, notifications, etc.) ──────────
+from app.models.password_reset import (  # noqa: E402, F401
+    EmailVerificationToken,
+    PasswordResetToken,
+    RevokedToken,
+)
+from app.models.extended import (  # noqa: E402, F401
+    ApiKey,
+    ConstraintTemplate,
+    Notification,
+    NotificationType,
+    PortfolioSnapshot,
+    ScheduledReport,
+    UserPreferences,
+)
+from app.models.portfolio_access import (  # noqa: E402, F401
+    PortfolioAccess,
+    PortfolioRole,
+)
+from app.models.social import (  # noqa: E402, F401
+    ActivityLog,
+    Attachment,
+    Comment,
+    SavedFilter,
+    SavedView,
+    Tag,
+    TaggedItem,
+    Watchlist,
+    WatchlistItem,
+)
+from app.models.integrations import (  # noqa: E402, F401
+    APIUsageLog,
+    ExportJob,
+    Integration,
+    ModelExperiment,
+    Webhook,
+    WebhookDelivery,
+)
