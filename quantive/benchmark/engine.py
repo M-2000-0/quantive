@@ -31,7 +31,8 @@ def run_benchmark(
         result = _solve_with_config(solver, spec, config)
         rows.append(metric_row(result, spec))
 
-    result = rank(rows, ranking_weights or DEFAULT_RANKING_WEIGHTS)
+    result = rank(rows, ranking_weights or DEFAULT_RANKING_WEIGHTS,
+                  financing_requirement=spec.financing_requirement)
     result.problem_id = problem.id
     return result
 

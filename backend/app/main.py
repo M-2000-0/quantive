@@ -1,14 +1,14 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks, FastAPI
+from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError as PydanticValidationError
 
 from app.api import router
 from app.config import get_settings
-from app.database import engine
-from app.jobs import JOBS, create_job, get_job
+from app.database import Base, engine
 from app.security.middleware import (
     GlobalExceptionHandler,
     RateLimitMiddleware,
@@ -16,10 +16,12 @@ from app.security.middleware import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
 )
+from app.security.threats import ThreatDetectionMiddleware
+from app.jobs import create_job
 
 settings = get_settings()
 
-if settings.ENVIRONMENT == "production" and settings.SECRET_KEY == "change-me-to-a-random-secret-key-in-production":
+if settings.DEBUG and settings.SECRET_KEY == "change-me-to-a-random-secret-key-in-production":
     raise RuntimeError("SECRET_KEY must be set in production. Refusing to start with default value.")
 
 logging.basicConfig(
@@ -33,7 +35,7 @@ async def lifespan(app: FastAPI):
     # Startup: verify DB connectivity (engine is synchronous)
     try:
         with engine.begin() as conn:
-            conn.execute(text("SELECT 1"))
+            conn.execute("SELECT 1")
         print("✅ Database connectivity verified")
     except Exception as e:
         print(f"⚠️ Database connection failed at startup: {e}")
@@ -85,10 +87,9 @@ def _run_optimization_job(job_id: str):
     """Run the full optimization pipeline in background."""
     try:
         from quantive.data.fixtures import demo_portfolio
-        from quantive.models.enums import StrategyProfile
-        from quantive.models.optimization import OptimizationObjective
         from quantive.orchestration import run_full_job
-
+        from quantive.models.optimization import OptimizationObjective
+        from quantive.models.enums import StrategyProfile
         from app.audit.logger import AuditLogger
 
         p = demo_portfolio()
@@ -142,6 +143,11 @@ def get_job_status(job_id: str) -> dict:
     return job.to_dict()
 
 
+# Keep backward compatibility: register router at root AND under /api/v1
+api_v1_prefix = "/api/v1"
+app.include_router(router, prefix=api_v1_prefix)
+app.include_router(router)  # Root-level routes also work
+
 app.add_middleware(GlobalExceptionHandler)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
@@ -155,5 +161,3 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Request-ID", "X-Total-Count", "Retry-After"],
 )
-
-app.include_router(router)

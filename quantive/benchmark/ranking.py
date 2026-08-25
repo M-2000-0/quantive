@@ -1,9 +1,12 @@
 """Configurable ranking methodology.
 
 Every metric is normalised (min-max, inverted so that larger = better) and
-weighted. Feasibility is a hard gate: infeasible solvers rank after all
-feasible ones. The ranking weights are configurable so the user can define what
-"best" means; Quantive never simply picks the fastest solver.
+weighted. Feasibility is a soft gate: infeasible solvers score proportionally
+to their constraint violation magnitude relative to the financing requirement,
+rather than receiving an arbitrary fixed penalty. Feasible solvers score normally.
+
+The ranking weights are configurable so the user can define what "best" means;
+Quantive never simply picks the fastest solver.
 """
 from __future__ import annotations
 
@@ -44,8 +47,35 @@ def _normalize(values: List[float], lower_better: bool) -> List[float]:
     return [float(v) for v in norm]
 
 
-def rank(rows: List[BenchmarkRow], weights: Dict[str, float] | None = None) -> BenchmarkResult:
-    """Rank solver rows using the configurable methodology."""
+def _feasibility_score(violation_magnitude: float, financing_requirement: float) -> float:
+    """Return a feasibility score in [0,1]; 1 = perfectly feasible.
+
+    The score is 1.0 when violation <= tolerance, and decays linearly as
+    violation grows relative to the financing requirement R.
+    """
+    R = max(financing_requirement, 1e-12)
+    tol = 1e-6 * R  # same tolerance used in spec.constraint_violations
+
+    if violation_magnitude <= tol:
+        return 1.0
+    # Linear decay: at 10x R violation, score = 0.0
+    # At R violation, score = 0.9; at 10xR, score = 0.0
+    ratio = violation_magnitude / R
+    if ratio >= 10.0:
+        return 0.0
+    return max(0.0, 1.0 - ratio)
+
+
+def rank(rows: List[BenchmarkRow], weights: Dict[str, float] | None = None,
+         financing_requirement: float = 0.0) -> BenchmarkResult:
+    """Rank solver rows using the configurable methodology.
+
+    Args:
+        rows: BenchmarkRow instances from solver results
+        weights: Metric weights; defaults to DEFAULT_RANKING_WEIGHTS
+        financing_requirement: Required financing amount R; used for proportional
+            feasibility scoring. If 0, falls back to the hard gate (s -= 100.0).
+    """
     weights = dict(DEFAULT_RANKING_WEIGHTS if weights is None else weights)
     if not rows:
         return BenchmarkResult(problem_id="", ranking_weights=weights, rows=[])
@@ -58,6 +88,18 @@ def rank(rows: List[BenchmarkRow], weights: Dict[str, float] | None = None) -> B
         normalized[m] = _normalize(vals, m in LOWER_IS_BETTER)
 
     feasible = [r.feasible for r in rows]
+    # Compute proportional feasibility scores when R is provided
+    if financing_requirement > 0:
+        feasibility_scores = [
+            _feasibility_score(
+                float(getattr(r, "constraint_violation_magnitude", 0.0)),
+                financing_requirement,
+            )
+            for r in rows
+        ]
+    else:
+        # Fall back to binary feasibility when R is unknown
+        feasibility_scores = [1.0 if f else 0.0 for f in feasible]
 
     scores: List[float] = []
     for idx, row in enumerate(rows):
@@ -67,8 +109,9 @@ def rank(rows: List[BenchmarkRow], weights: Dict[str, float] | None = None) -> B
             w = weights.get(m, 0.0)
             s += w * normalized[m][idx]
             wsum += w
+        # Apply proportional feasibility scaling instead of arbitrary 100.0 penalty
         if not feasible[idx]:
-            s -= 100.0  # feasibility is a hard gate
+            s *= feasibility_scores[idx]
         scores.append(s)
 
     order = sorted(range(len(rows)), key=lambda i: (-scores[i], rows[i].objective_value))
@@ -92,8 +135,9 @@ def rank(rows: List[BenchmarkRow], weights: Dict[str, float] | None = None) -> B
     return BenchmarkResult(
         problem_id=rows[0].problem_id if hasattr(rows[0], "problem_id") else "",
         methodology=(
-            "Weighted min-max normalized metrics; feasibility is a hard gate. "
-            "Lower-is-better metrics are inverted before weighting."
+            "Weighted min-max normalized metrics with proportional feasibility scaling. "
+            "Lower-is-better metrics are inverted before weighting. "
+            "Infeasible solvers have scores scaled by relative constraint violation magnitude."
         ),
         ranking_weights=weights,
         rows=rows,

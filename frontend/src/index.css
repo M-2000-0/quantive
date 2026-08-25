@@ -216,6 +216,16 @@
     border-radius: 12px;
   }
 
+  /* Strong glass (toast / emphasis) — uses heavy blur + saturated backdrop */
+  .glass-strong {
+    background: var(--glass-bg-heavy);
+    backdrop-filter: blur(var(--glass-blur-heavy)) saturate(1.4);
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy)) saturate(1.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-shadow-lg);
+  }
+
   /* Glass with gradient border effect */
   .glass-gradient {
     position: relative;
