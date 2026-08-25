@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../api';
 
 interface DSAResult {
@@ -99,6 +99,37 @@ const COUNTRIES = [
   { code: 'ES', name: 'Spain' },
 ];
 
+// ── IMF DSA Thresholds ───────────────────────────────────────────────
+const IMF_THRESHOLDS = {
+  debtToGdp: 70, // %
+  gfnToGdp: 15, // %
+  debtServiceToRevenue: 25, // %
+  debtServiceToExports: 20, // %
+};
+
+type ViolationLevel = 'ok' | 'amber' | 'red';
+
+function checkViolation(value: number, threshold: number, amberPct = 0.8): { level: ViolationLevel; label: string } {
+  if (value > threshold) return { level: 'red', label: 'BREACH' };
+  if (value > threshold * amberPct) return { level: 'amber', label: 'WARNING' };
+  return { level: 'ok', label: 'COMPLIANT' };
+}
+
+function GlassPill({ level, label }: { level: ViolationLevel; label: string }) {
+  const styles = {
+    red: 'bg-red-500/15 border-red-500/25 text-red-700',
+    amber: 'bg-amber-500/15 border-amber-500/25 text-amber-700',
+    ok: 'bg-emerald-500/12 border-emerald-500/20 text-emerald-700',
+  } as const;
+  const dot = { red: 'bg-red-600', amber: 'bg-amber-500', ok: 'bg-emerald-500' } as const;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md ${styles[level]}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dot[level]} ${level !== 'ok' ? 'animate-pulse' : ''}`} />
+      {label}
+    </span>
+  );
+}
+
 export default function CompliancePage() {
   const [selectedCountry, setSelectedCountry] = useState('US');
   const [dsa, setDsa] = useState<DSAResult | null>(null);
@@ -117,7 +148,7 @@ export default function CompliancePage() {
       ]);
       setDsa(dsaRes.data);
       setMtds(mtdsRes.data);
-    } catch (err) {
+    } catch {
       setError('Failed to load compliance reports');
     } finally {
       setLoading(false);
@@ -139,16 +170,79 @@ export default function CompliancePage() {
 
   const years = dsa ? Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i + 1) : [];
 
+  // IMF DSA auto-check computed
+  const dsaViolations = useMemo(() => {
+    if (!dsa) return null;
+    const v = {
+      debtToGdp: checkViolation(dsa.current_metrics.public_debt_to_gdp, IMF_THRESHOLDS.debtToGdp),
+      gfn: checkViolation(dsa.current_metrics.gross_financing_needs_to_gdp, IMF_THRESHOLDS.gfnToGdp),
+      dsRevenue: checkViolation(dsa.current_metrics.debt_service_to_revenue, IMF_THRESHOLDS.debtServiceToRevenue),
+      dsExports: checkViolation(dsa.current_metrics.debt_service_to_exports, IMF_THRESHOLDS.debtServiceToExports),
+    };
+    const breached = Object.values(v).filter(x => x.level === 'red').length;
+    const warnings = Object.values(v).filter(x => x.level === 'amber').length;
+    const overall: ViolationLevel = breached > 0 ? 'red' : warnings > 0 ? 'amber' : 'ok';
+    return { ...v, breached, warnings, overall };
+  }, [dsa]);
+
+  const exportReport = () => {
+    if (!dsa && !mtds) return;
+    const payload = {
+      country: selectedCountry,
+      generated_at: new Date().toISOString(),
+      imf_thresholds: IMF_THRESHOLDS,
+      dsa: dsa ? {
+        country_name: dsa.country_name,
+        current_metrics: dsa.current_metrics,
+        violations: dsaViolations,
+        risk_assessment: dsa.risk_assessment,
+        projections: dsa.projections,
+        adjustment_needed_pct_gdp: dsa.adjustment_needed_pct_gdp,
+      } : null,
+      mtds: mtds ? {
+        targets: mtds.targets,
+        annual_targets: mtds.annual_targets,
+        issuance_plan: mtds.issuance_plan,
+      } : null,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `IMF_Compliance_${selectedCountry}_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Also CSV export for current metrics
+    if (dsa) {
+      const csvRows = [
+        ['Metric','Value','Threshold','Status'],
+        ['Public Debt/GDP', `${dsa.current_metrics.public_debt_to_gdp}%`, `${IMF_THRESHOLDS.debtToGdp}%`, dsaViolations!.debtToGdp.label],
+        ['GFN/GDP', `${dsa.current_metrics.gross_financing_needs_to_gdp}%`, `${IMF_THRESHOLDS.gfnToGdp}%`, dsaViolations!.gfn.label],
+        ['Debt Service/Revenue', `${dsa.current_metrics.debt_service_to_revenue}%`, `${IMF_THRESHOLDS.debtServiceToRevenue}%`, dsaViolations!.dsRevenue.label],
+        ['Debt Service/Exports', `${dsa.current_metrics.debt_service_to_exports}%`, `${IMF_THRESHOLDS.debtServiceToExports}%`, dsaViolations!.dsExports.label],
+      ];
+      const csv = csvRows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const blobCsv = new Blob([csv], { type: 'text/csv' });
+      const urlCsv = URL.createObjectURL(blobCsv);
+      const a2 = document.createElement('a');
+      a2.href = urlCsv;
+      a2.download = `IMF_DSA_metrics_${selectedCountry}.csv`;
+      // trigger secondary download after short delay to avoid blocking
+      setTimeout(() => { a2.click(); URL.revokeObjectURL(urlCsv); }, 300);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">IMF Compliance Dashboard</h1>
       <p className="text-gray-400 mb-6">
         Debt Sustainability Analysis, Medium-Term Debt Strategy, and Government Finance Statistics
-        — required by the IMF for lending programs.
+        — IMF thresholds auto-checked. Debt/GDP &gt;70% and DS/service ratios flagged with glass pills.
       </p>
 
       {/* Country Selector */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <select
           value={selectedCountry}
           onChange={(e) => setSelectedCountry(e.target.value)}
@@ -167,6 +261,19 @@ export default function CompliancePage() {
         >
           {loading ? 'Generating...' : 'Regenerate Reports'}
         </button>
+        <button
+          onClick={exportReport}
+          disabled={!dsa && !mtds}
+          className="bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/15 text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-2"
+        >
+          <span>⤓</span> Export JSON + CSV
+        </button>
+        {dsaViolations && (
+          <div className="flex items-center gap-2">
+            <GlassPill level={dsaViolations.overall} label={dsaViolations.overall === 'red' ? `${dsaViolations.breached} BREACHES` : dsaViolations.overall === 'amber' ? `${dsaViolations.warnings} WARNINGS` : 'ALL COMPLIANT'} />
+            <span className="text-xs text-gray-400">IMF DSA thresholds: Debt/GDP 70%, GFN 15%, DS/Rev 25%, DS/Exp 20%</span>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -203,6 +310,18 @@ export default function CompliancePage() {
       {/* DSA Tab */}
       {tab === 'dsa' && dsa && !loading && (
         <div className="space-y-6">
+          {/* Auto-check banner */}
+          {dsaViolations && (
+            <div className={`rounded-xl p-4 backdrop-blur-xl border flex flex-wrap items-center gap-3 ${dsaViolations.overall === 'red' ? 'bg-red-500/10 border-red-500/20' : dsaViolations.overall === 'amber' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+              <span className={`w-2 h-2 rounded-full ${dsaViolations.overall === 'red' ? 'bg-red-600 animate-pulse' : dsaViolations.overall === 'amber' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+              <span className="text-sm font-bold" style={{ color: dsaViolations.overall === 'red' ? '#b91c1c' : dsaViolations.overall === 'amber' ? '#92400e' : '#166534' }}>
+                IMF DSA AUTO-CHECK — {dsaViolations.overall === 'red' ? `${dsaViolations.breached} threshold(s) breached` : dsaViolations.overall === 'amber' ? `${dsaViolations.warnings} warning(s) — approaching threshold` : 'All thresholds compliant'}
+              </span>
+              <span className="text-xs text-gray-400">Debt/GDP 70% · GFN/GDP 15% · DS/Revenue 25% · DS/Exports 20% (IMF benchmarks)</span>
+              <button onClick={exportReport} className="ml-auto text-xs px-3 py-1 rounded-full bg-white/80 border border-white/40 hover:bg-white text-slate-700 font-semibold">Export Report</button>
+            </div>
+          )}
+
           {/* Risk Assessment */}
           <div className="bg-gray-800 rounded-xl p-6">
             <h2 className="text-lg font-semibold mb-4">
@@ -220,40 +339,64 @@ export default function CompliancePage() {
             </div>
           </div>
 
-          {/* Current Metrics */}
+          {/* Current Metrics with violation highlighting */}
           <div className="bg-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Current Debt Metrics</h2>
+            <h2 className="text-lg font-semibold mb-4">Current Debt Metrics — IMF Thresholds Auto-Checked</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center p-4 bg-gray-700/50 rounded-lg">
-                <div className="text-3xl font-bold text-blue-400">
+              <div className={`text-center p-4 rounded-lg backdrop-blur-xl border ${dsaViolations?.debtToGdp.level === 'red' ? 'bg-red-500/10 border-red-500/20' : dsaViolations?.debtToGdp.level === 'amber' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-gray-700/50 border-transparent'}`}>
+                <div className={`text-3xl font-bold tabular-nums ${dsaViolations?.debtToGdp.level === 'red' ? 'text-red-400' : dsaViolations?.debtToGdp.level === 'amber' ? 'text-amber-400' : 'text-blue-400'}`}>
                   {dsa.current_metrics.public_debt_to_gdp}%
                 </div>
                 <div className="text-sm text-gray-400 mt-1">Public Debt / GDP</div>
+                <div className="text-xs text-gray-500">Threshold 70%</div>
+                <div className="mt-2 flex justify-center">
+                  <GlassPill level={dsaViolations?.debtToGdp.level || 'ok'} label={dsaViolations?.debtToGdp.label || ''} />
+                </div>
               </div>
-              <div className="text-center p-4 bg-gray-700/50 rounded-lg">
-                <div className="text-3xl font-bold text-yellow-400">
+              <div className={`text-center p-4 rounded-lg backdrop-blur-xl border ${dsaViolations?.gfn.level === 'red' ? 'bg-red-500/10 border-red-500/20' : dsaViolations?.gfn.level === 'amber' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-gray-700/50 border-transparent'}`}>
+                <div className={`text-3xl font-bold tabular-nums ${dsaViolations?.gfn.level === 'red' ? 'text-red-400' : dsaViolations?.gfn.level === 'amber' ? 'text-amber-400' : 'text-yellow-400'}`}>
                   {dsa.current_metrics.gross_financing_needs_to_gdp}%
                 </div>
                 <div className="text-sm text-gray-400 mt-1">GFN / GDP</div>
+                <div className="text-xs text-gray-500">Threshold 15%</div>
+                <div className="mt-2 flex justify-center">
+                  <GlassPill level={dsaViolations?.gfn.level || 'ok'} label={dsaViolations?.gfn.label || ''} />
+                </div>
               </div>
-              <div className="text-center p-4 bg-gray-700/50 rounded-lg">
-                <div className="text-3xl font-bold text-orange-400">
+              <div className={`text-center p-4 rounded-lg backdrop-blur-xl border ${dsaViolations?.dsRevenue.level === 'red' ? 'bg-red-500/10 border-red-500/20' : dsaViolations?.dsRevenue.level === 'amber' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-gray-700/50 border-transparent'}`}>
+                <div className={`text-3xl font-bold tabular-nums ${dsaViolations?.dsRevenue.level === 'red' ? 'text-red-400' : dsaViolations?.dsRevenue.level === 'amber' ? 'text-amber-400' : 'text-orange-400'}`}>
                   {dsa.current_metrics.debt_service_to_revenue}%
                 </div>
                 <div className="text-sm text-gray-400 mt-1">Debt Service / Revenue</div>
+                <div className="text-xs text-gray-500">Threshold 25% (DS/service)</div>
+                <div className="mt-2 flex justify-center">
+                  <GlassPill level={dsaViolations?.dsRevenue.level || 'ok'} label={dsaViolations?.dsRevenue.label || ''} />
+                </div>
               </div>
-              <div className="text-center p-4 bg-gray-700/50 rounded-lg">
-                <div className="text-3xl font-bold text-red-400">
+              <div className={`text-center p-4 rounded-lg backdrop-blur-xl border ${dsaViolations?.dsExports.level === 'red' ? 'bg-red-500/10 border-red-500/20' : dsaViolations?.dsExports.level === 'amber' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-gray-700/50 border-transparent'}`}>
+                <div className={`text-3xl font-bold tabular-nums ${dsaViolations?.dsExports.level === 'red' ? 'text-red-400' : dsaViolations?.dsExports.level === 'amber' ? 'text-amber-400' : 'text-red-400'}`}>
                   {dsa.current_metrics.debt_service_to_exports}%
                 </div>
                 <div className="text-sm text-gray-400 mt-1">Debt Service / Exports</div>
+                <div className="text-xs text-gray-500">Threshold 20%</div>
+                <div className="mt-2 flex justify-center">
+                  <GlassPill level={dsaViolations?.dsExports.level || 'ok'} label={dsaViolations?.dsExports.label || ''} />
+                </div>
               </div>
             </div>
+            {dsaViolations && dsaViolations.overall !== 'ok' && (
+              <div className="mt-4 space-y-2">
+                {dsaViolations.debtToGdp.level === 'red' && <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300"><span className="w-1.5 h-1.5 bg-red-500 rounded-full" /> Debt/GDP {dsa.current_metrics.public_debt_to_gdp}% &gt; 70% IMF threshold — breach, requires corrective fiscal path</div>}
+                {dsaViolations.debtToGdp.level === 'amber' && <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full" /> Debt/GDP {dsa.current_metrics.public_debt_to_gdp}% approaching 70% — warning zone</div>}
+                {dsaViolations.dsRevenue.level !== 'ok' && <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-xl border ${dsaViolations.dsRevenue.level==='red' ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-amber-500/10 border-amber-500/20 text-amber-300'}`}><span className={`w-1.5 h-1.5 rounded-full ${dsaViolations.dsRevenue.level==='red' ? 'bg-red-500' : 'bg-amber-500'}`} /> Debt service / revenue {dsa.current_metrics.debt_service_to_revenue}% {dsaViolations.dsRevenue.level==='red' ? '> 25% — breach' : 'approaching 25%'}</div>}
+                {dsaViolations.dsExports.level !== 'ok' && <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-xl border ${dsaViolations.dsExports.level==='red' ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-amber-500/10 border-amber-500/20 text-amber-300'}`}><span className={`w-1.5 h-1.5 rounded-full ${dsaViolations.dsExports.level==='red' ? 'bg-red-500' : 'bg-amber-500'}`} /> Debt service / exports {dsa.current_metrics.debt_service_to_exports}% {dsaViolations.dsExports.level==='red' ? '> 20% — breach' : 'approaching 20%'}</div>}
+              </div>
+            )}
           </div>
 
-          {/* 5-Year Debt Projections */}
+          {/* 5-Year Debt Projections with breach highlighting */}
           <div className="bg-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">5-Year Debt Projections</h2>
+            <h2 className="text-lg font-semibold mb-4">5-Year Debt Projections — threshold 70% breach highlighted</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -267,9 +410,17 @@ export default function CompliancePage() {
                 <tbody>
                   <tr className="border-b border-gray-700/50">
                     <td className="py-2 text-gray-300">Debt / GDP</td>
-                    {dsa.projections.debt_to_gdp.map((v, i) => (
-                      <td key={i} className="text-right py-2 font-mono text-white">{v.toFixed(1)}%</td>
-                    ))}
+                    {dsa.projections.debt_to_gdp.map((v, i) => {
+                      const lv = checkViolation(v, 70);
+                      return (
+                        <td key={i} className={`text-right py-2 font-mono ${lv.level==='red' ? 'text-red-400 font-bold' : lv.level==='amber' ? 'text-amber-400' : 'text-white'}`}>
+                          <span className="inline-flex items-center gap-1">
+                            {v.toFixed(1)}%
+                            {lv.level !== 'ok' && <span className={`w-1.5 h-1.5 rounded-full ${lv.level==='red' ? 'bg-red-500' : 'bg-amber-500'}`} />}
+                          </span>
+                        </td>
+                      );
+                    })}
                   </tr>
                   <tr className="border-b border-gray-700/50">
                     <td className="py-2 text-gray-300">GDP Growth</td>
@@ -300,13 +451,21 @@ export default function CompliancePage() {
                 </tbody>
               </table>
             </div>
+            <div className="mt-3 flex gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-300 backdrop-blur-md">● &gt;70% breach</span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 backdrop-blur-md">● 56-70% warning</span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 backdrop-blur-md">● Compliant</span>
+            </div>
           </div>
 
           {/* Fanchart */}
           <div className="bg-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">Debt Fanchart (Monte Carlo)</h2>
+            <h2 className="text-lg font-semibold mb-4">Debt Fanchart (Monte Carlo) — 70% threshold line</h2>
             <div className="relative h-64">
               <svg viewBox="0 0 500 200" className="w-full h-full">
+                {/* 70% threshold line */}
+                <line x1="40" y1={180 - (70/200)*160} x2="470" y2={180 - (70/200)*160} stroke="#f59e0b" strokeDasharray="6 4" strokeWidth="1.5" opacity="0.7" />
+                <text x="475" y={180 - (70/200)*160 - 4} fill="#f59e0b" fontSize="9" fontWeight="bold">70% THR</text>
                 {/* 95th percentile band */}
                 {dsa.fanchart.p95.map((val, i) => {
                   const x = 50 + (i / 4) * 400;
@@ -430,6 +589,9 @@ export default function CompliancePage() {
               <div className="text-center p-4 bg-gray-700/50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-400">{mtds.targets.debt_to_gdp}%</div>
                 <div className="text-xs text-gray-400 mt-1">Target Debt/GDP</div>
+                {checkViolation(mtds.targets.debt_to_gdp, 70).level !== 'ok' && (
+                  <div className="mt-2"><GlassPill level={checkViolation(mtds.targets.debt_to_gdp, 70).level} label={checkViolation(mtds.targets.debt_to_gdp, 70).label} /></div>
+                )}
               </div>
               <div className="text-center p-4 bg-gray-700/50 rounded-lg">
                 <div className="text-2xl font-bold text-green-400">{mtds.targets.avg_maturity}Y</div>
@@ -465,15 +627,18 @@ export default function CompliancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mtds.annual_targets.map((t) => (
-                    <tr key={t.year} className="border-b border-gray-700/50">
-                      <td className="py-2 font-medium text-white">{t.year}</td>
-                      <td className="text-right py-2 font-mono text-blue-400">{t.target_debt_to_gdp}%</td>
-                      <td className="text-right py-2 font-mono text-green-400">{t.target_avg_maturity}Y</td>
-                      <td className="text-right py-2 font-mono text-yellow-400">${t.target_issuance_bn}B</td>
-                      <td className="text-right py-2 font-mono text-purple-400">{t.target_domestic_pct}%</td>
-                    </tr>
-                  ))}
+                  {mtds.annual_targets.map((t) => {
+                    const lv = checkViolation(t.target_debt_to_gdp, 70);
+                    return (
+                      <tr key={t.year} className="border-b border-gray-700/50">
+                        <td className="py-2 font-medium text-white">{t.year}</td>
+                        <td className={`text-right py-2 font-mono ${lv.level==='red' ? 'text-red-400' : lv.level==='amber' ? 'text-amber-400' : 'text-blue-400'}`}>{t.target_debt_to_gdp}% {lv.level!=='ok' && `(${lv.label})`}</td>
+                        <td className="text-right py-2 font-mono text-green-400">{t.target_avg_maturity}Y</td>
+                        <td className="text-right py-2 font-mono text-yellow-400">${t.target_issuance_bn}B</td>
+                        <td className="text-right py-2 font-mono text-purple-400">{t.target_domestic_pct}%</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

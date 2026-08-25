@@ -1,14 +1,16 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy import text
 
 from app.api import router
 from app.config import get_settings
-from app.database import Base, engine
+from app.database import engine
+from app.jobs import JOBS, create_job, get_job
 from app.security.middleware import (
     GlobalExceptionHandler,
     RateLimitMiddleware,
@@ -17,11 +19,10 @@ from app.security.middleware import (
     SecurityHeadersMiddleware,
 )
 from app.security.threats import ThreatDetectionMiddleware
-from app.jobs import create_job
 
 settings = get_settings()
 
-if settings.DEBUG and settings.SECRET_KEY == "change-me-to-a-random-secret-key-in-production":
+if settings.ENVIRONMENT == "production" and settings.SECRET_KEY == "change-me-to-a-random-secret-key-in-production":
     raise RuntimeError("SECRET_KEY must be set in production. Refusing to start with default value.")
 
 logging.basicConfig(
@@ -35,16 +36,16 @@ async def lifespan(app: FastAPI):
     # Startup: verify DB connectivity (engine is synchronous)
     try:
         with engine.begin() as conn:
-            conn.execute("SELECT 1")
-        print("✅ Database connectivity verified")
+            conn.execute(text("SELECT 1"))
+        print("[OK] Database connectivity verified")
     except Exception as e:
-        print(f"⚠️ Database connection failed at startup: {e}")
+        logging.getLogger("uvicorn.error").exception("Database connection failed at startup: %s", e)
         raise
 
     yield
 
     # Shutdown: cleanup
-    print("🛑 Quantive shutting down gracefully...")
+    print("[OK] Quantive shutting down gracefully")
 
 
 app = FastAPI(
@@ -57,16 +58,24 @@ app = FastAPI(
 )
 
 
-@app.get("/api/health", include_in_schema=False)
-async def health_check():
-    """Health check endpoint for orchestration and load balancers."""
-    return {
-        "status": "healthy",
-        "version": "1.0.0",
-        "database": "connected",
-        "synthetic_data": True,
-        "env": "production" if not settings.DEBUG else "development",
-    }
+@app.exception_handler(PydanticValidationError)
+async def validation_exception_handler(request, exc: PydanticValidationError):
+    errors = []
+    for error in exc.errors():
+        loc = " -> ".join(str(part) for part in error["loc"])
+        errors.append({"field": loc, "message": error["msg"]})
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Validation error", "code": "validation_error", "errors": errors},
+    )
+
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request, exc: ValueError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc), "code": "bad_request"},
+    )
 
 
 @app.post("/api/v1/optimize/background")
@@ -77,7 +86,7 @@ async def optimize_background(background_tasks: BackgroundTasks) -> dict:
     """
     job = create_job(problem_id="demo-problem", portfolio_id="synthetic-demo")
 
-    # Schedule background optimization task
+    # Schedule background optimization task with job reference
     background_tasks.add_task(_run_optimization_job, job.id)
 
     return {"job_id": job.id, "status": job.status, "message": "Optimization started in background"}
@@ -86,29 +95,21 @@ async def optimize_background(background_tasks: BackgroundTasks) -> dict:
 def _run_optimization_job(job_id: str):
     """Run the full optimization pipeline in background."""
     try:
-        from quantive.data.fixtures import demo_portfolio
+        # The engine lives outside backend/; make it importable at runtime.
+        import sys
+        from pathlib import Path
+
+        repo_root = str(Path(__file__).resolve().parents[2])
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+
+        from quantive.data.fixtures import demo_portfolio, build_default_problem
         from quantive.orchestration import run_full_job
-        from quantive.models.optimization import OptimizationObjective
-        from quantive.models.enums import StrategyProfile
-        from app.audit.logger import AuditLogger
 
         p = demo_portfolio()
-        prob = type(
-            "OptimizationProblem",
-            (object,),
-            {
-                "id": "demo-problem",
-                "name": "Demo Problem",
-                "portfolio_id": "synthetic-demo",
-                "financing_requirement": 120_000.0,
-                "objectives": OptimizationObjective(),
-                "constraints": [],
-                "scenarios": [],
-                "solver_config": {},
-                "reference_currency": "USD",
-                "profile": StrategyProfile.BEST_OVERALL,
-            },
-        )()
+        prob = build_default_problem()
+        # Override problem ID so it's unique per job
+        prob.id = f"job-problem-{job_id}"
 
         result = run_full_job(p, prob)
 
@@ -120,13 +121,18 @@ def _run_optimization_job(job_id: str):
         }
 
         # Audit log
-        AuditLogger.log_optimization_complete(
-            result_id=result["result"].id,
-            user="background_job",
-            feasible=result["result"].strategy.feasible,
-            objective_value=result["result"].strategy.objective_value,
-            runtime=result["result"].runtime,
-        )
+        try:
+            from app.audit.logger import AuditLogger
+
+            AuditLogger.log_optimization_complete(
+                result_id=result["result"].id,
+                user="background_job",
+                feasible=result["result"].strategy.feasible,
+                objective_value=result["result"].strategy.objective_value,
+                runtime=result["result"].runtime,
+            )
+        except ImportError:
+            pass
 
     except Exception as e:
         JOBS[job_id].status = "failed"
@@ -138,7 +144,7 @@ def get_job_status(job_id: str) -> dict:
     """Poll for optimization job status and results."""
     job = get_job(job_id)
     if not job:
-        return {"error": "Job not found"}, 404
+        raise HTTPException(status_code=404, detail="Job not found")
 
     return job.to_dict()
 
@@ -153,6 +159,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_PER_MINUTE)
+app.add_middleware(ThreatDetectionMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

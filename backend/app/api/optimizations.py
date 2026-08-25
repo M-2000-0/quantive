@@ -33,6 +33,9 @@ from app.schemas import (
 )
 from app.security import get_current_user, log_audit_event
 
+# Live background job threads (joined by tests to keep teardown deterministic)
+_job_threads: set = set()
+
 settings = get_settings()
 
 router = APIRouter(prefix="/api/optimizations", tags=["optimizations"])
@@ -124,11 +127,15 @@ def create_optimization(data: OptimizationCreate, user: User = Depends(get_curre
     _session_factory = database_module.SessionLocal
 
     def _run():
-        def factory():
-            return _session_factory()
-        run_optimization_job(job.id, factory)
+        try:
+            def factory():
+                return _session_factory()
+            run_optimization_job(job.id, factory)
+        finally:
+            _job_threads.discard(threading.current_thread())
 
     thread = threading.Thread(target=_run, daemon=True)
+    _job_threads.add(thread)
     thread.start()
 
     return OptimizationResponse.model_validate(job)

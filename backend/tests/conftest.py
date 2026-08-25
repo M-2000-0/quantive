@@ -45,6 +45,14 @@ def setup_db():
     _clear_rate_limits()
     yield
     database_module.SessionLocal = old_session
+    # Wait for any background optimization threads spawned by this test to
+    # finish before touching the shared in-memory connection.
+
+    from app.api import optimizations as _opt
+
+    for t in list(_opt._job_threads):
+        t.join(timeout=60)
+    engine.dispose()
     Base.metadata.drop_all(bind=engine)
 
 

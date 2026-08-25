@@ -102,6 +102,15 @@ export const api = {
     delete: (id: string) => request<void>(`/portfolios/${id}`, { method: 'DELETE' }),
     upload: (formData: FormData) =>
       request<Portfolio>('/portfolios/upload', { method: 'POST', body: formData }),
+    bulkImport: (formData: FormData) =>
+      request<Portfolio>('/portfolios/upload', { method: 'POST', body: formData }),
+    importCsv: (file: File, name: string, description?: string) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('name', name);
+      if (description) fd.append('description', description);
+      return request<Portfolio>('/portfolios/upload', { method: 'POST', body: fd });
+    },
     clone: (id: string, data?: { name?: string }) =>
       request<Portfolio>(`/portfolios/${id}/clone`, { method: 'POST', body: JSON.stringify(data || {}) }),
     addInstrument: (portfolioId: string, data: Record<string, unknown>) =>
@@ -143,6 +152,119 @@ export const api = {
     results: (id: string) => request<Array<{ id: string; metrics: Record<string, unknown>; allocation: Record<string, number> }>>(`/optimizations/${id}/results`),
     report: (id: string) => request<Report>(`/optimizations/${id}/report`),
     progress: (id: string) => request<{ progress: number; status: string; message?: string }>(`/optimizations/${id}/progress`),
+    /**
+     * Subscribe to job updates via SSE (EventSource) with polling fallback.
+     * Returns an unsubscribe function.
+     */
+    subscribeToJob: (
+      id: string,
+      onUpdate: (job: OptimizationJob) => void,
+      opts?: { intervalMs?: number; onError?: (err: Error) => void }
+    ): (() => void) => {
+      const intervalMs = opts?.intervalMs ?? 2000;
+      let es: EventSource | null = null;
+      let intervalId: number | null = null;
+      let closed = false;
+
+      const startPolling = () => {
+        if (closed) return;
+        const tick = async () => {
+          try {
+            const job = await request<OptimizationJob>(`/optimizations/${id}`);
+            if (closed) return;
+            onUpdate(job);
+            if (['completed', 'failed', 'cancelled'].includes(job.status)) {
+              if (intervalId !== null) window.clearInterval(intervalId);
+              intervalId = null;
+            }
+          } catch (e) {
+            opts?.onError?.(e instanceof Error ? e : new Error(String(e)));
+          }
+        };
+        void tick();
+        intervalId = window.setInterval(tick, intervalMs);
+      };
+
+      const canUseSSE = typeof window !== 'undefined' && 'EventSource' in window;
+      if (canUseSSE) {
+        try {
+          const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
+          const base = `${API_BASE}/optimizations/${encodeURIComponent(id)}/progress`;
+          const url = token ? `${base}?token=${encodeURIComponent(token)}` : base;
+          es = new EventSource(url);
+          let fallbackDone = false;
+          const fallback = () => {
+            if (fallbackDone || closed) return;
+            fallbackDone = true;
+            if (es) { es.close(); es = null; }
+            startPolling();
+          };
+          es.onmessage = (event: MessageEvent) => {
+            try {
+              const data = JSON.parse(event.data) as Record<string, unknown>;
+              if (data['error']) {
+                opts?.onError?.(new Error(String(data['error'])));
+                fallback();
+                return;
+              }
+              if (data['event'] === 'done') {
+                es?.close();
+                es = null;
+                return;
+              }
+              const status = (data['status'] as string) ?? (data['state'] as string) ?? 'running';
+              const progress = typeof data['progress'] === 'number' ? (data['progress'] as number) : 0;
+              // If payload already looks like OptimizationJob (has id), use it directly
+              if (data['id'] && data['portfolio_id']) {
+                onUpdate(data as unknown as OptimizationJob);
+              } else {
+                const job: OptimizationJob = {
+                  id,
+                  portfolio_id: (data['portfolio_id'] as string) ?? '',
+                  org_id: (data['org_id'] as string) ?? '',
+                  created_by: (data['created_by'] as string) ?? '',
+                  name: (data['name'] as string) ?? '',
+                  status,
+                  optimization_type: (data['optimization_type'] as string) ?? '',
+                  objectives: (data['objectives'] as Record<string, unknown>) ?? {},
+                  constraints: (data['constraints'] as Record<string, unknown>) ?? {},
+                  solver_config: (data['solver_config'] as Record<string, unknown>) ?? {},
+                  scenario_config: (data['scenario_config'] as Record<string, unknown>) ?? {},
+                  random_seed: (data['random_seed'] as number) ?? 0,
+                  model_version: (data['model_version'] as string) ?? '',
+                  progress,
+                  error_message: (data['error_message'] as string | null) ?? (data['error'] as string | null) ?? null,
+                  started_at: (data['started_at'] as string | null) ?? null,
+                  completed_at: (data['completed_at'] as string | null) ?? null,
+                  created_at: (data['created_at'] as string) ?? new Date().toISOString(),
+                  updated_at: (data['updated_at'] as string) ?? new Date().toISOString(),
+                };
+                onUpdate(job);
+              }
+              if (['completed', 'failed', 'cancelled'].includes(status)) {
+                es?.close();
+                es = null;
+              }
+            } catch {
+              // ignore parse errors
+            }
+          };
+          es.onerror = () => {
+            fallback();
+          };
+        } catch {
+          startPolling();
+        }
+      } else {
+        startPolling();
+      }
+
+      return () => {
+        closed = true;
+        if (es) { es.close(); es = null; }
+        if (intervalId !== null) { window.clearInterval(intervalId); intervalId = null; }
+      };
+    },
   },
 
   // ── Audit ───────────────────────────────────────────────────────────
@@ -419,3 +541,12 @@ export const api = {
   getRatingCountries: () =>
     request<unknown>('/ratings/countries'),
 };
+
+// ── Standalone SSE / polling helper (task-required named export) ───────
+export function subscribeToJob(
+  id: string,
+  onUpdate: (job: OptimizationJob) => void,
+  opts?: { intervalMs?: number; onError?: (err: Error) => void }
+): () => void {
+  return api.optimizations.subscribeToJob(id, onUpdate, opts);
+}

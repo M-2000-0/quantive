@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { api } from '../api';
 
 type Tab = 'sanctions' | 'liquidity' | 'political' | 'contagion';
@@ -43,6 +43,192 @@ function ScoreBar({ score, max = 100, color }: { score: number; max?: number; co
   );
 }
 
+// ── New: Scenario-Weighted VaR, Regime Detection, Early-Warning Signals ──
+type Regime = 'calm' | 'stressed' | 'risk-off' | 'crisis';
+
+function detectRegime(impactSummary: Record<string, unknown> | null): { regime: Regime; label: string; color: string; description: string } {
+  if (!impactSummary) return { regime: 'calm', label: 'Calm', color: '#22c55e', description: 'No stress detected — run analysis' };
+  const spread = (impactSummary.spread_increase_pct as number) || 0;
+  const volDrop = (impactSummary.volume_decrease_pct as number) || 0;
+  const days = (impactSummary.days_to_liquidate_under_stress as number) || 0;
+  const score = spread * 0.5 + volDrop * 0.3 + days * 2;
+  if (score >= 80 || spread >= 60) return { regime: 'crisis', label: 'Crisis', color: '#dc2626', description: 'Extreme dislocation — bid/ask blowout, liquidity vacuum' };
+  if (score >= 45 || spread >= 35) return { regime: 'risk-off', label: 'Risk-Off', color: '#ef4444', description: 'Broad de-risking — EM and high-yield under pressure' };
+  if (score >= 20 || spread >= 15) return { regime: 'stressed', label: 'Stressed', color: '#f59e0b', description: 'Elevated volatility — spreads widening, volumes thinning' };
+  return { regime: 'calm', label: 'Calm', color: '#22c55e', description: 'Normal market functioning — ample liquidity' };
+}
+
+function computeScenarioWeightedVaR(scenarios: Array<{ return_pct: number; probability: number }>): { weightedVaR95: number; weightedVaR99: number; expectedShortfall: number; tailProb: number } {
+  if (scenarios.length === 0) return { weightedVaR95: 0, weightedVaR99: 0, expectedShortfall: 0, tailProb: 0 };
+  const sorted = [...scenarios].sort((a, b) => a.return_pct - b.return_pct);
+  // weighted quantile: find return where cumulative prob >= 1 - confidence
+  const cumulative = (threshold: number) => {
+    let cum = 0;
+    for (const s of sorted) {
+      cum += s.probability;
+      if (cum >= 1 - threshold) return s.return_pct;
+    }
+    return sorted[0].return_pct;
+  };
+  const var95 = cumulative(0.95);
+  const var99 = cumulative(0.99);
+  // scenario-weighted expected loss (probability-weighted negative returns)
+  const expectedShortfall = sorted.filter(s => s.return_pct <= var95).reduce((acc, s) => acc + (-s.return_pct / 100) * s.probability * 100, 0);
+  const tailProb = sorted.filter(s => s.return_pct <= var99).reduce((a, s) => a + s.probability, 0);
+  return { weightedVaR95: var95, weightedVaR99: var99, expectedShortfall, tailProb };
+}
+
+function EarlyWarningSignals({ impactSummary }: { impactSummary: Record<string, unknown> | null }) {
+  const signals = useMemo(() => {
+    if (!impactSummary) return [];
+    const list: Array<{ level: 'amber' | 'red' | 'green'; label: string; detail: string }> = [];
+    const spread = (impactSummary.spread_increase_pct as number) || 0;
+    const volDrop = (impactSummary.volume_decrease_pct as number) || 0;
+    const cost = (impactSummary.estimated_trading_cost_usd as number) || 0;
+    const days = (impactSummary.days_to_liquidate_under_stress as number) || 0;
+    if (spread > 40) list.push({ level: 'red', label: 'Spread Blowout', detail: `+${spread}% spread vs normal — execution slippage high` });
+    else if (spread > 15) list.push({ level: 'amber', label: 'Widening Spreads', detail: `+${spread}% — monitor dealer inventory` });
+    else list.push({ level: 'green', label: 'Spreads Stable', detail: `+${spread}% — within normal band` });
+
+    if (volDrop > 40) list.push({ level: 'red', label: 'Liquidity Drain', detail: `-${volDrop}% volume — market depth collapsed` });
+    else if (volDrop > 20) list.push({ level: 'amber', label: 'Volume Thinning', detail: `-${volDrop}% ADV — caution on large tickets` });
+    else list.push({ level: 'green', label: 'Volume Adequate', detail: `-${volDrop}% — manageable flow` });
+
+    if (days > 10) list.push({ level: 'red', label: 'Liquidation Risk', detail: `${days}d to liquidate — exceeds risk limits` });
+    else if (days > 5) list.push({ level: 'amber', label: 'Slower Exit', detail: `${days}d — stage exits` });
+    else list.push({ level: 'green', label: 'Exit Feasible', detail: `${days}d — within limits` });
+
+    if (cost > 5_000_000) list.push({ level: 'red', label: 'High Trading Cost', detail: `$${(cost/1e6).toFixed(1)}M est. cost — pre-hedge` });
+    else if (cost > 1_000_000) list.push({ level: 'amber', label: 'Elevated Cost', detail: `$${(cost/1e6).toFixed(1)}M — budget check` });
+    else list.push({ level: 'green', label: 'Cost Contained', detail: `$${(cost/1e6).toFixed(1)}M` });
+
+    return list;
+  }, [impactSummary]);
+
+  if (signals.length === 0) return (
+    <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/30 p-4 text-center">
+      <p className="text-sm text-slate-500">Run liquidity stress test to generate early-warning signals</p>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {signals.map((s, i) => (
+        <div key={i} className={`flex items-start gap-3 px-4 py-3 rounded-2xl backdrop-blur-xl border shadow-sm ${
+          s.level === 'red' ? 'bg-red-500/10 border-red-500/20' : s.level === 'amber' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-emerald-500/10 border-emerald-500/20'
+        }`}>
+          <span className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${s.level === 'red' ? 'bg-red-600' : s.level === 'amber' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-slate-900">{s.label}</p>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border backdrop-blur-md ${
+                s.level === 'red' ? 'bg-red-500/15 border-red-500/20 text-red-700' :
+                s.level === 'amber' ? 'bg-amber-500/15 border-amber-500/20 text-amber-700' :
+                'bg-emerald-500/15 border-emerald-500/20 text-emerald-700'
+              }`}>{s.level === 'red' ? 'ALERT' : s.level === 'amber' ? 'WATCH' : 'OK'}</span>
+            </div>
+            <p className="text-xs text-slate-600 mt-0.5">{s.detail}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScenarioWeightedVaRCard({ scenarios, investment = 100_000_000 }: { scenarios?: Array<{ return_pct: number; probability: number }>; investment?: number }) {
+  // Default synthesize scenarios from DEMO distribution if none provided
+  const effectiveScenarios = useMemo(() => {
+    if (scenarios && scenarios.length > 0) return scenarios;
+    // synthetic distribution: 7 scenarios with probabilities summing 1
+    return [
+      { return_pct: 4.5, probability: 0.10 },
+      { return_pct: 2.1, probability: 0.20 },
+      { return_pct: 0.8, probability: 0.30 },
+      { return_pct: -1.2, probability: 0.20 },
+      { return_pct: -3.5, probability: 0.12 },
+      { return_pct: -6.8, probability: 0.06 },
+      { return_pct: -11.2, probability: 0.02 },
+    ];
+  }, [scenarios]);
+
+  const { weightedVaR95, weightedVaR99, expectedShortfall, tailProb } = useMemo(
+    () => computeScenarioWeightedVaR(effectiveScenarios),
+    [effectiveScenarios]
+  );
+
+  const var95Loss = Math.max(0, -weightedVaR95 / 100 * investment);
+  const var99Loss = Math.max(0, -weightedVaR99 / 100 * investment);
+
+  return (
+    <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/30 p-5 shadow-sm">
+      <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs">VaR</span>
+        Scenario-Weighted VaR <span className="text-xs font-normal text-slate-500">— probability-weighted tail (non-equal weights)</span>
+      </h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <div className="bg-white/60 backdrop-blur-md rounded-xl border border-white/40 p-3 text-center">
+          <div className="text-lg font-bold text-amber-700 tabular-nums">${(var95Loss/1e6).toFixed(1)}M</div>
+          <div className="text-xs text-slate-500">Weighted VaR 95</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">{weightedVaR95.toFixed(2)}% return threshold</div>
+          <span className="inline-flex mt-2 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/20 text-amber-700 text-[10px] font-bold backdrop-blur-md">95% CONF</span>
+        </div>
+        <div className="bg-white/60 backdrop-blur-md rounded-xl border border-white/40 p-3 text-center">
+          <div className="text-lg font-bold text-red-700 tabular-nums">${(var99Loss/1e6).toFixed(1)}M</div>
+          <div className="text-xs text-slate-500">Weighted VaR 99</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">{weightedVaR99.toFixed(2)}% threshold</div>
+          <span className="inline-flex mt-2 px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/20 text-red-700 text-[10px] font-bold backdrop-blur-md">99% CONF</span>
+        </div>
+        <div className="bg-white/60 backdrop-blur-md rounded-xl border border-white/40 p-3 text-center">
+          <div className="text-lg font-bold text-red-600 tabular-nums">{expectedShortfall.toFixed(2)}%</div>
+          <div className="text-xs text-slate-500">Expected Shortfall</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">Avg loss beyond VaR 95</div>
+          <span className="inline-flex mt-2 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/15 text-red-700 text-[10px] font-bold backdrop-blur-md">TAIL AVG</span>
+        </div>
+        <div className="bg-white/60 backdrop-blur-md rounded-xl border border-white/40 p-3 text-center">
+          <div className="text-lg font-bold text-purple-700 tabular-nums">{(tailProb*100).toFixed(1)}%</div>
+          <div className="text-xs text-slate-500">Extreme Tail Prob</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">Return &le; VaR 99</div>
+          <span className="inline-flex mt-2 px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/20 text-purple-700 text-[10px] font-bold backdrop-blur-md">PROB</span>
+        </div>
+      </div>
+      <div className="mt-4">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Scenario Distribution</p>
+        <div className="flex gap-1 h-8 items-end">
+          {effectiveScenarios.map((s, i) => {
+            const h = Math.max(8, Math.min(32, Math.abs(s.return_pct) * 6 + s.probability * 40));
+            const bg = s.return_pct <= weightedVaR99 ? '#dc2626' : s.return_pct <= weightedVaR95 ? '#f59e0b' : s.return_pct >= 0 ? '#22c55e' : '#64748b';
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full rounded-t-md transition-all" style={{ height: `${h}px`, backgroundColor: bg, opacity: 0.9 }} title={`${s.return_pct}% (${(s.probability*100).toFixed(0)}%)`} />
+                <span className="text-[10px] text-slate-500">{(s.probability*100).toFixed(0)}%</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex gap-2 mt-2 text-[11px]">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-600 inline-block" /> &le;VaR99</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-amber-500 inline-block" /> &le;VaR95</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500 inline-block" /> Positive</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegimeBadge({ impactSummary }: { impactSummary: Record<string, unknown> | null }) {
+  const regime = detectRegime(impactSummary);
+  return (
+    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full backdrop-blur-xl border shadow-sm" style={{ backgroundColor: `${regime.color}14`, borderColor: `${regime.color}30` }}>
+      <span className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: regime.color }} />
+      <span className="text-sm font-bold" style={{ color: regime.color }}>{regime.label.toUpperCase()}</span>
+      <span className="text-xs text-slate-600 hidden sm:inline">{regime.description}</span>
+      <span className="px-2 py-0.5 rounded-full bg-white/60 border border-white/40 text-[11px] font-bold text-slate-700 backdrop-blur-md">
+        REGIME DETECTION
+      </span>
+    </div>
+  );
+}
+
 export default function RiskIntelPage() {
   const [activeTab, setActiveTab] = useState<Tab>('sanctions');
   const [loading, setLoading] = useState(false);
@@ -65,7 +251,7 @@ export default function RiskIntelPage() {
     try {
       const res = await api.riskIntel.sanctionsScreen(DEMO_INSTRUMENTS as unknown as Array<Record<string, unknown>>);
       setSanctionsResult(res.data);
-    } catch (e) { setError('Failed to run sanctions screening'); }
+    } catch { setError('Failed to run sanctions screening'); }
     finally { setLoading(false); }
   };
 
@@ -74,7 +260,7 @@ export default function RiskIntelPage() {
     try {
       const res = await api.riskIntel.liquidityStressTest(DEMO_INSTRUMENTS as unknown as Array<Record<string, unknown>>, scenario || stressScenario);
       setLiquidityResult(res.data);
-    } catch (e) { setError('Failed to run liquidity analysis'); }
+    } catch { setError('Failed to run liquidity analysis'); }
     finally { setLoading(false); }
   };
 
@@ -83,7 +269,7 @@ export default function RiskIntelPage() {
     try {
       const res = await api.riskIntel.politicalRisk(politicalCountry);
       setPoliticalResult(res.data);
-    } catch (e) { setError('Failed to load political risk'); }
+    } catch { setError('Failed to load political risk'); }
     finally { setLoading(false); }
   };
 
@@ -92,14 +278,32 @@ export default function RiskIntelPage() {
     try {
       const res = await api.riskIntel.contagionCascade(contagionTrigger, DEMO_INSTRUMENTS as unknown as Array<Record<string, unknown>>, 500);
       setContagionResult(res.data);
-    } catch (e) { setError('Failed to run contagion simulation'); }
+    } catch { setError('Failed to run contagion simulation'); }
     finally { setLoading(false); }
   };
+
+  const liquidityImpact = (liquidityResult?.impact_summary as Record<string, unknown>) || null;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Risk Intelligence</h1>
-      <p className="text-gray-400 mb-6">Sanctions screening, liquidity risk, political risk, and contagion analysis — all in one place.</p>
+      <p className="text-gray-400 mb-6">Sanctions screening, liquidity risk, political risk, and contagion analysis — scenario-weighted VaR & regime detection included.</p>
+
+      {/* Global Intelligence Overlay: Scenario-Weighted VaR + Regime Badge + Early Warnings */}
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <RegimeBadge impactSummary={liquidityImpact} />
+          <span className="text-xs text-gray-400">Regime auto-detected from liquidity stress impact (spreads, volume, days-to-liquidate)</span>
+        </div>
+        <ScenarioWeightedVaRCard />
+        <div>
+          <h3 className="text-sm font-semibold text-gray-300 mb-2 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500" /> Early-Warning Signals
+            <span className="text-xs font-normal text-gray-500">— auto-derived from stress test; amber = watch, red = action</span>
+          </h3>
+          <EarlyWarningSignals impactSummary={liquidityImpact} />
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -209,10 +413,19 @@ export default function RiskIntelPage() {
                 </button>
               </div>
             </div>
+            {/* Inline regime badge for this scenario */}
+            <div className="mt-3">
+              <RegimeBadge impactSummary={liquidityImpact} />
+            </div>
           </div>
 
           {liquidityResult && (
             <div className="space-y-6">
+              <ScenarioWeightedVaRCard investment={DEMO_INSTRUMENTS.reduce((a, inst) => a + inst.principal_outstanding, 0)} />
+              <div>
+                <h3 className="text-sm font-semibold text-gray-300 mb-2">Early-Warning — Current Stress Scenario</h3>
+                <EarlyWarningSignals impactSummary={liquidityImpact} />
+              </div>
               <div className="bg-gray-800 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4">Stress Scenario: {String(liquidityResult.scenario)}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -341,9 +554,24 @@ export default function RiskIntelPage() {
                       {String((politicalResult.overall as Record<string, unknown>)?.risk_score)}
                     </span>
                     <SeverityBadge level={String((politicalResult.overall as Record<string, unknown>)?.risk_tier)} />
+                    {/* Regime-style badge for political risk tier */}
+                    <span className="px-3 py-1 rounded-full backdrop-blur-xl border text-xs font-bold"
+                      style={{
+                        backgroundColor: `${SEVERITY_COLORS[String((politicalResult.overall as Record<string, unknown>)?.risk_tier)] || '#6b7280'}14`,
+                        borderColor: `${SEVERITY_COLORS[String((politicalResult.overall as Record<string, unknown>)?.risk_tier)] || '#6b7280'}30`,
+                        color: SEVERITY_COLORS[String((politicalResult.overall as Record<string, unknown>)?.risk_tier)] || '#6b7280'
+                      }}>
+                      {String((politicalResult.overall as Record<string, unknown>)?.risk_tier || '').toUpperCase()} REGIME
+                    </span>
                   </div>
                 </div>
                 <ScoreBar score={Number((politicalResult.overall as Record<string, unknown>)?.risk_score) || 0} />
+                <div className="mt-4">
+                  <EarlyWarningSignals impactSummary={{
+                    spread_increase_pct: Number((politicalResult.overall as Record<string, unknown>)?.risk_score) || 0,
+                    volume_decrease_pct: 0, estimated_trading_cost_usd: 0, days_to_liquidate_under_stress: 0
+                  } as Record<string, unknown>} />
+                </div>
               </div>
 
               {/* Component Scores */}

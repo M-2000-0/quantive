@@ -187,6 +187,28 @@
     border-color: rgba(255, 255, 255, 0.18);
   }
 
+  /* Card glass (alias for .glass — used widely via glass-card) */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glass-hover:hover {
+    box-shadow: var(--glass-shadow-lg);
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+  .dark .glass-hover:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+  .dark .glass-card {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+  }
+
   /* Heavy glass (more opaque) */
   .glass-heavy {
     background: var(--glass-bg-heavy);

@@ -1,0 +1,51 @@
+{
+  "name": "Quantive — Government Debt Optimization",
+  "short_name": "Quantive",
+  "description": "Government Debt Optimization Infrastructure",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Portfolios",
+      "url": "/portfolios",
+      "description": "View debt portfolios"
+    },
+    {
+      "name": "Run Optimization",
+      "url": "/optimizations/new",
+      "description": "Start new optimization"
+    },
+    {
+      "name": "Market Data",
+      "url": "/market",
+      "description": "Live market data"
+    }
+  ],
+  "categories": ["finance", "business"],
+  "lang": "en"
+}

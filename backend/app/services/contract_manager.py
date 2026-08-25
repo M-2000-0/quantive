@@ -2,18 +2,26 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Optional, Dict, Any, List, Union
+from typing import Any, Dict, Optional
 
-from sqlalchemy.ext.async import AsyncSession
-from sqlalchemy import select, func, desc, and_, or_
+from sqlalchemy import and_, desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import AsyncSessionLocal
-from app.config import get_settings
-from app.services.pay_for_performance import SuccessFeeCalculator, calculate_fee
-from app.models import Contract, OptimizationJob, Org, User  # Assume models exist
+from app.services.pay_for_performance import SuccessFeeCalculator
+
+try:
+    from app.database import AsyncSessionLocal
+except ImportError:  # app.database is sync-only; async session factory not configured yet
+    AsyncSessionLocal = None
+
+try:
+    from app.models import Contract, Org, User
+except ImportError:  # Contract/Org models not defined yet (WIP)
+    Contract = None
+    Org = None
+    User = None
 
 
 class ContractManager:
@@ -273,7 +281,6 @@ class ContractManager:
         """Get a summarized view of contract status and metrics."""
         
         async with AsyncSessionLocal() as db:
-            from app.services.revenue_share_tracker import RevenueShareTracker
             
             contract_result = await db.get(Contract, contract_id)
             if not contract_result:
@@ -281,25 +288,27 @@ class ContractManager:
             
             # Get related optimization jobs summary
             from app.models import OptimizationJob
+            savings_expr = func.case(
+                (
+                    and_(
+                        OptimizationJob.status == "completed",
+                        OptimizationJob.baseline_cost.isnot(None),
+                        OptimizationJob.financing_cost.isnot(None),
+                    ),
+                    OptimizationJob.baseline_cost - OptimizationJob.financing_cost,
+                ),
+                else_=0,
+            )
             job_summary_result = await db.execute(
                 select(
                     func.count(OptimizationJob.id).label("total_jobs"),
                     func.sum(
                         func.case(
                             (OptimizationJob.status == "completed", 1),
-                            else_=0
+                            else_=0,
                         )
                     ).label("completed_jobs"),
-                    func.sum(
-                        func.case(
-                            (and_(
-                                OptimizationJob.status == "completed",
-                                OptimizationJob.baseline_cost.isnot(None),
-                                OptimizationJob.financing_cost.isnot(None),
-                            ), 
-                            func.(OptimizationJob.baseline_cost - OptimizationJob.financing_cost)
-                        )
-                    ).label("total_savings_usd"),
+                    func.sum(savings_expr).label("total_savings_usd"),
                 )
                 .where(OptimizationJob.contract_id == contract_id)
             )

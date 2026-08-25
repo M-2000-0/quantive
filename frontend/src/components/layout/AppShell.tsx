@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../stores/auth';
 import Sidebar from './Sidebar';
 import Breadcrumbs from '../ui/Breadcrumbs';
 import ThemeToggle from '../ThemeToggle';
 import NotificationBell from '../NotificationBell';
+import CommandPalette from '../CommandPalette';
+import PwaInstallBanner from '../PwaInstallBanner';
 
 const PATH_LABELS: Record<string, string> = {
   '/': 'Overview',
@@ -56,6 +58,7 @@ const ROLE_BADGES: Record<string, string> = {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
 
@@ -63,6 +66,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pageTitle = PATH_LABELS[pathname] || breadcrumbs[breadcrumbs.length - 1]?.label || '';
   const initials = user ? getUserInitials(user.name) : '??';
   const roleBadge = user ? ROLE_BADGES[user.role] || ROLE_BADGES.viewer : '';
+
+  // Global Cmd+K / Ctrl+K handler — AppShell owns the palette trigger
+  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        // avoid triggering when already in palette input? still allow close/reopen
+        e.preventDefault();
+        setPaletteOpen(v => !v);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden relative">
@@ -99,6 +118,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Global search trigger — opens CommandPalette via AppShell */}
+            <button
+              type="button"
+              onClick={openPalette}
+              className="hidden md:inline-flex items-center gap-2 rounded-xl border border-white/50 bg-white/60 px-3 py-1.5 text-sm text-slate-600 hover:bg-white/80 hover:text-slate-900 shadow-sm backdrop-blur-md transition-all"
+              aria-label="Open command palette"
+            >
+              <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.7} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.2-5.2m0 0A7.5 7.5 0 105.2 5.2a7.5 7.5 0 0010.6 10.6z" />
+              </svg>
+              <span className="text-xs font-medium">Search</span>
+              <span className="ml-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-500">
+                <span>⌘</span>K
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={openPalette}
+              className="md:hidden rounded-xl p-2 text-slate-500 hover:bg-white/70 hover:text-slate-700 border border-transparent hover:border-white/60 hover:shadow-md backdrop-blur-md transition-all"
+              aria-label="Search"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.7} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.2-5.2m0 0A7.5 7.5 0 105.2 5.2a7.5 7.5 0 0010.6 10.6z" />
+              </svg>
+            </button>
+
             <ThemeToggle />
             <NotificationBell />
             {user && (
@@ -144,6 +189,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Command palette — triggered via AppShell (Cmd+K) */}
+      <CommandPalette isOpen={paletteOpen} onClose={closePalette} />
+      {/* PWA liquid glass install banner */}
+      <PwaInstallBanner />
     </div>
   );
 }

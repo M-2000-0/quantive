@@ -1,12 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { I18nProvider } from './i18n';
 import { ThemeProvider } from './stores/theme';
 import { ToastProvider } from './stores/toast';
 import { AuthProvider, useAuth } from './stores/auth';
-import CommandPalette from './components/CommandPalette';
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 // ── Code-split pages (each becomes its own chunk) ─────────────────────
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -54,18 +52,9 @@ function PageLoader() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-
-  useKeyboardShortcuts(() => setCommandPaletteOpen(true));
-
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" />;
-  return (
-    <>
-      {children}
-      <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
-    </>
-  );
+  return <>{children}</>;
 }
 
 export default function App() {

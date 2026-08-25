@@ -36,15 +36,9 @@ class SuccessFeeCalculator:
         portfolio_notional: Optional[Decimal] = None,
     ) -> Dict[str, Any]:
         """
-        Calculate success fee with full audit trail.
+        Calculate success fee.
         
-        Returns dict with:
-        - fee: The calculated fee amount
-        - savings: The absolute cost savings
-        - savings_percentage: Percentage reduction
-        - eligible: Whether fee is eligible (threshold met)
-        - reason: Human-readable explanation
-        - breakdown: Detailed calculation steps
+        No async required - this is pure calculation logic.
         """
         
         # Apply defaults
@@ -173,7 +167,7 @@ class SuccessFeeCalculator:
         return True, "Valid"
 
 
-# Convenience function for fast calculations (no class instantiation needed)
+# Convenience synchronous function for fast calculations
 def calculate_fee(
     baseline_cost: Decimal,
     optimized_cost: Decimal,

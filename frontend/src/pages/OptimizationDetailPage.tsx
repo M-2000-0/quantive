@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import type { OptimizationJob, Strategy, BenchmarkResult, Report, ScenarioResult } from '../types';
 import { MOCK_SCENARIO_RESULTS, MOCK_STRESS_RESULTS } from '../api/mock';
 import AppShell from '../components/layout/AppShell';
 import { Tabs, Card, CardHeader, Badge, Button, LoadingSpinner, ProgressBar } from '../components/ui';
+import { useToast } from '../stores/toast';
+import { generateDecisionPackagePDF, downloadReportJson, downloadReportMarkdown } from '../utils/decisionPackagePdf';
 
 type TabId = 'results' | 'comparison' | 'explainability' | 'scenarios' | 'benchmarks' | 'report';
 
@@ -119,33 +121,97 @@ export default function OptimizationDetailPage() {
   const [activeTab, setActiveTab] = useState<TabId>('results');
   const [expandedStrategy, setExpandedStrategy] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  void pdfGenerating;
+  const { addJobToast, success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
 
-  const pollJob = useCallback(async () => {
-    if (!id) return;
-    try {
-      const j = await api.optimizations.get(id);
-      setJob(j);
-      const running = ['queued', 'running', 'scenario_generation', 'solving', 'benchmarking', 'stress_testing'].includes(j.status);
-      if (running) {
-        setTimeout(pollJob, 2000);
-      } else {
-        setLoading(false);
-        if (j.status === 'completed') {
+  const handleJobUpdate = useCallback(async (j: OptimizationJob) => {
+    const prev = prevStatusRef.current;
+    if (prev !== j.status) {
+      if (j.status === 'queued') addJobToast('queued', { jobId: j.id, message: `Job "${j.name}" queued` });
+      else if (['running', 'scenario_generation', 'solving', 'benchmarking', 'stress_testing'].includes(j.status)) {
+        if (prev === 'queued' || prev === null) addJobToast('running', { jobId: j.id, message: `Job "${j.name}" is running` });
+      } else if (j.status === 'completed') {
+        addJobToast('completed', { jobId: j.id, message: `Job "${j.name}" completed` });
+        toastSuccess('Optimization Completed', j.name);
+      } else if (j.status === 'failed') {
+        addJobToast('failed', { jobId: j.id, message: j.error_message || `Job "${j.name}" failed` });
+        toastError('Optimization Failed', j.error_message || undefined);
+      }
+      prevStatusRef.current = j.status;
+    }
+
+    setJob(j);
+    const isTerminal = ['completed', 'failed', 'cancelled'].includes(j.status);
+    if (isTerminal) {
+      setLoading(false);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      if (j.status === 'completed' && id) {
+        try {
           const [strats, benchs] = await Promise.all([
             api.optimizations.strategies(id),
             api.optimizations.benchmarks(id),
           ]);
           setStrategies(strats);
           setBenchmarks(benchs);
+        } catch {
+          // ignore
+        }
+      }
+    } else {
+      // keep loading false after first data so progress bar shows; initial loading -> false once we have job
+      setLoading(false);
+    }
+  }, [addJobToast, toastSuccess, toastError, id]);
+
+  const fetchInitial = useCallback(async () => {
+    if (!id) return;
+    try {
+      const j = await api.optimizations.get(id);
+      await handleJobUpdate(j);
+      const isRunning = ['queued', 'running', 'scenario_generation', 'solving', 'benchmarking', 'stress_testing'].includes(j.status);
+      if (isRunning) {
+        // subscribe for live updates via SSE with polling fallback
+        if (unsubscribeRef.current) unsubscribeRef.current();
+        const unsub = api.optimizations.subscribeToJob(id, handleJobUpdate, {
+          onError: (err) => setError(err.message),
+        });
+        unsubscribeRef.current = unsub;
+        // also show queued/running toast if initial status
+        if (j.status === 'queued') toastInfo('Job Queued', `Optimization "${j.name}" is queued`);
+      } else if (j.status === 'completed') {
+        // already handled in handleJobUpdate, but ensure strategies loaded if not yet
+        if (strategies.length === 0) {
+          try {
+            const [strats, benchs] = await Promise.all([
+              api.optimizations.strategies(id),
+              api.optimizations.benchmarks(id),
+            ]);
+            setStrategies(strats);
+            setBenchmarks(benchs);
+          } catch { /* */ }
         }
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to fetch optimization');
       setLoading(false);
     }
-  }, [id]);
+  }, [id, handleJobUpdate, toastInfo, strategies.length]);
 
-  useEffect(() => { pollJob(); }, [pollJob]);
+  useEffect(() => {
+    void fetchInitial();
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [fetchInitial]);
 
   const loadReport = async () => {
     if (!id) return;
@@ -160,6 +226,37 @@ export default function OptimizationDetailPage() {
       setReportLoading(false);
     }
   };
+
+  const handleExportPdf = async () => {
+    if (!id) return;
+    setPdfGenerating(true);
+    try {
+      const r = report ?? await api.optimizations.report(id);
+      if (!report) setReport(r);
+      const ok = await generateDecisionPackagePDF(r);
+      if (ok) toastSuccess('PDF exported', 'Decision package PDF downloaded');
+      else toastInfo('PDF fallback', 'jsPDF not available — Markdown exported instead');
+    } catch (e: unknown) {
+      toastError('Export failed', e instanceof Error ? e.message : String(e));
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+  void handleExportPdf;
+
+  const handleExportJson = () => {
+    if (!report) return;
+    downloadReportJson(report);
+    toastSuccess('JSON exported', 'Decision package JSON downloaded');
+  };
+  void handleExportJson;
+
+  const handleExportMd = () => {
+    if (!report) return;
+    downloadReportMarkdown(report);
+    toastSuccess('Markdown exported', 'Decision package Markdown downloaded');
+  };
+  void handleExportMd;
 
   const isRunning = job && ['queued', 'running', 'scenario_generation', 'solving', 'benchmarking', 'stress_testing'].includes(job.status);
 
@@ -235,7 +332,7 @@ export default function OptimizationDetailPage() {
                     Status: {job.status.replace(/_/g, ' ')} &middot; Started {new Date(job.started_at ?? job.created_at).toLocaleString()}
                   </p>
                 </div>
-                <Button variant="danger" size="sm" onClick={async () => { if (id) { try { await api.optimizations.cancel(id); pollJob(); } catch { /* */ } } }}>
+                <Button variant="danger" size="sm" onClick={async () => { if (id) { try { await api.optimizations.cancel(id); toastInfo('Job Cancelled', 'Optimization was cancelled'); await fetchInitial(); } catch { /* */ } } }}>
                   Cancel
                 </Button>
               </div>
@@ -828,17 +925,23 @@ export default function OptimizationDetailPage() {
                         <h2 className="text-lg font-bold text-slate-900">Decision Package</h2>
                         <p className="text-sm text-slate-500">{report.job_name} &middot; Generated {new Date(report.created_at).toLocaleString()}</p>
                       </div>
-                      <Button variant="primary" size="md" onClick={() => {
-                        const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `decision-package-${report.job_id}.json`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }}>
-                        Export JSON
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="primary"
+                          size="md"
+                          onClick={handleExportPdf}
+                          disabled={pdfGenerating}
+                          title="Export styled PDF with institutional branding"
+                        >
+                          {pdfGenerating ? 'Generating…' : 'Export PDF'}
+                        </Button>
+                        <Button variant="secondary" size="md" onClick={handleExportJson} title="Export decision package as JSON (kept intact)">
+                          Export JSON
+                        </Button>
+                        <Button variant="ghost" size="md" onClick={handleExportMd} title="Export decision package as Markdown (kept intact)">
+                          Export MD
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Report sections */}

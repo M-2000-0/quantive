@@ -10,6 +10,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { formatDateTime } from '../utils';
 import { useToast } from '../components/Toast';
+import { generateDecisionPackagePDF, downloadReportJson, downloadReportMarkdown } from '../utils/decisionPackagePdf';
 
 const REPORT_SECTIONS = [
   { label: 'Executive Summary', icon: '\u2713' },
@@ -70,6 +71,7 @@ export default function ReportsPage() {
   const [jobs, setJobs] = useState<OptimizationJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
+  const [pdfGenerating, setPdfGenerating] = useState<string | null>(null);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -90,6 +92,45 @@ export default function ReportsPage() {
       addToast('Report downloaded', 'success');
     } catch (e: unknown) {
       addToast(e instanceof Error ? e.message : 'Failed to generate report', 'error');
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleDownloadPdf = async (jobId: string) => {
+    setPdfGenerating(jobId);
+    try {
+      const report = await api.optimizations.report(jobId);
+      const ok = await generateDecisionPackagePDF(report);
+      addToast(ok ? 'PDF exported' : 'PDF unavailable — Markdown exported instead', ok ? 'success' : 'info');
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : 'Failed to export PDF', 'error');
+    } finally {
+      setPdfGenerating(null);
+    }
+  };
+
+  const handleDownloadJson = async (jobId: string) => {
+    setGenerating(jobId);
+    try {
+      const report = await api.optimizations.report(jobId);
+      downloadReportJson(report);
+      addToast('JSON exported', 'success');
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : 'Failed to export JSON', 'error');
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleDownloadMd = async (jobId: string) => {
+    setGenerating(jobId);
+    try {
+      const report = await api.optimizations.report(jobId);
+      downloadReportMarkdown(report);
+      addToast('Markdown exported', 'success');
+    } catch (e: unknown) {
+      addToast(e instanceof Error ? e.message : 'Failed to export Markdown', 'error');
     } finally {
       setGenerating(null);
     }
@@ -160,12 +201,40 @@ export default function ReportsPage() {
                           <Button variant="secondary" size="sm">View Report</Button>
                         </Link>
                         <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleDownloadPdf(job.id)}
+                          disabled={pdfGenerating === job.id || generating === job.id}
+                          title="Export decision package as styled PDF (institutional)"
+                        >
+                          {pdfGenerating === job.id ? 'Generating…' : 'Export PDF'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadJson(job.id)}
+                          disabled={generating === job.id}
+                          title="Export decision package as JSON"
+                        >
+                          JSON
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadMd(job.id)}
+                          disabled={generating === job.id}
+                          title="Export decision package as Markdown"
+                        >
+                          MD
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDownload(job.id)}
                           disabled={generating === job.id}
+                          title="Export Markdown (legacy)"
                         >
-                          {generating === job.id ? 'Generating...' : 'Export'}
+                          Export
                         </Button>
                       </div>
                     </div>

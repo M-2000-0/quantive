@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppShell from '../components/layout/AppShell';
 import { Button, Card, CardHeader, Badge } from '../components/ui';
+import Modal from '../components/ui/Modal';
 import { api } from '../api';
+import { useToast } from '../stores/toast';
+import { useTemplates, createTemplateFromWizardState } from '../stores/templates';
+import type { OptimizationTemplate } from '../stores/templates';
 import { MOCK_PORTFOLIOS } from '../api/mock';
 import type { Portfolio, OptimizationJob } from '../types';
 
@@ -109,7 +113,15 @@ export default function OptimizationWizardPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<OptimizationJob | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Record<string, 'completed' | 'running' | 'pending'>>({});
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
+  const { addJobToast, error: toastError, success: toastSuccess } = useToast();
+  const { allTemplates, saveTemplate, deleteTemplate } = useTemplates();
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDesc, setTemplateDesc] = useState('');
+  const [templateError, setTemplateError] = useState('');
 
   const preselectId = searchParams.get('portfolio') || '';
 
@@ -131,6 +143,60 @@ export default function OptimizationWizardPage() {
   const selectPortfolio = (id: string) => {
     const p = portfolios.find((x) => x.id === id) || null;
     setState((s) => ({ ...s, portfolioId: id, portfolio: p }));
+  };
+
+  const applyTemplate = useCallback((tpl: OptimizationTemplate) => {
+    setState((s) => ({
+      ...s,
+      objectives: { ...tpl.objectives },
+      constraints: {
+        maxFinancingCost: { ...tpl.constraints.maxFinancingCost },
+        maxRefinancingConcentration: { ...tpl.constraints.maxRefinancingConcentration },
+        maxCurrencyExposure: { ...tpl.constraints.maxCurrencyExposure },
+        maxFloatingRateExposure: { ...tpl.constraints.maxFloatingRateExposure },
+        minLiquidity: { ...tpl.constraints.minLiquidity },
+        maturityConcentrationLimit: { ...tpl.constraints.maturityConcentrationLimit },
+      },
+      selectedScenarios: [...tpl.scenario_config.selectedScenarios],
+      monteCarloCount: tpl.scenario_config.monteCarloCount,
+      monteCarloSeed: tpl.scenario_config.monteCarloSeed,
+      includeBaseInMc: tpl.scenario_config.includeBaseInMc,
+      solverSeed: tpl.scenario_config.solverSeed,
+    }));
+    setActiveTemplateId(tpl.id);
+    toastSuccess('Template Applied', `"${tpl.name}" settings applied to wizard`);
+  }, [toastSuccess]);
+
+  const handleSaveTemplate = () => {
+    const name = templateName.trim();
+    if (!name) { setTemplateError('Name is required'); return; }
+    if (allTemplates.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+      setTemplateError('A template with this name already exists');
+      return;
+    }
+    const tpl = createTemplateFromWizardState(name, templateDesc, {
+      objectives: state.objectives,
+      constraints: state.constraints,
+      selectedScenarios: state.selectedScenarios,
+      monteCarloCount: state.monteCarloCount,
+      monteCarloSeed: state.monteCarloSeed,
+      includeBaseInMc: state.includeBaseInMc,
+      solverSeed: state.solverSeed,
+    });
+    saveTemplate(tpl);
+    setActiveTemplateId(tpl.id);
+    setSaveModalOpen(false);
+    setTemplateName('');
+    setTemplateDesc('');
+    setTemplateError('');
+    toastSuccess('Template Saved', `"${tpl.name}" saved to your custom templates`);
+  };
+
+  const handleDeleteTemplate = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    deleteTemplate(id);
+    if (activeTemplateId === id) setActiveTemplateId(null);
+    toastSuccess('Template Deleted', 'Custom template removed');
   };
 
   const norms = normalizeObjectives(state.objectives);
@@ -158,6 +224,62 @@ export default function OptimizationWizardPage() {
     const prev = STEP_CONFIG[stepIndex - 1];
     if (prev) setStep(prev.key);
   };
+
+  const handleJobUpdate = useCallback((job: OptimizationJob) => {
+    const status = job.status;
+    // Toast on status transition (queued/running/completed/failed)
+    if (prevStatusRef.current !== status) {
+      if (status === 'queued') addJobToast('queued', { jobId: job.id, message: `Optimization "${job.name || state.optimizationName}" queued` });
+      else if (['running','scenario_generation','solving','benchmarking','stress_testing'].includes(status)) {
+        if (prevStatusRef.current === 'queued' || !prevStatusRef.current) addJobToast('running', { jobId: job.id });
+      } else if (status === 'completed') {
+        addJobToast('completed', { jobId: job.id, message: `Optimization "${job.name || state.optimizationName}" completed` });
+        toastSuccess('Optimization Completed', job.name || state.optimizationName);
+      } else if (status === 'failed') {
+        addJobToast('failed', { jobId: job.id, message: job.error_message || 'Optimization failed' });
+        toastError('Optimization Failed', job.error_message || undefined);
+      }
+      prevStatusRef.current = status;
+    }
+
+    const progress = typeof job.progress === 'number' ? job.progress : 0;
+    const stepsDone = Math.floor(progress * OPTIMIZATION_STEPS.length);
+    const newCompleted: Record<string, 'completed' | 'running' | 'pending'> = {};
+    OPTIMIZATION_STEPS.forEach((s, i) => {
+      if (i < stepsDone) newCompleted[s.id] = 'completed';
+      else if (i === stepsDone && progress < 1) newCompleted[s.id] = 'running';
+      else newCompleted[s.id] = 'pending';
+    });
+    setCompletedSteps(newCompleted);
+    setJobProgress(job);
+
+    if (['completed', 'failed', 'cancelled'].includes(status)) {
+      setRunning(false);
+      if (status === 'completed') {
+        OPTIMIZATION_STEPS.forEach((s) => setCompletedSteps((prev) => ({ ...prev, [s.id]: 'completed' })));
+      }
+      if (status === 'failed') {
+        setRunError(job.error_message || 'Optimization failed');
+      }
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    }
+  }, [addJobToast, toastError, toastSuccess, state.optimizationName]);
+
+  const subscribeToJobUpdates = useCallback((id: string) => {
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+    prevStatusRef.current = null;
+    // Use SSE with polling fallback via api helper
+    const unsub = api.optimizations.subscribeToJob(id, handleJobUpdate, {
+      onError: (err) => setRunError(err.message),
+    });
+    unsubscribeRef.current = unsub;
+  }, [handleJobUpdate]);
 
   const runOptimization = async () => {
     setRunning(true);
@@ -202,120 +324,24 @@ export default function OptimizationWizardPage() {
         random_seed: state.solverSeed,
       });
       setJobId(job.id);
-      startSSE(job.id);
+      // optimistic queued toast
+      addJobToast('queued', { jobId: job.id, message: `Optimization "${job.name || state.optimizationName}" queued` });
+      // set initial jobProgress from creation response
+      setJobProgress(job);
+      subscribeToJobUpdates(job.id);
     } catch (e: unknown) {
-      setRunError(e instanceof Error ? e.message : 'Failed to start optimization');
+      const msg = e instanceof Error ? e.message : 'Failed to start optimization';
+      setRunError(msg);
+      toastError('Failed to start optimization', msg);
       setRunning(false);
     }
   };
 
-  const startSSE = (id: string) => {
-    // Close any existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    const token = localStorage.getItem('access_token');
-    // EventSource doesn't support custom headers, so we use a workaround
-    // with fetch + ReadableStream for SSE, or fall back to polling
-    const es = new EventSource(`/api/optimizations/${id}/progress?token=${token}`);
-    eventSourceRef.current = es;
-
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        if (data.event === 'done') {
-          es.close();
-          eventSourceRef.current = null;
-          return;
-        }
-
-        if (data.error) {
-          es.close();
-          eventSourceRef.current = null;
-          setRunning(false);
-          setRunError(data.error);
-          return;
-        }
-
-        // Update progress
-        const progress = data.progress || 0;
-        const stepsDone = Math.floor(progress * OPTIMIZATION_STEPS.length);
-        const newCompleted: Record<string, 'completed' | 'running' | 'pending'> = {};
-        OPTIMIZATION_STEPS.forEach((s, i) => {
-          if (i < stepsDone) newCompleted[s.id] = 'completed';
-          else if (i === stepsDone && progress < 1) newCompleted[s.id] = 'running';
-          else newCompleted[s.id] = 'pending';
-        });
-        setCompletedSteps(newCompleted);
-
-        // Update job progress state
-        setJobProgress((prev) => prev ? { ...prev, progress, status: data.status } : {
-          id, progress, status: data.status,
-          portfolio_id: '', org_id: '', created_by: '', name: '',
-          optimization_type: '', objectives: {}, constraints: {},
-          solver_config: {}, scenario_config: {}, random_seed: 0,
-          model_version: '', error_message: null,
-          started_at: data.started_at, completed_at: data.completed_at,
-          created_at: '', updated_at: '',
-        });
-
-        if (data.status === 'completed' || data.status === 'failed') {
-          es.close();
-          eventSourceRef.current = null;
-          setRunning(false);
-          if (data.status === 'completed') {
-            OPTIMIZATION_STEPS.forEach((s) => setCompletedSteps((prev) => ({ ...prev, [s.id]: 'completed' })));
-          }
-        }
-      } catch {
-        // Parse error, ignore
-      }
-    };
-
-    es.onerror = () => {
-      es.close();
-      eventSourceRef.current = null;
-      // Fall back to polling if SSE fails
-      startFallbackPolling(id);
-    };
-  };
-
-  const startFallbackPolling = (id: string) => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const job = await api.optimizations.get(id);
-        setJobProgress(job);
-
-        const progress = job.progress;
-        const stepsDone = Math.floor(progress * OPTIMIZATION_STEPS.length);
-        const newCompleted: Record<string, 'completed' | 'running' | 'pending'> = {};
-        OPTIMIZATION_STEPS.forEach((s, i) => {
-          if (i < stepsDone) newCompleted[s.id] = 'completed';
-          else if (i === stepsDone && progress < 1) newCompleted[s.id] = 'running';
-          else newCompleted[s.id] = 'pending';
-        });
-        setCompletedSteps(newCompleted);
-
-        if (job.status === 'completed' || job.status === 'failed') {
-          clearInterval(pollInterval);
-          setRunning(false);
-          if (job.status === 'completed') {
-            OPTIMIZATION_STEPS.forEach((s) => setCompletedSteps((prev) => ({ ...prev, [s.id]: 'completed' })));
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }, 2000);
-  };
-
   useEffect(() => {
     return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
       }
     };
   }, []);
@@ -373,6 +399,61 @@ export default function OptimizationWizardPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Optimization Wizard</h1>
           <p className="mt-1 text-sm text-slate-500">Configure and run a multi-objective debt optimization</p>
+        </div>
+
+        {/* ── Template Selector — liquid glass pills ── */}
+        <div className="mb-6 rounded-[20px] border border-white/40 bg-white/40 backdrop-blur-xl shadow-lg p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <div>
+              <h3 className="text-[13px] font-semibold tracking-widest uppercase text-slate-700">Optimization Templates</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Start from a preset or save your current configuration</p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setTemplateError(''); setTemplateName(''); setTemplateDesc(''); setSaveModalOpen(true); }}
+              className="shrink-0"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              Save as template
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {allTemplates.map((tpl) => {
+              const isActive = activeTemplateId === tpl.id;
+              const isCustom = !tpl.isBuiltIn;
+              return (
+                <button
+                  key={tpl.id}
+                  onClick={() => applyTemplate(tpl)}
+                  title={tpl.description}
+                  className={`group inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                    isActive
+                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-blue-500/40 shadow-lg shadow-blue-500/25 ring-2 ring-blue-200/60'
+                      : 'bg-white/60 border-white/60 text-slate-700 hover:bg-white/90 hover:border-white/80 hover:shadow-md hover:-translate-y-[1px] shadow-sm'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-white' : tpl.id === 'cost-minimizer' ? 'bg-emerald-500' : tpl.id === 'risk-averse' ? 'bg-amber-500' : tpl.id === 'balanced' ? 'bg-blue-500' : tpl.id === 'fx-hedge' ? 'bg-violet-500' : 'bg-slate-400'}`} />
+                  <span className="whitespace-nowrap">{tpl.name}</span>
+                  {isCustom && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => handleDeleteTemplate(tpl.id, e)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDeleteTemplate(tpl.id); } }}
+                      aria-label={`Delete ${tpl.name}`}
+                      className={`ml-1 inline-flex items-center justify-center w-5 h-5 rounded-full text-xs leading-none transition-colors ${isActive ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-900/5 hover:bg-red-500 hover:text-white text-slate-500'}`}
+                    >
+                      ×
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {allTemplates.length === 0 && (
+            <p className="text-xs text-slate-400 mt-2">No templates available.</p>
+          )}
         </div>
 
         <StepHeader />
@@ -785,6 +866,45 @@ export default function OptimizationWizardPage() {
           </div>
         )}
       </div>
+
+      {/* Save as template dialog */}
+      <Modal isOpen={saveModalOpen} onClose={() => { setSaveModalOpen(false); setTemplateError(''); }} title="Save as Template" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Template Name *</label>
+            <input
+              type="text"
+              value={templateName}
+              onChange={(e) => { setTemplateName(e.target.value); if (templateError) setTemplateError(''); }}
+              placeholder="e.g. My Conservative Mix"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+            <textarea
+              value={templateDesc}
+              onChange={(e) => setTemplateDesc(e.target.value)}
+              placeholder="Optional description for this preset"
+              rows={3}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            />
+          </div>
+          {templateError && <p className="text-sm text-red-600">{templateError}</p>}
+          <div className="bg-white/40 backdrop-blur rounded-xl border border-white/40 p-3">
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Will save</p>
+            <ul className="text-xs text-slate-600 space-y-1">
+              <li>• Objectives: {norms.financing}% / {norms.refinancing}% / {norms.interestRate}% / {norms.currency}%</li>
+              <li>• {Object.values(state.constraints).filter((c) => c.enabled).length} constraint(s) enabled</li>
+              <li>• {state.selectedScenarios.length} scenario(s) + {state.monteCarloCount.toLocaleString()} Monte Carlo</li>
+            </ul>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => { setSaveModalOpen(false); setTemplateError(''); }}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveTemplate}>Save Template</Button>
+          </div>
+        </div>
+      </Modal>
     </AppShell>
   );
 }
