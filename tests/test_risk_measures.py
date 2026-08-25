@@ -1,6 +1,5 @@
 """Comprehensive tests for risk measure objective functions."""
 import numpy as np
-import pytest
 
 from quantive.objectives.risk_measures import (
     best_case_cost,

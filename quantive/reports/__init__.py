@@ -207,7 +207,7 @@ def generate_allocation_pie(
         sizes = [item[1] for item in sorted_items]
 
     total = sum(sizes)
-    percentages = [(s / total * 100) for s in sizes]
+    _percentages = [(s / total * 100) for s in sizes]
 
     fig, ax = plt.subplots(figsize=figsize)
 
@@ -419,7 +419,7 @@ def generate_all_charts(
     try:
         charts['allocation_pie'] = generate_allocation_pie(result.strategy.allocation)
     except Exception:
-        pass:
+        pass
 
     # Maturity waterfall
     if instruments:

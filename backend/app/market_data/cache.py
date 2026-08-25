@@ -6,10 +6,10 @@ Free APIs have rate limits. This cache stores results with configurable TTL:
 - Interest rates: 1 hour
 - Economic indicators: 24 hours
 """
-import time
 import threading
+import time
+from dataclasses import dataclass
 from typing import Any, Optional
-from dataclasses import dataclass, field
 
 
 @dataclass
@@ -64,7 +64,6 @@ class MarketDataCache:
     def stats(self) -> dict:
         """Get cache statistics."""
         with self._lock:
-            now = time.time()
             total = len(self._store)
             expired = sum(1 for e in self._store.values() if e.is_expired)
             return {

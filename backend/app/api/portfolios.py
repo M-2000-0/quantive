@@ -25,7 +25,6 @@ from app.security import get_current_user, log_audit_event, require_role
 from app.security.portfolio_rbac import (
     PortfolioRole,
     require_portfolio_access,
-    require_portfolio_write,
 )
 
 router = APIRouter(prefix="/api/portfolios", tags=["portfolios"])
@@ -250,6 +249,81 @@ def add_instrument(
 
     log_audit_event(db, user, "instrument.added", "instrument", instrument.id)
     return DebtInstrumentResponse.model_validate(instrument)
+
+
+@router.get("/import/template")
+def download_import_template():
+    """Download an Excel template for portfolio import."""
+    from fastapi.responses import StreamingResponse
+
+    from app.excel_import import generate_import_template
+    template = generate_import_template()
+    return StreamingResponse(
+        iter([template]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="portfolio-import-template.xlsx"'},
+    )
+
+
+@router.post("/import", response_model=PortfolioResponse, status_code=201)
+async def import_excel_portfolio(
+    file: UploadFile = File(...),
+    name: str = Form(""),
+    user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
+    db: Session = Depends(get_db),
+):
+    """Import portfolio from Excel with auto-detected columns."""
+    from app.excel_import import parse_excel_portfolio
+
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 50MB)")
+
+    result = parse_excel_portfolio(content, file.filename or "")
+
+    if not result["instruments"]:
+        raise HTTPException(status_code=422, detail="No instruments found in file")
+
+    portfolio = Portfolio(
+        name=(name or result["name"]).strip(),
+        description=f"Imported from {file.filename}" if file.filename else "Imported portfolio",
+        org_id=user.org_id,
+        created_by=user.id,
+    )
+    db.add(portfolio)
+    db.flush()
+
+    added = 0
+    for inst_data in result["instruments"]:
+        try:
+            instrument = DebtInstrument(
+                portfolio_id=portfolio.id,
+                name=str(inst_data.get("name", "Unknown")).strip()[:255],
+                instrument_type=inst_data.get("instrument_type", "treasury_bond"),
+                currency=str(inst_data.get("currency", "USD")).upper()[:3],
+                principal_outstanding=float(inst_data.get("principal_outstanding", 0)),
+                coupon_rate=float(inst_data.get("coupon_rate", 0)),
+                maturity_date=str(inst_data.get("maturity_date", "2030-01-01")),
+                issue_date=str(inst_data.get("issue_date", "2020-01-01")),
+                is_callable=bool(inst_data.get("is_callable", False)),
+                call_date=inst_data.get("call_date"),
+                call_price=float(inst_data["call_price"]) if inst_data.get("call_price") else None,
+                spread_bps=float(inst_data.get("spread_bps", 0)),
+            )
+            if instrument.principal_outstanding <= 0:
+                continue
+            db.add(instrument)
+            added += 1
+        except (ValueError, TypeError, KeyError):
+            continue
+
+    db.commit()
+    db.refresh(portfolio)
+
+    log_audit_event(db, user, "portfolio.imported", "portfolio", portfolio.id,
+                    metadata={"filename": file.filename, "instrument_count": added, "stats": result["stats"]})
+
+    return PortfolioResponse.model_validate(portfolio)
 
 
 @router.post("/upload", response_model=PortfolioResponse, status_code=201)

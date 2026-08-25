@@ -1,13 +1,8 @@
 """Tests for advanced scenario engines: regime-switching and historical simulation."""
 import numpy as np
-import pytest
 
 from quantive.scenarios.regime import (
-    CRISIS,
     DEFAULT_REGIMES,
-    EXPANSION,
-    NORMAL,
-    STRESS,
     HistoricalSimulationEngine,
     Regime,
     RegimeSwitchingEngine,

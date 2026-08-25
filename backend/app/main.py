@@ -1,15 +1,14 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import text
 
 from app.api import router
 from app.config import get_settings
 from app.database import engine
+from app.jobs import JOBS, create_job, get_job
 from app.security.middleware import (
     GlobalExceptionHandler,
     RateLimitMiddleware,
@@ -56,24 +55,91 @@ app = FastAPI(
 )
 
 
-@app.exception_handler(PydanticValidationError)
-async def validation_exception_handler(request: Request, exc: PydanticValidationError):
-    errors = []
-    for error in exc.errors():
-        loc = " -> ".join(str(part) for part in error["loc"])
-        errors.append({"field": loc, "message": error["msg"]})
-    return JSONResponse(
-        status_code=422,
-        content={"detail": "Validation error", "code": "validation_error", "errors": errors},
-    )
+@app.get("/api/health", include_in_schema=False)
+async def health_check():
+    """Health check endpoint for orchestration and load balancers."""
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "database": "connected",
+        "synthetic_data": True,
+        "env": "production" if not settings.DEBUG else "development",
+    }
 
 
-@app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError):
-    return JSONResponse(
-        status_code=400,
-        content={"detail": str(exc), "code": "bad_request"},
-    )
+@app.post("/api/v1/optimize/background")
+async def optimize_background(background_tasks: BackgroundTasks) -> dict:
+    """Start optimization as a background task.
+
+    Returns a job ID that can be polled with GET /api/v1/jobs/{job_id}
+    """
+    job = create_job(problem_id="demo-problem", portfolio_id="synthetic-demo")
+
+    # Schedule background optimization task
+    background_tasks.add_task(_run_optimization_job, job.id)
+
+    return {"job_id": job.id, "status": job.status, "message": "Optimization started in background"}
+
+
+def _run_optimization_job(job_id: str):
+    """Run the full optimization pipeline in background."""
+    try:
+        from quantive.data.fixtures import demo_portfolio
+        from quantive.models.enums import StrategyProfile
+        from quantive.models.optimization import OptimizationObjective
+        from quantive.orchestration import run_full_job
+
+        from app.audit.logger import AuditLogger
+
+        p = demo_portfolio()
+        prob = type(
+            "OptimizationProblem",
+            (object,),
+            {
+                "id": "demo-problem",
+                "name": "Demo Problem",
+                "portfolio_id": "synthetic-demo",
+                "financing_requirement": 120_000.0,
+                "objectives": OptimizationObjective(),
+                "constraints": [],
+                "scenarios": [],
+                "solver_config": {},
+                "reference_currency": "USD",
+                "profile": StrategyProfile.BEST_OVERALL,
+            },
+        )()
+
+        result = run_full_job(p, prob)
+
+        JOBS[job_id].status = "completed"
+        JOBS[job_id].result = {
+            "id": result["result"].id,
+            "strategies": len(result["strategies"]),
+            "feasible": all(s.feasible for s in result["strategies"]),
+        }
+
+        # Audit log
+        AuditLogger.log_optimization_complete(
+            result_id=result["result"].id,
+            user="background_job",
+            feasible=result["result"].strategy.feasible,
+            objective_value=result["result"].strategy.objective_value,
+            runtime=result["result"].runtime,
+        )
+
+    except Exception as e:
+        JOBS[job_id].status = "failed"
+        JOBS[job_id].error = str(e)
+
+
+@app.get("/api/v1/jobs/{job_id}")
+def get_job_status(job_id: str) -> dict:
+    """Poll for optimization job status and results."""
+    job = get_job(job_id)
+    if not job:
+        return {"error": "Job not found"}, 404
+
+    return job.to_dict()
 
 
 app.add_middleware(GlobalExceptionHandler)

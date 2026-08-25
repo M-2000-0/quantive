@@ -9,10 +9,21 @@ from app.database import Base
 from app.models import *  # noqa: ensure all models are imported
 from app.models.password_reset import *  # noqa: ensure auth security models imported
 from app.models.extended import *  # noqa: ensure extended models imported
+from app.models.portfolio_access import *  # noqa: ensure portfolio access models
+from app.models.social import *  # noqa: ensure social models
+from app.models.integrations import *  # noqa: ensure integration models
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Use app config for database URL if available
+try:
+    from app.config import get_settings
+    settings = get_settings()
+    config.set_main_option('sqlalchemy.url', settings.DATABASE_URL)
+except Exception:
+    pass
 
 target_metadata = Base.metadata
 

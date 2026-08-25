@@ -54,7 +54,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-[10px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -64,22 +64,22 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
         tabIndex={-1}
         className={`
           w-full ${sizeStyles[size]}
-          bg-white rounded-lg shadow-xl
-          border border-slate-200
+          glass-strong rounded-[20px]
           focus:outline-none
-          animate-in fade-in zoom-in-95 duration-150
+          animate-in fade-in zoom-in-95 duration-200
+          overflow-hidden
         `}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h2 id="modal-title" className="text-base font-semibold text-slate-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/40 bg-white/30 backdrop-blur-xl">
+          <h2 id="modal-title" className="text-[15px] font-semibold tracking-tight text-slate-900">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md hover:bg-slate-100"
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-500 hover:text-slate-700 hover:bg-white/60 border border-transparent hover:border-white/60 hover:shadow-sm backdrop-blur-md transition-all"
             aria-label="Close"
           >
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
                 d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -88,7 +88,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
             </svg>
           </button>
         </div>
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto bg-white/20">{children}</div>
       </div>
     </div>,
     document.body

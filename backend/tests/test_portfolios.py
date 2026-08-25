@@ -91,7 +91,7 @@ def test_portfolios_isolated_by_org(auth_client, sample_portfolio_data):
 
     resp2 = client2.post("/api/auth/register", json={
         "email": "other@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "Other User",
         "org_name": "Other Org",
     })

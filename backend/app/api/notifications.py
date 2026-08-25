@@ -4,14 +4,17 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from sqlalchemy import func
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
-    AuditEvent, JobStatus, Notification, OptimizationJob, Portfolio,
-    User, UserRole,
+    AuditEvent,
+    JobStatus,
+    Notification,
+    OptimizationJob,
+    Portfolio,
+    User,
 )
 from app.security import get_current_user
 

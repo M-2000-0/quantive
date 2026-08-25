@@ -16,7 +16,7 @@ interface TabsProps {
 export default function Tabs({ tabs, activeTab, onChange, children }: TabsProps) {
   return (
     <div>
-      <nav className="flex border-b border-slate-200" role="tablist">
+      <nav className="flex gap-1.5 p-1.5 glass-subtle rounded-2xl w-fit max-w-full overflow-x-auto" role="tablist">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
           return (
@@ -27,13 +27,13 @@ export default function Tabs({ tabs, activeTab, onChange, children }: TabsProps)
               disabled={tab.disabled}
               onClick={() => onChange(tab.id)}
               className={`
-                px-4 py-2.5 text-sm font-medium border-b-2 -mb-px
-                transition-colors duration-150
-                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset
+                px-4 py-2 text-[13px] font-semibold rounded-xl whitespace-nowrap
+                transition-all duration-200
+                focus:outline-none focus:ring-2 focus:ring-blue-500/20
                 disabled:opacity-40 disabled:cursor-not-allowed
                 ${isActive
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  ? 'bg-white/85 text-slate-900 shadow-sm border border-white/70 backdrop-blur-xl'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/45 border border-transparent hover:border-white/40'
                 }
               `}
             >
@@ -42,7 +42,7 @@ export default function Tabs({ tabs, activeTab, onChange, children }: TabsProps)
           );
         })}
       </nav>
-      <div className="py-4">{children}</div>
+      <div className="py-5">{children}</div>
     </div>
   );
 }

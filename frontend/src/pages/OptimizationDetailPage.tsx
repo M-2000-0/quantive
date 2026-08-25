@@ -62,7 +62,7 @@ function AllocationBar({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center gap-3">
       <span className="text-xs text-slate-500 w-28 truncate">{label}</span>
-      <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+      <div className="flex-1 h-3 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full overflow-hidden">
         <div
           className="h-full bg-blue-500 rounded-full transition-all"
           style={{ width: `${Math.max(value * 100, 2)}%` }}
@@ -244,9 +244,16 @@ export default function OptimizationDetailPage() {
           </Card>
         )}
 
-        {/* Executive Summary Header */}
+        {/* Executive Summary Header — liquid glass dark */}
         {completed && headerStats && (
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-6 lg:p-8 text-white">
+          <div className="relative overflow-hidden rounded-[24px] p-6 lg:p-8 text-white glass-dark">
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -top-28 -right-20 w-[520px] h-[380px] rounded-full bg-gradient-to-br from-blue-500/22 via-violet-500/14 to-cyan-400/16 blur-3xl" />
+              <div className="absolute -bottom-24 -left-16 w-[420px] h-[420px] rounded-full bg-gradient-to-br from-indigo-500/16 via-blue-500/12 to-sky-400/10 blur-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.07] via-transparent to-transparent" />
+              <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            </div>
+            <div className="relative">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-1">Optimization Complete</p>
@@ -258,22 +265,23 @@ export default function OptimizationDetailPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-4">
                 <p className="text-xs text-slate-300 mb-1">Financing Cost</p>
                 <p className="text-2xl font-bold">{fmtB(headerStats.cost)}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-4">
                 <p className="text-xs text-slate-300 mb-1">Baseline</p>
                 <p className="text-2xl font-bold">{fmtB(headerStats.baseline)}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-4">
                 <p className="text-xs text-slate-300 mb-1">Improvement</p>
                 <p className="text-2xl font-bold text-emerald-400">{fmtPct(headerStats.improvement)}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-4">
                 <p className="text-xs text-slate-300 mb-1">Stress Resilience</p>
                 <p className="text-2xl font-bold">{fmtPct(headerStats.resilience)}</p>
               </div>
+            </div>
             </div>
           </div>
         )}
@@ -297,7 +305,7 @@ export default function OptimizationDetailPage() {
                     return (
                       <div
                         key={s.id}
-                        className={`bg-white border rounded-lg shadow-sm transition-all hover:shadow-md ${isRec ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'}`}
+                        className={`bg-white border rounded-lg shadow-sm transition-all hover:shadow-md ${isRec ? 'border-blue-300 ring-1 ring-blue-100' : 'border-white/40'}`}
                       >
                         <div className={`p-5 ${isRec ? 'border-l-4 border-l-blue-600' : ''}`}>
                           <div className="flex items-start justify-between mb-3">
@@ -341,7 +349,7 @@ export default function OptimizationDetailPage() {
                         </div>
 
                         {expandedStrategy === s.id && (
-                          <div className="border-t border-slate-100 bg-slate-50 p-5 space-y-4">
+                          <div className="border-t border-white/25 bg-slate-50 p-5 space-y-4">
                             {(() => {
                               const exp = generateExplanation(s, strategies);
                               return (
@@ -384,7 +392,7 @@ export default function OptimizationDetailPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-slate-200">
+                        <tr className="border-b border-white/40">
                           <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Metric</th>
                           <th className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Current</th>
                           {strategies.map((s) => (
@@ -408,7 +416,7 @@ export default function OptimizationDetailPage() {
                           const bIdx = bestIdx(vals, row.mode);
                           const wIdx = worstIdx(vals, row.mode);
                           return (
-                            <tr key={row.key} className="border-b border-slate-100 hover:bg-slate-50/50">
+                            <tr key={row.key} className="border-b border-white/25 hover:bg-white/40/50">
                               <td className="py-3 px-4 font-medium text-slate-700">{row.label}</td>
                               <td className="py-3 px-4 text-center text-slate-500 font-mono">{row.fmt(row.baseline)}</td>
                               {vals.map((v, i) => (
@@ -419,7 +427,7 @@ export default function OptimizationDetailPage() {
                             </tr>
                           );
                         })}
-                        <tr className="border-b border-slate-200 bg-slate-50">
+                        <tr className="border-b border-white/40 bg-slate-50">
                           <td className="py-3 px-4 font-semibold text-slate-900">Constraint Status</td>
                           <td className="py-3 px-4 text-center"><Badge variant="success" size="sm">Pass</Badge></td>
                           {strategies.map((s) => {
@@ -461,7 +469,7 @@ export default function OptimizationDetailPage() {
                             </div>
                             <span className="text-sm font-mono text-slate-600">{fmtB(savings)} saved</span>
                           </div>
-                          <div className="h-6 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-6 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full transition-all ${s.rank === 1 ? 'bg-blue-500' : 'bg-slate-300'}`}
                               style={{ width: `${Math.max(pct * 100, 5)}%` }}
@@ -523,7 +531,7 @@ export default function OptimizationDetailPage() {
                             { label: 'Liquidity Coverage', value: fmtPct(metricVal(m, 'liquidity_coverage')) },
                             { label: 'Stress Resilience', value: fmtPct(metricVal(m, 'stress_resilience')) },
                           ].map((stat) => (
-                            <div key={stat.label} className="bg-slate-50 rounded-lg p-3 text-center">
+                            <div key={stat.label} className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-3 text-center">
                               <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">{stat.label}</p>
                               <p className="text-sm font-bold text-slate-900">{stat.value}</p>
                             </div>
@@ -544,7 +552,7 @@ export default function OptimizationDetailPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-slate-200">
+                        <tr className="border-b border-white/40">
                           <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Scenario</th>
                           <th className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Probability</th>
                           <th className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Financing Cost</th>
@@ -554,7 +562,7 @@ export default function OptimizationDetailPage() {
                       </thead>
                       <tbody>
                         {scenarioResults.map((sc: ScenarioResult) => (
-                          <tr key={sc.scenario_id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                          <tr key={sc.scenario_id} className="border-b border-white/25 hover:bg-white/40/50">
                             <td className="py-3 px-4 font-medium text-slate-700">{sc.scenario_name}</td>
                             <td className="py-3 px-4 text-center font-mono text-slate-600">{fmtPct(sc.probability)}</td>
                             <td className="py-3 px-4 text-center font-mono text-slate-900 font-semibold">{fmtB(sc.financing_cost)}</td>
@@ -586,7 +594,7 @@ export default function OptimizationDetailPage() {
                       { label: 'Worst Case', value: fmtB(stressResult.worst_financing_cost) },
                       { label: '95th Percentile', value: fmtB(stressResult.percentile_costs.p95) },
                     ].map((item) => (
-                      <div key={item.label} className="bg-slate-50 rounded-lg p-4">
+                      <div key={item.label} className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-4">
                         <p className="text-xs text-slate-500 mb-1">{item.label}</p>
                         <p className="text-lg font-bold text-slate-900">{item.value}</p>
                       </div>
@@ -630,7 +638,7 @@ export default function OptimizationDetailPage() {
                         return (
                           <div key={pct} className="flex items-center gap-4">
                             <span className="text-xs font-mono text-slate-500 w-16">{pct.toUpperCase()}</span>
-                            <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden relative">
+                            <div className="flex-1 h-5 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full overflow-hidden relative">
                               <div
                                 className="h-full bg-blue-500 rounded-full"
                                 style={{ width: `${Math.max(pctNum, 3)}%` }}
@@ -667,15 +675,15 @@ export default function OptimizationDetailPage() {
                       </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-4">
                         <p className="text-xs text-slate-500 mb-1">Probability of Worst Case</p>
                         <p className="text-base font-bold text-slate-900">10%</p>
                       </div>
-                      <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-4">
                         <p className="text-xs text-slate-500 mb-1">Cost Increase vs Base</p>
                         <p className="text-base font-bold text-red-600">+{fmtB(6850000000 - 6180000000)}</p>
                       </div>
-                      <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-4">
                         <p className="text-xs text-slate-500 mb-1">Tail Risk (99th %ile)</p>
                         <p className="text-base font-bold text-slate-900">{fmtB(stressResult.percentile_costs.p99)}</p>
                       </div>
@@ -693,7 +701,7 @@ export default function OptimizationDetailPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-slate-200">
+                        <tr className="border-b border-white/40">
                           <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Metric</th>
                           {benchmarks.map((b) => (
                             <th key={b.id} className="text-center py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -705,19 +713,19 @@ export default function OptimizationDetailPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-white/25">
                           <td className="py-3 px-4 font-medium text-slate-700">Objective Value</td>
                           {benchmarks.map((b) => (
                             <td key={b.id} className="py-3 px-4 text-center font-mono text-slate-900">{fmtB(b.objective_value)}</td>
                           ))}
                         </tr>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-white/25">
                           <td className="py-3 px-4 font-medium text-slate-700">Runtime</td>
                           {benchmarks.map((b) => (
                             <td key={b.id} className="py-3 px-4 text-center font-mono text-slate-600">{b.execution_time_seconds}s</td>
                           ))}
                         </tr>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-white/25">
                           <td className="py-3 px-4 font-medium text-slate-700">Constraint Violations</td>
                           {benchmarks.map((b) => (
                             <td key={b.id} className="py-3 px-4 text-center">
@@ -725,19 +733,19 @@ export default function OptimizationDetailPage() {
                             </td>
                           ))}
                         </tr>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-white/25">
                           <td className="py-3 px-4 font-medium text-slate-700">Iterations</td>
                           {benchmarks.map((b) => (
                             <td key={b.id} className="py-3 px-4 text-center font-mono text-slate-600">{b.iterations.toLocaleString()}</td>
                           ))}
                         </tr>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-white/25">
                           <td className="py-3 px-4 font-medium text-slate-700">Compute Cost</td>
                           {benchmarks.map((b) => (
                             <td key={b.id} className="py-3 px-4 text-center font-mono text-slate-600">${b.metrics.compute_cost as number}</td>
                           ))}
                         </tr>
-                        <tr className="border-b border-slate-100">
+                        <tr className="border-b border-white/25">
                           <td className="py-3 px-4 font-medium text-slate-700">Robustness</td>
                           {benchmarks.map((b) => {
                             const rob = b.metrics.robustness as number;
@@ -748,7 +756,7 @@ export default function OptimizationDetailPage() {
                             );
                           })}
                         </tr>
-                        <tr className="border-b border-slate-200 bg-slate-50">
+                        <tr className="border-b border-white/40 bg-slate-50">
                           <td className="py-3 px-4 font-semibold text-slate-900">Best For</td>
                           {benchmarks.map((b) => (
                             <td key={b.id} className="py-3 px-4 text-center text-xs text-slate-600">
@@ -794,7 +802,7 @@ export default function OptimizationDetailPage() {
                               </div>
                               <span className="text-sm font-mono text-slate-600">{fmtB(b.objective_value)}</span>
                             </div>
-                            <div className="h-5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-5 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all ${idx === 0 ? 'bg-emerald-500' : 'bg-slate-300'}`}
                                 style={{ width: `${normalizedVal}%` }}
@@ -860,7 +868,7 @@ export default function OptimizationDetailPage() {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="border-b border-slate-200">
+                                <tr className="border-b border-white/40">
                                   <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500">Strategy</th>
                                   <th className="text-right py-2 px-3 text-xs font-semibold text-slate-500">Rank</th>
                                   <th className="text-right py-2 px-3 text-xs font-semibold text-slate-500">Cost</th>
@@ -870,7 +878,7 @@ export default function OptimizationDetailPage() {
                               </thead>
                               <tbody>
                                 {report.strategies.map((s) => (
-                                  <tr key={s.name} className="border-b border-slate-100">
+                                  <tr key={s.name} className="border-b border-white/25">
                                     <td className="py-2 px-3 font-medium text-slate-700">{s.name}</td>
                                     <td className="py-2 px-3 text-right font-mono text-slate-600">#{s.rank}</td>
                                     <td className="py-2 px-3 text-right font-mono text-slate-900">{fmtB(metricVal(s.metrics, 'expected_cost'))}</td>
@@ -889,7 +897,7 @@ export default function OptimizationDetailPage() {
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="border-b border-slate-200">
+                                <tr className="border-b border-white/40">
                                   <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500">Solver</th>
                                   <th className="text-right py-2 px-3 text-xs font-semibold text-slate-500">Objective</th>
                                   <th className="text-right py-2 px-3 text-xs font-semibold text-slate-500">Runtime</th>
@@ -898,7 +906,7 @@ export default function OptimizationDetailPage() {
                               </thead>
                               <tbody>
                                 {report.benchmarks.map((b) => (
-                                  <tr key={b.solver_name} className="border-b border-slate-100">
+                                  <tr key={b.solver_name} className="border-b border-white/25">
                                     <td className="py-2 px-3 font-medium text-slate-700">{b.solver_name}</td>
                                     <td className="py-2 px-3 text-right font-mono text-slate-900">{fmtB(b.objective_value)}</td>
                                     <td className="py-2 px-3 text-right font-mono text-slate-600">{b.execution_time_seconds}s</td>

@@ -119,9 +119,13 @@ def create_optimization(data: OptimizationCreate, user: User = Depends(get_curre
 
     log_audit_event(db, user, "optimization.created", "optimization", job.id)
 
+    # Capture the session factory at creation time so background threads
+    # always use the same DB (critical for in-memory SQLite in tests).
+    _session_factory = database_module.SessionLocal
+
     def _run():
         def factory():
-            return database_module.SessionLocal()
+            return _session_factory()
         run_optimization_job(job.id, factory)
 
     thread = threading.Thread(target=_run, daemon=True)

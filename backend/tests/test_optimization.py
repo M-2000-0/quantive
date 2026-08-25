@@ -92,7 +92,7 @@ def test_optimization_invalid_constraints(auth_client, sample_portfolio_data):
 def test_optimization_viewer_forbidden(auth_client, sample_portfolio_data):
     auth_client.post("/api/auth/register", json={
         "email": "viewer@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "Viewer",
     })
     from app.models import User
@@ -108,7 +108,7 @@ def test_optimization_viewer_forbidden(auth_client, sample_portfolio_data):
     viewer_client = TestClient(auth_client.app)
     resp2 = viewer_client.post("/api/auth/login", json={
         "email": "viewer@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
     })
     viewer_token = resp2.json()["access_token"]
     viewer_client.headers["Authorization"] = f"Bearer {viewer_token}"

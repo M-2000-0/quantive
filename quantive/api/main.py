@@ -1,11 +1,27 @@
 """FastAPI application entrypoint."""
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from quantive import __version__
 from quantive.api.routers import optimization, portfolios
+
+# CORS configuration from environment variables
+# Default to development-friendly settings; override in production
+CORS_ORIGINS = os.getenv(
+    "QUANTIVE_CORS_ORIGINS", ""
+).split(",") if os.getenv("QUANTIVE_CORS_ORIGINS") else ["*"]
+
+CORS_METHODS = os.getenv(
+    "QUANTIVE_CORS_METHODS", "GET,POST,PUT,DELETE,OPTIONS"
+).split(",")
+
+CORS_HEADERS = os.getenv(
+    "QUANTIVE_CORS_HEADERS", "Authorization,Content-Type"
+).split(",")
 
 app = FastAPI(
     title="Quantive — Optimization Engine",
@@ -16,9 +32,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=CORS_ORIGINS,
+    allow_methods=CORS_METHODS,
+    allow_headers=CORS_HEADERS,
 )
 
 app.include_router(portfolios.router)

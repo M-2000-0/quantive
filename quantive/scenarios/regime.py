@@ -6,13 +6,12 @@ different parameter characteristics.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 import numpy as np
 
 from quantive.data.synthetic import FX_VOLATILITY
-from quantive.models.enums import Currency
 from quantive.models.optimization import EconomicScenario
 
 

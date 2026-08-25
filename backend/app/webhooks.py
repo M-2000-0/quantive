@@ -14,7 +14,7 @@ import secrets
 import time
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import httpx
 

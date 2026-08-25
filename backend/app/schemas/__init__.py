@@ -20,6 +20,14 @@ class UserCreate(BaseModel):
             raise ValueError("Password must contain at least one letter")
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v):
+            raise ValueError("Password must contain at least one special character")
+        # Check against common passwords
+        common = {'password', 'password1', 'qwerty', '12345678', 'letmein', 'admin', 'welcome', 'monkey', 'dragon', 'master'}
+        if v.lower() in common:
+            raise ValueError("This password is too common. Please choose a stronger one.")
         return v
 
 
@@ -298,6 +306,13 @@ class PasswordChange(BaseModel):
             raise ValueError("Password must contain at least one letter")
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v):
+            raise ValueError("Password must contain at least one special character")
+        common = {'password', 'password1', 'qwerty', '12345678', 'letmein', 'admin', 'welcome', 'monkey', 'dragon', 'master'}
+        if v.lower() in common:
+            raise ValueError("This password is too common. Please choose a stronger one.")
         return v
 
 

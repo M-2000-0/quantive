@@ -1,6 +1,5 @@
 """Activity Log and Export Job API endpoints."""
 import os
-import secrets
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,8 +10,8 @@ from sqlalchemy.orm import Session
 from app.activity import get_activity_logger
 from app.database import get_db
 from app.export_jobs import ExportFormat, ExportStatus, get_export_store, start_export_job
-from app.models import User, UserRole
-from app.security import get_current_user, require_role
+from app.models import User
+from app.security import get_current_user
 
 # ── Activity Log Router ─────────────────────────────────────────────────────
 
@@ -85,7 +84,7 @@ def create_export(
 ):
     """Create an async export job."""
     if data.output_format not in [f.value for f in ExportFormat]:
-        raise HTTPException(status_code=422, detail=f"Invalid format. Use: csv, json, xlsx, pdf")
+        raise HTTPException(status_code=422, detail="Invalid format. Use: csv, json, xlsx, pdf")
 
     store = get_export_store()
     job = store.create_job(

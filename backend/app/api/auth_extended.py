@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 from app.models.password_reset import EmailVerificationToken, PasswordResetToken
-from app.security import hash_password, log_audit_event, verify_password
+from app.security import hash_password, log_audit_event
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -39,6 +39,13 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError("Password must contain at least one letter")
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v):
+            raise ValueError("Password must contain at least one special character")
+        common = {'password', 'password1', 'qwerty', '12345678', 'letmein', 'admin', 'welcome', 'monkey', 'dragon', 'master'}
+        if v.lower() in common:
+            raise ValueError("This password is too common. Please choose a stronger one.")
         return v
 
 

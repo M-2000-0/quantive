@@ -1,11 +1,8 @@
 """Tests for Market Data connectors and cache."""
 import time
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from app.market_data.cache import MarketDataCache, get_cache
-
 
 # ── Cache Tests ─────────────────────────────────────────────────────────────
 

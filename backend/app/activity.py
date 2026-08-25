@@ -99,7 +99,7 @@ class ActivityLogger:
         """Get activity statistics."""
         logs = self._log
         if org_id:
-            logs = [l for l in logs if l["org_id"] == org_id]
+            logs = [entry for entry in logs if entry["org_id"] == org_id]
 
         if not logs:
             return {"total": 0, "by_action": {}, "by_resource": {}}

@@ -7,7 +7,6 @@ Provides:
 - POST /api/auth/mfa/verify — Verify a TOTP code during login
 - GET /api/auth/mfa/status — Check MFA status
 """
-import secrets
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException

@@ -235,7 +235,7 @@ export default function NewPortfolioPage() {
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${dragOver ? 'border-blue-400 bg-blue-50/50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'}`}
+              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${dragOver ? 'border-blue-400 bg-blue-50/50' : 'border-slate-300 hover:border-blue-400 hover:bg-white/40'}`}
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -257,7 +257,7 @@ export default function NewPortfolioPage() {
                 onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFile(file); }} />
             </div>
 
-            <button onClick={() => handleMethodSelect('demo')} className="w-full border border-slate-200 rounded-lg p-5 text-left hover:bg-slate-50 hover:border-slate-300 transition-all group">
+            <button onClick={() => handleMethodSelect('demo')} className="w-full border border-white/40 rounded-lg p-5 text-left hover:bg-white/40 hover:border-slate-300 transition-all group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
                   <svg className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -271,7 +271,7 @@ export default function NewPortfolioPage() {
               </div>
             </button>
 
-            <button onClick={() => handleMethodSelect('manual')} className="w-full border border-slate-200 rounded-lg p-5 text-left hover:bg-slate-50 hover:border-slate-300 transition-all group">
+            <button onClick={() => handleMethodSelect('manual')} className="w-full border border-white/40 rounded-lg p-5 text-left hover:bg-white/40 hover:border-slate-300 transition-all group">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
                   <svg className="h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -300,7 +300,7 @@ export default function NewPortfolioPage() {
               {previewRows.length > 0 && (
                 <div className="mb-6">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Preview (first {previewRows.length - 1} rows)</p>
-                  <div className="overflow-x-auto border border-slate-200 rounded-md">
+                  <div className="overflow-x-auto border border-white/40 rounded-md">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="bg-slate-50">
@@ -309,9 +309,9 @@ export default function NewPortfolioPage() {
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-white/25">
                         {previewRows.slice(1).map((row, ri) => (
-                          <tr key={ri} className="hover:bg-slate-50/50">
+                          <tr key={ri} className="hover:bg-white/40/50">
                             {row.map((cell, ci) => (
                               <td key={ci} className="px-3 py-2 text-slate-700 whitespace-nowrap">{cell}</td>
                             ))}
@@ -395,10 +395,10 @@ export default function NewPortfolioPage() {
                   action={<div className="flex gap-1.5">{Array.from(new Set(parsedRows.map((r) => r.currency))).map((c) => (
                     <Badge key={c} variant="info" size="sm">{c}</Badge>
                   ))}</div>} />
-                <div className="overflow-x-auto border border-slate-200 rounded-md max-h-80 overflow-y-auto">
+                <div className="overflow-x-auto border border-white/40 rounded-md max-h-80 overflow-y-auto">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-white">
-                      <tr className="border-b border-slate-200">
+                      <tr className="border-b border-white/40">
                         {['Name', 'Type', 'CCY', 'Principal', 'Coupon', 'Maturity', 'Spread', 'Callable'].map((h) => (
                           <th key={h} className={`px-3 py-2 font-semibold text-slate-500 ${['Principal', 'Coupon', 'Spread'].includes(h) ? 'text-right' : h === 'Callable' ? 'text-center' : 'text-left'}`}>{h}</th>
                         ))}
@@ -406,7 +406,7 @@ export default function NewPortfolioPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {parsedRows.map((row, i) => (
-                        <tr key={i} className="hover:bg-slate-50/50">
+                        <tr key={i} className="hover:bg-white/40/50">
                           <td className="px-3 py-2 text-slate-900 font-medium max-w-[200px] truncate">{row.name}</td>
                           <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{row.type.replace(/_/g, ' ')}</td>
                           <td className="px-3 py-2"><Badge variant="info" size="sm">{row.currency}</Badge></td>

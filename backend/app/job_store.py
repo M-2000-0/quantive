@@ -17,7 +17,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Optional
 
 logger = logging.getLogger("quantive.job_store")
 
@@ -117,9 +117,9 @@ class InMemoryJobStore(JobStore):
                 self._jobs[job_id].update(kwargs)
 
     def complete_job(self, job_id: str, result: Optional[dict] = None, error: Optional[str] = None) -> None:
+        status = "failed" if error else "completed"
         with self._lock:
             if job_id in self._jobs:
-                status = "failed" if error else "completed"
                 self._jobs[job_id]["status"] = status
                 self._jobs[job_id]["progress"] = 1.0 if not error else self._jobs[job_id].get("progress", 0)
                 self._jobs[job_id]["result"] = result

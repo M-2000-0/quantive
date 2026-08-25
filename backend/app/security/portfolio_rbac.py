@@ -6,8 +6,7 @@ Provides fastapi dependencies for checking portfolio-level access:
 - require_portfolio_write: Require write access (owner/editor)
 - require_portfolio_admin: Require admin access (owner only)
 """
-from functools import wraps
-from typing import Callable, Optional
+from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -15,7 +14,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Portfolio, PortfolioAccess, PortfolioRole, User, UserRole
 from app.security import get_current_user
-
 
 # Role hierarchy: higher roles include permissions of lower roles
 ROLE_HIERARCHY = {

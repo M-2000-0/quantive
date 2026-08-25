@@ -1,8 +1,7 @@
 """Portfolio analytics API endpoints."""
 from datetime import date
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -15,7 +14,8 @@ router = APIRouter(prefix="/api/portfolios", tags=["analytics"])
 def _portfolio_to_quantive(portfolio: Portfolio):
     """Convert a database Portfolio to a quantive engine Portfolio for analytics."""
     from quantive.models.enums import Currency, RateType
-    from quantive.models.instruments import DebtInstrument, Portfolio as QuantivePortfolio
+    from quantive.models.instruments import DebtInstrument
+    from quantive.models.instruments import Portfolio as QuantivePortfolio
 
     instruments = []
     for inst in portfolio.instruments:
@@ -88,7 +88,7 @@ def get_portfolio_duration(
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
 
-    from quantive.analytics import portfolio_weighted_duration, instrument_durations
+    from quantive.analytics import instrument_durations, portfolio_weighted_duration
 
     qp = _portfolio_to_quantive(portfolio)
     return {

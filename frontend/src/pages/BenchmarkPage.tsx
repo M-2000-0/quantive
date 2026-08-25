@@ -113,7 +113,7 @@ export default function BenchmarkPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200">
+                  <tr className="border-b border-white/40">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Rank</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Solver</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
@@ -123,14 +123,14 @@ export default function BenchmarkPage() {
                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Iterations</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/25">
                   {benchmarks.map((b, idx) => {
                     const typeInfo = TYPE_BADGE[b.metrics?.solver_type as string] ?? { label: (b.metrics?.solver_type as string) || 'Unknown', variant: 'default' as const };
                     const isBestObj = b.objective_value === bestObjective;
                     const isBestTime = b.execution_time_seconds === bestRuntime;
 
                     return (
-                      <tr key={b.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={b.id} className="hover:bg-white/40 transition-colors">
                         <td className="px-4 py-3.5">
                           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
                             {idx + 1}

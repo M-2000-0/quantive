@@ -28,25 +28,27 @@ export default function StatCard({
   const { color, arrow } = trendConfig[trend];
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+    <div className="glass-card p-5 glass-hover group">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-500">{label}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</span>
         {icon && (
-          <span className="text-slate-400">{icon}</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/60 border border-white/60 text-slate-600 shadow-sm backdrop-blur-md group-hover:bg-white/80 transition-colors">
+            {icon}
+          </span>
         )}
       </div>
-      <div className="mt-2">
-        <p className="text-2xl font-bold text-slate-900 tracking-tight">{value}</p>
+      <div className="mt-3">
+        <p className="text-2xl font-bold tracking-tight text-slate-900">{value}</p>
       </div>
       {(change !== undefined || changeLabel) && (
-        <div className="mt-2 flex items-center gap-1.5">
+        <div className="mt-2.5 flex items-center gap-1.5">
           {change !== undefined && (
-            <span className={`text-sm font-medium ${color}`}>
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border border-white/50 bg-white/60 backdrop-blur-md shadow-sm ${color}`}>
               {arrow} {Math.abs(change).toFixed(1)}%
             </span>
           )}
           {changeLabel && (
-            <span className="text-xs text-slate-400">{changeLabel}</span>
+            <span className="text-xs font-medium text-slate-500">{changeLabel}</span>
           )}
         </div>
       )}

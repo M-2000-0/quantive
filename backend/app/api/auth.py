@@ -16,6 +16,7 @@ from app.security import (
     log_audit_event,
     verify_password,
 )
+from app.security.threats import track_failed_login
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -82,7 +83,9 @@ def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(data.password, user.password_hash):
         _failed_logins[email].append(time.time())
-        ip = request.client.host if request.client else None
+        ip = request.client.host if request.client else "unknown"
+        # Track for IP-based blocking
+        track_failed_login(email, ip)
         log_audit_event(db, None, "user.login_failed", "user", metadata={"email": email}, ip_address=ip)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 

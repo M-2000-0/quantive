@@ -20,10 +20,10 @@ from quantive.solvers.registry import get_solver
 from quantive.stress.tester import stress_test
 from quantive.strategies import generate_strategies, strategy_from_result
 
-try:
-    from app.audit.logger import AuditLogger
-except ImportError:
-    AuditLogger = None
+# AuditLogger is optional and provided by the backend application.
+# Importing from app.audit.logger is not available in the core quantive package.
+# When running via the backend FastAPI app, the logger is injected separately.
+AuditLogger = None
 
 
 def materialize_scenarios(problem: OptimizationProblem,

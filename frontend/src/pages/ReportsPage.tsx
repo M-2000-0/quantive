@@ -116,7 +116,7 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="xl:col-span-2">
             <Card padding={false}>
-              <div className="px-6 py-4 border-b border-slate-200">
+              <div className="px-6 py-4 border-b border-white/40">
                 <h3 className="text-base font-semibold text-slate-900">Available Reports</h3>
                 <p className="text-sm text-slate-500 mt-0.5">
                   {completedJobs.length} completed optimization{completedJobs.length !== 1 ? 's' : ''}
@@ -136,11 +136,11 @@ export default function ReportsPage() {
                   />
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-white/25">
                   {completedJobs.map((job) => (
                     <div
                       key={job.id}
-                      className="flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
+                      className="flex items-center justify-between px-6 py-5 hover:bg-white/40 transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-3">

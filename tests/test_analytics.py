@@ -1,20 +1,15 @@
 """Comprehensive tests for the portfolio analytics engine."""
-from datetime import date, timedelta
+from datetime import date
 
-import numpy as np
-import pytest
 
 from quantive.analytics import (
     coupon_distribution,
     currency_exposure,
-    instrument_convexities,
     instrument_durations,
-    instrument_dv01s,
     instrument_type_distribution,
     maturity_profile,
     maturity_wall_analysis,
     portfolio_analytics,
-    portfolio_weighted_duration,
     rate_type_decomposition,
 )
 from quantive.data.synthetic import generate_synthetic_portfolio

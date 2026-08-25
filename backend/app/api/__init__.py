@@ -3,12 +3,37 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api import (
-    activity, analytics, audit, auth, auth_extended,
-    comments, market_data, mfa, notifications, optimizations,
-    portfolio_access, portfolios, preferences, progress,
-    risk, tags, webhooks, watchlists,
+    activity,
+    advisor,
+    analytics,
+    audit,
+    auth,
+    auth_extended,
+    comments,
+    compliance,
+    esg,
+    exports,
+    market_data,
+    maturity,
+    mfa,
+    narrative,
+    notifications,
+    optimizations,
+    portfolio_access,
+    portfolios,
+    preferences,
+    progress,
+    ratings,
+    risk,
+    risk_intel,
+    scheduled,
+    security_audit,
+    tags,
+    watchlists,
+    webhooks,
 )
 from app.database import get_db
+from app.security.threats import router as threats_router
 
 router = APIRouter()
 router.include_router(auth.router)
@@ -34,6 +59,21 @@ router.include_router(preferences.views_router)
 router.include_router(preferences.filters_router)
 router.include_router(webhooks.router)
 router.include_router(market_data.router)
+router.include_router(exports.router)
+router.include_router(threats_router)
+router.include_router(security_audit.router)
+router.include_router(narrative.router)
+router.include_router(narrative.country_router)
+router.include_router(narrative.whatif_router)
+router.include_router(advisor.router)
+router.include_router(scheduled.router)
+router.include_router(scheduled.notification_router)
+router.include_router(compliance.router)
+router.include_router(compliance.explain_router)
+router.include_router(risk_intel.router)
+router.include_router(maturity.router)
+router.include_router(esg.router)
+router.include_router(ratings.router)
 
 
 @router.get("/api/health")

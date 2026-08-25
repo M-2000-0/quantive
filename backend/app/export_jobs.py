@@ -13,10 +13,9 @@ import logging
 import os
 import secrets
 import threading
-import time
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 logger = logging.getLogger("quantive.export_jobs")
 

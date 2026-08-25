@@ -29,7 +29,7 @@ function ScenarioCard({ scenario, investment }: { scenario: InvestmentScenario; 
     'Tail Risk': { bg: 'bg-red-50', border: 'border-red-200', icon: '💀', badgeVariant: 'danger' },
   };
 
-  const style = scenarioStyles[scenario.scenario_name] || { bg: 'bg-slate-50', border: 'border-slate-200', icon: '📋', badgeVariant: 'info' as const };
+  const style = scenarioStyles[scenario.scenario_name] || { bg: 'bg-slate-50', border: 'border-white/40', icon: '📋', badgeVariant: 'info' as const };
 
   return (
     <div className={`${style.bg} ${style.border} border rounded-xl p-5 transition-all hover:shadow-md`}>
@@ -107,7 +107,7 @@ function RiskScoreRadar({ score }: { score: RiskScore }) {
         {Object.entries(score.components).map(([key, val]) => (
           <div key={key} className="flex items-center gap-3">
             <span className="text-xs text-slate-500 w-32 truncate">{key.replace(/_/g, ' ')}</span>
-            <div className="flex-1 bg-slate-100 rounded-full h-2">
+            <div className="flex-1 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full h-2">
               <div
                 className="rounded-full h-2 transition-all"
                 style={{
@@ -148,7 +148,7 @@ function VaRCard({ varResults }: { varResults: VaRResult[] }) {
         ) : (
           <div className="space-y-4">
             {varResults.map((v, i) => (
-              <div key={i} className="bg-slate-50 rounded-lg p-4 border border-slate-100">
+              <div key={i} className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-4 border border-white/25">
                 <div className="flex items-center justify-between mb-3">
                   <Badge variant={v.confidence >= 0.99 ? 'danger' : v.confidence >= 0.95 ? 'warning' : 'info'}>
                     {(v.confidence * 100).toFixed(0)}% Confidence
@@ -269,7 +269,7 @@ export default function RiskDashboardPage() {
         </div>
 
         {/* Portfolio Selector + Investment Amount */}
-        <div className="flex flex-wrap items-center gap-4 mb-6 bg-white border border-slate-200 rounded-lg p-4">
+        <div className="flex flex-wrap items-center gap-4 mb-6 glass-card p-4">
           <div className="flex-1 min-w-[200px]">
             <label className="text-xs font-medium text-slate-500 block mb-1">Select Portfolio</label>
             <select

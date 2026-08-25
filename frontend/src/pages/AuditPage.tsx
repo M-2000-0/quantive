@@ -110,7 +110,7 @@ export default function AuditPage() {
         </div>
 
         <Card padding={false} className="mb-6">
-          <div className="px-4 py-3 border-b border-slate-200 flex flex-wrap items-center gap-3">
+          <div className="px-4 py-3 border-b border-white/40 flex flex-wrap items-center gap-3">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filters</span>
 
             <select
@@ -143,7 +143,7 @@ export default function AuditPage() {
         </Card>
 
         <Card padding={false}>
-          <div className="px-6 py-4 border-b border-slate-200">
+          <div className="px-6 py-4 border-b border-white/40">
             <h3 className="text-base font-semibold text-slate-900">Event Log</h3>
           </div>
 
@@ -155,7 +155,7 @@ export default function AuditPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200">
+                  <tr className="border-b border-white/40">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Timestamp</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Actor</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
@@ -164,9 +164,9 @@ export default function AuditPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">IP Address</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/25">
                   {filteredEvents.map((event) => (
-                    <tr key={event.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={event.id} className="hover:bg-white/40 transition-colors">
                       <td className="px-4 py-3.5 text-slate-700 tabular-nums whitespace-nowrap">
                         {formatTimestamp(event.created_at)}
                       </td>

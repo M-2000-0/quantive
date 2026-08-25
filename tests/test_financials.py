@@ -1,13 +1,10 @@
 """Comprehensive tests for the financial calculations module."""
-import math
-from datetime import date, timedelta
+from datetime import date
 
 import numpy as np
-import pytest
 
 from quantive.financials import (
     CouponFrequency,
-    DayCountConvention,
     accrued_interest,
     bond_price,
     bond_price_from_cashflows,
@@ -265,7 +262,7 @@ class TestPriceChangeApproximation:
         mod_dur = 8.0
         conv = 75.0
         dy = 0.02  # 200bp
-        approx = price_change_approximation(mod_dur, conv, dy)
+        _approx = price_change_approximation(mod_dur, conv, dy)
         # Convexity adjustment should be positive
         convexity_term = 0.5 * conv * dy ** 2
         assert convexity_term > 0.01

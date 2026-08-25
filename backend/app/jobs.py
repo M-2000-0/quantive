@@ -1,5 +1,6 @@
 import logging
 import threading
+import uuid
 from datetime import datetime, timezone
 
 import numpy as np
@@ -9,10 +10,12 @@ from app.models import (
     BenchmarkResult,
     DebtInstrument,
     JobStatus,
-    OptimizationJob,
     OptimizationResult,
     Scenario,
     Strategy,
+)
+from app.models import (
+    OptimizationJob as JobModel,
 )
 from app.optimization import BenchmarkRunner, ScenarioGenerator, StrategyGenerator, StressTestRunner, get_solver
 
@@ -69,7 +72,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
 
     db = db_factory()
     try:
-        job = db.query(OptimizationJob).filter(OptimizationJob.id == job_id).first()
+        job = db.query(JobModel).filter(JobModel.id == job_id).first()
         if not job:
             logger.error(f"Job {job_id} not found")
             return
@@ -242,7 +245,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
 
     except InterruptedError:
         logger.info(f"Job {job_id}: Cancelled")
-        job = db.query(OptimizationJob).filter(OptimizationJob.id == job_id).first()
+        job = db.query(JobModel).filter(JobModel.id == job_id).first()
         if job:
             job.status = JobStatus.CANCELLED
             job.completed_at = datetime.now(timezone.utc)
@@ -250,7 +253,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         _job_store.complete_job(job_id, error="Cancelled")
     except Exception as e:
         logger.exception(f"Job {job_id}: Failed with error")
-        job = db.query(OptimizationJob).filter(OptimizationJob.id == job_id).first()
+        job = db.query(JobModel).filter(JobModel.id == job_id).first()
         if job:
             job.status = JobStatus.FAILED
             job.error_message = str(e)[:2000]
@@ -260,3 +263,54 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
     finally:
         _cancel_events.pop(job_id, None)
         db.close()
+
+
+# ---------------------------------------------------------------------------
+# Lightweight in-memory runtime jobs.
+# Used by app.main demo/background endpoints (`JOBS`, `create_job`, `get_job`).
+# The DB-backed pipeline above remains the production path for /api/optimizations.
+# ---------------------------------------------------------------------------
+
+
+class RuntimeJob:
+    """Minimal runtime handle for background demo jobs."""
+
+    def __init__(self, job_id: str, **config):
+        self.id = job_id
+        self.status = "pending"
+        self.result = None
+        self.error = None
+        self.config = config
+
+    def to_dict(self) -> dict:
+        return {
+            "job_id": self.id,
+            "status": self.status,
+            "result": self.result,
+            "error": self.error,
+        }
+
+
+RUNTIME_JOBS: dict = {}
+
+# Alias consumed by app.main (`from app.jobs import JOBS`).
+JOBS = RUNTIME_JOBS
+
+
+def create_job(job_id=None, **config) -> RuntimeJob:
+    """Register a lightweight runtime job and return it."""
+    if job_id is None:
+        job_id = str(uuid.uuid4())
+    job = RuntimeJob(job_id, **config)
+    RUNTIME_JOBS[job_id] = job
+    return job
+
+
+def get_job(job_id):
+    """Return a runtime job by id, or None."""
+    return RUNTIME_JOBS.get(job_id)
+
+
+# Name compatibility: app.main imports OptimizationJob from this module for
+# runtime jobs; the SQLAlchemy DB model is imported above as JobModel.
+OptimizationJob = RuntimeJob

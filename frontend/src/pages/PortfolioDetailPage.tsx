@@ -151,21 +151,21 @@ export default function PortfolioDetailPage() {
         </div>
 
         <Card padding={false}>
-          <div className="px-6 py-4 border-b border-slate-200">
+          <div className="px-6 py-4 border-b border-white/40">
             <h2 className="text-base font-semibold text-slate-900">Instruments ({portfolio.instruments.length})</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/60">
+                <tr className="border-b border-white/40 bg-white/30 backdrop-blur-xl">
                   {['Name', 'Type', 'Currency', 'Principal', 'Coupon', 'Maturity', 'Spread', 'Callable'].map((h) => (
                     <th key={h} className={`px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider ${['Principal', 'Coupon', 'Spread'].includes(h) ? 'text-right' : h === 'Callable' ? 'text-center' : 'text-left'}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-white/25">
                 {portfolio.instruments.map((inst) => (
-                  <tr key={inst.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={inst.id} className="hover:bg-white/40/50 transition-colors">
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">

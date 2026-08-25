@@ -6,12 +6,9 @@ Two sources (no API keys):
 
 ECB updates daily around 16:00 CET.
 """
-import json
 import logging
-import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
-from typing import Optional
 
 import requests
 
@@ -62,7 +59,6 @@ def fetch_ecb_rates(use_cache: bool = True) -> dict:
         root = ET.fromstring(resp.text)
 
         # Parse XML — ECB uses Cube elements
-        ns = {"ns": "http://www.ecb.int/vocabulary/2002-08-01/eurofxref"}
         rates = {}
         date_str = ""
 

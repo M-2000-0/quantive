@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, UserRole
-from app.security import get_current_user, require_role
+from app.security import require_role
 from app.webhooks import WebhookEvent, get_all_events, get_webhook_store
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
@@ -147,8 +147,9 @@ def test_webhook(
     if not webhook or webhook["org_id"] != user.org_id:
         raise HTTPException(status_code=404, detail="Webhook not found")
 
-    from app.webhooks import deliver_webhook
     import asyncio
+
+    from app.webhooks import deliver_webhook
 
     test_payload = {
         "event": "system.test",

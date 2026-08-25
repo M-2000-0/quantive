@@ -51,31 +51,31 @@ export default function DataTable<T extends Record<string, unknown>>({
     });
   }, [data, sortKey, sortDir]);
 
-  const cellPadding = compact ? 'px-3 py-2' : 'px-4 py-3';
-  const headerPadding = compact ? 'px-3 py-2' : 'px-4 py-3';
+  const cellPadding = compact ? 'px-3 py-2.5' : 'px-4 py-3.5';
+  const headerPadding = compact ? 'px-3 py-3' : 'px-4 py-3.5';
 
   if (loading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-        <div className="px-4 py-8 text-center text-sm text-slate-400">Loading\u2026</div>
+      <div className="glass-card overflow-hidden">
+        <div className="px-4 py-10 text-center text-sm text-slate-500">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+    <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
+            <tr className="border-b border-white/50 bg-white/35 backdrop-blur-xl">
               {columns.map((col) => (
                 <th
                   key={col.key}
                   onClick={() => handleSort(col.key)}
                   style={{ width: col.width }}
                   className={`
-                    ${headerPadding} text-left font-semibold text-slate-600
-                    select-none cursor-pointer hover:bg-slate-100 transition-colors
+                    ${headerPadding} text-left text-[11px] font-bold uppercase tracking-widest text-slate-500
+                    select-none cursor-pointer hover:bg-white/40 transition-colors
                     ${col.align === 'center' ? 'text-center' : ''}
                     ${col.align === 'right' ? 'text-right' : ''}
                   `}
@@ -92,12 +92,12 @@ export default function DataTable<T extends Record<string, unknown>>({
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-white/30">
             {sortedData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className={`${cellPadding} text-center text-slate-400`}
+                  className={`${cellPadding} text-center text-slate-400 bg-white/20`}
                 >
                   {emptyMessage}
                 </td>
@@ -108,9 +108,8 @@ export default function DataTable<T extends Record<string, unknown>>({
                   key={rowIdx}
                   onClick={() => onRowClick?.(row)}
                   className={`
-                    border-b border-slate-100 last:border-b-0
-                    ${onRowClick ? 'cursor-pointer hover:bg-slate-50' : ''}
-                    transition-colors
+                    ${onRowClick ? 'cursor-pointer hover:bg-white/45' : 'hover:bg-white/25'}
+                    transition-colors bg-white/20 backdrop-blur-sm
                   `}
                 >
                   {columns.map((col) => {

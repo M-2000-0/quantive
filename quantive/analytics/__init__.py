@@ -7,21 +7,17 @@ rate-type decomposition, and cost distribution.
 from __future__ import annotations
 
 from datetime import date
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
-import numpy as np
 
 from quantive.financials import (
-    CouponFrequency,
-    DayCountConvention,
-    bond_price,
     convexity as calc_convexity,
     dv01 as calc_dv01,
     effective_duration,
     macaulay_duration,
     modified_duration,
 )
-from quantive.models.enums import Currency, RateType
+from quantive.models.enums import RateType
 from quantive.models.instruments import DebtInstrument, Portfolio
 
 

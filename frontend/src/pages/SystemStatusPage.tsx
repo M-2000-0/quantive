@@ -86,7 +86,7 @@ export default function SystemStatusPage() {
             <CardHeader title="System Information" subtitle="Current configuration and limits" />
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 lg:grid-cols-3">
               {SYSTEM_INFO.map((item) => (
-                <div key={item.label} className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div key={item.label} className="flex items-center justify-between border-b border-white/25 pb-3">
                   <span className="text-sm text-slate-500">{item.label}</span>
                   <span className="text-sm font-semibold text-slate-900 tabular-nums">{item.value}</span>
                 </div>
@@ -106,7 +106,7 @@ export default function SystemStatusPage() {
         </div>
 
         <Card padding={false}>
-          <div className="px-6 py-4 border-b border-slate-200">
+          <div className="px-6 py-4 border-b border-white/40">
             <h3 className="text-base font-semibold text-slate-900">Recent Activity</h3>
             <p className="text-sm text-slate-500 mt-0.5">Last 5 audit events</p>
           </div>
@@ -115,9 +115,9 @@ export default function SystemStatusPage() {
               <p className="text-sm text-slate-500">No recent activity.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-white/25">
               {recentEvents.map((event) => (
-                <div key={event.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50 transition-colors">
+                <div key={event.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-white/40 transition-colors">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <span className="text-xs text-slate-400 tabular-nums whitespace-nowrap w-40 flex-shrink-0">
                       {formatDateTime(event.created_at)}

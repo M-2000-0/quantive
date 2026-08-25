@@ -256,6 +256,9 @@ export const api = {
       request<ExportJob>('/exports', { method: 'POST', body: JSON.stringify(data) }),
     status: (id: string) => request<ExportJob>(`/exports/${id}`),
     download: (id: string) => `${API_BASE}/exports/${id}/download`,
+    portfolioExcel: (portfolioId: string) => `${API_BASE}/exports/portfolio/${portfolioId}.xlsx`,
+    optimizationExcel: (jobId: string) => `${API_BASE}/exports/optimization/${jobId}.xlsx`,
+    riskExcel: (portfolioId: string) => `${API_BASE}/exports/risk/${portfolioId}.xlsx`,
   },
 
   // ── Webhooks ────────────────────────────────────────────────────────
@@ -287,6 +290,132 @@ export const api = {
     summary: () => request<Record<string, unknown>>('/dashboard/summary'),
   },
 
+  // ── Security ──────────────────────────────────────────────────────
+  security: {
+    dashboard: () => request<{ security_score: number; threat_status: { blocked_ips: number; failed_logins: number; status: string }; audit_events_24h: Record<string, number>; user_stats: { total: number; active: number; inactive: number }; recommendations: Array<{ severity: string; message: string; action: string }> }>('/security/dashboard'),
+    auditTrail: (params?: { hours?: number; action?: string; user_id?: string }) => {
+      const qs = new URLSearchParams();
+      if (params?.hours) qs.set('hours', String(params.hours));
+      if (params?.action) qs.set('action', params.action);
+      if (params?.user_id) qs.set('user_id', params.user_id);
+      return request<{ events: Array<{ id: string; actor_email: string; action: string; ip_address: string; created_at: string }>; total: number }>(`/security/audit-trail?${qs.toString()}`);
+    },
+    blockedIps: () => request<{ blocked_ips: Array<{ ip: string; unblocks_at: string; remaining_seconds: number }>; count: number }>('/security/threats/blocked-ips'),
+    unblockIp: (ip: string) => request<{ detail: string }>(`/security/threats/unblock/${ip}`, { method: 'POST' }),
+    failedLogins: (hours?: number) => request<{ failed_logins: Array<{ ip: string; attempts: number; emails_targeted: string[]; last_attempt: string }> }>(`/security/threats/failed-logins?hours=${hours || 24}`),
+    passwordPolicy: () => request<{ min_length: number; requirements: string[]; lockout_threshold: number; lockout_duration_minutes: number }>('/security/password-policy'),
+    healthCheck: () => request<{ status: string; checks: Record<string, string> }>('/security/health'),
+  },
+
+  // ── Narrative Engine ───────────────────────────────────────────────
+  narrative: {
+    report: (jobId: string) => request<{ title: string; date: string; executive_summary: string; market_brief: string; strategies: Array<{ rank: number; name: string; label: string; headline: string; key_metrics: Record<string, string>; strengths: string[]; risks: string[]; recommendation: string }>; risk_assessment: string; peer_comparison: string; implementation_roadmap: string; key_recommendations: string[]; next_steps: string[] }>(`/narrative/report/${jobId}`),
+  },
+
+  // ── Country Data ───────────────────────────────────────────────────
+  countries: {
+    list: (params?: { region?: string; group?: string; min_rating?: string }) => {
+      const qs = new URLSearchParams();
+      if (params?.region) qs.set('region', params.region);
+      if (params?.group) qs.set('group', params.group);
+      if (params?.min_rating) qs.set('min_rating', params.min_rating);
+      return request<{ countries: Array<{ code: string; name: string; debt_to_gdp: number; rating_sp: string; gdp_growth_pct: number }>; total: number }>(`/countries?${qs.toString()}`);
+    },
+    get: (code: string) => request<Record<string, unknown>>(`/countries/${code}`),
+    compare: (code: string, group?: string) => request<{ countries: Record<string, unknown>[]; averages: Record<string, number>; best_in_class: Record<string, string> }>(`/countries/${code}/compare?group=${group || ''}`),
+    stats: () => request<{ total_countries: number; total_gdp_trillions: number; total_debt_trillions: number; avg_debt_to_gdp: number; investment_grade: number; high_yield: number }>(`/countries/stats`),
+  },
+
+  // ── AI Advisor ──────────────────────────────────────────────────────
+  advisor: {
+    ask: (question: string, countryCode?: string) => request<{ answer: string; data: Record<string, unknown>; confidence: number; sources: string[]; suggestions: string[] }>('/advisor/ask', { method: 'POST', body: JSON.stringify({ question, country_code: countryCode || 'US' }) }),
+    capabilities: () => request<{ capabilities: Array<{ category: string; examples: string[] }>; supported_countries: string[] }>('/advisor/capabilities'),
+  },
+
+  // ── What-If Playground ─────────────────────────────────────────────
+  whatif: {
+    analyze: (data: { portfolio_id: string; adjustments: Array<{ action: string; amount: number; coupon_rate?: number; tenor_years?: number }> }) =>
+      request<{ before: { total_principal: number; weighted_coupon_pct: number; annual_cost: number; num_instruments: number; currency_breakdown: Record<string, { amount: number; pct: number }> }; after: { total_principal: number; weighted_coupon_pct: number; annual_cost: number; num_instruments: number }; impact: { total_change: number; total_change_pct: number; coupon_change_bps: number; annual_cost_change: number; annual_cost_change_pct: number }; adjustments: Array<{ type: string; amount: number; impact: string }>; recommendation: string }>('/whatif/analyze', { method: 'POST', body: JSON.stringify(data) }),
+  },
+
+  // ── Compliance (IMF) ────────────────────────────────────────────────
+  compliance: {
+    dsa: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/compliance/dsa/${countryCode}`),
+    mtds: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/compliance/mtds/${countryCode}`),
+    gfs: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/compliance/gfs/${countryCode}`),
+    debtCeiling: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/compliance/debt-ceiling/${countryCode}`),
+    allReports: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/compliance/reports/${countryCode}`),
+  },
+
+  // ── Explainability ──────────────────────────────────────────────────
+  explain: {
+    strategy: (data: { strategy: Record<string, unknown>; portfolio_data: Record<string, unknown>; country_code: string }) =>
+      request<{ success: boolean; data: Record<string, unknown> }>('/explain/strategy', { method: 'POST', body: JSON.stringify(data) }),
+    methodology: () =>
+      request<{ success: boolean; data: Record<string, unknown> }>('/explain/methodology'),
+  },
+
+  // ── Risk Intelligence ──────────────────────────────────────────────
+  riskIntel: {
+    sanctionsScreen: (instruments: Array<Record<string, unknown>>) =>
+      request<{ success: boolean; data: Record<string, unknown> }>('/risk-intel/sanctions/screen', { method: 'POST', body: JSON.stringify({ instruments }) }),
+    sanctionsCountry: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/risk-intel/sanctions/country/${countryCode}`),
+    sanctionsEntity: (name: string, country?: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/risk-intel/sanctions/entity/${name}${country ? `?country=${country}` : ''}`),
+    liquidityPortfolio: (instruments: Array<Record<string, unknown>>) =>
+      request<{ success: boolean; data: Record<string, unknown> }>('/risk-intel/liquidity/portfolio', { method: 'POST', body: JSON.stringify({ instruments }) }),
+    liquidityStressTest: (instruments: Array<Record<string, unknown>>, scenario?: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/risk-intel/liquidity/stress-test?scenario=${scenario || 'global'}`, { method: 'POST', body: JSON.stringify({ instruments }) }),
+    politicalRisk: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/risk-intel/political/${countryCode}`),
+    portfolioPoliticalRisk: (instruments: Array<Record<string, unknown>>) =>
+      request<{ success: boolean; data: Record<string, unknown> }>('/risk-intel/political/portfolio', { method: 'POST', body: JSON.stringify({ instruments }) }),
+    contagionCascade: (triggerCountry: string, instruments: Array<Record<string, unknown>>, severityBps?: number) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/risk-intel/contagion/cascade?trigger_country=${triggerCountry}&severity_bps=${severityBps || 500}`, { method: 'POST', body: JSON.stringify({ instruments }) }),
+    contagionLinkages: (countryCode: string) =>
+      request<{ success: boolean; data: Record<string, unknown> }>(`/risk-intel/contagion/linkages/${countryCode}`),
+    systemicRisk: (instruments: Array<Record<string, unknown>>) =>
+      request<{ success: boolean; data: Record<string, unknown> }>('/risk-intel/contagion/systemic', { method: 'POST', body: JSON.stringify({ instruments }) }),
+  },
+
   // ── Health ──────────────────────────────────────────────────────────
   health: () => request<{ status: string; version: string; database?: string }>('/health'),
+
+  // ── Maturity Ladder ──────────────────────────────────────────────
+  getMaturityLadder: (portfolioId: string, horizon?: number) =>
+    request<unknown>(`/maturity/ladder/${portfolioId}?horizon_years=${horizon || 20}`),
+  getCashFlowProjection: (portfolioId: string, horizon?: number, budget?: number) =>
+    request<unknown>(`/maturity/cashflow/${portfolioId}?horizon_years=${horizon || 15}&annual_budget=${budget || 0}`),
+  getRefinancingRecommendations: (portfolioId: string) =>
+    request<unknown>(`/maturity/recommendations/${portfolioId}`),
+  getFullMaturityAnalysis: (portfolioId: string, horizon?: number, budget?: number) =>
+    request<unknown>(`/maturity/analyze/${portfolioId}?horizon_years=${horizon || 20}&annual_budget=${budget || 0}`),
+
+  // ── ESG / Green Bonds ────────────────────────────────────────────
+  getESGScores: (portfolioId: string, countryCode?: string) =>
+    request<unknown>(`/esg/score/${portfolioId}?country_code=${countryCode || 'US'}`),
+  getCarbonScenarios: (countryCode: string) =>
+    request<unknown>(`/esg/carbon-scenarios/${countryCode}`),
+  getGreenCriteria: () =>
+    request<unknown>('/esg/green-criteria'),
+  getCountryESGScores: () =>
+    request<unknown>('/esg/country-scores'),
+
+  // ── Rating Simulator ─────────────────────────────────────────────
+  simulateRatings: (countryCode: string) =>
+    request<unknown>(`/ratings/simulate/${countryCode}`),
+  simulateRatingsWithShocks: (countryCode: string, shocks: Record<string, number>) =>
+    request<unknown>(`/ratings/simulate/${countryCode}`, { method: 'POST', body: JSON.stringify(shocks) }),
+  getRatingScales: () =>
+    request<unknown>('/ratings/scale'),
+  getRatingCountryData: (countryCode: string) =>
+    request<unknown>(`/ratings/country/${countryCode}`),
+  getRatingCountries: () =>
+    request<unknown>('/ratings/countries'),
 };

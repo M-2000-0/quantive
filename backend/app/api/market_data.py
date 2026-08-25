@@ -10,9 +10,7 @@ Endpoints:
 - GET /api/market/snapshot — Complete market snapshot
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 
-from app.database import get_db
 from app.market_data import economic, fx_rates, interest_rates, yield_curve
 from app.market_data.cache import get_cache
 from app.models import User

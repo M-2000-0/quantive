@@ -207,7 +207,7 @@ def cost_percentiles(
         result = {}
         for p in percentiles:
             target = p / 100.0
-            idx = np.searchsorted(culative, target)
+            idx = np.searchsorted(cumulative, target)
             idx = min(idx, len(sorted_costs) - 1)
             result[str(p)] = float(sorted_costs[idx])
         return result

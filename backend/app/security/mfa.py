@@ -6,13 +6,13 @@ Provides TOTP (Time-based One-Time Password) MFA with:
 - Code verification with time-window tolerance
 - Backup codes (one-time use recovery)
 """
+import base64
 import hashlib
 import hmac
 import secrets
 import struct
 import time
-from base64 import b32decode, b32encode, b64encode
-from datetime import datetime, timezone
+from base64 import b32decode, b32encode
 from typing import Optional
 
 # ── TOTP Implementation ─────────────────────────────────────────────────────
@@ -150,8 +150,9 @@ def generate_qr_code_base64(uri: str, size: int = 200) -> str:
     Falls back to a text-based representation if qrcode is not installed.
     """
     try:
-        import qrcode
         from io import BytesIO
+
+        import qrcode
 
         qr = qrcode.QRCode(
             version=1,

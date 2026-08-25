@@ -8,7 +8,7 @@ def test_health(client):
 def test_register(client):
     resp = client.post("/api/auth/register", json={
         "email": "new@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "New User",
     })
     assert resp.status_code == 201
@@ -21,12 +21,12 @@ def test_register(client):
 def test_register_duplicate(client):
     client.post("/api/auth/register", json={
         "email": "dup@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "User",
     })
     resp = client.post("/api/auth/register", json={
         "email": "dup@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "User 2",
     })
     assert resp.status_code == 409
@@ -35,12 +35,12 @@ def test_register_duplicate(client):
 def test_login(client):
     client.post("/api/auth/register", json={
         "email": "login@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "Login User",
     })
     resp = client.post("/api/auth/login", json={
         "email": "login@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
     })
     assert resp.status_code == 200
     assert "access_token" in resp.json()
@@ -49,7 +49,7 @@ def test_login(client):
 def test_login_wrong_password(client):
     client.post("/api/auth/register", json={
         "email": "wrong@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "User",
     })
     resp = client.post("/api/auth/login", json={

@@ -57,7 +57,7 @@ def client():
 def auth_client(client):
     resp = client.post("/api/auth/register", json={
         "email": "test@example.com",
-        "password": "testpass123",
+        "password": "Test@Pass123",
         "name": "Test User",
         "org_name": "Test Org",
     })

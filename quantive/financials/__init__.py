@@ -5,7 +5,6 @@ risk metrics used throughout the optimization engine.
 """
 from __future__ import annotations
 
-import math
 from datetime import date
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -139,7 +138,7 @@ def yield_to_maturity(
     current_yield = coupon_per_year / market_price if market_price > 0 else 0.0
     ytm = current_yield
 
-    n = _coupon_periods_per_year(freq=frequency)
+    _n = _coupon_periods_per_year(freq=frequency)
 
     for _ in range(max_iterations):
         price = bond_price(coupon_rate, face_value, ytm, years_to_maturity, frequency)
@@ -256,7 +255,7 @@ def key_rate_durations(
     if key_rates is None:
         key_rates = [1, 2, 3, 5, 7, 10, 15, 20, 30]
 
-    shift = shift_bps / 10000.0
+    _shift = shift_bps / 10000.0
     base_price = bond_price(coupon_rate, face_value, yield_to_maturity, years_to_maturity, frequency)
     if base_price <= 0:
         return {k: 0.0 for k in key_rates}

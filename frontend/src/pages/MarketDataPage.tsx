@@ -75,7 +75,7 @@ function FxRatesCard({ rates }: { rates: Record<string, FxRate> }) {
             const displayPair = pair.replace('USD', '').replace('USD_', '');
             const color = CURRENCY_COLORS[displayPair] || '#64748b';
             return (
-              <div key={pair} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <div key={pair} className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-3 border border-white/25">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                   <span className="text-xs font-semibold text-slate-600 uppercase">{displayPair}</span>
@@ -121,7 +121,7 @@ function InterestRatesCard({ rates, summary }: { rates: InterestRate[]; summary:
         {summary && Object.entries(summary).length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             {Object.entries(summary).slice(0, 8).map(([key, value]) => (
-              <div key={key} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <div key={key} className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-3 border border-white/25">
                 <p className="text-xs font-medium text-slate-500 uppercase truncate">{key.replace(/_/g, ' ')}</p>
                 <p className="text-xl font-bold text-slate-900 tabular-nums mt-1">{value.toFixed(2)}%</p>
               </div>
@@ -130,7 +130,7 @@ function InterestRatesCard({ rates, summary }: { rates: InterestRate[]; summary:
         )}
         <div className="space-y-2">
           {rates.map((rate, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+            <div key={i} className="flex items-center justify-between py-2 border-b border-white/25 last:border-0">
               <div>
                 <p className="text-sm font-medium text-slate-800">{rate.name}</p>
                 <p className="text-xs text-slate-400">{rate.source} — {rate.date}</p>
@@ -307,7 +307,7 @@ export default function MarketDataPage() {
                 {yieldCurve && (
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     {yieldCurve.maturities.filter(m => ['3M', '1Y', '2Y', '10Y', '30Y'].includes(m.label)).map(m => (
-                      <div key={m.label} className="bg-white border border-slate-200 rounded-lg p-3 text-center">
+                      <div key={m.label} className="glass-card p-3 text-center">
                         <p className="text-xs font-medium text-slate-500">{m.label}</p>
                         <p className="text-xl font-bold text-slate-900 tabular-nums mt-1">{m.rate_pct.toFixed(2)}%</p>
                       </div>
@@ -335,7 +335,7 @@ export default function MarketDataPage() {
                       className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${
                         economicData?.[country]
                           ? 'bg-blue-50 border-blue-200 text-blue-700'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                          : 'bg-white border-white/40 text-slate-600 hover:border-slate-300'
                       }`}
                     >
                       {country}
@@ -362,7 +362,7 @@ export default function MarketDataPage() {
         )}
 
         {/* Data Sources */}
-        <div className="mt-8 pt-6 border-t border-slate-200">
+        <div className="mt-8 pt-6 border-t border-white/40">
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Data Sources (Free, No API Keys)</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
@@ -371,7 +371,7 @@ export default function MarketDataPage() {
               { name: 'NY Fed', url: 'newyorkfed.org', data: 'SOFR, Fed Funds' },
               { name: 'World Bank', url: 'data.worldbank.org', data: 'CPI, GDP' },
             ].map(src => (
-              <div key={src.name} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <div key={src.name} className="bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30 p-3 border border-white/25">
                 <p className="text-xs font-semibold text-slate-700">{src.name}</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">{src.data}</p>
                 <p className="text-[10px] text-blue-500 mt-1">{src.url}</p>

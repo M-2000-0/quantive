@@ -101,7 +101,7 @@ def get_org_settings(user: User = Depends(get_current_user), db: Session = Depen
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    from app.models import Portfolio, OptimizationJob
+    from app.models import OptimizationJob, Portfolio
     member_count = db.query(User).filter(User.org_id == user.org_id).count()
     portfolio_count = db.query(Portfolio).filter(Portfolio.org_id == user.org_id).count()
     optimization_count = db.query(OptimizationJob).filter(OptimizationJob.org_id == user.org_id).count()

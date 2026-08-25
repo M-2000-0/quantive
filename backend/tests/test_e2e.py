@@ -93,7 +93,9 @@ def test_e2e_full_workflow(client):
 
     audit = client.get("/api/audit")
     assert audit.status_code == 200
-    audit_events = audit.json()
+    audit_data = audit.json()
+    # Paginated response wraps items in "data" key
+    audit_events = audit_data.get("data", audit_data) if isinstance(audit_data, dict) else audit_data
     assert len(audit_events) > 0
     actions = {e["action"] for e in audit_events}
     assert "portfolio.created" in actions or "portfolio.uploaded" in actions

@@ -4,13 +4,13 @@ Allows owners to grant/revoke access to specific users for their portfolios.
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Portfolio, PortfolioAccess, PortfolioRole, User, UserRole
-from app.security import get_current_user, log_audit_event
+from app.models import Portfolio, PortfolioAccess, PortfolioRole, User
+from app.security import log_audit_event
 from app.security.portfolio_rbac import require_portfolio_access
 
 router = APIRouter(prefix="/api/portfolios", tags=["portfolio-access"])

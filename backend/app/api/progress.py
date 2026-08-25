@@ -1,8 +1,6 @@
 """Server-Sent Events (SSE) endpoint for real-time optimization progress."""
 import asyncio
 import json
-import time
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse

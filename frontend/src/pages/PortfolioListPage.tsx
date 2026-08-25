@@ -70,12 +70,12 @@ export default function PortfolioListPage() {
         {loading && (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-lg p-6 animate-pulse">
-                <div className="h-5 bg-slate-200 rounded w-1/3 mb-3" />
-                <div className="h-4 bg-slate-100 rounded w-2/3 mb-4" />
+              <div key={i} className="glass-card p-6 animate-pulse">
+                <div className="h-5 bg-white/60 rounded-xl w-1/3 mb-3" />
+                <div className="h-4 bg-white/40 rounded-xl w-2/3 mb-4" />
                 <div className="flex gap-2">
-                  <div className="h-5 bg-slate-100 rounded-full w-12" />
-                  <div className="h-5 bg-slate-100 rounded-full w-12" />
+                  <div className="h-5 bg-white/40 rounded-full w-12" />
+                  <div className="h-5 bg-white/40 rounded-full w-12" />
                 </div>
               </div>
             ))}
@@ -83,7 +83,7 @@ export default function PortfolioListPage() {
         )}
 
         {!loading && error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+          <div className="glass-card border-red-200/40 bg-red-500/10 backdrop-blur-xl p-4 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -105,31 +105,31 @@ export default function PortfolioListPage() {
 
         {!loading && !error && portfolios.length > 0 && (
           <div className="space-y-4">
-            <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="glass-card overflow-hidden p-0">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/60">
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <tr className="border-b border-white/40 bg-white/30 backdrop-blur-xl">
+                    <th className="text-left px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       Name
                     </th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       Instruments
                     </th>
-                    <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-right px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       Total Principal
                     </th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       Currency Exposure
                     </th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-left px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       Created
                     </th>
-                    <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="text-right px-6 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/25">
                   {portfolios.map((portfolio) => {
                     const currencies = getCurrencies(portfolio);
                     const totalPrincipal = getTotalPrincipal(portfolio);
@@ -137,17 +137,17 @@ export default function PortfolioListPage() {
                       <tr
                         key={portfolio.id}
                         onClick={() => navigate(`/portfolios/${portfolio.id}`)}
-                        className="hover:bg-slate-50/80 cursor-pointer transition-colors"
+                        className="hover:bg-white/40 backdrop-blur-sm cursor-pointer transition-colors bg-white/15"
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                            <div className="w-9 h-9 rounded-xl bg-white/60 border border-white/60 backdrop-blur-md flex items-center justify-center shadow-sm">
                               <svg className="h-4.5 w-4.5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                               </svg>
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">{portfolio.name}</p>
+                              <p className="text-sm font-semibold tracking-tight text-slate-900">{portfolio.name}</p>
                               <p className="text-xs text-slate-500 truncate max-w-xs">
                                 {portfolio.description || 'No description'}
                               </p>

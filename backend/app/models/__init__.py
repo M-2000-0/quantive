@@ -233,11 +233,6 @@ class AuditEvent(Base):
 
 
 # ── Extended models (auth security, user prefs, notifications, etc.) ──────────
-from app.models.password_reset import (  # noqa: E402, F401
-    EmailVerificationToken,
-    PasswordResetToken,
-    RevokedToken,
-)
 from app.models.extended import (  # noqa: E402, F401
     ApiKey,
     ConstraintTemplate,
@@ -246,6 +241,19 @@ from app.models.extended import (  # noqa: E402, F401
     PortfolioSnapshot,
     ScheduledReport,
     UserPreferences,
+)
+from app.models.integrations import (  # noqa: E402, F401
+    APIUsageLog,
+    ExportJob,
+    Integration,
+    ModelExperiment,
+    Webhook,
+    WebhookDelivery,
+)
+from app.models.password_reset import (  # noqa: E402, F401
+    EmailVerificationToken,
+    PasswordResetToken,
+    RevokedToken,
 )
 from app.models.portfolio_access import (  # noqa: E402, F401
     PortfolioAccess,
@@ -261,12 +269,4 @@ from app.models.social import (  # noqa: E402, F401
     TaggedItem,
     Watchlist,
     WatchlistItem,
-)
-from app.models.integrations import (  # noqa: E402, F401
-    APIUsageLog,
-    ExportJob,
-    Integration,
-    ModelExperiment,
-    Webhook,
-    WebhookDelivery,
 )

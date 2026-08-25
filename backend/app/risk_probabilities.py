@@ -11,12 +11,11 @@ Provides:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
-
 
 # ── Data Classes ────────────────────────────────────────────────────────────
 
@@ -131,7 +130,7 @@ class RiskProbabilityEngine:
         Returns a list of indicators showing probability of different outcomes.
         """
         # Extract portfolio characteristics
-        total_principal = sum(i.get("principal_outstanding", 0) for i in instruments)
+        __total_principal = sum(i.get("principal_outstanding", 0) for i in instruments)
         avg_coupon = np.mean([i.get("coupon_rate", 0) for i in instruments]) if instruments else 0
         avg_spread = np.mean([i.get("spread_bps", 0) for i in instruments]) if instruments else 0
         avg_maturity_years = self._avg_maturity_years(instruments)
@@ -255,7 +254,7 @@ class RiskProbabilityEngine:
             investment_amounts = [1_000_000, 5_000_000, 10_000_000, 50_000_000]
 
         # Get portfolio metrics
-        total_principal = sum(i.get("principal_outstanding", 0) for i in instruments)
+        _total_principal = sum(i.get("principal_outstanding", 0) for i in instruments)
         avg_coupon = np.mean([i.get("coupon_rate", 0) for i in instruments]) if instruments else 0.05
         avg_spread = np.mean([i.get("spread_bps", 0) for i in instruments]) if instruments else 0
         avg_maturity = self._avg_maturity_years(instruments)

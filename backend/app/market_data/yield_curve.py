@@ -10,7 +10,7 @@ No API key required — this is public US government data.
 import csv
 import io
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import requests

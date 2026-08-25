@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
 
@@ -74,16 +74,39 @@ def get_optimization(problem_id: str) -> OptimizationProblem:
 
 
 @router.post("/{problem_id}/run", status_code=202)
-def run_optimization(problem_id: str) -> RunResponse:
+def run_optimization(
+    problem_id: str,
+    timeout: int = 300,
+) -> RunResponse:
+    """Run an optimization problem.
+
+    Args:
+        problem_id: Identifier of the problem to run
+        timeout: Maximum seconds allowed for the optimization (default: 300s,
+                 overridden by QUANTIVE_JOB_TIMEOUT env var)
+    """
     problem = state.get_problem(problem_id)
     if problem is None:
-        raise HTTPException(status_code=404, detail=f"optimization {problem_id!r} not found")
+        raise HTTPException(status_code=404, detail=f"optimization {problem_id!r} has not been run")
     portfolio = state.get_portfolio(problem.portfolio_id)
     if portfolio is None:
         raise HTTPException(status_code=404, detail=f"portfolio {problem.portfolio_id!r} not found")
 
-    job = state.jobs.submit(run_full_job, portfolio, problem)
+    job = state.jobs.submit(run_full_job, portfolio, problem, timeout=timeout)
     return RunResponse(job_id=job.id, problem_id=problem_id, status=job.status.value)
+
+
+@router.post("/{problem_id}/run/{job_id}/cancel", status_code=200)
+def cancel_optimization(problem_id: str, job_id: str) -> Dict[str, str]:
+    """Request cancellation of a running optimization job."""
+    job = state.jobs.cancel(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"job {job_id!r} not found")
+    if job.status.value == "cancelled":
+        return {"status": "cancelled", "message": "Job was successfully cancelled"}
+    elif job.status.value == "timed_out":
+        return {"status": "timed_out", "message": "Job exceeded time limit"}
+    return {"status": job.status.value, "message": "Job cancellation requested"}
 
 
 @router.get("/{problem_id}/results")

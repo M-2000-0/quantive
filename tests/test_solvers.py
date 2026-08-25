@@ -7,7 +7,7 @@ import pytest
 from quantive.models.enums import ExecutionBackend, SolverType
 from quantive.solvers.registry import available_solvers, get_solver
 
-SOLVERS = ["milp", "simulated_annealing", "qubo"]
+SOLVERS = ["milp", "highs", "simulated_annealing", "qubo"]
 
 
 def _fast_config(problem, name):

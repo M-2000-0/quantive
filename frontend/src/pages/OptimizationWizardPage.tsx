@@ -109,7 +109,7 @@ export default function OptimizationWizardPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobProgress, setJobProgress] = useState<OptimizationJob | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Record<string, 'completed' | 'running' | 'pending'>>({});
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const preselectId = searchParams.get('portfolio') || '';
 
@@ -202,18 +202,88 @@ export default function OptimizationWizardPage() {
         random_seed: state.solverSeed,
       });
       setJobId(job.id);
-      startPolling(job.id);
+      startSSE(job.id);
     } catch (e: unknown) {
       setRunError(e instanceof Error ? e.message : 'Failed to start optimization');
       setRunning(false);
     }
   };
 
-  const startPolling = (id: string) => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    const startTime = Date.now();
+  const startSSE = (id: string) => {
+    // Close any existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
 
-    pollRef.current = setInterval(async () => {
+    const token = localStorage.getItem('access_token');
+    // EventSource doesn't support custom headers, so we use a workaround
+    // with fetch + ReadableStream for SSE, or fall back to polling
+    const es = new EventSource(`/api/optimizations/${id}/progress?token=${token}`);
+    eventSourceRef.current = es;
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.event === 'done') {
+          es.close();
+          eventSourceRef.current = null;
+          return;
+        }
+
+        if (data.error) {
+          es.close();
+          eventSourceRef.current = null;
+          setRunning(false);
+          setRunError(data.error);
+          return;
+        }
+
+        // Update progress
+        const progress = data.progress || 0;
+        const stepsDone = Math.floor(progress * OPTIMIZATION_STEPS.length);
+        const newCompleted: Record<string, 'completed' | 'running' | 'pending'> = {};
+        OPTIMIZATION_STEPS.forEach((s, i) => {
+          if (i < stepsDone) newCompleted[s.id] = 'completed';
+          else if (i === stepsDone && progress < 1) newCompleted[s.id] = 'running';
+          else newCompleted[s.id] = 'pending';
+        });
+        setCompletedSteps(newCompleted);
+
+        // Update job progress state
+        setJobProgress((prev) => prev ? { ...prev, progress, status: data.status } : {
+          id, progress, status: data.status,
+          portfolio_id: '', org_id: '', created_by: '', name: '',
+          optimization_type: '', objectives: {}, constraints: {},
+          solver_config: {}, scenario_config: {}, random_seed: 0,
+          model_version: '', error_message: null,
+          started_at: data.started_at, completed_at: data.completed_at,
+          created_at: '', updated_at: '',
+        });
+
+        if (data.status === 'completed' || data.status === 'failed') {
+          es.close();
+          eventSourceRef.current = null;
+          setRunning(false);
+          if (data.status === 'completed') {
+            OPTIMIZATION_STEPS.forEach((s) => setCompletedSteps((prev) => ({ ...prev, [s.id]: 'completed' })));
+          }
+        }
+      } catch {
+        // Parse error, ignore
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      eventSourceRef.current = null;
+      // Fall back to polling if SSE fails
+      startFallbackPolling(id);
+    };
+  };
+
+  const startFallbackPolling = (id: string) => {
+    const pollInterval = setInterval(async () => {
       try {
         const job = await api.optimizations.get(id);
         setJobProgress(job);
@@ -229,23 +299,26 @@ export default function OptimizationWizardPage() {
         setCompletedSteps(newCompleted);
 
         if (job.status === 'completed' || job.status === 'failed') {
-          if (pollRef.current) clearInterval(pollRef.current);
+          clearInterval(pollInterval);
           setRunning(false);
           if (job.status === 'completed') {
             OPTIMIZATION_STEPS.forEach((s) => setCompletedSteps((prev) => ({ ...prev, [s.id]: 'completed' })));
           }
         }
       } catch {
-        if (Date.now() - startTime > 5000) {
-          if (pollRef.current) clearInterval(pollRef.current);
-          setRunning(false);
-          setRunError('Lost connection to optimization engine');
-        }
+        // ignore
       }
-    }, 1500);
+    }, 2000);
   };
 
-  useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, []);
 
   const StepHeader = () => (
     <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
@@ -274,7 +347,7 @@ export default function OptimizationWizardPage() {
   const ConstraintToggle = ({ label, constraintKey, placeholder }: { label: string; constraintKey: keyof WizardState['constraints']; placeholder?: string }) => {
     const c = state.constraints[constraintKey];
     return (
-      <div className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+      <div className="flex items-center gap-4 p-3 rounded-lg border border-white/40 hover:border-slate-300 transition-colors">
         <button
           onClick={() => setState((s) => ({ ...s, constraints: { ...s.constraints, [constraintKey]: { ...s.constraints[constraintKey], enabled: !s.constraints[constraintKey].enabled } } }))}
           className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${c.enabled ? 'bg-blue-600' : 'bg-slate-300'}`}
@@ -288,7 +361,7 @@ export default function OptimizationWizardPage() {
           onChange={(e) => setState((s) => ({ ...s, constraints: { ...s.constraints, [constraintKey]: { ...s.constraints[constraintKey], value: e.target.value } } }))}
           disabled={!c.enabled}
           placeholder={placeholder || 'Value'}
-          className="flex-1 px-3 py-1.5 border border-slate-200 rounded-md text-sm text-slate-900 placeholder:text-slate-400 disabled:opacity-40 disabled:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="flex-1 px-3 py-1.5 border border-white/40 rounded-md text-sm text-slate-900 placeholder:text-slate-400 disabled:opacity-40 disabled:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
     );
@@ -329,7 +402,7 @@ export default function OptimizationWizardPage() {
                 </div>
 
                 {state.portfolio && (
-                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="p-4 bg-white/30 backdrop-blur-xl border border-white/40 rounded-2xl">
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                         <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -393,7 +466,7 @@ export default function OptimizationWizardPage() {
                   </div>
                 ))}
 
-                <div className="pt-4 border-t border-slate-200">
+                <div className="pt-4 border-t border-white/40">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Relative Weight Distribution</p>
                   <div className="h-8 rounded-lg overflow-hidden flex">
                     <div className="bg-blue-600 flex items-center justify-center text-white text-xs font-bold transition-all" style={{ width: `${norms.financing}%` }}>
@@ -455,7 +528,7 @@ export default function OptimizationWizardPage() {
                           selectedScenarios: selected ? s.selectedScenarios.filter((x) => x !== sc.id) : [...s.selectedScenarios, sc.id],
                         }));
                       }}
-                      className={`p-3 rounded-lg border text-left transition-all ${selected ? 'border-blue-400 bg-blue-50/50 ring-1 ring-blue-200' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'} ${sc.always ? 'opacity-80' : 'cursor-pointer'}`}>
+                      className={`p-3 rounded-lg border text-left transition-all ${selected ? 'border-blue-400 bg-blue-50/50 ring-1 ring-blue-200' : 'border-white/40 hover:border-slate-300 hover:bg-white/40'} ${sc.always ? 'opacity-80' : 'cursor-pointer'}`}>
                       <div className="flex items-center gap-2">
                         <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${selected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'}`}>
                           {selected && <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>}
@@ -498,7 +571,7 @@ export default function OptimizationWizardPage() {
                       className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30">
                   <button onClick={() => setState((s) => ({ ...s, includeBaseInMc: !s.includeBaseInMc }))}
                     className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${state.includeBaseInMc ? 'bg-blue-600' : 'bg-slate-300'}`}>
                     <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${state.includeBaseInMc ? 'translate-x-5' : ''}`} />
@@ -519,14 +592,14 @@ export default function OptimizationWizardPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Portfolio</p>
-                    <div className="p-3 bg-slate-50 rounded-lg">
+                    <div className="p-3 bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30">
                       <p className="text-sm font-semibold text-slate-900">{state.portfolio?.name || 'Not selected'}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{state.portfolio?.instruments.length || 0} instruments &middot; {formatCurrency(state.portfolio?.instruments.reduce((s, i) => s + i.principal_outstanding, 0) || 0)}</p>
                     </div>
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Optimization Name</p>
-                    <div className="p-3 bg-slate-50 rounded-lg">
+                    <div className="p-3 bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30">
                       <p className="text-sm font-semibold text-slate-900">{state.optimizationName}</p>
                     </div>
                   </div>
@@ -572,7 +645,7 @@ export default function OptimizationWizardPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+                <div className="grid grid-cols-3 gap-4 p-4 bg-white/30 backdrop-blur-xl rounded-2xl border border-white/30">
                   <div>
                     <p className="text-xs text-slate-500">Monte Carlo Scenarios</p>
                     <p className="text-sm font-bold text-slate-900">{state.monteCarloCount.toLocaleString()}</p>
@@ -650,7 +723,7 @@ export default function OptimizationWizardPage() {
                       <span className="text-sm font-medium text-slate-700">Overall</span>
                       <span className="text-sm font-bold text-slate-900">{Math.round((jobProgress?.progress || 0) * 100)}% complete</span>
                     </div>
-                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full overflow-hidden">
                       <div className="h-3 bg-blue-600 rounded-full transition-all duration-700 ease-out" style={{ width: `${(jobProgress?.progress || 0) * 100}%` }} />
                     </div>
                   </div>
@@ -687,7 +760,7 @@ export default function OptimizationWizardPage() {
 
         {/* Navigation */}
         {step !== 'run' && (
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/40">
             <Button variant="ghost" onClick={goBack} disabled={stepIndex === 0}>
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />

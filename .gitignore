@@ -57,3 +57,19 @@ logs/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# tool caches
+.freebuff/
+
+# local dev scratch scripts and outputs
+/audit_check.py
+/check_audit.py
+/test_health.py
+/test_prov.py
+/verify_day4.py
+/test_week2.py
+/test_week2_detailed.py
+/test_output.txt
+/test_output2.txt
+/test_results.txt
+/test_suite_results.txt

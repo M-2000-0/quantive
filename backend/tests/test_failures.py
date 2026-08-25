@@ -50,7 +50,7 @@ def test_unauthorized_optimization(client):
 def test_audit_requires_admin(auth_client):
     auth_client.post("/api/auth/register", json={
         "email": "viewer2@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
         "name": "Viewer",
     })
     from app.models import User
@@ -67,7 +67,7 @@ def test_audit_requires_admin(auth_client):
     viewer_client = TestClient(auth_client.app)
     resp2 = viewer_client.post("/api/auth/login", json={
         "email": "viewer2@example.com",
-        "password": "securepass123",
+        "password": "Secure@Pass123",
     })
     if resp2.status_code == 200:
         viewer_token = resp2.json()["access_token"]

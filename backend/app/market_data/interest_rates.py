@@ -5,10 +5,8 @@ Free sources (no API keys):
 - NY Fed Treasury rates: https://markets.newyorkfed.org/api/rates/last/1.json
 - ECB interest rates: https://data-api.ecb.europa.eu/service/data/FM/D.U2.EUR.4F.KR.MRR_FR.LEV?
 """
-import json
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 import requests
 

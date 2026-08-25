@@ -10,13 +10,12 @@ import base64
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, Generic, Optional, Sequence, TypeVar
+from typing import Any, Callable, Optional, Sequence, TypeVar
 
 from fastapi import Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from sqlalchemy import Column, asc, desc, or_
-from sqlalchemy.orm import Query as SQLAlchemyQuery, Session
+from sqlalchemy import asc, desc, or_
+from sqlalchemy.orm import Query as SQLAlchemyQuery
 
 T = TypeVar("T")
 
