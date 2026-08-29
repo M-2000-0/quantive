@@ -13,7 +13,8 @@ import DemoModeBanner from './components/DemoModeBanner';
 import DisclaimerBanner from './components/DisclaimerBanner';
 import { initSentry, captureError, setUser, clearUser } from './lib/sentry';
 import { initAnalytics, identify, resetIdentity, events } from './lib/analytics';
-import { GlassRefractionEngine, GlassBackground, LiquidGlassFilter } from './components/glass';
+import { GlassRefractionEngine, LiquidGlassFilter } from './components/glass';
+import LiquidScene from './components/glass/LiquidScene';
 
 // Initialize error monitoring & analytics at module load time
 initSentry();
@@ -202,7 +203,7 @@ export default function App() {
                 </a>
               <GlassRefractionEngine />
               <LiquidGlassFilter />
-              <GlassBackground intensity={0.5} />
+              <LiquidScene>
               <FeedbackWidget />
               <DemoModeBanner />
               <AuthTracker />
@@ -319,6 +320,7 @@ export default function App() {
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </Suspense>
+              </LiquidScene>
               </BrowserRouter>
               </PortfolioProvider>
               </DemoModeProvider>
