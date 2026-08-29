@@ -23,9 +23,10 @@ function resolveTheme(theme: Theme): 'light' | 'dark' {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
-      return (localStorage.getItem('quantive_theme') as Theme) || 'system';
+      const saved = localStorage.getItem('quantive_theme') as Theme | null;
+      return saved || 'dark';
     } catch {
-      return 'system';
+      return 'dark';
     }
   });
 
