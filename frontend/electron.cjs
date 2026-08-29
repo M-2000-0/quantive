@@ -3,7 +3,7 @@
 // React frontend + Python FastAPI backend, all running locally.
 // Zero internet required. Air-gapped deployment ready.
 
-const { app, BrowserWindow, Menu, globalShortcut, shell, ipcMain, nativeTheme } = require('electron');
+const { app, BrowserWindow, Menu, globalShortcut, shell, ipcMain, nativeTheme, protocol } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -59,6 +59,7 @@ function stopBackend() {
 function createWindow() {
   const isWin11 = process.platform === 'win32';
   const isMac = process.platform === 'darwin';
+  const distPath = path.join(__dirname, 'dist');
 
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -87,13 +88,12 @@ function createWindow() {
     show: false,
   });
 
-  // Load the app
-  const fs = require('fs');
-  const distPath = path.join(__dirname, 'dist', 'index.html');
-  if (isDev && !fs.existsSync(distPath)) {
-    mainWindow.loadURL('http://localhost:5173');
+  // Load the built frontend
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    mainWindow.loadFile(indexPath);
   } else {
-    mainWindow.loadFile(distPath);
+    mainWindow.loadURL('http://localhost:5173');
   }
 
   // Show when ready — no flash

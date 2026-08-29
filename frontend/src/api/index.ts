@@ -1,13 +1,13 @@
-const API_BASE = '/api';
+const API_BASE = typeof window !== 'undefined' && (window as any).electronAPI?.isElectron
+  ? 'http://127.0.0.1:8000/api'
+  : '/api';
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('access_token');
+  // SECURITY: Tokens are now in httpOnly cookies (sent automatically by browser)
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> || {}),
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+// Cookies are sent automatically — no need for Authorization header
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
@@ -15,9 +15,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
   if (response.status === 401) {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
+    // Clear cookies via logout endpoint
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     window.location.href = '/login';
     throw new Error('Unauthorized');
   }
@@ -283,7 +282,7 @@ export const api = {
   // ── Market Data (Live — Zero API Keys) ──────────────────────────────
   market: {
     yieldCurve: () => request<YieldCurve>('/market/yield-curve'),
-    yieldCurveComparison: () => request<{ current: YieldCurve | null; one_month_ago: YieldCurve | null; one_year_ago: YieldCurve | null }>('/market/yield-curve/comparison'),
+    yieldCurveComparison: () => request<{ current: { date: string; rates: Record<string, number> } | null; one_month_ago: { date: string; rates: Record<string, number> } | null; one_year_ago: { date: string; rates: Record<string, number> } | null; fetched_at: string }>('/market/yield-curve/comparison'),
     fxRates: () => request<Record<string, FxRate>>('/market/fx'),
     fxPair: (pair: string) => request<FxRate>(`/market/fx/${pair}`),
     rates: () => request<{ rates: InterestRate[]; summary: Record<string, number> }>('/market/rates'),
@@ -506,6 +505,12 @@ export const api = {
       request<{ success: boolean; data: Record<string, unknown> }>('/risk-intel/contagion/systemic', { method: 'POST', body: JSON.stringify({ instruments }) }),
   },
 
+  // ── Market Health ────────────────────────────────────────────────
+  marketHealth: {
+    checkAll: () => request<{ status: string; summary: { live: number; fallback: number; error: number; total: number; avg_latency_ms: number }; sources: Array<{ name: string; provider: string; url: string; status: string; latency_ms: number | null; last_value: string | null; error: string | null; tested_at: string }> }>('/market/health'),
+    checkSource: (source: string) => request<{ name: string; provider: string; url: string; status: string; latency_ms: number | null; last_value: string | null; error: string | null; tested_at: string }>(`/market/health/${source}`),
+  },
+
   // ── Health ──────────────────────────────────────────────────────────
   health: () => request<{ status: string; version: string; database?: string }>('/health'),
 
@@ -540,6 +545,62 @@ export const api = {
     request<unknown>(`/ratings/country/${countryCode}`),
   getRatingCountries: () =>
     request<unknown>('/ratings/countries'),
+
+  // SOC 2 Compliance
+  soc2PentestScan: () =>
+    request<{ scan_date: string; total_findings: number; by_category: Record<string, { name: string; count: number; findings: unknown[] }>; severity_summary: Record<string, number>; readiness_score: number; recommendations: { priority: string; action: string }[] }>('/soc2/pentest/scan'),
+
+  soc2DRRunbooks: () =>
+    request<{ generated_at: string; scenarios: Record<string, unknown>; total: number }>('/soc2/dr/runbooks'),
+
+  soc2DRRunbook: (scenario: string) =>
+    request<{ scenario: string; severity: string; rto_hours: number; rpo_hours: number; steps: unknown[]; rollback: string; communication: string[]; verification: string[] }>(`/soc2/dr/runbook/${scenario}`),
+
+  soc2EvidenceSummary: () =>
+    request<{ total_evidence_items: number; verified: number; verification_rate: string; by_category: Record<string, number>; criteria_covered: number; criteria_missing: string[]; readiness_score: number }>('/soc2/evidence/summary'),
+
+  soc2ComplianceOverview: () =>
+    request<{ criteria: { id: string; name: string; score: number; status: string; controls: { name: string; implemented: boolean }[] }[]; overall_score: number; total_controls: number; implemented_controls: number }>('/soc2/compliance/overview'),
+
+  quantumReadiness: () =>
+    request<{ overall_score: number; dimensions: { name: string; score: number; target: number; modules: string[]; status: string; details: string }[]; total_modules: number; active_modules: number; last_scan: string }>('/quantum/readiness'),
+
+  quantumModules: () =>
+    request<{ total: number; active: number; modules: { path: string; name: string; pillar: string; status: string }[] }>('/quantum/modules'),
+
+  quantumCircuit: (params: { num_qubits?: number; theta?: number; circuit_type?: string; layers?: number }) => {
+    const qs = new URLSearchParams();
+    if (params.num_qubits) qs.set('num_qubits', String(params.num_qubits));
+    if (params.theta) qs.set('theta', String(params.theta));
+    if (params.circuit_type) qs.set('circuit_type', params.circuit_type);
+    if (params.layers) qs.set('layers', String(params.layers));
+    return request<{ qasm3: string; circuit_id: string; num_qubits: number; depth: number; gate_count: Record<string, number> }>(`/quantum/openqasm3/circuit?${qs.toString()}`);
+  },
+
+  quantumBackends: () =>
+    request<{ backends: { key: string; name: string; status: string; max_qubits: number; avg_gate_error: number; cost_per_shot: number; uptime: number }[] }>('/quantum/openqasm3/backends'),
+
+  quantumDispatch: (body: { qasm3_code: string; shots?: number; noise_mitigation?: boolean; backend_override?: string }) =>
+    request<Record<string, unknown>>('/quantum/openqasm3/dispatch', { method: 'POST', body: JSON.stringify(body) }),
+
+  quantumZKProve: (body: { total_debt_usd: number; foreign_currency_debt_usd: number; max_single_year_refinance_usd: number; liquid_reserves_usd: number; total_revenue_usd: number; margin_usd: number; statutory_ceiling_usd: number; jurisdiction?: string }) =>
+    request<{ proof_id: string; all_satisfied: boolean; constraints_proven: string[]; constraints_total: number; verification_key: string; proof_hash: string; generation_time_ms: number }>('/quantum/zk/prove', { method: 'POST', body: JSON.stringify(body) }),
+
+  quantumZKReport: (body: { total_debt_usd: number; foreign_currency_debt_usd: number; max_single_year_refinance_usd: number; liquid_reserves_usd: number; total_revenue_usd: number; margin_usd: number; statutory_ceiling_usd: number; jurisdiction?: string }) =>
+    request<{ compliance_score: number; constraints: Record<string, { status: string; actual: number; limit: number }>; violations: { type: string; description: string; severity: string }[] }>('/quantum/zk/report', { method: 'POST', body: JSON.stringify(body) }),
+
+  quantumQAESimulate: (body: { shock_probability?: number; shots?: number; num_evaluation_qubits?: number }) =>
+    request<{ estimated_probability: number; confidence_interval: [number, number]; circuit_depth: number; total_qubits: number; metadata: Record<string, unknown> }>('/quantum/qae/simulate', { method: 'POST', body: JSON.stringify(body) }),
+
+  quantumQAEVaR: (body: { shock_probability?: number; portfolio_value?: number; confidence_level?: number; num_evaluation_qubits?: number }) =>
+    request<{ var_estimate: number; expected_shortfall: number; confidence_level: number; loss_distribution: Record<string, number>; qae_precision: number; speedup_vs_classical: number; num_scenarios_evaluated: number }>('/quantum/qae/tail-risk', { method: 'POST', body: JSON.stringify(body) }),
+
+  quantumQAEAnalyze: (params: { shock_probability?: number; num_evaluation_qubits?: number }) => {
+    const qs = new URLSearchParams();
+    if (params.shock_probability) qs.set('shock_probability', String(params.shock_probability));
+    if (params.num_evaluation_qubits) qs.set('num_evaluation_qubits', String(params.num_evaluation_qubits));
+    return request<{ circuit_id: string; num_evaluation_qubits: number; total_qubits: number; circuit_depth: number; precision: number; rotation_angle: number; total_gates: number; performance_comparison: Record<string, number> }>(`/quantum/qae/analyze?${qs.toString()}`);
+  },
 };
 
 // ── Standalone SSE / polling helper (task-required named export) ───────
