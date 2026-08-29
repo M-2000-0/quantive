@@ -5,6 +5,7 @@
 
 const { app, BrowserWindow, Menu, globalShortcut, shell, ipcMain, nativeTheme } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
 
 let mainWindow = null;
@@ -87,8 +88,9 @@ function createWindow() {
   });
 
   // Load the app
+  const fs = require('fs');
   const distPath = path.join(__dirname, 'dist', 'index.html');
-  if (isDev && !require('fs').existsSync(distPath)) {
+  if (isDev && !fs.existsSync(distPath)) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
     mainWindow.loadFile(distPath);
