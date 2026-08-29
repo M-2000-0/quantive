@@ -6,23 +6,20 @@
 const { app, BrowserWindow, Menu, globalShortcut, shell, ipcMain, nativeTheme, protocol } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const { spawn } = require('child_process');
 
 let mainWindow = null;
 let backendProcess = null;
+let frontendServer = null;
 
 const isDev = !app.isPackaged;
 const BACKEND_PORT = 8000;
+const FRONTEND_PORT = 5199;
 
 // ── Backend Management ───────────────────────────────────────────────
 
 function startBackend() {
-  if (!isDev) {
-    // In production, backend runs as separate process or bundled
-    console.log('[Quantive] Production mode — backend expected externally');
-    return;
-  }
-
   const backendPath = path.join(__dirname, '..', 'backend');
   console.log(`[Quantive] Starting Python backend from ${backendPath}`);
 
@@ -51,6 +48,54 @@ function stopBackend() {
     console.log('[Quantive] Stopping backend...');
     backendProcess.kill('SIGTERM');
     backendProcess = null;
+  }
+}
+
+// ── Frontend Static Server ───────────────────────────────────────────
+
+function startFrontendServer() {
+  const distPath = path.join(__dirname, 'dist');
+
+  const MIME = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.ico': 'image/x-icon',
+    '.woff2': 'font/woff2',
+    '.woff': 'font/woff',
+    '.ttf': 'font/ttf',
+  };
+
+  frontendServer = http.createServer((req, res) => {
+    let url = req.url.split('?')[0];
+    if (url === '/') url = '/index.html';
+
+    const filePath = path.join(distPath, url);
+
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath);
+      res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+      fs.createReadStream(filePath).pipe(res);
+    } else {
+      // SPA fallback — serve index.html for client-side routes
+      const indexPath = path.join(distPath, 'index.html');
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      fs.createReadStream(indexPath).pipe(res);
+    }
+  });
+
+  frontendServer.listen(FRONTEND_PORT, '127.0.0.1', () => {
+    console.log(`[Quantive] Frontend serving on http://127.0.0.1:${FRONTEND_PORT}`);
+  });
+}
+
+function stopFrontendServer() {
+  if (frontendServer) {
+    frontendServer.close();
+    frontendServer = null;
   }
 }
 
@@ -88,13 +133,8 @@ function createWindow() {
     show: false,
   });
 
-  // Load the built frontend
-  const indexPath = path.join(__dirname, 'dist', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    mainWindow.loadFile(indexPath);
-  } else {
-    mainWindow.loadURL('http://localhost:5173');
-  }
+  // Load from local HTTP server (backdrop-filter / glass needs HTTP, not file://)
+  mainWindow.loadURL(`http://127.0.0.1:${FRONTEND_PORT}`);
 
   // Show when ready — no flash
   mainWindow.once('ready-to-show', () => {
@@ -173,6 +213,7 @@ function createMenu() {
 
 app.whenReady().then(() => {
   startBackend();
+  startFrontendServer();
   createWindow();
   createMenu();
 
@@ -192,6 +233,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   stopBackend();
+  stopFrontendServer();
   globalShortcut.unregisterAll();
 });
 
