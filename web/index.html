@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantive — Sovereign Debt Intelligence</title>
+<meta name="description" content="AI-powered decision support for national treasuries, central banks, and public finance teams. Portfolio optimization, risk analytics, and scenario modeling at sovereign scale.">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ─────────────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#07080A;color:#F6F5F1;line-height:1.5;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+button{font-family:inherit}
+
+/* ── Tokens ────────────────────────────────────────────── */
+:root{
+  --bg:#07080A;
+  --bg2:#0E0F12;
+  --surface:rgba(255,255,255,0.04);
+  --surface2:rgba(255,255,255,0.07);
+  --surface3:rgba(255,255,255,0.10);
+  --line:rgba(255,255,255,0.08);
+  --line2:rgba(255,255,255,0.14);
+  --text:#F6F5F1;
+  --muted:#9A9BA3;
+  --muted2:#6B6B74;
+  --gold:#C9A96A;
+  --gold2:#E8D9B8;
+  --gold-bg:rgba(201,169,106,0.12);
+  --blue:#5B8DEF;
+  --blue-bg:rgba(91,141,239,0.12);
+  --green:#1FD08A;
+  --green-bg:rgba(31,208,138,0.10);
+  --red:#EF4444;
+  --orange:#F59E0B;
+  --radius:14px;
+  --radius-lg:20px;
+  --radius-xl:28px;
+  --max:1220px;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+
+/* ── Noise + glow ──────────────────────────────────────── */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:0.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E");
+  z-index:0;
+}
+.glow{
+  position:absolute;pointer-events:none;filter:blur(80px);opacity:0.6;
+}
+.glow-1{width:720px;height:520px;left:-120px;top:-120px;background:radial-gradient(ellipse at center, rgba(201,169,106,0.18), transparent 65%); }
+.glow-2{width:640px;height:640px;right:-160px;top:120px;background:radial-gradient(ellipse at center, rgba(91,141,239,0.14), transparent 68%); }
+.glow-3{width:800px;height:400px;left:30%;bottom:-120px;background:radial-gradient(ellipse at center, rgba(201,169,106,0.08), transparent 70%); }
+
+/* ── Top bar ───────────────────────────────────────────── */
+.topbar{
+  position:relative;z-index:5;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  height:36px;padding:0 16px;
+  background:#F6F5F1;color:#0A0A0B;font-size:12.5px;font-weight:500;letter-spacing:-0.01em;
+}
+.topbar b{font-weight:700}
+.topbar a{padding:4px 10px;border-radius:100px;background:#0A0A0B;color:#fff;font-size:11.5px;font-weight:600;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:5px}
+.topbar a:hover{transform:translateY(-1px)}
+
+/* ── Nav ───────────────────────────────────────────────── */
+.nav{
+  position:sticky;top:0;z-index:50;
+  height:64px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;max-width:var(--max);margin:0 auto;width:100%;
+  background:rgba(7,8,10,0.72);backdrop-filter:blur(16px) saturate(1.2);
+  border-bottom:1px solid var(--line);
+}
+.nav-inner{max-width:var(--max);margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.logo{display:flex;align-items:center;gap:11px}
+.mark{
+  width:34px;height:34px;border-radius:10px;
+  background:#F6F5F1;color:#0A0A0B;display:grid;place-items:center;
+  font-weight:900;font-size:14px;letter-spacing:-0.05em;
+  box-shadow:0 1px 0 rgba(255,255,255,0.08) inset, 0 8px 24px rgba(0,0,0,0.35);
+  position:relative;overflow:hidden;
+}
+.mark::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.55), transparent 55%);opacity:0.9}
+.mark span{position:relative;z-index:1}
+.brand{font-size:16px;font-weight:800;letter-spacing:-0.03em}
+.brand em{font-family:'Instrument Serif',serif;font-weight:400;font-style:italic;font-size:17px;color:var(--gold)}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--muted);letter-spacing:-0.01em;transition:color .15s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{
+  padding:9px 16px;border-radius:100px;background:#F6F5F1;color:#0A0A0B;font-size:13px;font-weight:650;letter-spacing:-0.02em;
+  display:inline-flex;align-items:center;gap:7px;transition:all .18s var(--ease);
+  box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 6px 20px rgba(0,0,0,0.25);
+}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,0.8) inset, 0 10px 28px rgba(0,0,0,0.3)}
+.nav-ghost{padding:9px 14px;border-radius:100px;border:1px solid var(--line2);color:var(--text);font-size:13px;font-weight:600;background:rgba(255,255,255,0.03)}
+.hamburger{display:none;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,0.04);place-items:center;color:var(--text)}
+
+/* ── Hero ──────────────────────────────────────────────── */
+.hero-wrap{position:relative;overflow:hidden;border-bottom:1px solid var(--line);background:
+  radial-gradient(900px 600px at 18% 0%, rgba(201,169,106,0.10), transparent 60%),
+  radial-gradient(800px 600px at 92% 18%, rgba(91,141,239,0.09), transparent 62%),
+  linear-gradient(180deg, #0B0C0F 0%, #07080A 100%)
+}
+.hero{
+  max-width:var(--max);margin:0 auto;padding:64px 40px 0;
+  display:grid;grid-template-columns:1.05fr 1.15fr;gap:48px;align-items:start;
+  position:relative;z-index:1;
+}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:6px 6px 6px 10px;border-radius:100px;
+  background:rgba(255,255,255,0.06);border:1px solid var(--line);backdrop-filter:blur(10px);
+  font-size:12px;font-weight:500;color:var(--muted);letter-spacing:-0.01em;
+}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 6px rgba(31,208,138,0.14);display:inline-block}
+.eyebrow b{padding:4px 10px;border-radius:100px;background:#F6F5F1;color:#0A0A0B;font-size:11px;font-weight:700;letter-spacing:0.02em}
+.hero h1{
+  margin-top:22px;
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(40px,5.2vw,68px);font-weight:400;line-height:0.92;letter-spacing:-0.04em;
+}
+.hero h1 i{font-style:italic;color:var(--gold2);font-weight:400}
+.hero h1 span{display:block}
+.hero h1 .line2{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-0.05em;font-size:0.92em;color:var(--text);margin-top:2px}
+.hero-sub{margin-top:18px;max-width:520px;font-size:16.5px;line-height:1.65;color:var(--muted);letter-spacing:-0.015em}
+.hero-actions{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap;align-items:center}
+.btn{
+  padding:13px 20px;border-radius:100px;font-size:14px;font-weight:650;letter-spacing:-0.02em;
+  display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;transition:all .18s var(--ease);
+  white-space:nowrap;
+}
+.btn-primary{background:#F6F5F1;color:#0A0A0B;box-shadow:0 1px 0 rgba(255,255,255,0.9) inset, 0 8px 24px rgba(0,0,0,0.28)}
+.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.03)}
+.btn-ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--line2);backdrop-filter:blur(10px)}
+.btn-ghost:hover{background:rgba(255,255,255,0.09)}
+.hero-trust{margin-top:22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.trust-badges{display:flex;align-items:center;gap:14px;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted2)}
+.trust-badges span{display:inline-flex;align-items:center;gap:6px}
+.trust-badges svg{width:14px;height:14px;opacity:0.7}
+.avatars{display:flex;align-items:center}
+.avatars img,.avatars div{width:28px;height:28px;border-radius:50%;border:2px solid #0B0C0F;margin-left:-8px;object-fit:cover;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--surface2);color:var(--muted)}
+.avatars div:first-child{margin-left:0}
+.rating{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.rating b{color:var(--text)}
+.stars{color:var(--gold);letter-spacing:2px;font-size:12px}
+
+/* ── Dashboard mock ────────────────────────────────────── */
+.dash{
+  position:relative;
+  border-radius:22px;overflow:hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)),
+    linear-gradient(180deg, #15171B, #0F1114);
+  border:1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.08) inset,
+    0 20px 60px rgba(0,0,0,0.55),
+    0 1px 30px rgba(201,169,106,0.08);
+  transform:translateY(0);
+}
+.dash::before{
+  content:"";position:absolute;inset:0;border-radius:22px;padding:1px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+}
+.dash-chrome{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,0.02);
+}
+.dots{display:flex;gap:7px}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.r{background:#FF5F57;border:1px solid rgba(0,0,0,0.15)}
+.dot.y{background:#FFBD2E;border:1px solid rgba(0,0,0,0.15)}
+.dot.g{background:#28CA42;border:1px solid rgba(0,0,0,0.15)}
+.chrome-title{font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:8px}
+.chrome-title span{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(31,208,138,0.6)}
+.chrome-actions{display:flex;gap:8px}
+.chip{padding:6px 10px;border-radius:100px;background:rgba(255,255,255,0.06);border:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted)}
+.dash-body{padding:16px;display:grid;gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{
+  padding:16px;border-radius:14px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--line);
+  position:relative;overflow:hidden;
+}
+.kpi::after{content:"";position:absolute;inset:0;background:radial-gradient(240px 140px at 80% 0%, rgba(255,255,255,0.06), transparent 60%);pointer-events:none}
+.kpi-label{font-size:9.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kpi-trend{padding:3px 7px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.02em}
+.kpi-value{margin-top:10px;font-size:26px;font-weight:800;letter-spacing:-0.04em;line-height:1}
+.kpi-value small{font-size:12px;font-weight:600;color:var(--muted2);letter-spacing:-0.02em}
+.kpi-sub{margin-top:4px;font-size:11px;color:var(--muted)}
+.kpi-foot{margin-top:10px;height:2px;border-radius:100px;background:rgba(255,255,255,0.08);overflow:hidden}
+.kpi-foot i{display:block;height:100%;border-radius:100px}
+.dash-grid{display:grid;grid-template-columns:1.35fr 0.85fr;gap:10px}
+.panel{
+  padding:16px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid var(--line);
+}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.panel-title{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted2)}
+.panel-more{font-size:11px;font-weight:600;color:var(--muted);padding:6px 10px;border-radius:100px;border:1px solid var(--line);background:rgba(255,255,255,0.03)}
+.risk-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.risk-row:last-child{margin-bottom:0}
+.risk-icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:11px;font-weight:800;flex-shrink:0}
+.risk-meta{flex:1;min-width:0}
+.risk-name{font-size:12px;font-weight:600;letter-spacing:-0.01em;display:flex;align-items:center;gap:6px}
+.risk-name i{width:6px;height:6px;border-radius:50%;display:inline-block}
+.risk-bar{height:4px;border-radius:100px;background:rgba(255,255,255,0.08);overflow:hidden;margin-top:6px}
+.risk-bar em{display:block;height:100%;border-radius:100px}
+.risk-val{font-size:11px;font-weight:700;letter-spacing:-0.02em}
+.mini-chart{height:88px;display:flex;align-items:flex-end;gap:3px;margin-top:8px}
+.mini-bar{flex:1;border-radius:6px 6px 2px 2px;position:relative}
+.mini-bar::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg, rgba(255,255,255,0.18), transparent 60%)}
+.mini-labels{display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:var(--muted2);font-weight:500}
+.legend{display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--muted)}
+.legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.floating{
+  position:absolute;right:-14px;top:22%;padding:12px 14px;border-radius:14px;
+  background:rgba(18,19,22,0.88);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 12px 40px rgba(0,0,0,0.45);display:flex;align-items:center;gap:12px;
+  transform:rotate(1.2deg);
+}
+.floating-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:800;color:#0A0A0B;background:var(--gold2)}
+.floating b{font-size:13px;letter-spacing:-0.02em}
+.floating p{font-size:11px;color:var(--muted);margin-top:1px}
+.hero-bottom{padding:18px 40px 0;max-width:var(--max);margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
+.hero-bottom-left{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 6px rgba(31,208,138,0.14);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 6px rgba(31,208,138,0.14)}50%{box-shadow:0 0 0 9px rgba(31,208,138,0.08)}}
+
+/* ── Logos ─────────────────────────────────────────────── */
+.logos{
+  max-width:var(--max);margin:0 auto;padding:28px 40px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  border-top:1px solid var(--line);background:rgba(255,255,255,0.015);
+}
+.logos-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted2);white-space:nowrap}
+.logos-track{display:flex;align-items:center;gap:28px;flex-wrap:wrap;opacity:0.9}
+.logo-item{font-size:13px;font-weight:700;letter-spacing:-0.02em;color:#D6D6DB;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo-item i{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid var(--line);display:grid;place-items:center;font-size:11px}
+.logo-item em{font-style:normal;color:var(--muted2);font-weight:600;font-size:11px;letter-spacing:0.04em;text-transform:uppercase}
+
+/* ── Sections ──────────────────────────────────────────── */
+.section{max-width:var(--max);margin:0 auto;padding:72px 40px;position:relative}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:32px}
+.eyebrow2{font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:8px}
+.eyebrow2::before{content:"";width:22px;height:1px;background:var(--gold);opacity:0.6}
+.section-title{font-family:'Instrument Serif',serif;font-size:42px;line-height:0.95;letter-spacing:-0.04em;font-weight:400;margin-top:10px}
+.section-title i{font-style:italic;color:var(--gold2)}
+.section-desc{max-width:460px;font-size:14.5px;line-height:1.65;color:var(--muted);letter-spacing:-0.01em}
+
+/* ── Bento ─────────────────────────────────────────────── */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.bento-card{
+  border-radius:18px;padding:22px;position:relative;overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border:1px solid var(--line);transition:all .22s var(--ease);
+}
+.bento-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.14);box-shadow:0 16px 40px rgba(0,0,0,0.35)}
+.bento-card::before{content:"";position:absolute;inset:0;border-radius:18px;padding:1px;background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02));-webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .22s}
+.bento-card:hover::before{opacity:1}
+.bento-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;border:1px solid var(--line);background:rgba(255,255,255,0.04);color:var(--muted);margin-bottom:16px}
+.bento-card h3{font-size:15px;font-weight:700;letter-spacing:-0.02em}
+.bento-card p{margin-top:8px;font-size:13px;line-height:1.6;color:var(--muted)}
+.bento-meta{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:5px 9px;border-radius:100px;background:rgba(255,255,255,0.05);border:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:-0.01em}
+.span-4{grid-column:span 4}
+.span-6{grid-column:span 6}
+.span-8{grid-column:span 8}
+.span-3{grid-column:span 3}
+.span-12{grid-column:span 12}
+.feature-list{margin-top:14px;display:grid;gap:8px}
+.feature-list span{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.feature-list i{width:18px;height:18px;border-radius:50%;background:rgba(31,208,138,0.12);color:var(--green);display:grid;place-items:center;font-size:10px;flex-shrink:0}
+
+/* ── Showcase ──────────────────────────────────────────── */
+.showcase{
+  margin-top:14px;border-radius:22px;overflow:hidden;
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  border:1px solid var(--line);display:grid;grid-template-columns:1.15fr 0.85fr;min-height:420px;
+}
+.show-left{padding:28px;border-right:1px solid var(--line);background:radial-gradient(600px 400px at 20% 0%, rgba(201,169,106,0.08), transparent 60%)}
+.tabs{display:flex;gap:6px;padding:4px;border-radius:100px;background:rgba(255,255,255,0.04);border:1px solid var(--line);width:fit-content}
+.tab{padding:7px 14px;border-radius:100px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.tab.active{background:#F6F5F1;color:#0A0A0B}
+.show-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px;flex-wrap:wrap}
+.show-head h4{font-size:18px;font-weight:750;letter-spacing:-0.03em}
+.show-head p{font-size:13px;color:var(--muted)}
+.chart-wrap{margin-top:18px;padding:16px;border-radius:14px;background:rgba(0,0,0,0.22);border:1px solid var(--line)}
+.chart-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chart-top b{font-size:12px;letter-spacing:-0.02em}
+.chart-top span{font-size:11px;color:var(--muted);padding:5px 9px;border-radius:100px;background:rgba(255,255,255,0.06);border:1px solid var(--line)}
+.chart{height:140px;position:relative}
+.chart svg{width:100%;height:100%}
+.show-right{padding:28px;display:grid;gap:14px;align-content:start;background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent)}
+.mini-kpi{display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid var(--line)}
+.mini-kpi b{font-size:13px;letter-spacing:-0.02em}
+.mini-kpi p{font-size:11px;color:var(--muted);margin-top:2px}
+.mini-kpi strong{font-size:18px;letter-spacing:-0.03em}
+.alloc{display:grid;gap:10px;margin-top:4px}
+.alloc-row{display:flex;align-items:center;gap:10px}
+.alloc-dot{width:8px;height:8px;border-radius:50%}
+.alloc-bar{flex:1;height:6px;border-radius:100px;background:rgba(255,255,255,0.08);overflow:hidden}
+.alloc-bar i{display:block;height:100%;border-radius:100px}
+.alloc-val{font-size:12px;font-weight:650;min-width:36px;text-align:right}
+
+/* ── Steps ─────────────────────────────────────────────── */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;position:relative}
+.steps::before{content:"";position:absolute;top:34px;left:8%;right:8%;height:1px;background:linear-gradient(90deg, transparent, var(--line), var(--line), transparent);display:none}
+.step{
+  padding:24px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));border:1px solid var(--line);position:relative;
+}
+.step-num{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:13px;letter-spacing:-0.02em;background:#F6F5F1;color:#0A0A0B;box-shadow:0 1px 0 rgba(255,255,255,0.8) inset}
+.step h4{margin-top:16px;font-size:15px;font-weight:700;letter-spacing:-0.02em}
+.step p{margin-top:8px;font-size:13px;line-height:1.6;color:var(--muted)}
+.step ul{margin-top:12px;display:grid;gap:6px;list-style:none}
+.step li{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.step li::before{content:"→";color:var(--gold);font-weight:700;font-size:11px}
+
+/* ── Personas ──────────────────────────────────────────── */
+.personas{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.persona{padding:22px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));border:1px solid var(--line);transition:all .2s var(--ease)}
+.persona:hover{border-color:rgba(201,169,106,0.22);transform:translateY(-2px)}
+.persona-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:16px;background:rgba(201,169,106,0.12);border:1px solid rgba(201,169,106,0.16);color:var(--gold)}
+.persona h4{margin-top:14px;font-size:15px;font-weight:700;letter-spacing:-0.02em}
+.persona p{margin-top:8px;font-size:13px;line-height:1.6;color:var(--muted)}
+.persona a{margin-top:14px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:650;color:var(--gold2)}
+.persona a:hover{gap:8px}
+
+/* ── Compliance ────────────────────────────────────────── */
+.compliance{
+  display:grid;grid-template-columns:1.1fr 0.9fr;gap:14px;
+}
+.compliance-card{padding:24px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,0.03)}
+.compliance-card h4{font-size:15px;font-weight:700;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
+.compliance-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
+.comp-item{padding:14px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--line)}
+.comp-item b{font-size:12.5px;letter-spacing:-0.01em;display:flex;align-items:center;gap:7px}
+.comp-item p{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.55}
+.quote{
+  padding:24px;border-radius:18px;
+  background:
+    radial-gradient(500px 300px at 80% 0%, rgba(201,169,106,0.10), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  border:1px solid rgba(201,169,106,0.14);
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.quote blockquote{font-family:'Instrument Serif',serif;font-size:22px;line-height:1.25;letter-spacing:-0.02em}
+.quote blockquote i{color:var(--gold2);font-style:italic}
+.quote footer{margin-top:18px;display:flex;align-items:center;gap:12px}
+.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, #C9A96A, #8B6A2E);display:grid;place-items:center;font-weight:800;color:#fff;font-size:12px}
+.quote cite{font-style:normal}
+.quote cite b{font-size:13px;letter-spacing:-0.02em}
+.quote cite span{font-size:12px;color:var(--muted)}
+
+/* ── CTA ───────────────────────────────────────────────── */
+.cta{
+  margin:0 40px;max-width:var(--max);margin-left:auto;margin-right:auto;
+  border-radius:24px;overflow:hidden;position:relative;
+  background:
+    radial-gradient(700px 400px at 15% 0%, rgba(201,169,106,0.16), transparent 60%),
+    radial-gradient(600px 400px at 90% 100%, rgba(91,141,239,0.10), transparent 60%),
+    linear-gradient(180deg, #14151A, #0E0F12);
+  border:1px solid rgba(255,255,255,0.10);
+  box-shadow:0 20px 60px rgba(0,0,0,0.45);
+}
+.cta-inner{padding:44px;display:grid;grid-template-columns:1.05fr 0.95fr;gap:32px;align-items:center;position:relative;z-index:1}
+.cta h3{font-family:'Instrument Serif',serif;font-size:36px;line-height:0.95;letter-spacing:-0.03em;font-weight:400}
+.cta h3 i{font-style:italic;color:var(--gold2)}
+.cta p{margin-top:12px;font-size:14px;line-height:1.6;color:var(--muted);max-width:460px}
+.cta-bullets{margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.cta-bullets span{display:flex;align-items:center;gap:6px}
+.cta-bullets i{width:18px;height:18px;border-radius:50%;background:rgba(31,208,138,0.12);color:var(--green);display:grid;place-items:center;font-size:10px}
+.cta-form{
+  padding:18px;border-radius:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(12px);
+  box-shadow:0 12px 32px rgba(0,0,0,0.25);
+}
+.cta-form h4{font-size:14px;font-weight:700;letter-spacing:-0.02em}
+.cta-form p{font-size:12.5px;color:var(--muted);margin-top:6px}
+.field{margin-top:14px;display:grid;gap:8px}
+.field label{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted2)}
+.input{
+  width:100%;padding:12px 14px;border-radius:12px;
+  background:rgba(0,0,0,0.28);border:1px solid var(--line);color:var(--text);outline:none;
+  font-size:14px;transition:border-color .15s, box-shadow .15s;
+}
+.input::placeholder{color:var(--muted2)}
+.input:focus{border-color:rgba(201,169,106,0.36);box-shadow:0 0 0 4px rgba(201,169,106,0.12)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-full{width:100%;justify-content:center;margin-top:14px;padding:13px 18px}
+.fine{margin-top:10px;font-size:11px;color:var(--muted2);text-align:center}
+.fine a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+/* ── Footer ────────────────────────────────────────────── */
+.footer{max-width:var(--max);margin:0 auto;padding:36px 40px 28px;border-top:1px solid var(--line);margin-top:56px}
+.footer-top{display:grid;grid-template-columns:1.2fr 0.8fr 0.8fr 0.8fr;gap:24px}
+.footer-brand p{margin-top:12px;font-size:13px;line-height:1.6;color:var(--muted);max-width:360px}
+.footer-col h5{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted2);margin-bottom:14px}
+.footer-col a{display:block;padding:6px 0;font-size:13px;color:var(--muted);transition:color .15s}
+.footer-col a:hover{color:var(--text)}
+.footer-bottom{margin-top:28px;padding-top:18px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted2)}
+.footer-links{display:flex;gap:18px;flex-wrap:wrap}
+.footer-links a:hover{color:var(--muted)}
+
+/* ── Reveal ────────────────────────────────────────────── */
+.reveal{opacity:0;transform:translateY(14px);transition:all .6s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.08s}
+.reveal-d2{transition-delay:.16s}
+.reveal-d3{transition-delay:.24s}
+
+/* ── Mobile ────────────────────────────────────────────── */
+@media (max-width: 980px){
+  .hero{grid-template-columns:1fr;gap:28px;padding:40px 20px 0}
+  .nav{padding:0 20px}
+  .logos{padding:20px}
+  .section{padding:48px 20px}
+  .bento{grid-template-columns:1fr}
+  .span-4,.span-6,.span-8,.span-3,.span-12{grid-column:span 12}
+  .showcase{grid-template-columns:1fr}
+  .show-left{border-right:none;border-bottom:1px solid var(--line)}
+  .steps{grid-template-columns:1fr}
+  .personas{grid-template-columns:1fr}
+  .compliance{grid-template-columns:1fr}
+  .cta{margin:0 20px}
+  .cta-inner{grid-template-columns:1fr;padding:28px}
+  .footer-top{grid-template-columns:1fr 1fr}
+  .footer{padding:28px 20px}
+  .dash-grid{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr}
+  .floating{display:none}
+  .hero-bottom{padding:16px 20px 0}
+}
+@media (max-width: 700px){
+  .nav-links a:not(.nav-cta):not(.nav-ghost){display:none}
+  .hamburger{display:grid}
+  .topbar{font-size:11px;padding:0 10px}
+  .hero h1{font-size:38px}
+  .footer-top{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Top announcement -->
+<div class="topbar">
+  <span><b>New:</b> Stress testing across 1,000 Monte Carlo scenarios — with Pareto frontier visualization</span>
+  <a href="#demo">Explore demo →</a>
+</div>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="mark"><span>Q</span></div>
+      <span class="brand">Quantive <em>— Sovereign Intelligence</em></span>
+    </a>
+    <div class="nav-links">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#how">How it works</a>
+      <a href="#security">Security</a>
+      <a href="http://localhost:8000/login" class="nav-ghost">Sign in</a>
+      <a href="http://localhost:8000/register" class="nav-cta">Request demo <span>→</span></a>
+      <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero-wrap">
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <section class="hero">
+    <div>
+      <div class="eyebrow reveal">
+        <i></i> Sovereign debt intelligence <b>Live — Demo Portfolio</b>
+      </div>
+      <h1 class="reveal reveal-d1">
+        <span>Sovereign debt,</span>
+        <span><i>mastered</i> with</span>
+        <span class="line2">precision.</span>
+      </h1>
+      <p class="hero-sub reveal reveal-d2">
+        AI-powered decision support for national treasuries, central banks and public finance teams. Optimize issuance, hedge risk, and defend your rating — in one sovereign-grade platform.
+      </p>
+      <div class="hero-actions reveal reveal-d3">
+        <a href="http://localhost:8000/register" class="btn btn-primary">Request a demo — Treasury & Central Banks <span>→</span></a>
+        <a href="http://localhost:8000/dashboard" class="btn btn-ghost">View demo portfolio</a>
+      </div>
+      <div class="hero-trust reveal reveal-d3">
+        <div class="avatars">
+          <div style="background:#1A1C1F;color:#C9A96A">A</div>
+          <div style="background:#22242A;color:#9A9BA3">M</div>
+          <div style="background:#252830;color:#D6D6DB">J</div>
+          <div>+2k</div>
+        </div>
+        <div class="rating"><span class="stars">★★★★★</span> <b>4.9/5</b> from finance teams</div>
+        <div class="trust-badges">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> SOC 2 Ready</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 11V7a4 4 0 00-4 4v2H7a2 2 0 00-2 2v4a2 2 0 002 2h10a2 2 0 002-2v-4a2 2 0 00-2-2h-1V11a4 4 0 00-4-4z"/></svg> E2E Encrypted</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> Audit Trail</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dash reveal reveal-d2" id="demo">
+      <div class="dash-chrome">
+        <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <div class="chrome-title"><span></span> Quantive — Sovereign Demo Portfolio • Live</div>
+        <div class="chrome-actions"><span class="chip">USD • EUR • JPY</span><span class="chip">12 instruments</span></div>
+      </div>
+      <div class="dash-body">
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi-label">Portfolio Health <span class="kpi-trend" style="background:rgba(31,208,138,0.12);color:var(--green);border:1px solid rgba(31,208,138,0.18)">↗ +2.4%</span></div>
+            <div class="kpi-value">71 <small>C+</small></div>
+            <div class="kpi-sub">Stable • Stress resilience 95%</div>
+            <div class="kpi-foot"><i style="width:71%;background:var(--gold)"></i></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Total Debt <span class="kpi-trend" style="background:rgba(91,141,239,0.12);color:var(--blue);border:1px solid rgba(91,141,239,0.18)">6 currencies</span></div>
+            <div class="kpi-value">$557.4<small>B</small></div>
+            <div class="kpi-sub">Avg. maturity 7.2y • Duration 5.8y</div>
+            <div class="kpi-foot"><i style="width:84%;background:var(--blue)"></i></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Cost at Risk <span class="kpi-trend" style="background:rgba(239,68,68,0.10);color:var(--red);border:1px solid rgba(239,68,68,0.16)">VaR 95%</span></div>
+            <div class="kpi-value" style="color:var(--green)">$1.2<small>B</small></div>
+            <div class="kpi-sub">Saved vs. baseline — this quarter</div>
+            <div class="kpi-foot"><i style="width:62%;background:var(--green)"></i></div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Risk Profile — Live Stress</span><span class="panel-more">1,000 scenarios</span></div>
+            <div class="risk-row">
+              <div class="risk-icon" style="background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.18)">◈</div>
+              <div class="risk-meta">
+                <div class="risk-name"><i style="background:var(--red)"></i> Refinancing Risk <span style="margin-left:auto" class="risk-val" style="color:var(--red)">82%</span></div>
+                <div class="risk-bar"><em style="width:82%;background:var(--red)"></em></div>
+              </div>
+              <div class="risk-val" style="color:var(--red)">High</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-icon" style="background:rgba(249,115,22,0.12);color:var(--orange);border:1px solid rgba(249,115,22,0.18)">◎</div>
+              <div class="risk-meta">
+                <div class="risk-name"><i style="background:var(--orange)"></i> Currency Risk <span style="margin-left:auto" class="risk-val">98%</span></div>
+                <div class="risk-bar"><em style="width:98%;background:var(--orange)"></em></div>
+              </div>
+              <div class="risk-val" style="color:var(--orange)">Critical</div>
+            </div>
+            <div class="risk-row">
+              <div class="risk-icon" style="background:rgba(31,208,138,0.12);color:var(--green);border:1px solid rgba(31,208,138,0.18)">⬡</div>
+              <div class="risk-meta">
+                <div class="risk-name"><i style="background:var(--green)"></i> Interest Rate Risk <span style="margin-left:auto" class="risk-val" style="color:var(--green)">12%</span></div>
+                <div class="risk-bar"><em style="width:12%;background:var(--green)"></em></div>
+              </div>
+              <div class="risk-val" style="color:var(--green)">Low</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Maturity Distribution</span><span class="panel-more">2025 — 2038</span></div>
+            <div class="mini-chart" id="maturity">
+              <div class="mini-bar" style="height:38%;background:#EF4444"></div>
+              <div class="mini-bar" style="height:58%;background:#EF4444"></div>
+              <div class="mini-bar" style="height:72%;background:#EF4444"></div>
+              <div class="mini-bar" style="height:48%;background:#F59E0B"></div>
+              <div class="mini-bar" style="height:34%;background:#F59E0B"></div>
+              <div class="mini-bar" style="height:28%;background:#F59E0B"></div>
+              <div class="mini-bar" style="height:18%;background:#1FD08A"></div>
+              <div class="mini-bar" style="height:14%;background:#1FD08A"></div>
+              <div class="mini-bar" style="height:10%;background:#1FD08A"></div>
+              <div class="mini-bar" style="height:7%;background:#1FD08A"></div>
+            </div>
+            <div class="mini-labels"><span>2025</span><span>2029</span><span>2033</span><span>2038</span></div>
+            <div class="legend"><span><i style="background:var(--red)"></i> Short &lt;3y</span><span><i style="background:var(--orange)"></i> Mid 3-10y</span><span><i style="background:var(--green)"></i> Long 10y+</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="floating">
+        <div class="floating-icon">✓</div>
+        <div><b>Optimization complete</b><p>Pareto-optimal • 3 strategies ranked</p></div>
+      </div>
+    </div>
+  </section>
+  <div class="hero-bottom">
+    <div class="hero-bottom-left"><span class="live-dot"></span> Live market data • Updated 4 seconds ago • Risk engine running</div>
+    <div style="font-size:11px;color:var(--muted2);letter-spacing:0.04em;text-transform:uppercase;font-weight:600">Trusted by treasuries managing $2.1T+ in sovereign debt</div>
+  </div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- Logos -->
+<div class="logos reveal">
+  <div class="logos-label">Powering sovereign finance</div>
+  <div class="logos-track">
+    <div class="logo-item"><i>۞</i> Ministry of Finance <em>— Partner</em></div>
+    <div class="logo-item"><i>◈</i> Central Bank <em>Reserve Mgmt</em></div>
+    <div class="logo-item"><i>⬢</i> Public Debt Office <em>DMO</em></div>
+    <div class="logo-item"><i>⬣</i> Fiscal Council <em>Advisory</em></div>
+    <div class="logo-item"><i>◎</i> Sovereign Fund <em>Institutional</em></div>
+  </div>
+</div>
+
+<!-- Capabilities -->
+<section class="section" id="capabilities">
+  <div class="section-head reveal">
+    <div>
+      <div class="eyebrow2">Capabilities</div>
+      <h2 class="section-title">Everything sovereign<br><i>debt demands.</i></h2>
+    </div>
+    <p class="section-desc">From issuance planning to stress testing — a single, sovereign-grade operating system for public debt. Built with finance ministries, for finance ministries.</p>
+  </div>
+
+  <div class="bento">
+    <div class="bento-card span-4 reveal">
+      <div class="bento-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-8"/></svg></div>
+      <h3>Multi-Algorithm Optimization</h3>
+      <p>Solve debt restructuring, hedging and refinancing simultaneously. MILP, simulated annealing & quantum-inspired — benchmarked, explainable.</p>
+      <div class="bento-meta"><span class="pill">MILP • CBC</span><span class="pill">Pareto Optimal</span></div>
+    </div>
+    <div class="bento-card span-4 reveal reveal-d1">
+      <div class="bento-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="7"/></svg></div>
+      <h3>Real-Time Risk Analytics</h3>
+      <p>VaR, expected shortfall, refinancing cliffs and currency exposure — with live market feeds and IMF MTDS compatibility.</p>
+      <div class="bento-meta"><span class="pill">VaR 95/99</span><span class="pill">Live Curves</span></div>
+    </div>
+    <div class="bento-card span-4 reveal reveal-d2">
+      <div class="bento-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.38 8.38 0 01-1.9.5 4.48 4.48 0 001.95-2.47 8.94 8.94 0 01-2.83 1.08 4.48 4.48 0 00-7.64 4.08 12.7 12.7 0 01-9.22-4.68 4.48 4.48 0 001.38 5.98 4.4 4.4 0 01-2.03-.56v.06a4.48 4.48 0 003.59 4.39 4.5 4.5 0 01-2.02.08 4.48 4.48 0 004.18 3.11A8.98 8.98 0 013 19.13a12.66 12.66 0 006.85 2.01c8.22 0 12.72-6.81 12.72-12.72 0-.19 0-.39-.01-.58A9.1 9.1 0 0024 5.5a8.93 8.93 0 01-2.6.71z"/></svg></div>
+      <h3>AI Decision Copilot</h3>
+      <p>Natural language queries on your portfolio. “What if rates rise 200bp?” — answered with full traceability and audit-ready exports.</p>
+      <div class="feature-list">
+        <span><i>✓</i> Explainable recommendations</span>
+        <span><i>✓</i> Minister-brief export</span>
+      </div>
+    </div>
+
+    <div class="bento-card span-6 reveal">
+      <div class="bento-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3 7h7l-5.7 4.1L22 21l-10-6-10 6 3.7-7.9L0 9h7z"/></svg></div>
+      <h3>ESG & Rating Simulation</h3>
+      <p>Model S&P / Moody’s rating impacts and ESG scoring before you issue. See how maturity shifts affect your cost of funding.</p>
+      <div class="bento-meta"><span class="pill">S&P</span><span class="pill">Moody’s</span><span class="pill">ESG Score</span></div>
+    </div>
+    <div class="bento-card span-3 reveal reveal-d1">
+      <div class="bento-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h18M12 3v18"/><circle cx="12" cy="12" r="9"/></svg></div>
+      <h3>Pareto Frontier</h3>
+      <p>Visualize trade-offs between borrowing cost and portfolio risk. No black boxes.</p>
+    </div>
+    <div class="bento-card span-3 reveal reveal-d2" id="security">
+      <div class="bento-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <h3>SOC 2 Ready Security</h3>
+      <p>MFA, RBAC, immutable audit trails, encryption at rest. Built for government procurement.</p>
+    </div>
+  </div>
+
+  <!-- Showcase -->
+  <div class="showcase reveal">
+    <div class="show-left">
+      <div class="tabs">
+        <div class="tab active">Optimization</div>
+        <div class="tab">Stress Test</div>
+        <div class="tab">Pareto Frontier</div>
+      </div>
+      <div class="show-head">
+        <div>
+          <h4>Pareto-optimal strategies, ranked</h4>
+          <p>Four distinct allocations under identical constraints — pick your risk posture.</p>
+        </div>
+        <span style="padding:7px 12px;border-radius:100px;background:rgba(31,208,138,0.12);color:var(--green);font-size:12px;font-weight:700;border:1px solid rgba(31,208,138,0.18)">● Feasible • 3/3 solvers</span>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-top"><b>Cost vs. Risk — Efficient Frontier</b><span>Lower is better ↘</span></div>
+        <div class="chart">
+          <svg viewBox="0 0 400 140" preserveAspectRatio="none">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#C9A96A"/><stop offset="1" stop-color="#5B8DEF"/></linearGradient></defs>
+            <path d="M 30 120 Q 110 100 170 70 T 360 18" fill="none" stroke="url(#g)" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+            <circle cx="30" cy="120" r="5" fill="#EF4444" stroke="#fff" stroke-width="2"/><circle cx="110" cy="96" r="5" fill="#F59E0B" stroke="#fff" stroke-width="2"/><circle cx="170" cy="70" r="6" fill="#C9A96A" stroke="#fff" stroke-width="2.5"/><circle cx="360" cy="18" r="5" fill="#1FD08A" stroke="#fff" stroke-width="2"/>
+            <text x="18" y="138" font-size="8" fill="#6B6B74" font-weight="600">High Cost</text><text x="320" y="138" font-size="8" fill="#6B6B74" font-weight="600">Low Cost →</text>
+          </svg>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <span class="pill" style="background:rgba(201,169,106,0.12);color:var(--gold2);border-color:rgba(201,169,106,0.18)">● Best Overall — Cost $412M</span>
+          <span class="pill">Lowest Risk — VaR $18M</span>
+          <span class="pill">Robust — Max loss $29M</span>
+        </div>
+      </div>
+    </div>
+    <div class="show-right">
+      <div class="mini-kpi"><div><b>Worst-case cost</b><p>Across 1,000 Monte Carlo paths</p></div><strong>$29M</strong></div>
+      <div class="mini-kpi"><div><b>Constraint satisfaction</b><p>Fiscal rules & liquidity floors</p></div><strong style="color:var(--green)">100%</strong></div>
+      <div class="panel" style="padding:16px">
+        <div class="panel-title">Allocation by Instrument</div>
+        <div class="alloc" style="margin-top:12px">
+          <div class="alloc-row"><span class="alloc-dot" style="background:var(--gold)"></span><span style="font-size:12px;flex:1">Domestic Bills — 3Y</span><div class="alloc-bar"><i style="width:42%;background:var(--gold)"></i></div><span class="alloc-val">42%</span></div>
+          <div class="alloc-row"><span class="alloc-dot" style="background:var(--blue)"></span><span style="font-size:12px;flex:1">Eurobond — 10Y</span><div class="alloc-bar"><i style="width:28%;background:var(--blue)"></i></div><span class="alloc-val">28%</span></div>
+          <div class="alloc-row"><span class="alloc-dot" style="background:var(--green)"></span><span style="font-size:12px;flex:1">Green Bond — 7Y</span><div class="alloc-bar"><i style="width:18%;background:var(--green)"></i></div><span class="alloc-val">18%</span></div>
+          <div class="alloc-row"><span class="alloc-dot" style="background:var(--orange)"></span><span style="font-size:12px;flex:1">JPY Loan — 5Y</span><div class="alloc-bar"><i style="width:12%;background:var(--orange)"></i></div><span class="alloc-val">12%</span></div>
+        </div>
+      </div>
+      <a href="http://localhost:8000/dashboard" class="btn btn-primary btn-full" style="margin-top:2px">Open interactive demo →</a>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="section" id="how" style="padding-top:0">
+  <div class="section-head reveal">
+    <div>
+      <div class="eyebrow2">How it works</div>
+      <h2 class="section-title">From data to <i>decision</i><br>in three steps.</h2>
+    </div>
+    <p class="section-desc">Import once. Model everything. IMF MTDS compatible — migrate in an afternoon, not a fiscal year.</p>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">01</div>
+      <h4>Connect your portfolio</h4>
+      <p>Import debt instruments, market data and fiscal constraints. CSV, API or MTDS.</p>
+      <ul><li>12 instruments • 6 currencies in demo</li><li>Capacity & liquidity constraints</li></ul>
+    </div>
+    <div class="step reveal reveal-d1">
+      <div class="step-num">02</div>
+      <h4>Run scenarios</h4>
+      <p>Stress test across rate shocks, FX crises and refinancing cliffs. Pareto-optimal solutions ranked.</p>
+      <ul><li>1,000 Monte Carlo paths</li><li>Cost vs. risk frontier</li></ul>
+    </div>
+    <div class="step reveal reveal-d2">
+      <div class="step-num">03</div>
+      <h4>Make decisions</h4>
+      <p>Review with full explainability. Export to minister briefs and immutable audit trails.</p>
+      <ul><li>Explainable AI • No black box</li><li>One-click brief export</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- Built for -->
+<section class="section" style="padding-top:0">
+  <div class="section-head reveal">
+    <div>
+      <div class="eyebrow2">Built for</div>
+      <h2 class="section-title">Sovereign <i>by design.</i></h2>
+    </div>
+  </div>
+  <div class="personas">
+    <div class="persona reveal">
+      <div class="persona-icon">🏛</div>
+      <h4>National Treasuries</h4>
+      <p>Sovereign debt portfolio optimization with multi-currency support and fiscal rule compliance. Issuance planning that respects your mandate.</p>
+      <a href="#capabilities">Explore for treasuries →</a>
+    </div>
+    <div class="persona reveal reveal-d1">
+      <div class="persona-icon">◎</div>
+      <h4>Central Banks</h4>
+      <p>Reserve management, yield curve analysis and monetary policy impact simulation. From reserves to refinancing — one view.</p>
+      <a href="#capabilities">Explore for central banks →</a>
+    </div>
+    <div class="persona reveal reveal-d2">
+      <div class="persona-icon">⬢</div>
+      <h4>Public Finance Teams</h4>
+      <p>Debt sustainability analysis and credit rating scenario modeling. Defend your rating with data, not assumptions.</p>
+      <a href="#capabilities">Explore for DMOs →</a>
+    </div>
+  </div>
+</section>
+
+<!-- Compliance + Quote -->
+<section class="section" style="padding-top:0">
+  <div class="compliance">
+    <div class="compliance-card reveal">
+      <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.7"><path d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Enterprise-grade compliance</h4>
+      <p style="margin-top:8px;font-size:13px;color:var(--muted)">Procurement-ready from day one. No surprises in the audit.</p>
+      <div class="compliance-grid">
+        <div class="comp-item"><b>◈ RBAC & MFA</b><p>Role-based access, SSO, hardware-key MFA for privileged actions.</p></div>
+        <div class="comp-item"><b>◎ Encryption</b><p>AES-256 at rest, TLS 1.3 in transit, HSM-backed key management.</p></div>
+        <div class="comp-item"><b>⬣ Audit Trail</b><p>Immutable, append-only logs. Every decision traceable to source.</p></div>
+        <div class="comp-item"><b>⬢ Data Residency</b><p>On-prem or sovereign cloud. Your data never leaves your jurisdiction.</p></div>
+      </div>
+    </div>
+    <div class="quote reveal reveal-d1">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);margin-bottom:14px">What finance teams say</div>
+        <blockquote>“Quantive turned a 3-week<br>issuance review into <i>an afternoon.</i><br>We saw the rating impact<br>before we issued.”</blockquote>
+      </div>
+      <footer>
+        <div class="avatar">DR</div>
+        <cite><b>Director, Debt Management Office</b><br><span>European Sovereign — $84B portfolio</span></cite>
+      </footer>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section style="padding:0 0 0">
+  <div class="cta reveal">
+    <div class="glow" style="width:600px;height:300px;right:-80px;top:-40px;background:radial-gradient(ellipse at center, rgba(201,169,106,0.14), transparent 70%);filter:blur(40px)"></div>
+    <div class="cta-inner">
+      <div>
+        <h3>Ready to modernize<br><i>sovereign debt</i> management?</h3>
+        <p>Schedule a confidential consultation with our public finance team. See Quantive on your portfolio — not a slide deck.</p>
+        <div class="cta-bullets">
+          <span><i>✓</i> 45-min deep dive</span>
+          <span><i>✓</i> Your data, your scenarios</span>
+          <span><i>✓</i> No commitment</span>
+        </div>
+      </div>
+      <form class="cta-form" onsubmit="event.preventDefault(); const e=this.email.value.trim(); if(e) window.location.href='http://localhost:8000/register?email='+encodeURIComponent(e)">
+        <h4>Schedule your consultation</h4>
+        <p>We’ll respond within one business day. Sovereign email preferred.</p>
+        <div class="row2">
+          <div class="field"><label>Work email</label><input class="input" type="email" name="email" placeholder="you@treasury.gov" required></div>
+          <div class="field"><label>Institution</label><input class="input" type="text" placeholder="Ministry of Finance"></div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Request consultation →</button>
+        <div class="fine">By submitting you agree to our <a href="#">Privacy</a> & <a href="#">Terms</a>. No spam — ever.</div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <div class="logo"><div class="mark"><span>Q</span></div><span class="brand">Quantive</span></div>
+      <p>Government debt optimization infrastructure. AI-powered decision support for sovereign portfolios at global scale.</p>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <span class="pill" style="background:rgba(31,208,138,0.10);color:var(--green);border-color:rgba(31,208,138,0.18)">● All systems operational</span>
+        <span class="pill">&lt; 15ms API p95</span>
+      </div>
+    </div>
+    <div class="footer-col"><h5>Product</h5><a href="#capabilities">Capabilities</a><a href="#how">How it works</a><a href="#">Changelog</a><a href="http://localhost:8000/docs">API Docs</a></div>
+    <div class="footer-col"><h5>Institution</h5><a href="#">Security</a><a href="#">Compliance</a><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div>
+    <div class="footer-col"><h5>Access</h5><a href="http://localhost:8000/login">Sign in</a><a href="http://localhost:8000/register">Request demo</a><a href="http://localhost:8000/dashboard">Demo portfolio</a><a href="#">Status</a></div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Quantive. All rights reserved. Built for sovereign finance.</span>
+    <div class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a><a href="#">Contact — hello@quantive.gov</a></div>
+  </div>
+</footer>
+
+<script>
+// reveal on scroll
+const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in') }),{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// tabs
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+}));
+
+// subtle parallax for glow
+let ticking=false;
+window.addEventListener('scroll',()=>{
+  if(ticking) return;
+  ticking=true;
+  requestAnimationFrame(()=>{
+    const y=window.scrollY;
+    document.querySelectorAll('.glow').forEach((g,i)=>{
+      g.style.transform=`translateY(${y*0.04*(i%2? -1:1)}px)`;
+    });
+    ticking=false;
+  });
+},{passive:true});
+</script>
+</body>
+</html>
