@@ -118,6 +118,13 @@ class NamedScenarioIds:
     FX_SHOCK = "fx_shock"
     LIQUIDITY_SHOCK = "liquidity_shock"
     ALL = (BASE, HIGH_INTEREST, LOW_INTEREST, HIGH_INFLATION, FX_SHOCK, LIQUIDITY_SHOCK)
+    # Policy what-if scenarios
+    TAX_CUT_2PCT = "tax-cut-2pct"
+    TAX_CUT_5PCT = "tax-cut-5pct"
+    SPENDING_CUT_5PCT = "spending-cut-5pct"
+    SPENDING_CUT_10PCT = "spending-cut-10pct"
+    REGULATORY_RELIEF = "regulatory-relief"
+    SUBSIDY_INCREASE_10PCT = "subsidy-increase-10pct"
 
 
 class OptimizationProblem(BaseModel):
@@ -134,6 +141,9 @@ class OptimizationProblem(BaseModel):
     solver_config: SolverConfiguration = Field(default_factory=SolverConfiguration)
     reference_currency: Currency = Currency.USD
     profile: StrategyProfile = Field(StrategyProfile.BEST_OVERALL, description="Objective profile this problem targets")
+    # policy what-if (optional; default no policy adjustment)
+    policy_type: str = Field("", description="Policy scenario id for what-if analysis")
+    policy_intensity: float = Field(1.0, ge=0, le=5, description="Policy intensity multiplier")
     created_at: datetime = Field(default_factory=_utcnow)
     provenance: Dict = Field(
         default_factory=lambda: {
