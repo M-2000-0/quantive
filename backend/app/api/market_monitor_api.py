@@ -93,14 +93,20 @@ def run_ingestion(
     """Run data ingestion pipeline to fetch latest market data."""
     from app.services.market_monitor_ingest import (
         fetch_yahoo_quote, fetch_coingecko_top, fetch_ecb_fx,
-        fetch_treasury_yields, DEFAULT_STOCKS, DEFAULT_CRYPTO,
+        fetch_treasury_yields,
     )
+    from app.services.global_market_universe import get_global_stock_universe, get_crypto_universe
 
     results = {"stocks": 0, "crypto": 0, "fx": 0, "yields": 0, "errors": []}
 
-    # Fetch stocks
+    # Fetch stocks from all exchanges
+    universe = get_global_stock_universe()
+    all_symbols = []
+    for exchange, symbols in universe.items():
+        all_symbols.extend(symbols[:15])  # 15 per exchange
+
     if not asset_class or asset_class == "stock":
-        for symbol in DEFAULT_STOCKS[:30]:
+        for symbol in all_symbols[:200]:  # Cap at 200 for rate limits
             try:
                 quote = fetch_yahoo_quote(symbol)
                 if quote and quote.get("price", 0) > 0:
@@ -123,10 +129,14 @@ def run_ingestion(
             except Exception as e:
                 results["errors"].append(f"{symbol}: {str(e)[:50]}")
 
-    # Fetch crypto
+    # Fetch crypto from all categories
     if not asset_class or asset_class == "crypto":
         try:
-            coins = fetch_coingecko_top(15)
+            crypto_universe = get_crypto_universe()
+            all_crypto_ids = []
+            for cat, ids in crypto_universe.items():
+                all_crypto_ids.extend(ids)
+            coins = fetch_coingecko_top(30)  # Get top 30
             for coin in coins:
                 sym = coin["symbol"]
                 _asset_store[f"CRYPTO:{sym}"] = {

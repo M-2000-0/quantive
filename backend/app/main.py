@@ -1184,6 +1184,15 @@ async def market_monitor_page(request: Request):
     })
 
 
+@app.get("/bubble-detector", response_class=HTMLResponse)
+async def bubble_detector_page(request: Request):
+    return templates.TemplateResponse("pages/bubble-detector.html", {
+        "request": request,
+        "active_page": "bubble-detector",
+        **page_ctx(),
+    })
+
+
 @app.get("/trading", response_class=HTMLResponse)
 async def trading_redirect(request: Request):
     return RedirectResponse("/trading-hub", status_code=303)

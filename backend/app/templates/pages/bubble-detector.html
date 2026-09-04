@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% block title %}Bubble & Cap Detector — Quantive{% endblock %}
+{% block content %}
+<style>
+  .bd-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .bd-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .bd-header h1 { font-size: 1.5rem; font-weight: 600; color: #e2e8f0; margin: 0; }
+  .bd-actions { display: flex; gap: 12px; }
+  .bd-btn {
+    padding: 10px 20px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05); color: #e2e8f0; border-radius: 8px;
+    cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+  }
+  .bd-btn:hover { background: rgba(255,255,255,0.1); }
+  .bd-btn.primary { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.3); color: #818cf8; }
+  .bd-btn.primary:hover { background: rgba(99,102,241,0.3); }
+  .bd-btn.danger { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.3); color: #f87171; }
+
+  .bd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .bd-stat {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 20px;
+  }
+  .bd-stat .label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .bd-stat .value { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; }
+  .bd-stat .sub { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+
+  .bd-section {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .bd-section h2 { font-size: 1rem; font-weight: 600; color: #e2e8f0; margin: 0 0 16px 0; }
+
+  .bd-table { width: 100%; border-collapse: collapse; }
+  .bd-table th {
+    text-align: left; padding: 10px 12px; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .bd-table td {
+    padding: 10px 12px; font-size: 0.85rem; color: #cbd5e1;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .bd-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .bd-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  }
+  .bd-badge.extreme { background: rgba(239,68,68,0.15); color: #f87171; }
+  .bd-badge.high { background: rgba(249,115,22,0.15); color: #fb923c; }
+  .bd-badge.moderate { background: rgba(234,179,8,0.15); color: #facc15; }
+  .bd-badge.low { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+  .bd-score-bar {
+    width: 100%; height: 6px; background: rgba(255,255,255,0.06);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bd-score-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+  .bd-pattern {
+    display: inline-block; padding: 2px 8px; margin: 2px;
+    background: rgba(255,255,255,0.05); border-radius: 4px;
+    font-size: 0.7rem; color: #94a3b8;
+  }
+
+  .bd-indicator {
+    padding: 10px 14px; margin-bottom: 8px;
+    background: rgba(255,255,255,0.02); border-radius: 8px;
+    border-left: 3px solid #ef4444;
+  }
+  .bd-indicator .name { font-size: 0.8rem; font-weight: 600; color: #e2e8f0; }
+  .bd-indicator .val { font-size: 0.8rem; color: #f87171; }
+  .bd-indicator .detail { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+
+  .bd-exchange-filter {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .bd-exchange-btn {
+    padding: 6px 14px; border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03); color: #94a3b8; border-radius: 20px;
+    cursor: pointer; font-size: 0.75rem; transition: all 0.2s;
+  }
+  .bd-exchange-btn.active { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.3); color: #818cf8; }
+  .bd-exchange-btn:hover { background: rgba(255,255,255,0.08); }
+
+  .bd-scan-form {
+    display: flex; gap: 12px; margin-bottom: 20px; align-items: center;
+  }
+  .bd-scan-form input {
+    flex: 1; padding: 10px 14px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+    color: #e2e8f0; font-size: 0.85rem;
+  }
+  .bd-scan-form select {
+    padding: 10px 14px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+    color: #e2e8f0; font-size: 0.85rem;
+  }
+
+  .bd-loading {
+    display: none; text-align: center; padding: 40px;
+    color: #64748b; font-size: 0.9rem;
+  }
+  .bd-loading.active { display: block; }
+
+  .bd-empty {
+    text-align: center; padding: 60px 20px; color: #475569;
+  }
+  .bd-empty h3 { font-size: 1.1rem; color: #64748b; margin: 0 0 8px 0; }
+  .bd-empty p { font-size: 0.85rem; }
+
+  .bd-disclaimer {
+    padding: 12px 16px; background: rgba(234,179,8,0.08);
+    border: 1px solid rgba(234,179,8,0.15); border-radius: 8px;
+    font-size: 0.75rem; color: #94a3b8; margin-bottom: 20px;
+  }
+  .bd-disclaimer strong { color: #facc15; }
+
+  @media (max-width: 768px) {
+    .bd-grid { grid-template-columns: repeat(2, 1fr); }
+    .bd-header { flex-direction: column; gap: 12px; }
+  }
+</style>
+
+<div class="bd-container">
+  <div class="bd-header">
+    <h1>Bubble & Cap Detector</h1>
+    <div class="bd-actions">
+      <button class="bd-btn primary" onclick="scanAll()">Scan All Assets</button>
+      <button class="bd-btn" onclick="ingestGlobal()">Ingest Global Data</button>
+    </div>
+  </div>
+
+  <div class="bd-disclaimer">
+    <strong>Disclaimer:</strong> This tool identifies potential bubble patterns and overvaluation risk indicators. 
+    It does not constitute financial advice. Always conduct your own research before making investment decisions.
+    AUTOMATED ANALYTICAL OUTPUT: FOR DECISION-SUPPORT PURPOSES ONLY.
+  </div>
+
+  <!-- Single Asset Scan -->
+  <div class="bd-section">
+    <h2>Quick Scan</h2>
+    <div class="bd-scan-form">
+      <input type="text" id="scanSymbol" placeholder="Enter symbol (e.g., GME, BTC, BBCA)">
+      <select id="scanAssetClass">
+        <option value="stock">Stock</option>
+        <option value="crypto">Crypto</option>
+        <option value="bond">Bond</option>
+        <option value="commodity">Commodity</option>
+      </select>
+      <button class="bd-btn primary" onclick="scanSingle()">Scan</button>
+    </div>
+    <div id="singleResult"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="bd-grid">
+    <div class="bd-stat">
+      <div class="label">Total Scanned</div>
+      <div class="value" id="totalScanned">0</div>
+      <div class="sub" id="totalExchanges">Loading...</div>
+    </div>
+    <div class="bd-stat">
+      <div class="label">Extreme Risk</div>
+      <div class="value" style="color: #f87171" id="extremeCount">0</div>
+      <div class="sub">Score >= 75</div>
+    </div>
+    <div class="bd-stat">
+      <div class="label">High Risk</div>
+      <div class="value" style="color: #fb923c" id="highCount">0</div>
+      <div class="sub">Score 50-74</div>
+    </div>
+    <div class="bd-stat">
+      <div class="label">Avg Risk Score</div>
+      <div class="value" id="avgScore">0</div>
+      <div class="sub" id="highestRisk">Highest: 0</div>
+    </div>
+  </div>
+
+  <!-- Exchange Filter -->
+  <div class="bd-exchange-filter" id="exchangeFilter"></div>
+
+  <!-- Top Risks -->
+  <div class="bd-section">
+    <h2>Highest Risk Assets</h2>
+    <div id="topRisks" class="bd-loading">
+      <p>Click "Scan All Assets" to analyze the global market universe</p>
+    </div>
+  </div>
+
+  <!-- Full Results Table -->
+  <div class="bd-section">
+    <h2>All Scan Results</h2>
+    <div id="fullResults" class="bd-loading">
+      <p>Results will appear after scanning</p>
+    </div>
+  </div>
+
+  <!-- Pattern Analysis -->
+  <div class="bd-section">
+    <h2>Detected Patterns</h2>
+    <div id="patternAnalysis">
+      <p style="color: #475569; font-size: 0.85rem;">Patterns will be analyzed after scanning</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let scanData = null;
+
+async function ingestGlobal() {
+  const btn = event.target;
+  btn.textContent = 'Ingesting...';
+  btn.disabled = true;
+  
+  try {
+    const res = await fetch('/api/v1/market-monitor/ingest', { method: 'POST', credentials: 'include' });
+    const data = await res.json();
+    alert(`Ingested ${data.total_assets} assets: ${data.results.stocks} stocks, ${data.results.crypto} crypto`);
+    btn.textContent = 'Ingest Global Data';
+    btn.disabled = false;
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.textContent = 'Ingest Global Data';
+    btn.disabled = false;
+  }
+}
+
+async function scanAll() {
+  document.getElementById('topRisks').innerHTML = '<p style="color:#64748b">Scanning assets...</p>';
+  document.getElementById('fullResults').innerHTML = '<p style="color:#64748b">Analyzing bubble patterns...</p>';
+  
+  try {
+    const res = await fetch('/api/v1/bubble-detector/scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: JSON.stringify({})
+    });
+    scanData = await res.json();
+    renderResults();
+  } catch (e) {
+    document.getElementById('topRisks').innerHTML = '<p style="color:#f87171">Error scanning: ' + e.message + '</p>';
+  }
+}
+
+async function scanSingle() {
+  const symbol = document.getElementById('scanSymbol').value.trim();
+  const assetClass = document.getElementById('scanAssetClass').value;
+  if (!symbol) return alert('Enter a symbol');
+  
+  document.getElementById('singleResult').innerHTML = '<p style="color:#64748b">Scanning...</p>';
+  
+  try {
+    // First try to find the asset in our store
+    const assetRes = await fetch('/api/v1/market-monitor/assets?limit=500', {credentials: 'include'});
+    const assetData = await assetRes.json();
+    
+    let asset = assetData.assets.find(a => a.symbol === symbol || a.symbol === symbol.toUpperCase());
+    
+    const body = {
+      symbol: symbol,
+      asset_class: assetClass,
+      current_price: asset ? asset.current_price : 100,
+      previous_close: asset ? asset.previous_close : 95,
+      volume_24h: asset ? asset.volume_24h : 1000000,
+      market_cap: asset ? asset.market_cap : 1000000000,
+      high_52w: asset ? asset.high_52w : 120,
+      low_52w: asset ? asset.low_52w : 50,
+      ath: asset ? (asset.ath || asset.high_52w) : 150,
+      day_change_pct: asset ? asset.day_change_pct : 5,
+    };
+    
+    const res = await fetch('/api/v1/bubble-detector/single', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    renderSingleResult(result);
+  } catch (e) {
+    document.getElementById('singleResult').innerHTML = '<p style="color:#f87171">Error: ' + e.message + '</p>';
+  }
+}
+
+function renderSingleResult(r) {
+  const html = `
+    <div style="margin-top:16px; padding:16px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">
+        <div style="font-size:1.2rem; font-weight:700; color:#e2e8f0;">${r.symbol}</div>
+        <span class="bd-badge ${r.risk_level.toLowerCase()}">${r.risk_level}</span>
+        <span style="font-size:0.85rem; color:${r.color}; font-weight:600;">Score: ${r.bubble_score}/100</span>
+        <span style="font-size:0.8rem; color:#64748b;">${r.recommendation}</span>
+      </div>
+      <div class="bd-score-bar" style="margin-bottom:12px;">
+        <div class="bd-score-fill" style="width:${r.bubble_score}%; background:${r.color};"></div>
+      </div>
+      <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:12px;">${r.explanation}</div>
+      ${r.patterns_detected.length > 0 ? '<div style="margin-bottom:12px;">' + r.patterns_detected.map(p => '<span class="bd-pattern">' + p.replace(/_/g, ' ') + '</span>').join('') + '</div>' : ''}
+      <div>${r.indicators.map(i => `
+        <div class="bd-indicator" style="border-left-color:${r.color};">
+          <div style="display:flex; justify-content:space-between;">
+            <span class="name">${i.name}</span>
+            <span class="val">${i.value}</span>
+          </div>
+          <div class="detail">${i.detail}</div>
+        </div>
+      `).join('')}</div>
+    </div>
+  `;
+  document.getElementById('singleResult').innerHTML = html;
+}
+
+function renderResults() {
+  if (!scanData || !scanData.scan_results) {
+    document.getElementById('topRisks').innerHTML = '<p style="color:#f87171">No results. Try ingesting data first.</p>';
+    return;
+  }
+
+  // Update stats
+  document.getElementById('totalScanned').textContent = scanData.total_scanned || 0;
+  document.getElementById('extremeCount').textContent = scanData.extreme_count || 0;
+  document.getElementById('highCount').textContent = scanData.high_count || 0;
+  document.getElementById('avgScore').textContent = scanData.overall_risk_score || 0;
+  document.getElementById('highestRisk').textContent = 'Highest: ' + (scanData.highest_risk_score || 0);
+  document.getElementById('totalExchanges').textContent = 'Global exchanges scanned';
+
+  // Top risks
+  const topRisks = scanData.top_risks || [];
+  if (topRisks.length > 0) {
+    document.getElementById('topRisks').innerHTML = topRisks.map(r => `
+      <div style="padding:12px; margin-bottom:8px; background:rgba(255,255,255,0.02); border-radius:8px; border-left:3px solid ${r.color};">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-weight:700; color:#e2e8f0; min-width:80px;">${r.symbol}</span>
+          <span class="bd-badge ${r.risk_level.toLowerCase()}">${r.risk_level}</span>
+          <div class="bd-score-bar" style="flex:1;">
+            <div class="bd-score-fill" style="width:${r.bubble_score}%; background:${r.color};"></div>
+          </div>
+          <span style="font-weight:600; color:${r.color}; min-width:40px;">${r.bubble_score}</span>
+          <span style="font-size:0.75rem; color:#64748b;">${r.recommendation}</span>
+        </div>
+        <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">${r.explanation}</div>
+        ${r.patterns_detected.length > 0 ? '<div style="margin-top:6px;">' + r.patterns_detected.map(p => '<span class="bd-pattern">' + p.replace(/_/g, ' ') + '</span>').join('') + '</div>' : ''}
+      </div>
+    `).join('');
+  }
+
+  // Full results table
+  const results = scanData.scan_results || [];
+  if (results.length > 0) {
+    document.getElementById('fullResults').innerHTML = `
+      <table class="bd-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Class</th>
+            <th>Score</th>
+            <th>Risk Level</th>
+            <th>Indicators</th>
+            <th>Patterns</th>
+            <th>Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${results.map(r => `
+            <tr>
+              <td style="font-weight:600;">${r.symbol}</td>
+              <td>${r.asset_class}</td>
+              <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="bd-score-bar" style="width:80px;">
+                    <div class="bd-score-fill" style="width:${r.bubble_score}%; background:${r.color};"></div>
+                  </div>
+                  <span style="color:${r.color}; font-weight:600;">${r.bubble_score}</span>
+                </div>
+              </td>
+              <td><span class="bd-badge ${r.risk_level.toLowerCase()}">${r.risk_level}</span></td>
+              <td>${r.indicator_count}</td>
+              <td>${r.patterns_detected.map(p => '<span class="bd-pattern">' + p.replace(/_/g, ' ') + '</span>').join(' ')}</td>
+              <td style="font-size:0.8rem;">${r.recommendation}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // Pattern analysis
+  const patterns = scanData.pattern_frequency || {};
+  if (Object.keys(patterns).length > 0) {
+    document.getElementById('patternAnalysis').innerHTML = Object.entries(patterns).map(([pattern, count]) => `
+      <div style="display:flex; align-items:center; gap:12px; padding:8px 12px; margin-bottom:4px; background:rgba(255,255,255,0.02); border-radius:6px;">
+        <span style="font-weight:600; color:#e2e8f0; min-width:200px;">${pattern.replace(/_/g, ' ')}</span>
+        <span style="color:#94a3b8;">${count} assets affected</span>
+        <div class="bd-score-bar" style="flex:1;">
+          <div class="bd-score-fill" style="width:${Math.min(100, (count / (scanData.total_scanned || 1)) * 100 * 3)}%; background:#ef4444;"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// Load exchange stats on page load
+fetch('/api/v1/global-market/stats', {credentials: 'include'})
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('totalExchanges').textContent = 
+      `${data.total_assets || 0} assets across ${data.exchanges?.length || 0} exchanges`;
+  })
+  .catch(() => {});
+</script>
+{% endblock %}
