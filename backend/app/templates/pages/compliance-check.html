@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Compliance Check — Quantive{% endblock %}
+{% block content %}
+<style>
+  .cc-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .cc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .cc-header h1 { font-size: 1.5rem; font-weight: 600; color: #e2e8f0; margin: 0; }
+  .cc-card { background: #1a1f2e; border: 1px solid #2d3548; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .cc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .cc-metric { background: #111827; border: 1px solid #2d3548; border-radius: 8px; padding: 16px; text-align: center; }
+  .cc-metric .value { font-size: 1.5rem; font-weight: 700; color: #60a5fa; }
+  .cc-metric .label { font-size: 0.7rem; color: #9ca3af; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .cc-btn { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+  .cc-btn:hover { background: #1d4ed8; }
+  .cc-table { width: 100%; border-collapse: collapse; }
+  .cc-table th { text-align: left; padding: 10px 12px; color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid #2d3548; }
+  .cc-table td { padding: 10px 12px; color: #e2e8f0; border-bottom: 1px solid #1f2937; font-size: 0.875rem; }
+  .cc-table tr:hover td { background: #1f2937; }
+  .cc-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .cc-badge.pass { background: #064e3b; color: #34d399; }
+  .cc-badge.fail { background: #7f1d1d; color: #fca5a5; }
+  .cc-section-title { font-size: 1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2d3548; }
+  .cc-score-ring { width: 120px; height: 120px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .cc-score-inner { text-align: center; }
+  .cc-score-inner .pct { font-size: 2rem; font-weight: 700; }
+  .cc-score-inner .lbl { font-size: 0.7rem; color: #9ca3af; }
+  .cc-rule-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cc-rule-edit label { color: #9ca3af; font-size: 0.75rem; display: block; margin-bottom: 2px; }
+  .cc-rule-edit input { background: #111827; color: #e2e8f0; border: 1px solid #374151; border-radius: 6px; padding: 6px 10px; width: 100%; box-sizing: border-box; font-size: 0.85rem; }
+</style>
+
+<div class="cc-container">
+  <div class="cc-header">
+    <div>
+      <h1>Regulatory Compliance Check</h1>
+      <p style="color: #6b7280; font-size: 0.875rem; margin-top: 4px;">Validate portfolios against fiscal rules and regulatory constraints</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="cc-btn" style="background: #374151;" onclick="loadRules()">View Rules</button>
+      <button class="cc-btn" onclick="runCheck()">Run Compliance Check</button>
+    </div>
+  </div>
+
+  <div id="scoreSection" style="display: none;">
+    <div class="cc-grid" style="grid-template-columns: 1fr 2fr 1fr;">
+      <div class="cc-card" style="text-align: center;">
+        <div class="cc-section-title">Compliance Score</div>
+        <div id="scoreRing" class="cc-score-ring" style="border: 6px solid #2563eb;">
+          <div class="cc-score-inner">
+            <div class="pct" id="scorePct" style="color: #60a5fa;">—</div>
+            <div class="lbl">out of 100</div>
+          </div>
+        </div>
+        <div id="scoreStatus" style="font-weight: 600; margin-top: 8px;"></div>
+      </div>
+
+      <div class="cc-card">
+        <div class="cc-section-title">Summary</div>
+        <div class="cc-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="cc-metric"><div class="value" style="color: #34d399;" id="totalPass">—</div><div class="label">Passed</div></div>
+          <div class="cc-metric"><div class="value" style="color: #f87171;" id="totalFail">—</div><div class="label">Failed</div></div>
+          <div class="cc-metric"><div class="value" style="color: #fbbf24;" id="totalCritical">—</div><div class="label">Critical</div></div>
+        </div>
+      </div>
+
+      <div class="cc-card">
+        <div class="cc-section-title">Info</div>
+        <div style="color: #9ca3af; font-size: 0.85rem;">
+          <div style="margin-bottom: 8px;"><strong>Instrument Count:</strong> <span id="instCount" style="color: #e2e8f0;">—</span></div>
+          <div style="margin-bottom: 8px;"><strong>Checked At:</strong> <span id="checkedAt" style="color: #e2e8f0;">—</span></div>
+          <div><strong>Total Checks:</strong> <span id="totalChecks" style="color: #e2e8f0;">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cc-card" id="checksSection" style="display: none;">
+    <div class="cc-section-title">Detailed Check Results</div>
+    <table class="cc-table">
+      <thead>
+        <tr><th>Rule</th><th>Limit</th><th>Actual</th><th>Status</th><th>Severity</th><th>Recommendation</th></tr>
+      </thead>
+      <tbody id="checksBody"></tbody>
+    </table>
+  </div>
+
+  <div class="cc-card" id="rulesSection" style="display: none;">
+    <div class="cc-section-title">Fiscal Rules Configuration</div>
+    <div class="cc-rule-edit" id="rulesForm"></div>
+    <div style="margin-top: 12px;">
+      <button class="cc-btn" onclick="runCheck()">Apply & Re-check</button>
+    </div>
+  </div>
+
+  <div class="cc-card" style="text-align: center; padding: 60px;" id="emptyState">
+    <div style="color: #6b7280; font-size: 0.875rem;">Click "Run Compliance Check" to validate your portfolio against fiscal rules.</div>
+  </div>
+
+  <div class="cc-card" style="display: none; text-align: center; padding: 40px;" id="loadingState">
+    <div style="color: #6b7280;">Running compliance checks...</div>
+  </div>
+</div>
+
+<script>
+async function runCheck() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('scoreSection').style.display = 'none';
+  document.getElementById('checksSection').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/compliance-check/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    document.getElementById('loadingState').style.display = 'none';
+
+    if (!data.checks || data.checks.length === 0) {
+      document.getElementById('emptyState').style.display = 'block';
+      document.getElementById('emptyState').querySelector('div').textContent = data.message || 'No instruments found to check';
+      return;
+    }
+
+    document.getElementById('scoreSection').style.display = 'block';
+    document.getElementById('checksSection').style.display = 'block';
+    renderResults(data);
+  } catch (e) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').querySelector('div').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderResults(data) {
+  const score = data.compliance_score || 0;
+  document.getElementById('scorePct').textContent = score + '%';
+  document.getElementById('scorePct').style.color = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+  document.getElementById('scoreRing').style.borderColor = score >= 80 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+
+  const statusEl = document.getElementById('scoreStatus');
+  if (data.compliant) {
+    statusEl.innerHTML = '<span style="color: #34d399;">COMPLIANT</span>';
+  } else {
+    statusEl.innerHTML = '<span style="color: #f87171;">NON-COMPLIANT</span>';
+  }
+
+  document.getElementById('totalPass').textContent = data.passed || 0;
+  document.getElementById('totalFail').textContent = data.failed || 0;
+  document.getElementById('totalCritical').textContent = data.critical_violations || 0;
+  document.getElementById('instCount').textContent = data.instrument_count || 0;
+  document.getElementById('checkedAt').textContent = data.checked_at ? new Date(data.checked_at).toLocaleString() : '—';
+  document.getElementById('totalChecks').textContent = data.total_checks || 0;
+
+  const tbody = document.getElementById('checksBody');
+  tbody.innerHTML = '';
+  for (const check of (data.checks || [])) {
+    const badge = check.status === 'pass'
+      ? '<span class="cc-badge pass">PASS</span>'
+      : '<span class="cc-badge fail">FAIL</span>';
+    const severity = check.severity === 'critical' ? '<span class="cc-badge fail">Critical</span>'
+      : check.severity === 'high' ? '<span class="cc-badge" style="background:#7c2d12;color:#fb923c;">High</span>'
+      : '<span class="cc-badge" style="background:#78350f;color:#fbbf24;">Medium</span>';
+
+    tbody.innerHTML += `<tr>
+      <td><strong>${check.rule}</strong></td>
+      <td>${check.limit}</td>
+      <td>${check.actual}</td>
+      <td>${badge}</td>
+      <td>${severity}</td>
+      <td style="color: #9ca3af; font-size: 0.8rem;">${check.recommendation || '—'}</td>
+    </tr>`;
+  }
+}
+
+async function loadRules() {
+  const section = document.getElementById('rulesSection');
+  if (section.style.display === 'block') {
+    section.style.display = 'none';
+    return;
+  }
+  try {
+    const res = await fetch('/api/compliance-check/rules', {credentials: 'include'});
+    const data = await res.json();
+    const rules = data.rules || {};
+    const form = document.getElementById('rulesForm');
+    form.innerHTML = '';
+    const labels = {
+      max_debt_to_gdp_pct: 'Max Debt-to-GDP (%)',
+      max_annual_debt_service_pct: 'Max Annual Debt Service (%)',
+      min_avg_maturity_years: 'Min Avg Maturity (years)',
+      max_single_currency_pct: 'Max Single Currency (%)',
+      max_floating_rate_pct: 'Max Floating Rate (%)',
+      max_short_term_pct: 'Max Short-Term (%)',
+      max_callable_pct: 'Max Callable (%)',
+      min_reserve_coverage_months: 'Min Reserve Coverage (months)',
+    };
+    for (const [k, v] of Object.entries(rules)) {
+      form.innerHTML += `
+        <div>
+          <label>${labels[k] || k}</label>
+          <input type="number" id="rule_${k}" value="${v}" step="0.1">
+        </div>`;
+    }
+    section.style.display = 'block';
+  } catch (e) {}
+}
+</script>
+{% endblock %}

@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Sovereign Debt Backtesting — Quantive{% endblock %}
+{% block content %}
+<style>
+  .bt-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .bt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .bt-header h1 { font-size: 1.5rem; font-weight: 600; color: #e2e8f0; margin: 0; }
+  .bt-card { background: #1a1f2e; border: 1px solid #2d3548; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .bt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .bt-metric { background: #111827; border: 1px solid #2d3548; border-radius: 8px; padding: 16px; text-align: center; }
+  .bt-metric .value { font-size: 1.8rem; font-weight: 700; color: #60a5fa; }
+  .bt-metric .label { font-size: 0.75rem; color: #9ca3af; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .bt-btn { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+  .bt-btn:hover { background: #1d4ed8; }
+  .bt-btn.secondary { background: #374151; }
+  .bt-btn.secondary:hover { background: #4b5563; }
+  select, input { background: #111827; color: #e2e8f0; border: 1px solid #374151; border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; }
+  .bt-table { width: 100%; border-collapse: collapse; }
+  .bt-table th { text-align: left; padding: 10px 12px; color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid #2d3548; }
+  .bt-table td { padding: 10px 12px; color: #e2e8f0; border-bottom: 1px solid #1f2937; font-size: 0.875rem; }
+  .bt-table tr:hover td { background: #1f2937; }
+  .bt-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .bt-badge.pass { background: #064e3b; color: #34d399; }
+  .bt-badge.fail { background: #7f1d1d; color: #fca5a5; }
+  .bt-badge.warn { background: #78350f; color: #fbbf24; }
+  .bt-section-title { font-size: 1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2d3548; }
+  .bt-loading { text-align: center; padding: 40px; color: #6b7280; }
+  .bt-chart-bar { height: 24px; border-radius: 4px; margin: 4px 0; transition: width 0.5s ease; }
+  .bt-bar-label { font-size: 0.75rem; color: #9ca3af; margin-bottom: 2px; }
+  .bt-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+</style>
+
+<div class="bt-container">
+  <div class="bt-header">
+    <div>
+      <h1>Sovereign Debt Backtesting</h1>
+      <p style="color: #6b7280; font-size: 0.875rem; margin-top: 4px;">Test debt strategies against historical and simulated scenarios</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="bt-btn secondary" onclick="loadStrategies()">Refresh Strategies</button>
+      <button class="bt-btn" onclick="runBacktest()">Run Backtest</button>
+    </div>
+  </div>
+
+  <div class="bt-card">
+    <div class="bt-section-title">Configuration</div>
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+      <div>
+        <label style="display: block; color: #9ca3af; font-size: 0.75rem; margin-bottom: 4px;">Strategy</label>
+        <select id="strategySelect" style="min-width: 200px;">
+          <option value="hold">Hold (Baseline)</option>
+          <option value="ladder">Laddering</option>
+          <option value="min_cost">Minimize Cost</option>
+          <option value="max_duration">Maximize Duration</option>
+        </select>
+      </div>
+      <div>
+        <label style="display: block; color: #9ca3af; font-size: 0.75rem; margin-bottom: 4px;">Horizon (years)</label>
+        <select id="horizonSelect">
+          <option value="3">3 Years</option>
+          <option value="5" selected>5 Years</option>
+          <option value="7">7 Years</option>
+          <option value="10">10 Years</option>
+        </select>
+      </div>
+      <div>
+        <label style="display: block; color: #9ca3af; font-size: 0.75rem; margin-bottom: 4px;">Simulations</label>
+        <select id="simSelect">
+          <option value="100">100</option>
+          <option value="500">500</option>
+          <option value="1000" selected>1,000</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultsArea" style="display: none;">
+    <div class="bt-grid">
+      <div class="bt-metric"><div class="value" id="mCagr">—</div><div class="label">CAGR</div></div>
+      <div class="bt-metric"><div class="value" id="mSharpe">—</div><div class="label">Sharpe Ratio</div></div>
+      <div class="bt-metric"><div class="value" id="mDrawdown">—</div><div class="label">Max Drawdown</div></div>
+      <div class="bt-metric"><div class="value" id="mProbProfit">—</div><div class="label">Prob. of Profit</div></div>
+    </div>
+
+    <div class="bt-grid">
+      <div class="bt-card">
+        <div class="bt-section-title">Simulation Results</div>
+        <div class="bt-grid" style="grid-template-columns: 1fr 1fr;">
+          <div class="bt-metric"><div class="value" id="mInitial" style="font-size: 1.2rem;">—</div><div class="label">Initial Value</div></div>
+          <div class="bt-metric"><div class="value" id="mFinal" style="font-size: 1.2rem;">—</div><div class="label">Expected Final</div></div>
+          <div class="bt-metric"><div class="value" id="mBest" style="font-size: 1.2rem; color: #34d399;">—</div><div class="label">Best Case</div></div>
+          <div class="bt-metric"><div class="value" id="mWorst" style="font-size: 1.2rem; color: #f87171;">—</div><div class="label">Worst Case</div></div>
+        </div>
+      </div>
+
+      <div class="bt-card">
+        <div class="bt-section-title">Percentile Distribution</div>
+        <div id="percentileChart"></div>
+      </div>
+    </div>
+
+    <div class="bt-card" id="compareSection" style="display: none;">
+      <div class="bt-section-title">Strategy Comparison</div>
+      <div id="compareTable"></div>
+    </div>
+  </div>
+
+  <div id="emptyState" class="bt-card" style="text-align: center; padding: 60px;">
+    <div style="color: #6b7280; font-size: 0.875rem;">Select a strategy and click "Run Backtest" to simulate portfolio performance under historical yield scenarios.</div>
+  </div>
+
+  <div id="loadingState" style="display: none;" class="bt-card bt-loading">
+    <div style="font-size: 1.1rem; margin-bottom: 8px;">Running simulation...</div>
+    <div style="font-size: 0.8rem;">Processing Monte Carlo scenarios</div>
+  </div>
+</div>
+
+<script>
+async function runBacktest() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+
+  const strategy = document.getElementById('strategySelect').value;
+  const horizon = parseInt(document.getElementById('horizonSelect').value);
+  const sims = parseInt(document.getElementById('simSelect').value);
+
+  try {
+    const res = await fetch('/api/enterprise/backtest', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: JSON.stringify({
+        strategy: strategy,
+        horizon_years: horizon,
+        n_simulations: sims
+      })
+    });
+    const data = await res.json();
+    document.getElementById('loadingState').style.display = 'none';
+
+    if (data.error) {
+      document.getElementById('emptyState').style.display = 'block';
+      document.getElementById('emptyState').querySelector('div').textContent = data.error;
+      return;
+    }
+
+    document.getElementById('resultsArea').style.display = 'block';
+    renderResults(data);
+  } catch (e) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').querySelector('div').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderResults(data) {
+  const m = data.metrics || {};
+  document.getElementById('mCagr').textContent = (m.cagr_pct || 0) + '%';
+  document.getElementById('mSharpe').textContent = (m.sharpe_ratio || 0).toFixed(2);
+  document.getElementById('mDrawdown').textContent = (m.max_drawdown_pct || 0) + '%';
+  document.getElementById('mProbProfit').textContent = (data.probability_profit || 0) + '%';
+  document.getElementById('mInitial').textContent = formatNum(m.initial_value || data.initial_value);
+  document.getElementById('mFinal').textContent = formatNum(m.expected_final_value);
+  document.getElementById('mBest').textContent = formatNum(m.best_case);
+  document.getElementById('mWorst').textContent = formatNum(m.worst_case);
+
+  // Percentile chart
+  const p = data.percentiles || {};
+  const chart = document.getElementById('percentileChart');
+  chart.innerHTML = '';
+  const maxVal = m.best_case || 1;
+  for (const [k, v] of Object.entries(p)) {
+    const pct = Math.max(5, (v / maxVal) * 100);
+    const color = k.includes('50%') ? '#60a5fa' : k.includes('25%') || k.includes('75%') ? '#818cf8' : '#4b5563';
+    chart.innerHTML += `
+      <div class="bt-bar-label">${k}: ${formatNum(v)}</div>
+      <div class="bt-chart-bar" style="width: ${pct}%; background: ${color};"></div>`;
+  }
+}
+
+function formatNum(n) {
+  if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  return '$' + (n || 0).toLocaleString();
+}
+
+async function loadStrategies() {
+  runBacktest();
+}
+
+// Auto-compare on load
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/enterprise/backtest/compare?horizon_years=5&n_simulations=500', {credentials: 'include'});
+    const data = await res.json();
+    if (data.ranking && data.ranking.length > 0) {
+      const section = document.getElementById('compareSection');
+      section.style.display = 'block';
+      let html = '<table class="bt-table"><thead><tr><th>Rank</th><th>Strategy</th><th>Sharpe</th><th>CAGR</th></tr></thead><tbody>';
+      data.ranking.forEach((r, i) => {
+        const badge = i === 0 ? '<span class="bt-badge pass">Best</span>' : '';
+        html += `<tr><td>#${i+1} ${badge}</td><td style="text-transform: capitalize;">${r.strategy.replace('_', ' ')}</td><td>${r.sharpe.toFixed(2)}</td><td>${r.cagr}%</td></tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('compareTable').innerHTML = html;
+    }
+  } catch (e) {}
+});
+</script>
+{% endblock %}

@@ -3,22 +3,79 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api import (
+    health,
+    alerts_api,
+    metrics_api,
+    versioning_api,
+    price_alerts,
+    backtesting,
+    earnings_calendar,
+    stock_screener,
+    trading_intelligence,
+    rebalancing,
+    live_prices,
+    portfolio_aggregator,
+    performance_attribution,
+    risk_parity,
+    tax_harvesting,
+    debt_optimizer_api,
+    enterprise_api,
+    market_intelligence_api,
+    fintech_tracker_api,
+    crypto_api,
+    recommendations_api,
+    advanced_debt,
+    external_factors,
+    hybrid_workflow,
+    circuit_designer,
+    algorithm_marketplace,
+    error_correction,
+    quantum_simulator,
+    advanced_analysis,
+    ai_advisor,
+    asset_tracker,
+    daily_briefing,
+    first_run,
+    market_pulse,
+    savings_dashboard,
+    simulation_engine,
+    optimizer_api,
+    realtime,
+    settings_api,
+    pqc_encryption_api,
+    simulation_api,
+    scenarios,
+    exports_imf,
+    rbac_admin,
+    government,
+    soc2_routes,
+    quantum_routes,
     activity,
     advisor,
     analytics,
+    approval_workflow_api,
     audit,
     auth,
     auth_extended,
+    billing_routes,
     comments,
     compliance,
+    dashboard,
+    data_quality,
+    disclaimer,
+    email_routes,
     esg,
     exports,
+    frontend_ui,
+    immutable_audit_api,
     market_data,
+    market_health,
     maturity,
     mfa,
     narrative,
     notifications,
     optimizations,
+    pdf_reports,
     portfolio_access,
     portfolios,
     preferences,
@@ -31,6 +88,18 @@ from app.api import (
     tags,
     watchlists,
     webhooks,
+    websocket_routes,
+    news,
+    tasks,
+    meetings,
+    ai_intelligence,
+    support,
+    management,
+    demo,
+    error_monitor,
+    backup_monitor,
+    compliance_check_api,
+    fx_hedging_api,
 )
 from app.database import get_db
 from app.security.threats import router as threats_router
@@ -59,6 +128,10 @@ router.include_router(preferences.views_router)
 router.include_router(preferences.filters_router)
 router.include_router(webhooks.router)
 router.include_router(market_data.router)
+router.include_router(market_health.router)
+router.include_router(immutable_audit_api.router)
+router.include_router(approval_workflow_api.router)
+router.include_router(data_quality.router)
 router.include_router(exports.router)
 router.include_router(threats_router)
 router.include_router(security_audit.router)
@@ -74,6 +147,71 @@ router.include_router(risk_intel.router)
 router.include_router(maturity.router)
 router.include_router(esg.router)
 router.include_router(ratings.router)
+router.include_router(pdf_reports.router)
+router.include_router(email_routes.router)
+router.include_router(billing_routes.router)
+router.include_router(websocket_routes.router)
+router.include_router(disclaimer.router)
+router.include_router(soc2_routes.router)
+router.include_router(quantum_routes.router)
+router.include_router(advanced_debt.router)
+router.include_router(pqc_encryption_api.router)
+router.include_router(simulation_api.router)
+router.include_router(government.router)
+router.include_router(scenarios.router)
+router.include_router(exports_imf.router)
+router.include_router(rbac_admin.router)
+router.include_router(ai_advisor.router)
+router.include_router(simulation_engine.router)
+router.include_router(optimizer_api.router)
+router.include_router(realtime.router)
+router.include_router(advanced_analysis.router)
+router.include_router(settings_api.router)
+router.include_router(dashboard.router)
+router.include_router(frontend_ui.router)
+router.include_router(first_run.router)
+router.include_router(savings_dashboard.router)
+router.include_router(market_pulse.router)
+router.include_router(daily_briefing.router)
+router.include_router(asset_tracker.router)
+router.include_router(external_factors.router)
+router.include_router(hybrid_workflow.router)
+router.include_router(circuit_designer.router)
+router.include_router(algorithm_marketplace.router)
+router.include_router(error_correction.router)
+router.include_router(quantum_simulator.router)
+router.include_router(health.router)
+router.include_router(trading_intelligence.router)
+router.include_router(alerts_api.router)
+router.include_router(metrics_api.router)
+router.include_router(versioning_api.router)
+router.include_router(price_alerts.router)
+router.include_router(backtesting.router)
+router.include_router(earnings_calendar.router)
+router.include_router(stock_screener.router)
+router.include_router(rebalancing.router)
+router.include_router(live_prices.router)
+router.include_router(portfolio_aggregator.router)
+router.include_router(performance_attribution.router)
+router.include_router(risk_parity.router)
+router.include_router(tax_harvesting.router)
+router.include_router(debt_optimizer_api.router)
+router.include_router(enterprise_api.router)
+router.include_router(market_intelligence_api.router)
+router.include_router(fintech_tracker_api.router)
+router.include_router(crypto_api.router)
+router.include_router(recommendations_api.router)
+router.include_router(news.router)
+router.include_router(tasks.router)
+router.include_router(meetings.router)
+router.include_router(ai_intelligence.router)
+router.include_router(support.router)
+router.include_router(management.router)
+router.include_router(demo.router)
+router.include_router(error_monitor.router)
+router.include_router(backup_monitor.router)
+router.include_router(compliance_check_api.router)
+router.include_router(fx_hedging_api.router)
 
 
 @router.get("/api/health")

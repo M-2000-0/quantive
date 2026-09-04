@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}FX Hedging — Quantive{% endblock %}
+{% block content %}
+<style>
+  .fx-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .fx-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .fx-header h1 { font-size: 1.5rem; font-weight: 600; color: #e2e8f0; margin: 0; }
+  .fx-card { background: #1a1f2e; border: 1px solid #2d3548; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .fx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .fx-metric { background: #111827; border: 1px solid #2d3548; border-radius: 8px; padding: 16px; text-align: center; }
+  .fx-metric .value { font-size: 1.5rem; font-weight: 700; color: #60a5fa; }
+  .fx-metric .label { font-size: 0.7rem; color: #9ca3af; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .fx-btn { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+  .fx-btn:hover { background: #1d4ed8; }
+  .fx-table { width: 100%; border-collapse: collapse; }
+  .fx-table th { text-align: left; padding: 10px 12px; color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid #2d3548; }
+  .fx-table td { padding: 10px 12px; color: #e2e8f0; border-bottom: 1px solid #1f2937; font-size: 0.875rem; }
+  .fx-table tr:hover td { background: #1f2937; }
+  .fx-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .fx-badge.high { background: #7f1d1d; color: #fca5a5; }
+  .fx-badge.medium { background: #78350f; color: #fbbf24; }
+  .fx-badge.low { background: #064e3b; color: #34d399; }
+  .fx-section-title { font-size: 1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2d3548; }
+  .fx-exposure-bar { height: 20px; border-radius: 4px; margin: 4px 0; display: flex; align-items: center; padding-left: 8px; font-size: 0.75rem; font-weight: 600; color: #fff; }
+  select { background: #111827; color: #e2e8f0; border: 1px solid #374151; border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; }
+  .fx-recommendation { background: #111827; border: 1px solid #2d3548; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+  .fx-recommendation .title { font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+  .fx-recommendation .detail { font-size: 0.85rem; color: #9ca3af; }
+</style>
+
+<div class="fx-container">
+  <div class="fx-header">
+    <div>
+      <h1>FX Hedging Recommendations</h1>
+      <p style="color: #6b7280; font-size: 0.875rem; margin-top: 4px;">Analyze currency exposure and optimize hedging strategies</p>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <select id="hedgeRatio">
+        <option value="0.30">30% Hedge</option>
+        <option value="0.50">50% Hedge</option>
+        <option value="0.70" selected>70% Hedge</option>
+        <option value="0.90">90% Hedge</option>
+      </select>
+      <button class="fx-btn" onclick="analyze()">Analyze Exposure</button>
+      <button class="fx-btn" style="background: #374151;" onclick="compareScenarios()">Compare Scenarios</button>
+    </div>
+  </div>
+
+  <div id="summarySection" style="display: none;">
+    <div class="fx-grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="fx-metric"><div class="value" id="fxRiskScore">—</div><div class="label">FX Risk Score</div></div>
+      <div class="fx-metric"><div class="value" id="fxExposure">—</div><div class="label">Foreign Exposure</div></div>
+      <div class="fx-metric"><div class="value" id="fxHedgeCost">—</div><div class="label">Annual Hedge Cost</div></div>
+      <div class="fx-metric"><div class="value" id="fxCostPct">—</div><div class="label">Cost % of Portfolio</div></div>
+      <div class="fx-metric"><div class="value" id="fxCurrencies">—</div><div class="label">Currencies to Hedge</div></div>
+    </div>
+  </div>
+
+  <div class="fx-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="fx-card" id="exposureSection" style="display: none;">
+      <div class="fx-section-title">Currency Exposure Breakdown</div>
+      <div id="exposureChart"></div>
+    </div>
+
+    <div class="fx-card" id="recommendationsSection" style="display: none;">
+      <div class="fx-section-title">Hedging Recommendations</div>
+      <div id="recommendationsList"></div>
+    </div>
+  </div>
+
+  <div class="fx-card" id="detailSection" style="display: none;">
+    <div class="fx-section-title">Exposure Details</div>
+    <table class="fx-table">
+      <thead>
+        <tr><th>Currency</th><th>Principal</th><th>USD Value</th><th>FX Rate</th><th>% of Portfolio</th><th>Instrument</th><th>Est. Annual Cost</th></tr>
+      </thead>
+      <tbody id="exposureBody"></tbody>
+    </table>
+  </div>
+
+  <div class="fx-card" id="scenariosSection" style="display: none;">
+    <div class="fx-section-title">Hedge Ratio Comparison</div>
+    <table class="fx-table">
+      <thead>
+        <tr><th>Scenario</th><th>FX Risk Score</th><th>Annual Cost</th><th>Cost % of Portfolio</th><th>Currencies</th></tr>
+      </thead>
+      <tbody id="scenariosBody"></tbody>
+    </table>
+  </div>
+
+  <div class="fx-card" style="text-align: center; padding: 60px;" id="emptyState">
+    <div style="color: #6b7280; font-size: 0.875rem;">Click "Analyze Exposure" to assess your portfolio's foreign currency risk and get hedging recommendations.</div>
+  </div>
+
+  <div class="fx-card" style="display: none; text-align: center; padding: 40px;" id="loadingState">
+    <div style="color: #6b7280;">Analyzing currency exposure...</div>
+  </div>
+</div>
+
+<script>
+async function analyze() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+  hideAll();
+
+  const ratio = parseFloat(document.getElementById('hedgeRatio').value);
+
+  try {
+    const res = await fetch('/api/fx-hedging/analyze', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'include',
+      body: JSON.stringify({target_hedge_ratio: ratio})
+    });
+    const data = await res.json();
+    document.getElementById('loadingState').style.display = 'none';
+
+    if (data.error) {
+      document.getElementById('emptyState').style.display = 'block';
+      document.getElementById('emptyState').querySelector('div').textContent = data.error;
+      return;
+    }
+
+    renderAnalysis(data);
+  } catch (e) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').querySelector('div').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderAnalysis(data) {
+  document.getElementById('summarySection').style.display = 'block';
+
+  document.getElementById('fxRiskScore').textContent = data.fx_risk_score || 0;
+  document.getElementById('fxRiskScore').style.color = data.fx_risk_score > 60 ? '#f87171' : data.fx_risk_score > 30 ? '#fbbf24' : '#34d399';
+
+  document.getElementById('fxExposure').textContent = (data.foreign_currency_exposure_pct || 0) + '%';
+
+  const cost = data.hedging_summary?.total_annual_hedge_cost || 0;
+  document.getElementById('fxHedgeCost').textContent = formatNum(cost);
+  document.getElementById('fxCostPct').textContent = (data.hedging_summary?.cost_as_pct_of_portfolio || 0).toFixed(3) + '%';
+  document.getElementById('fxCurrencies').textContent = data.hedging_summary?.currencies_to_hedge || 0;
+
+  // Exposure chart
+  if (data.exposures && data.exposures.length > 0) {
+    document.getElementById('exposureSection').style.display = 'block';
+    const chart = document.getElementById('exposureChart');
+    chart.innerHTML = '';
+    const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#ec4899'];
+    let colorIdx = 0;
+    for (const exp of data.exposures) {
+      chart.innerHTML += `
+        <div class="fx-bar-label" style="font-size:0.75rem;color:#9ca3af;margin-bottom:2px;">${exp.currency} — ${exp.percentage}%</div>
+        <div class="fx-exposure-bar" style="width: ${Math.max(5, exp.percentage)}%; background: ${colors[colorIdx % colors.length]};">${formatNum(exp.principal)}</div>`;
+      colorIdx++;
+    }
+
+    // Recommendations
+    document.getElementById('recommendationsSection').style.display = 'block';
+    const recs = document.getElementById('recommendationsList');
+    recs.innerHTML = '';
+    for (const exp of data.exposures) {
+      const h = exp.hedging || {};
+      recs.innerHTML += `
+        <div class="fx-recommendation">
+          <div class="title">${exp.currency} — ${h.recommended_instrument || 'N/A'}</div>
+          <div class="detail">${h.reason || ''}</div>
+          <div class="detail">Hedge: ${formatNum(h.hedge_amount || 0)} | Cost: ~${formatNum(h.estimated_annual_cost || 0)}/yr (${h.cost_bps || 0} bps)</div>
+        </div>`;
+    }
+    if (data.recommendations) {
+      for (const rec of data.recommendations) {
+        recs.innerHTML += `<div style="color: #60a5fa; font-size: 0.85rem; margin-top: 8px;">${rec}</div>`;
+      }
+    }
+
+    // Detail table
+    document.getElementById('detailSection').style.display = 'block';
+    const tbody = document.getElementById('exposureBody');
+    tbody.innerHTML = '';
+    for (const exp of data.exposures) {
+      const h = exp.hedging || {};
+      tbody.innerHTML += `<tr>
+        <td><strong>${exp.currency}</strong></td>
+        <td>${formatNum(exp.principal)}</td>
+        <td>${formatNum(exp.base_value)}</td>
+        <td>${exp.fx_rate || '—'}</td>
+        <td>${exp.percentage}%</td>
+        <td>${h.recommended_instrument || '—'}</td>
+        <td>${formatNum(h.estimated_annual_cost || 0)}</td>
+      </tr>`;
+    }
+  }
+}
+
+async function compareScenarios() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = 'block';
+
+  try {
+    const res = await fetch('/api/fx-hedging/scenarios', {credentials: 'include'});
+    const data = await res.json();
+    document.getElementById('loadingState').style.display = 'none';
+
+    if (data.scenarios) {
+      document.getElementById('scenariosSection').style.display = 'block';
+      const tbody = document.getElementById('scenariosBody');
+      tbody.innerHTML = '';
+      for (const [label, s] of Object.entries(data.scenarios)) {
+        const scoreColor = s.fx_risk_score > 60 ? '#f87171' : s.fx_risk_score > 30 ? '#fbbf24' : '#34d399';
+        tbody.innerHTML += `<tr>
+          <td><strong>${label}</strong></td>
+          <td style="color: ${scoreColor};">${s.fx_risk_score}</td>
+          <td>${formatNum(s.total_annual_cost)}</td>
+          <td>${s.cost_pct}%</td>
+          <td>${s.currencies_to_hedge}</td>
+        </tr>`;
+      }
+    }
+  } catch (e) {
+    document.getElementById('loadingState').style.display = 'none';
+  }
+}
+
+function hideAll() {
+  ['summarySection','exposureSection','recommendationsSection','detailSection','scenariosSection'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+}
+
+function formatNum(n) {
+  if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+  return '$' + (n || 0).toLocaleString();
+}
+</script>
+{% endblock %}
