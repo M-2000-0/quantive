@@ -209,7 +209,7 @@ def create_glass_window(port: int):
 
             # Web view
             self.web = QWebEngineView()
-            self.web.setUrl(QUrl(url))
+            self.web.setUrl(QUrl(url + '/dashboard'))
             self.web.setStyleSheet("background: #0a0b0e;")
 
             # Enable dark mode for web content

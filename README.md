@@ -1,76 +1,89 @@
-# Quantive — Public Debt Optimization Engine
+# Quantive — Quantum-AI Sovereign Debt Optimizer
 
-Quantive models a sovereign debt portfolio, defines an optimization problem
-(financing requirement, objective weights, policy constraints, macro
-scenarios), solves it with multiple solver backends, benchmarks them, generates
-a set of distinct strategies, and stress-tests every strategy across Monte Carlo
-scenarios.
+> AI-powered investment analytics platform with quantum computing, Monte Carlo simulation, and real-time market data integration.
 
-## Quick start
+## Architecture
+
+```
+backend/
+├── app/
+│   ├── api/              # FastAPI route handlers (82 modules)
+│   ├── data/             # DuckDB, yield fetcher, financial models
+│   ├── market_data/      # Real-time Treasury, FRED, World Bank data
+│   ├── optimization/     # QUBO, Monte Carlo, policy engine
+│   ├── quantum/          # QAOA circuit, hybrid solver, state encoder
+│   ├── security/         # CSRF, RBAC, rate limiter, idempotency
+│   ├── templates/        # Jinja2 HTML templates (102 pages)
+│   ├── static/           # CSS, JS, Chart.js
+│   └── main.py           # FastAPI application entry
+├── tests/                # Test suite
+└── requirements.txt      # Python dependencies
+```
+
+## Quick Start
 
 ```bash
-pip install -r requirements.txt        # or: pip install -e .
-python scripts/demo.py                 # end-to-end pipeline on the demo portfolio
-python -m pytest tests -q              # run the test suite
-uvicorn quantive.api.main:app --reload --port 8000   # REST API (docs at /docs)
+cd backend
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run development server
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Open in browser
+# http://127.0.0.1:8000/dashboard
 ```
 
-`scripts/demo.py` runs the full pipeline with 10,000 Monte Carlo scenarios and
-prints the main strategy, four profile strategies, the solver benchmark, and the
-stress-test summary (~30 s).
+## Key Endpoints
 
-## What it does
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/dashboard` | GET | Main analytics dashboard |
+| `/debt-optimizer` | GET | Quantum debt optimizer |
+| `/trading-hub` | GET | Trading intelligence hub |
+| `/api/optimize-debt/quick` | POST | Quick optimization (real Treasury data) |
+| `/api/v1/optimize` | POST | Enterprise QUBO optimization |
+| `/api/v1/simulate` | POST | 10K Monte Carlo stress tests |
+| `/api/v1/report` | POST | AI policy briefing generation |
+| `/api/v1/status` | GET | System health check |
 
-1. **Model** — instruments (currencies, fixed/floating coupons, liquidity,
-   capacity, maturities), portfolios, problems, scenarios.
-2. **Compile** — `ProblemSpec`: a numpy-ready, solver-agnostic form of
-   portfolio + problem + scenarios (cost matrix, risk vectors, flags, buckets,
-   weights, constraint limits).
-3. **Solve** — three interchangeable backends behind one interface:
-   - `milp_cbc` — classical MILP/LP solved exactly with CBC (globally optimal);
-   - `simulated_annealing` — classical heuristic, no optimality guarantee;
-   - `qubo_annealing` — quantum-inspired QUBO-encoded annealing on a **classical
-     simulator**, explicitly labelled `QUANTUM_INSPIRED` / `SIMULATOR`.
-4. **Benchmark** — every backend on the same spec, ranked with
-   feasibility-gated, weighted min-max normalized metrics.
-5. **Strategies** — four distinct allocations (best overall, lowest risk,
-   lowest cost, stress-resilient robust minimax) under the *same* constraints.
-6. **Stress** — per-strategy average/worst financing cost and constraint
-   satisfaction across all scenarios.
+## Features
 
-## Documentation
+- **Quantum Optimization**: QUBO formulation with QAOA circuit simulation
+- **Monte Carlo Simulation**: 10,000+ path stress testing with 8 scenarios
+- **Real-Time Data**: US Treasury yield curve, FRED API, World Bank data
+- **AI Policy Engine**: LLM-powered policy briefings (Ollama/OpenAI/Anthropic)
+- **Security**: CSRF, RBAC, rate limiting, MFA, idempotency keys
+- **Data Pipeline**: DuckDB storage, async ingestion, schema validation
+- **Backup System**: Automated compressed backups with rotation
+- **Rate Limiting**: Per-IP sliding window throttling
 
-- `docs/architecture.md` — system layers and design principles
-- `docs/optimization-model.md` — the mathematical model
-- `docs/solver-interface.md` — solver contract and honest quantum reporting
-- `docs/scenario-engine.md` — named + Monte Carlo scenarios and the cost model
-- `docs/benchmarking.md` — ranking methodology
-- `docs/api.md` — REST API reference
+## Configuration
 
-## Honest reporting
+Environment variables (set in `.env`):
 
-Quantive treats quantum as a computational capability, not a marketing claim.
-Every result carries `solver_type` and `execution_backend`; the QUBO path runs
-on a classical simulator, is never claimed to come from real quantum hardware,
-and is never assumed superior to the classical solvers. The benchmark decides
-that question with data.
-
-## Repository layout
-
+```bash
+SECRET_KEY=your-secret-key
+FRED_API_KEY=your-fred-api-key  # Optional, for enhanced data
+DATABASE_URL=sqlite:///app/data/quantive.db
 ```
-quantive/
-  models/       Pydantic domain models and enums
-  data/         synthetic portfolio generator, fixtures
-  scenarios/    named + Monte Carlo scenario engine
-  objectives/   costs, ProblemSpec, feasibility checks
-  solvers/      milp, simulated annealing, qubo, repair, registry
-  benchmark/    metrics + ranking engine
-  stress/       stress tester
-  strategies.py profile-based strategy generation
-  orchestration.py  full pipeline
-  api/          FastAPI app and routers
-  jobs/         async job manager
-tests/          pytest suite
-scripts/demo.py end-to-end demo
-docs/           this documentation
+
+## Testing
+
+```bash
+cd backend
+python -m pytest tests/ -v
 ```
+
+## Production
+
+```bash
+# Run with Gunicorn
+cd backend
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+```
+
+## License
+
+Proprietary — Quantive

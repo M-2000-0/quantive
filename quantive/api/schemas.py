@@ -13,6 +13,7 @@ from quantive.models.optimization import (
     ScenarioConfiguration,
     SolverConfiguration,
 )
+from quantive.risk import RiskCategory, RiskSeverity, TrendDirection
 
 
 class SyntheticPortfolioRequest(BaseModel):
@@ -51,3 +52,38 @@ class RunResponse(BaseModel):
     job_id: str
     problem_id: str
     status: str
+
+
+# ── Layer 6 Risk Schemas ────────────────────────────────────────────────
+
+class RiskCategoryLiteral(BaseModel):
+    value: str
+
+
+class RiskSeverityLiteral(BaseModel):
+    value: str
+
+
+class TrendDirectionLiteral(BaseModel):
+    value: str
+
+
+class AggregatedRiskResponse(BaseModel):
+    overall_score: float
+    by_category: dict
+    category_counts: dict
+
+
+class EarlyWarningSignalResponse(BaseModel):
+    id: str
+    name: str
+    category: str
+    indicator: str
+    currentValue: float
+    threshold: float
+    unit: str
+    direction: str
+    status: str
+    trend: str
+    description: str
+    lastUpdated: str

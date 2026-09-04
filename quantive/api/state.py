@@ -7,6 +7,10 @@ from typing import Dict, Optional
 from quantive.jobs.manager import JobManager
 from quantive.models.instruments import Portfolio
 from quantive.models.optimization import OptimizationProblem
+from quantive.procurement.models import (
+    ProcurementRequest,
+    ProcurementResponse,
+)
 
 
 class AppState:
@@ -18,6 +22,9 @@ class AppState:
         self.problems: Dict[str, OptimizationProblem] = {}
         self.runs: Dict[str, dict] = {}
         self.jobs = JobManager(max_workers=2)
+        self.procurement_requests: Dict[str, ProcurementRequest] = {}
+        self.procurement_integrations: Dict[str, dict] = {}
+        self.risk_assessments: Dict[str, dict] = {}
 
     # -- portfolios ----------------------------------------------------------
     def add_portfolio(self, portfolio: Portfolio) -> Portfolio:

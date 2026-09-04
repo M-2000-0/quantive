@@ -1,0 +1,85 @@
+rules:
+  # ── No hardcoded secrets ───────────────────────────────────────────
+  - id: no-hardcoded-secrets
+    pattern: |
+      $VAR = "...api_key..."
+      or $VAR = "...secret..."
+      or $VAR = "...password..."
+      or $VAR = "...token..."
+    message: |
+      Possible hardcoded secret detected. Use environment variables
+      or a secrets manager instead.
+    languages: [typescript, javascript, python]
+    severity: ERROR
+    metadata:
+      category: security
+      technology: [typescript, javascript, python]
+      cwe: ["CWE-798"]
+
+  # ── No eval() ──────────────────────────────────────────────────────
+  - id: no-eval
+    patterns:
+      - pattern: eval(...)
+    message: |
+      Use of eval() is dangerous and can lead to code injection.
+      Avoid eval() or use a safe alternative.
+    languages: [typescript, javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-95"]
+
+  # ── No innerHTML (XSS) ────────────────────────────────────────────
+  - id: no-innerhtml
+    pattern: |
+      $EL.innerHTML = $VAL
+    message: |
+      Direct innerHTML assignment can lead to XSS vulnerabilities.
+      Use textContent, or sanitize input before rendering.
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: ["CWE-79"]
+
+  # ── SQL injection prevention ──────────────────────────────────────
+  - id: no-string-sql-query
+    pattern: |
+      $CONN.execute(f"...")
+      or $CONN.execute("..." + ...)
+      or $CONN.execute("...".format(...))
+    message: |
+      String interpolation in SQL queries can lead to SQL injection.
+      Use parameterized queries instead.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-89"]
+
+  # ── No console.log in production ──────────────────────────────────
+  - id: no-console-log
+    pattern: console.log(...)
+    message: |
+      console.log() should not be committed to production code.
+      Remove or use a proper logging library.
+    languages: [typescript, javascript]
+    severity: WARNING
+    metadata:
+      category: best-practice
+      exclude:
+        - "**/*.test.*"
+        - "**/*.spec.*"
+        - "**/test/**"
+
+  # ── No TODO in production (informational) ─────────────────────────
+  - id: no-todo
+    pattern: |
+      // TODO ...
+      or # TODO ...
+    message: |
+      TODO comments should be tracked in issue tracker, not left in code.
+    languages: [typescript, javascript, python]
+    severity: INFO
+    metadata:
+      category: best-practice

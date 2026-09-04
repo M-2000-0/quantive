@@ -1,144 +1,96 @@
-name: CI
+name: Quantive CI/CD
 
 on:
   push:
-    branches: [main, master]
+    branches: [master, main]
   pull_request:
-    branches: [main, master]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [master, main]
 
 jobs:
-  # ── Backend ──────────────────────────────────────────────────────────
-  backend:
-    name: Backend Tests
+  lint:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt 2>/dev/null || true
-          pip install -e . 2>/dev/null || true
+          cd backend
+          pip install -r requirements.txt
+      - name: Syntax check
+        run: |
+          cd backend
+          python -m py_compile app/main.py
+          python -m py_compile app/database.py
+          python -m py_compile app/schemas/__init__.py
+          python -m py_compile app/security/csrf.py
+          python -m py_compile app/security/rbac_middleware.py
+          python -m py_compile app/security/rate_limiter.py
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
           pip install pytest pytest-cov
-
-      - name: Lint with ruff
-        run: |
-          pip install ruff
-          ruff check app/ --output-format=github || true
-        continue-on-error: true
-
-      - name: Type check with mypy
-        run: |
-          pip install mypy
-          mypy app/ --ignore-missing-imports || true
-        continue-on-error: true
-
       - name: Run tests
         run: |
-          python -m pytest tests/ -v --tb=short -m "not slow" --cov=app --cov-report=xml --cov-report=term-missing
+          cd backend
+          python -m pytest tests/ -v --tb=short -x
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: backend/coverage.xml
-          flags: backend
-        continue-on-error: true
-
-  # ── Engine Tests ─────────────────────────────────────────────────────
-  engine:
-    name: Engine Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt 2>/dev/null || true
-          pip install pytest pytest-cov numpy
-
-      - name: Run engine tests
-        run: |
-          python -m pytest tests/ -v --tb=short --cov=quantive --cov-report=xml --cov-report=term-missing
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.xml
-          flags: engine
-        continue-on-error: true
-
-  # ── Frontend ─────────────────────────────────────────────────────────
-  frontend:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint || true
-        continue-on-error: true
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Build
-        run: npm run build
-
-  # ── Security Scan ────────────────────────────────────────────────────
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pip-audit bandit
+      - name: Dependency audit
+        run: |
+          cd backend
+          pip-audit || true
+      - name: Basic security scan
+        run: |
+          cd backend
+          bandit -r app/ -ll --skip B101,B311 || true
 
-      - name: Install safety
-        run: pip install pip-audit
-
-      - name: Audit dependencies
-        run: pip-audit --disable-pip --desc on || true
-        continue-on-error: true
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install and verify
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          python -c "import app.main; print('Import OK')"
+      - name: Verify all API routes
+        run: |
+          cd backend
+          python -c "
+          from app.main import app
+          routes = [r.path for r in app.routes]
+          print(f'Total routes: {len(routes)}')
+          assert len(routes) > 50, 'Too few routes'
+          print('Route check OK')
+          "

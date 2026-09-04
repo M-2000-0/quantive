@@ -1,28 +1,86 @@
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      - SECRET_KEY=change-me-in-production-use-random-value
-      - DATABASE_URL=sqlite:///./quantive.db
-      - CORS_ORIGINS=http://localhost:5173
-      - DEBUG=true
-      - RATE_LIMIT_PER_MINUTE=2000
-    volumes:
-      - backend-data:/app
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+# Quantive — On-Premise Government Deployment
+# Bundles: Python FastAPI backend + React frontend
+# Zero internet required after initial build
+# Supports: Air-gapped, classified, sovereign cloud
 
-  frontend:
-    build: ./frontend
+version: '3.8'
+
+services:
+  # ── PostgreSQL Database ───────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: quantive-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quantive
+      POSTGRES_USER: quantive
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_production}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - quantive-db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "5173:80"
+      - "127.0.0.1:5432:5432"
+    networks:
+      - quantive-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantive"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  # ── Python Backend (FastAPI + PuLP Solver) ────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: quantive-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://quantive:${DB_PASSWORD:-changeme_in_production}@postgres:5432/quantive
+      SECRET_KEY: ${SECRET_KEY:-generate_with_openssl_rand_hex_32}
+      ALLOWED_ORIGINS: http://localhost,http://127.0.0.1
+      FRED_API_KEY: ${FRED_API_KEY:-}
+      YAHOO_FINANCE_ENABLED: ${YAHOO_FINANCE_ENABLED:-true}
+      AIR_GAPPED_MODE: ${AIR_GAPPED_MODE:-false}
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - quantive-internal
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # ── React Frontend (Nginx) ───────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://127.0.0.1:8000}
+    container_name: quantive-frontend
+    restart: unless-stopped
     depends_on:
       - backend
+    ports:
+      - "127.0.0.1:8080:80"
+    networks:
+      - quantive-internal
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  quantive-internal:
+    driver: bridge
+    internal: true  # No external network access — air-gapped by default
 
 volumes:
-  backend-data:
+  quantive-db-data:
+    driver: local

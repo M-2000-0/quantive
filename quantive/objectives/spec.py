@@ -8,6 +8,8 @@ semantics.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
+from quantive.scenarios.definitions import NamedScenarioIds
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -62,6 +64,15 @@ class ProblemSpec:
     weights: Tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)
     robust: bool = False
 
+    # policy simulation
+    policy_type: str = ""
+    policy_intensity: float = 1.0
+    policy_budget_impact: float = 0.0
+    policy_gdp_impact: float = 0.0
+    policy_debt_impact: float = 0.0
+    policy_inflation_impact: float = 0.0
+    policy_employment_impact: float = 0.0
+
     # constraints
     financing_requirement: float = 0.0
     target_maturity_share: Dict[int, float] = field(default_factory=dict)
@@ -85,6 +96,44 @@ class ProblemSpec:
         if self.n_scenarios == 0:
             return 0.0
         return float(scenario_costs(x, self.cost_matrix).max())
+
+    def policy_adjusted_cost(self, x: np.ndarray, policy_type: str, policy_intensity: float = 1.0) -> float:
+        """Compute expected cost adjusted for policy what-if analysis.
+        
+        Applies policy multipliers to the cost matrix to simulate the
+        macroeconomic impact of policy changes (tax, spending, regulatory,
+        subsidy) on financing costs.
+        """
+        from quantive.objectives.costs import scenario_cost_matrix
+        
+        # Build policy-adjusted cost matrix
+        adjusted_matrix = scenario_cost_matrix(
+            self.instruments, self.scenarios, self.reference_currency,
+            policy_type=policy_type, intensity=policy_intensity
+        )
+        probabilities = self.probabilities
+        return float(np.dot(x, adjusted_matrix @ probabilities))
+
+    def policy_dimension_impacts(self, policy_type: str, policy_intensity: float = 1.0) -> dict:
+        """Get macro-economic dimension impacts for a policy what-if scenario.
+        
+        Returns dict with budget, GDP, debt, inflation, employment impacts
+        proportional to the policy intensity.
+        """
+        from quantive.scenarios.definitions import policy_dimension_multipliers, policy_debt_multipliers
+        
+        dim_mult = policy_dimension_multipliers(policy_type, policy_intensity)
+        debt_mult = policy_debt_multipliers(policy_type, policy_intensity)
+        
+        return {
+            "budget_impact": dim_mult.get("budget_impact", 0.0),
+            "gdp_impact": dim_mult.get("gdp_impact", 0.0),
+            "debt_impact": debt_mult.get("debt", 0.0),
+            "inflation_impact": dim_mult.get("inflation_impact", 0.0),
+            "employment_impact": dim_mult.get("employment_impact", 0.0),
+            "policy_type": policy_type,
+            "intensity": policy_intensity,
+        }
 
     def maturity_amounts(self, x: np.ndarray) -> Dict[int, float]:
         out: Dict[int, float] = {}
@@ -392,6 +441,8 @@ def build_spec(portfolio: Portfolio, problem: OptimizationProblem,
         max_instruments=problem.solver_config.max_instruments,
         custom_constraints=custom,
         penalty=problem.solver_config.constraint_penalty,
+        policy_type=problem.policy_type,
+        policy_intensity=problem.policy_intensity,
     )
     return spec
 
