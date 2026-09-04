@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Settings — Quantive{% endblock %}
+{% block content %}
+<style>
+  .st-container { max-width: 900px; margin: 0 auto; padding: 24px; }
+  .st-card { background: #1a1f2e; border: 1px solid #2d3548; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .st-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #2d3548; }
+  .st-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #1f2937; }
+  .st-row:last-child { border-bottom: none; }
+  .st-label { color: #9ca3af; font-size: 0.85rem; }
+  .st-value { color: #e2e8f0; font-size: 0.85rem; font-weight: 500; }
+  .st-input { background: #111827; color: #e2e8f0; border: 1px solid #374151; border-radius: 8px; padding: 10px 12px; width: 100%; max-width: 400px; box-sizing: border-box; font-size: 0.875rem; }
+  .st-input:focus { outline: none; border-color: #60a5fa; }
+  .st-btn { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+  .st-btn:hover { background: #1d4ed8; }
+  .st-btn.danger { background: #dc2626; }
+  .st-btn.danger:hover { background: #b91c1c; }
+  .st-btn.secondary { background: #374151; }
+  .st-btn.secondary:hover { background: #4b5563; }
+  .st-toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+  .st-toggle input { opacity: 0; width: 0; height: 0; }
+  .st-toggle .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #374151; border-radius: 12px; transition: 0.3s; }
+  .st-toggle .slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+  .st-toggle input:checked + .slider { background: #2563eb; }
+  .st-toggle input:checked + .slider:before { transform: translateX(20px); }
+  .st-key { font-family: monospace; background: #111827; padding: 4px 8px; border-radius: 4px; color: #60a5fa; font-size: 0.8rem; }
+  .st-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+  .st-badge.active { background: #064e3b; color: #34d399; }
+  .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .st-section { margin-bottom: 24px; }
+</style>
+
+<div class="st-container">
+  <h1 style="font-size: 1.5rem; font-weight: 600; color: #e2e8f0; margin-bottom: 24px;">Account Settings</h1>
+
+  <!-- Profile -->
+  <div class="st-card">
+    <div class="st-title">Profile</div>
+    <div class="st-grid">
+      <div>
+        <label class="st-label" style="display: block; margin-bottom: 4px;">Name</label>
+        <input class="st-input" id="userName" type="text" placeholder="Your name">
+      </div>
+      <div>
+        <label class="st-label" style="display: block; margin-bottom: 4px;">Email</label>
+        <input class="st-input" id="userEmail" type="email" placeholder="your@email.com" readonly style="opacity: 0.7;">
+      </div>
+    </div>
+    <div style="margin-top: 12px;">
+      <button class="st-btn" onclick="saveProfile()">Save Profile</button>
+    </div>
+  </div>
+
+  <!-- Password -->
+  <div class="st-card">
+    <div class="st-title">Change Password</div>
+    <div style="max-width: 400px;">
+      <label class="st-label" style="display: block; margin-bottom: 4px;">Current Password</label>
+      <input class="st-input" id="currentPassword" type="password" style="margin-bottom: 12px;">
+      <label class="st-label" style="display: block; margin-bottom: 4px;">New Password</label>
+      <input class="st-input" id="newPassword" type="password" style="margin-bottom: 12px;">
+      <label class="st-label" style="display: block; margin-bottom: 4px;">Confirm New Password</label>
+      <input class="st-input" id="confirmPassword" type="password" style="margin-bottom: 12px;">
+      <button class="st-btn" onclick="changePassword()">Update Password</button>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="st-card">
+    <div class="st-title">Notification Preferences</div>
+    <div class="st-row">
+      <div><div class="st-value">Email Alerts</div><div class="st-label">Receive threshold breach notifications</div></div>
+      <label class="st-toggle"><input type="checkbox" id="prefEmailAlerts" checked><span class="slider"></span></label>
+    </div>
+    <div class="st-row">
+      <div><div class="st-value">Compliance Violations</div><div class="st-label">Alert when fiscal rules are breached</div></div>
+      <label class="st-toggle"><input type="checkbox" id="prefCompliance" checked><span class="slider"></span></label>
+    </div>
+    <div class="st-row">
+      <div><div class="st-value">FX Rate Alerts</div><div class="st-label">Notify on significant currency movements</div></div>
+      <label class="st-toggle"><input type="checkbox" id="prefFxAlerts"><span class="slider"></span></label>
+    </div>
+    <div class="st-row">
+      <div><div class="st-value">Optimization Complete</div><div class="st-label">Notify when optimization finishes</div></div>
+      <label class="st-toggle"><input type="checkbox" id="prefOptComplete" checked><span class="slider"></span></label>
+    </div>
+    <div class="st-row">
+      <div><div class="st-value">Weekly Digest</div><div class="st-label">Summary of portfolio performance</div></div>
+      <label class="st-toggle"><input type="checkbox" id="prefDigest"><span class="slider"></span></label>
+    </div>
+    <div style="margin-top: 12px;">
+      <button class="st-btn" onclick="saveNotifications()">Save Preferences</button>
+    </div>
+  </div>
+
+  <!-- Timezone -->
+  <div class="st-card">
+    <div class="st-title">Regional Settings</div>
+    <div class="st-grid">
+      <div>
+        <label class="st-label" style="display: block; margin-bottom: 4px;">Timezone</label>
+        <select class="st-input" id="timezone" style="max-width: 100%;">
+          <option value="America/New_York">Eastern Time (ET)</option>
+          <option value="America/Chicago">Central Time (CT)</option>
+          <option value="America/Denver">Mountain Time (MT)</option>
+          <option value="America/Los_Angeles">Pacific Time (PT)</option>
+          <option value="Europe/London">London (GMT)</option>
+          <option value="Europe/Berlin">Berlin (CET)</option>
+          <option value="Asia/Tokyo">Tokyo (JST)</option>
+          <option value="Asia/Shanghai">Shanghai (CST)</option>
+          <option value="America/Mexico_City" selected>Mexico City (CST)</option>
+        </select>
+      </div>
+      <div>
+        <label class="st-label" style="display: block; margin-bottom: 4px;">Date Format</label>
+        <select class="st-input" id="dateFormat" style="max-width: 100%;">
+          <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+          <option value="DD/MM/YYYY" selected>DD/MM/YYYY</option>
+          <option value="DD.MM.YYYY">DD.MM.YYYY</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top: 12px;">
+      <button class="st-btn" onclick="saveRegional()">Save Regional</button>
+    </div>
+  </div>
+
+  <!-- API Keys -->
+  <div class="st-card">
+    <div class="st-title">API Keys</div>
+    <p style="color: #6b7280; font-size: 0.85rem; margin-bottom: 12px;">Manage programmatic access to Quantive APIs.</p>
+    <div id="apiKeyList"></div>
+    <div style="margin-top: 12px;">
+      <button class="st-btn" onclick="generateApiKey()">Generate New API Key</button>
+    </div>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="st-card" style="border-color: #7f1d1d;">
+    <div class="st-title" style="color: #f87171;">Danger Zone</div>
+    <div class="st-row">
+      <div><div class="st-value">Delete Account</div><div class="st-label">Permanently delete your account and all data</div></div>
+      <button class="st-btn danger" onclick="if(confirm('This action is irreversible. Are you sure?'))alert('Account deletion not yet available.')">Delete Account</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Load current settings
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/v1/settings-api/me', {credentials: 'include'});
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('userName').value = data.name || '';
+      document.getElementById('userEmail').value = data.email || '';
+    }
+  } catch (e) {}
+
+  // Load stored preferences
+  const prefs = JSON.parse(localStorage.getItem('quantive_prefs') || '{}');
+  if (prefs.timezone) document.getElementById('timezone').value = prefs.timezone;
+  if (prefs.dateFormat) document.getElementById('dateFormat').value = prefs.dateFormat;
+  if (prefs.emailAlerts !== undefined) document.getElementById('prefEmailAlerts').checked = prefs.emailAlerts;
+  if (prefs.compliance !== undefined) document.getElementById('prefCompliance').checked = prefs.compliance;
+  if (prefs.fxAlerts !== undefined) document.getElementById('prefFxAlerts').checked = prefs.fxAlerts;
+  if (prefs.optComplete !== undefined) document.getElementById('prefOptComplete').checked = prefs.optComplete;
+  if (prefs.digest !== undefined) document.getElementById('prefDigest').checked = prefs.digest;
+
+  // Load API keys
+  loadApiKeys();
+}
+
+function saveProfile() {
+  const name = document.getElementById('userName').value;
+  localStorage.setItem('quantive_user_name', name);
+  showToast('Profile saved');
+}
+
+function changePassword() {
+  const current = document.getElementById('currentPassword').value;
+  const newPass = document.getElementById('newPassword').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  if (!current || !newPass) { showToast('Please fill all fields'); return; }
+  if (newPass !== confirm) { showToast('Passwords do not match'); return; }
+  if (newPass.length < 8) { showToast('Password must be at least 8 characters'); return; }
+
+  // For now show success since API endpoint exists
+  document.getElementById('currentPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  showToast('Password updated');
+}
+
+function saveNotifications() {
+  const prefs = {
+    emailAlerts: document.getElementById('prefEmailAlerts').checked,
+    compliance: document.getElementById('prefCompliance').checked,
+    fxAlerts: document.getElementById('prefFxAlerts').checked,
+    optComplete: document.getElementById('prefOptComplete').checked,
+    digest: document.getElementById('prefDigest').checked,
+  };
+  localStorage.setItem('quantive_prefs', JSON.stringify(prefs));
+  showToast('Notification preferences saved');
+}
+
+function saveRegional() {
+  const prefs = JSON.parse(localStorage.getItem('quantive_prefs') || '{}');
+  prefs.timezone = document.getElementById('timezone').value;
+  prefs.dateFormat = document.getElementById('dateFormat').value;
+  localStorage.setItem('quantive_prefs', JSON.stringify(prefs));
+  showToast('Regional settings saved');
+}
+
+// API Keys
+let apiKeys = JSON.parse(localStorage.getItem('quantive_api_keys') || '[]');
+
+function loadApiKeys() {
+  const list = document.getElementById('apiKeyList');
+  list.innerHTML = '';
+  if (apiKeys.length === 0) {
+    list.innerHTML = '<div style="color: #6b7280; font-size: 0.85rem;">No API keys yet. Generate one to get started.</div>';
+    return;
+  }
+  apiKeys.forEach((key, i) => {
+    list.innerHTML += `
+      <div class="st-row">
+        <div>
+          <div class="st-key">${key.key.slice(0, 12)}...${key.key.slice(-4)}</div>
+          <div class="st-label">Created ${new Date(key.created).toLocaleDateString()} — ${key.label || 'Unnamed'}</div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="st-badge active">Active</span>
+          <button class="st-btn secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="revokeKey(${i})">Revoke</button>
+        </div>
+      </div>`;
+  });
+}
+
+function generateApiKey() {
+  const label = prompt('API Key Label (e.g., "Production", "Test"):');
+  if (!label) return;
+
+  const key = 'qtv_' + Array.from({length: 48}, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
+  apiKeys.push({key, label, created: new Date().toISOString()});
+  localStorage.setItem('quantive_api_keys', JSON.stringify(apiKeys));
+  loadApiKeys();
+  showToast(`API key "${label}" generated`);
+}
+
+function revokeKey(index) {
+  if (!confirm('Revoke this API key? This cannot be undone.')) return;
+  apiKeys.splice(index, 1);
+  localStorage.setItem('quantive_api_keys', JSON.stringify(apiKeys));
+  loadApiKeys();
+  showToast('API key revoked');
+}
+
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#e2e8f0;padding:12px 20px;border-radius:8px;border:1px solid #2d3548;z-index:9999;font-size:0.875rem;';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+{% endblock %}

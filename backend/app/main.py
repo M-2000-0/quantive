@@ -710,6 +710,11 @@ async def settings_page(request: Request):
     return templates.TemplateResponse("pages/settings.html", {"request": request, "active_page": "settings", **page_ctx()})
 
 
+@app.get("/user-settings", response_class=HTMLResponse)
+async def user_settings_page(request: Request):
+    return templates.TemplateResponse("pages/user-settings.html", {"request": request, "active_page": "settings", **page_ctx()})
+
+
 @app.get("/system-status", response_class=HTMLResponse)
 async def system_status_page(request: Request):
     return templates.TemplateResponse("pages/system-status.html", {"request": request, "active_page": "settings", **page_ctx()})
@@ -735,6 +740,11 @@ async def pricing_page(request: Request):
 @app.get("/onboarding", response_class=HTMLResponse)
 async def onboarding_page(request: Request):
     return templates.TemplateResponse("pages/onboarding.html", {"request": request, **page_ctx()})
+
+
+@app.get("/onboarding-wizard", response_class=HTMLResponse)
+async def onboarding_wizard_page(request: Request):
+    return templates.TemplateResponse("pages/onboarding-wizard.html", {"request": request, **page_ctx()})
 
 
 @app.get("/savings", response_class=HTMLResponse)
