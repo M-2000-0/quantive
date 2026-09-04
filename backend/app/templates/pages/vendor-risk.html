@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Vendor Risk — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:24px;">
+  <h1 style="font-size:1.5rem;font-weight:600;color:#e2e8f0;margin-bottom:24px;">Vendor Risk Management</h1>
+  <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:24px;">
+    <h2 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;">Data Provider Assessment</h2>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">Provider</th><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">Type</th><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">Risk Level</th><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">Status</th></tr></thead>
+      <tbody>
+        <tr><td style="padding:8px;color:#e2e8f0;border-bottom:1px solid #1f2937;">US Treasury</td><td style="padding:8px;color:#9ca3af;border-bottom:1px solid #1f2937;">Yield Curve</td><td style="padding:8px;border-bottom:1px solid #1f2937;"><span style="color:#34d399;font-weight:600;">LOW</span></td><td style="padding:8px;color:#34d399;border-bottom:1px solid #1f2937;">Active</td></tr>
+        <tr><td style="padding:8px;color:#e2e8f0;border-bottom:1px solid #1f2937;">ECB</td><td style="padding:8px;color:#9ca3af;border-bottom:1px solid #1f2937;">FX Rates</td><td style="padding:8px;border-bottom:1px solid #1f2937;"><span style="color:#34d399;font-weight:600;">LOW</span></td><td style="padding:8px;color:#34d399;border-bottom:1px solid #1f2937;">Active</td></tr>
+        <tr><td style="padding:8px;color:#e2e8f0;border-bottom:1px solid #1f2937;">World Bank</td><td style="padding:8px;color:#9ca3af;border-bottom:1px solid #1f2937;">Economic Data</td><td style="padding:8px;border-bottom:1px solid #1f2937;"><span style="color:#fbbf24;font-weight:600;">MEDIUM</span></td><td style="padding:8px;color:#34d399;border-bottom:1px solid #1f2937;">Active</td></tr>
+        <tr><td style="padding:8px;color:#e2e8f0;border-bottom:1px solid #1f2937;">CoinGecko</td><td style="padding:8px;color:#9ca3af;border-bottom:1px solid #1f2937;">Crypto Prices</td><td style="padding:8px;border-bottom:1px solid #1f2937;"><span style="color:#fbbf24;font-weight:600;">MEDIUM</span></td><td style="padding:8px;color:#34d399;border-bottom:1px solid #1f2937;">Active</td></tr>
+        <tr><td style="padding:8px;color:#e2e8f0;border-bottom:1px solid #1f2937;">FRED</td><td style="padding:8px;color:#9ca3af;border-bottom:1px solid #1f2937;">Historical Series</td><td style="padding:8px;border-bottom:1px solid #1f2937;"><span style="color:#fbbf24;font-weight:600;">MEDIUM</span></td><td style="padding:8px;color:#fbbf24;border-bottom:1px solid #1f2937;">Needs API Key</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

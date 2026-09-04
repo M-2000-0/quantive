@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}New Optimization — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:800px;margin:0 auto;padding:24px;">
+  <h1 style="font-size:1.5rem;font-weight:600;color:#e2e8f0;margin-bottom:24px;">Run New Optimization</h1>
+  <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:24px;margin-bottom:16px;">
+    <h2 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:16px;">Configuration</h2>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;color:#9ca3af;font-size:0.75rem;margin-bottom:4px;">Portfolio</label>
+      <select id="portfolioSelect" style="background:#111827;color:#e2e8f0;border:1px solid #374151;border-radius:8px;padding:8px 12px;width:100%;font-size:0.875rem;">
+        <option>Loading portfolios...</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div>
+        <label style="display:block;color:#9ca3af;font-size:0.75rem;margin-bottom:4px;">Objective</label>
+        <select style="background:#111827;color:#e2e8f0;border:1px solid #374151;border-radius:8px;padding:8px 12px;width:100%;font-size:0.875rem;">
+          <option>Minimize Interest Cost</option>
+          <option>Maximize Duration</option>
+          <option>Minimize Risk (VaR)</option>
+          <option>Balance Cost & Risk</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;color:#9ca3af;font-size:0.75rem;margin-bottom:4px;">Solver</label>
+        <select style="background:#111827;color:#e2e8f0;border:1px solid #374151;border-radius:8px;padding:8px 12px;width:100%;font-size:0.875rem;">
+          <option>Quantum QAOA</option>
+          <option>Classical (PuLP)</option>
+          <option>Hybrid</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="runOptimization()" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-weight:600;cursor:pointer;width:100%;">Run Optimization</button>
+  </div>
+  <div id="resultArea" style="display:none;background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:24px;">
+    <h2 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;">Results</h2>
+    <div id="resultContent"></div>
+  </div>
+</div>
+<script>
+async function loadPortfolios() {
+  try {
+    const res = await fetch('/api/v1/portfolios/list', {credentials:'include'});
+    const data = await res.json();
+    const sel = document.getElementById('portfolioSelect');
+    sel.innerHTML = (data.portfolios||[]).map(p => `<option value="${p.id}">${p.name}</option>`).join('') || '<option>No portfolios</option>';
+  } catch(e) { document.getElementById('portfolioSelect').innerHTML = '<option>Error loading</option>'; }
+}
+async function runOptimization() {
+  const id = document.getElementById('portfolioSelect').value;
+  document.getElementById('resultArea').style.display = 'block';
+  document.getElementById('resultContent').innerHTML = '<div style="color:#6b7280;">Running optimization...</div>';
+  try {
+    const res = await fetch('/api/v1/optimize/run', {method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({portfolio_id:id})});
+    const data = await res.json();
+    document.getElementById('resultContent').innerHTML = `<div style="color:#34d399;font-weight:600;">Optimization complete</div><pre style="color:#9ca3af;font-size:0.8rem;margin-top:8px;white-space:pre-wrap;">${JSON.stringify(data,null,2)}</pre>`;
+  } catch(e) { document.getElementById('resultContent').innerHTML = `<div style="color:#f87171;">Error: ${e.message}</div>`; }
+}
+loadPortfolios();
+</script>
+{% endblock %}

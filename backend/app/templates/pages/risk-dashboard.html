@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Risk Dashboard — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:24px;">
+  <h1 style="font-size:1.5rem;font-weight:600;color:#e2e8f0;margin-bottom:24px;">Risk Dashboard</h1>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:24px;">
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;"><div style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;">Value at Risk (95%)</div><div id="var95" style="font-size:2rem;font-weight:700;color:#f87171;margin-top:4px;">Loading...</div></div>
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;"><div style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;">Conditional VaR</div><div id="cvar" style="font-size:2rem;font-weight:700;color:#fbbf24;margin-top:4px;">Loading...</div></div>
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;"><div style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;">Sharpe Ratio</div><div id="sharpe" style="font-size:2rem;font-weight:700;color:#34d399;margin-top:4px;">Loading...</div></div>
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;"><div style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;">Max Drawdown</div><div id="mdd" style="font-size:2rem;font-weight:700;color:#f87171;margin-top:4px;">Loading...</div></div>
+  </div>
+  <div id="riskContent" style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:24px;color:#6b7280;">Loading risk data...</div>
+</div>
+<script>
+async function loadRisk() {
+  try {
+    const res = await fetch('/api/v1/risk/portfolio', {credentials:'include'});
+    const data = await res.json();
+    document.getElementById('var95').textContent = data.var_95 ? `$${(data.var_95/1e6).toFixed(1)}M` : 'N/A';
+    document.getElementById('cvar').textContent = data.cvar ? `$${(data.cvar/1e6).toFixed(1)}M` : 'N/A';
+    document.getElementById('sharpe').textContent = data.sharpe_ratio || 'N/A';
+    document.getElementById('mdd').textContent = data.max_drawdown ? `${data.max_drawdown}%` : 'N/A';
+    document.getElementById('riskContent').innerHTML = `<pre style="color:#e2e8f0;font-size:0.8rem;white-space:pre-wrap;">${JSON.stringify(data,null,2)}</pre>`;
+  } catch(e) { document.getElementById('riskContent').textContent = 'Error loading risk data'; }
+}
+loadRisk();
+</script>
+{% endblock %}

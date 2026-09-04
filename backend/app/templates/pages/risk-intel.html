@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Risk Intelligence — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:24px;">
+  <h1 style="font-size:1.5rem;font-weight:600;color:#e2e8f0;margin-bottom:24px;">Risk Intelligence</h1>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;">
+      <h2 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;">Threat Landscape</h2>
+      <div id="threats" style="color:#6b7280;">Loading...</div>
+    </div>
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;">
+      <h2 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;">Market Signals</h2>
+      <div id="signals" style="color:#6b7280;">Loading...</div>
+    </div>
+  </div>
+</div>
+<script>
+async function load() {
+  try {
+    const [t,s] = await Promise.all([
+      fetch('/api/v1/risk-intel/threats',{credentials:'include'}).then(r=>r.json()).catch(()=>({})),
+      fetch('/api/v1/risk-intel/signals',{credentials:'include'}).then(r=>r.json()).catch(()=>({}))
+    ]);
+    document.getElementById('threats').innerHTML = `<pre style="color:#e2e8f0;font-size:0.8rem;white-space:pre-wrap;">${JSON.stringify(t,null,2)}</pre>`;
+    document.getElementById('signals').innerHTML = `<pre style="color:#e2e8f0;font-size:0.8rem;white-space:pre-wrap;">${JSON.stringify(s,null,2)}</pre>`;
+  } catch(e) { document.querySelectorAll('div').forEach(d=>{if(d.textContent==='Loading...')d.textContent='Error';}); }
+}
+load();
+</script>
+{% endblock %}

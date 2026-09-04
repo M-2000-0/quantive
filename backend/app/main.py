@@ -672,6 +672,26 @@ async def audit_page(request: Request):
     return templates.TemplateResponse("pages/immutable-audit.html", {"request": request, "active_page": "audit", **page_ctx()})
 
 
+@app.get("/audit-trail", response_class=HTMLResponse)
+async def audit_trail_page(request: Request):
+    return templates.TemplateResponse("pages/audit-trail.html", {"request": request, "active_page": "audit", **page_ctx()})
+
+
+@app.get("/circuit-designer", response_class=HTMLResponse)
+async def circuit_designer_page(request: Request):
+    return templates.TemplateResponse("pages/circuit-designer.html", {"request": request, "active_page": "copilot", **page_ctx()})
+
+
+@app.get("/error-correction", response_class=HTMLResponse)
+async def error_correction_page(request: Request):
+    return templates.TemplateResponse("pages/error-correction.html", {"request": request, "active_page": "copilot", **page_ctx()})
+
+
+@app.get("/quantum-simulator", response_class=HTMLResponse)
+async def quantum_simulator_page(request: Request):
+    return templates.TemplateResponse("pages/quantum-simulator.html", {"request": request, "active_page": "copilot", **page_ctx()})
+
+
 @app.get("/decision-history", response_class=HTMLResponse)
 async def decision_history_page(request: Request):
     return templates.TemplateResponse("pages/decision-history.html", {"request": request, "active_page": "approvals", **page_ctx()})

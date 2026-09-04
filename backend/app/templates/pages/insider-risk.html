@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Insider Risk — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:24px;">
+  <h1 style="font-size:1.5rem;font-weight:600;color:#e2e8f0;margin-bottom:24px;">Insider Risk Monitoring</h1>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px;">
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;">
+      <div style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Suspicious Activities</div>
+      <div style="font-size:2rem;font-weight:700;color:#f87171;">3</div>
+      <div style="font-size:0.8rem;color:#fbbf24;margin-top:4px;">Requires review</div>
+    </div>
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;">
+      <div style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Unusual Access Patterns</div>
+      <div style="font-size:2rem;font-weight:700;color:#fbbf24;">7</div>
+      <div style="font-size:0.8rem;color:#6b7280;margin-top:4px;">Last 30 days</div>
+    </div>
+    <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;">
+      <div style="font-size:0.75rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Risk Score</div>
+      <div style="font-size:2rem;font-weight:700;color:#34d399;">LOW</div>
+      <div style="font-size:0.8rem;color:#6b7280;margin-top:4px;">No critical threats</div>
+    </div>
+  </div>
+  <div style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:20px;">
+    <h2 style="font-size:1rem;font-weight:600;color:#e2e8f0;margin-bottom:12px;">Recent Activity</h2>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">Time</th><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">User</th><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">Action</th><th style="text-align:left;padding:8px;color:#9ca3af;font-size:0.75rem;border-bottom:1px solid #2d3548;">Risk Level</th></tr></thead>
+      <tbody id="activityBody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const activities = [
+  {time:'2 min ago',user:'analyst@quantive.app',action:'Exported full portfolio data',risk:'medium'},
+  {time:'15 min ago',user:'admin@quantive.com',action:'Modified compliance rules',risk:'low'},
+  {time:'1 hr ago',user:'demo@quantive.gov',action:'Attempted access to restricted endpoint',risk:'high'},
+  {time:'3 hr ago',user:'analyst@quantive.app',action:'Downloaded case study report',risk:'low'},
+  {time:'1 day ago',user:'admin@quantive.com',action:'Created new API key',risk:'low'},
+];
+const colors = {high:'#f87171',medium:'#fbbf24',low:'#34d399'};
+document.getElementById('activityBody').innerHTML = activities.map(a => `<tr><td style="padding:8px;color:#9ca3af;border-bottom:1px solid #1f2937;">${a.time}</td><td style="padding:8px;color:#e2e8f0;border-bottom:1px solid #1f2937;">${a.user}</td><td style="padding:8px;color:#e2e8f0;border-bottom:1px solid #1f2937;">${a.action}</td><td style="padding:8px;border-bottom:1px solid #1f2937;"><span style="color:${colors[a.risk]};font-weight:600;text-transform:uppercase;font-size:0.75rem;">${a.risk}</span></td></tr>`).join('');
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Risk Radar — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1200px;margin:0 auto;padding:24px;">
+  <h1 style="font-size:1.5rem;font-weight:600;color:#e2e8f0;margin-bottom:24px;">Risk Radar</h1>
+  <div id="radarContent" style="background:#1a1f2e;border:1px solid #2d3548;border-radius:12px;padding:24px;text-align:center;">
+    <svg width="300" height="300" viewBox="0 0 300 300" style="margin:0 auto;">
+      <circle cx="150" cy="150" r="120" fill="none" stroke="#2d3548" stroke-width="1"/>
+      <circle cx="150" cy="150" r="90" fill="none" stroke="#2d3548" stroke-width="1"/>
+      <circle cx="150" cy="150" r="60" fill="none" stroke="#2d3548" stroke-width="1"/>
+      <circle cx="150" cy="150" r="30" fill="none" stroke="#2d3548" stroke-width="1"/>
+      <line x1="150" y1="30" x2="150" y2="270" stroke="#2d3548" stroke-width="1"/>
+      <line x1="30" y1="150" x2="270" y2="150" stroke="#2d3548" stroke-width="1"/>
+      <line x1="65" y1="65" x2="235" y2="235" stroke="#2d3548" stroke-width="1"/>
+      <line x1="235" y1="65" x2="65" y2="235" stroke="#2d3548" stroke-width="1"/>
+      <polygon points="150,60 210,110 210,190 150,240 90,190 90,110" fill="rgba(37,99,235,0.1)" stroke="#2563eb" stroke-width="2"/>
+      <text x="150" y="25" text-anchor="middle" fill="#9ca3af" font-size="10">Credit</text>
+      <text x="280" y="155" text-anchor="middle" fill="#9ca3af" font-size="10">Liquidity</text>
+      <text x="150" y="290" text-anchor="middle" fill="#9ca3af" font-size="10">Market</text>
+      <text x="20" y="155" text-anchor="middle" fill="#9ca3af" font-size="10">Operational</text>
+    </svg>
+    <p style="color:#6b7280;font-size:0.85rem;margin-top:16px;">Risk radar visualization — connect portfolio data for live risk scores</p>
+  </div>
+</div>
+{% endblock %}
