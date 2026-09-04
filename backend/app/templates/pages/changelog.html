@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Changelog — Quantive{% endblock %}
+{% block content %}
+<style>
+  .cl-container { max-width: 800px; margin: 0 auto; padding: 24px; }
+  .cl-header { margin-bottom: 32px; }
+  .cl-header h1 { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; }
+  .cl-header p { color: #6b7280; font-size: 0.9rem; }
+  .cl-version { position: relative; padding-left: 24px; margin-bottom: 40px; }
+  .cl-version::before { content: ""; position: absolute; left: 6px; top: 8px; bottom: -40px; width: 1px; background: #2d3548; }
+  .cl-version:last-child::before { display: none; }
+  .cl-dot { position: absolute; left: 0; top: 6px; width: 13px; height: 13px; border-radius: 50%; border: 2px solid #2563eb; background: #000; }
+  .cl-version.major .cl-dot { background: #2563eb; border-color: #2563eb; }
+  .cl-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .cl-tag { background: #2563eb; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; }
+  .cl-tag.minor { background: #374151; }
+  .cl-tag.patch { background: #1f2937; color: #9ca3af; }
+  .cl-date { color: #6b7280; font-size: 0.8rem; }
+  .cl-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
+  .cl-items { list-style: none; padding: 0; }
+  .cl-items li { padding: 4px 0; color: #9ca3af; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 8px; }
+  .cl-items li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+  .cl-items li.added::before { background: #34d399; }
+  .cl-items li.fixed::before { background: #60a5fa; }
+  .cl-items li.improved::before { background: #fbbf24; }
+  .cl-items li.security::before { background: #f87171; }
+  .cl-badge { display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 1px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .cl-badge.added { background: #064e3b; color: #34d399; }
+  .cl-badge.fixed { background: #1e3a5f; color: #60a5fa; }
+  .cl-badge.improved { background: #78350f; color: #fbbf24; }
+  .cl-badge.security { background: #7f1d1d; color: #f87171; }
+</style>
+
+<div class="cl-container">
+  <div class="cl-header">
+    <h1>Changelog</h1>
+    <p>What's new in Quantive — version history and feature updates.</p>
+  </div>
+
+  <!-- v1.1.0 -->
+  <div class="cl-version major">
+    <div class="cl-dot"></div>
+    <div class="cl-meta">
+      <span class="cl-tag">v1.1.0</span>
+      <span class="cl-date">September 4, 2026</span>
+    </div>
+    <div class="cl-title">Enterprise Analytics Suite</div>
+    <ul class="cl-items">
+      <li class="added"><span class="cl-badge added">Added</span> Sovereign debt backtesting engine with Monte Carlo simulation and 4 strategies (hold, ladder, min_cost, max_duration)</li>
+      <li class="added"><span class="cl-badge added">Added</span> Regulatory compliance checker with 8 fiscal rules (Debt-to-GDP, floating rate, currency concentration, maturity, short-term, callable)</li>
+      <li class="added"><span class="cl-badge added">Added</span> FX hedging recommendation engine with currency exposure analysis and instrument selection</li>
+      <li class="added"><span class="cl-badge added">Added</span> User settings page with password change, timezone, notification preferences, and API key management</li>
+      <li class="added"><span class="cl-badge added">Added</span> PDF export for portfolio and compliance reports with print-to-PDF</li>
+      <li class="added"><span class="cl-badge added">Added</span> Excel export with multi-sheet workbook (instruments, currency breakdown, metadata)</li>
+      <li class="added"><span class="cl-badge added">Added</span> Onboarding wizard guiding new users through first 5 steps</li>
+      <li class="added"><span class="cl-badge added">Added</span> Mobile-responsive design with hamburger menu and touch-friendly tap targets</li>
+      <li class="added"><span class="cl-badge added">Added</span> Maturity ladder optimizer with wall detection and tenor recommendations</li>
+      <li class="added"><span class="cl-badge added">Added</span> Portfolio versioning with snapshot and diff comparison</li>
+      <li class="added"><span class="cl-badge added">Added</span> Automated alert engine for drift, maturity walls, and rate windows</li>
+      <li class="added"><span class="cl-badge added">Added</span> Behavioral metrics tracking for user activity analytics</li>
+      <li class="fixed"><span class="cl-badge fixed">Fixed</span> Module import paths (app.models.debt_instruments → app.models)</li>
+      <li class="fixed"><span class="cl-badge fixed">Fixed</span> Date handling for string dates in compliance and backtest APIs</li>
+      <li class="fixed"><span class="cl-badge fixed">Fixed</span> Router prefix duplication causing 404/405 errors</li>
+      <li class="security"><span class="cl-badge security">Security</span> Cookie-based authentication alignment across all new endpoints</li>
+    </ul>
+  </div>
+
+  <!-- v1.0.0 -->
+  <div class="cl-version major">
+    <div class="cl-dot"></div>
+    <div class="cl-meta">
+      <span class="cl-tag">v1.0.0</span>
+      <span class="cl-date">August 31, 2026</span>
+    </div>
+    <div class="cl-title">Initial Production Release</div>
+    <ul class="cl-items">
+      <li class="added"><span class="cl-badge added">Added</span> Core debt portfolio optimization with quantum QUBO solver</li>
+      <li class="added"><span class="cl-badge added">Added</span> Real-time yield curve data from US Treasury and ECB</li>
+      <li class="added"><span class="cl-badge added">Added</span> AI policy briefing generation with structured recommendations</li>
+      <li class="added"><span class="cl-badge added">Added</span> Monte Carlo stress testing with 10,000 simulation paths</li>
+      <li class="added"><span class="cl-badge added">Added</span> Portfolio management with creation wizard and CSV import</li>
+      <li class="added"><span class="cl-badge added">Added</span> Rebalancing engine with drift analysis and trade recommendations</li>
+      <li class="added"><span class="cl-badge added">Added</span> Dashboard with live market strip, risk profile, and maturity charts</li>
+      <li class="added"><span class="cl-badge added">Added</span> Market intelligence database with 3,135 product launches across 39 industries</li>
+      <li class="added"><span class="cl-badge added">Added</span> FinTech competitor tracker with threat scoring</li>
+      <li class="added"><span class="cl-badge added">Added</span> Crypto and commodity tracking with live CoinGecko prices</li>
+      <li class="added"><span class="cl-badge added">Added</span> Maker-checker approval workflow with Four-Eyes principle</li>
+      <li class="added"><span class="cl-badge added">Added</span> MFA enforcement with TOTP verification</li>
+      <li class="added"><span class="cl-badge added">Added</span> SOC 2 readiness checklist with 38 controls assessed</li>
+      <li class="added"><span class="cl-badge added">Added</span> Immutable audit logging with cryptographic hash chain</li>
+      <li class="added"><span class="cl-badge added">Added</span> 3 case studies (Mexico, USD Treasury, UK Gilts) from real portfolio data</li>
+      <li class="added"><span class="cl-badge added">Added</span> Dark premium UI with silver/white accents</li>
+    </ul>
+  </div>
+
+  <!-- Roadmap -->
+  <div class="cl-version">
+    <div class="cl-dot" style="border-color: #374151; background: transparent;"></div>
+    <div class="cl-meta">
+      <span class="cl-tag minor">Roadmap</span>
+      <span class="cl-date">Coming Soon</span>
+    </div>
+    <div class="cl-title">Planned Features</div>
+    <ul class="cl-items">
+      <li class="improved"><span class="cl-badge improved">Planned</span> Real-time WebSocket price streaming for live market updates</li>
+      <li class="improved"><span class="cl-badge improved">Planned</span> Email notifications for threshold breaches and compliance violations</li>
+      <li class="improved"><span class="cl-badge improved">Planned</span> SSO integration for government identity providers (SAML/OIDC)</li>
+      <li class="improved"><span class="cl-badge improved">Planned</span> Portfolio comparison with before/after dollar deltas</li>
+      <li class="improved"><span class="cl-badge improved">Planned</span> Offline mode with data sync for air-gapped environments</li>
+      <li class="improved"><span class="cl-badge improved">Planned</span> Multi-language support (Spanish, French, Portuguese)</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

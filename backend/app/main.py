@@ -747,6 +747,11 @@ async def onboarding_wizard_page(request: Request):
     return templates.TemplateResponse("pages/onboarding-wizard.html", {"request": request, **page_ctx()})
 
 
+@app.get("/changelog", response_class=HTMLResponse)
+async def changelog_page(request: Request):
+    return templates.TemplateResponse("pages/changelog.html", {"request": request, "active_page": "changelog", **page_ctx()})
+
+
 @app.get("/savings", response_class=HTMLResponse)
 async def savings_page(request: Request):
     return templates.TemplateResponse("pages/dashboard.html", {
