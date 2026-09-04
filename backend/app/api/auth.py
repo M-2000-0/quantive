@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -42,10 +42,25 @@ def _check_lockout(email: str):
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
-def register(data: UserCreate, request: Request, db: Session = Depends(get_db)):
+def register(data: UserCreate, request: Request, response: Response, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == data.email.lower().strip()).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
+
+    # Password policy enforcement
+    import re
+    pw = data.password
+    errors = []
+    if len(pw) < 8:
+        errors.append("at least 8 characters")
+    if not re.search(r'[A-Z]', pw):
+        errors.append("at least one uppercase letter")
+    if not re.search(r'[a-z]', pw):
+        errors.append("at least one lowercase letter")
+    if not re.search(r'[0-9]', pw):
+        errors.append("at least one digit")
+    if errors:
+        raise HTTPException(status_code=400, detail=f"Password must have: {', '.join(errors)}")
 
     org = Organization(name=data.org_name or f"{data.name}'s Organization")
     db.add(org)
@@ -68,15 +83,19 @@ def register(data: UserCreate, request: Request, db: Session = Depends(get_db)):
     access = create_access_token({"sub": user.id, "org_id": user.org_id, "role": user.role})
     refresh = create_refresh_token({"sub": user.id})
 
-    return TokenResponse(
+    resp = TokenResponse(
         access_token=access,
         refresh_token=refresh,
         user=UserResponse.model_validate(user),
     )
+    # SECURITY: Set tokens as httpOnly cookies (not accessible via JavaScript)
+    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="strict", max_age=1800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="strict", max_age=604800)
+    return resp
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
+def login(data: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     email = data.email.lower().strip()
     _check_lockout(email)
 
@@ -100,11 +119,15 @@ def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
     access = create_access_token({"sub": user.id, "org_id": user.org_id, "role": user.role})
     refresh = create_refresh_token({"sub": user.id})
 
-    return TokenResponse(
+    resp = TokenResponse(
         access_token=access,
         refresh_token=refresh,
         user=UserResponse.model_validate(user),
     )
+    # SECURITY: Set tokens as httpOnly cookies (not accessible via JavaScript)
+    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="strict", max_age=1800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="strict", max_age=604800)
+    return resp
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -163,6 +186,21 @@ def update_me(data: UserUpdate, user: User = Depends(get_current_user), db: Sess
 def change_password(data: PasswordChange, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not verify_password(data.current_password, user.password_hash):
         raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    # Password policy enforcement
+    import re
+    pw = data.new_password
+    errors = []
+    if len(pw) < 8:
+        errors.append("at least 8 characters")
+    if not re.search(r'[A-Z]', pw):
+        errors.append("at least one uppercase letter")
+    if not re.search(r'[a-z]', pw):
+        errors.append("at least one lowercase letter")
+    if not re.search(r'[0-9]', pw):
+        errors.append("at least one digit")
+    if errors:
+        raise HTTPException(status_code=400, detail=f"Password must have: {', '.join(errors)}")
 
     user.password_hash = hash_password(data.new_password)
     db.commit()

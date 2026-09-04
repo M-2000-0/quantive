@@ -178,7 +178,7 @@ def generate_qr_code_base64(uri: str, size: int = 200) -> str:
 def _generate_text_qr(uri: str) -> str:
     """Generate a minimal text-based QR code representation (fallback)."""
     import hashlib as hl
-    h = hl.md5(uri.encode()).hexdigest()[:16]
+    h = hl.sha256(uri.encode()).hexdigest()[:16]
     return f"QR_CODE_HASH:{h}"
 
 

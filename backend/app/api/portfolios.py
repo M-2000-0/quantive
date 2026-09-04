@@ -396,3 +396,56 @@ async def upload_portfolio(
     log_audit_event(db, user, "portfolio.uploaded", "portfolio", portfolio.id,
                     metadata={"filename": file.filename, "instrument_count": len(portfolio.instruments)})
     return PortfolioResponse.model_validate(portfolio)
+
+
+@router.post("/quick-upload", status_code=201)
+def quick_upload_portfolio(
+    body: dict,
+    user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
+    db: Session = Depends(get_db),
+):
+    """Quick portfolio upload via JSON POST body.
+
+    Expects:
+      {"name": "My Portfolio", "instruments": [{...}]
+    """
+    name = body.get("name", "Quick Upload Portfolio")
+    instruments = body.get("instruments", [])
+
+    portfolio = Portfolio(
+        name=name.strip(),
+        description=body.get("description", "Uploaded via quick upload"),
+        org_id=user.org_id,
+        created_by=user.id,
+    )
+    db.add(portfolio)
+    db.flush()
+
+    for inst_data in instruments:
+        try:
+            instrument = DebtInstrument(
+                portfolio_id=portfolio.id,
+                name=str(inst_data.get("name", "Unknown")).strip()[:255],
+                instrument_type=inst_data.get("instrument_type", "treasury_bond"),
+                currency=str(inst_data.get("currency", "USD")).upper()[:3],
+                principal_outstanding=float(inst_data.get("principal_outstanding", 0)),
+                coupon_rate=float(inst_data.get("coupon_rate", 0)),
+                maturity_date=str(inst_data.get("maturity_date", "2030-01-01")),
+                issue_date=str(inst_data.get("issue_date", "2020-01-01")),
+                is_callable=bool(inst_data.get("is_callable", False)),
+                call_date=inst_data.get("call_date"),
+                call_price=float(inst_data["call_price"]) if inst_data.get("call_price") else None,
+                spread_bps=float(inst_data.get("spread_bps", 0)),
+            )
+            if instrument.principal_outstanding <= 0:
+                continue
+            db.add(instrument)
+        except (ValueError, TypeError, KeyError):
+            continue
+
+    db.commit()
+    db.refresh(portfolio)
+
+    log_audit_event(db, user, "portfolio.quick_upload", "portfolio", portfolio.id,
+                    metadata={"instrument_count": len(portfolio.instruments)})
+    return PortfolioResponse.model_validate(portfolio)

@@ -26,7 +26,7 @@ class EmailTemplate:
 TEMPLATES = {
     "optimization_complete": EmailTemplate(
         name="Optimization Complete",
-        subject="✅ Optimization Complete: {job_name}",
+        subject="Optimization Complete: {job_name}",
         body_html="""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #1e40af; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
@@ -35,7 +35,7 @@ TEMPLATES = {
             <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-top: none;">
                 <p>Your optimization <strong>{job_name}</strong> has completed successfully.</p>
                 <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #e2e8f0;">
-                    <p style="margin: 5px 0;"><strong>Status:</strong> ✅ Completed</p>
+                    <p style="margin: 5px 0;"><strong>Status:</strong> Completed</p>
                     <p style="margin: 5px 0;"><strong>Strategies:</strong> {strategy_count}</p>
                     <p style="margin: 5px 0;"><strong>Scenarios:</strong> {scenario_count:,}</p>
                     <p style="margin: 5px 0;"><strong>Duration:</strong> {duration}</p>
@@ -48,11 +48,11 @@ TEMPLATES = {
     ),
     "rate_alert": EmailTemplate(
         name="Rate Alert",
-        subject="⚡ Rate Alert: {alert_type} — {rate_name} is now {rate_value}%",
+        subject="Rate Alert: {alert_type} — {rate_name} is now {rate_value}%",
         body_html="""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #f59e0b; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-                <h1 style="margin: 0; font-size: 20px;">⚡ Rate Alert</h1>
+                <h1 style="margin: 0; font-size: 20px;">Rate Alert</h1>
             </div>
             <div style="background: #fffbeb; padding: 20px; border: 1px solid #fde68a; border-top: none;">
                 <p><strong>{rate_name}</strong> has moved to <strong>{rate_value}%</strong></p>
@@ -65,11 +65,11 @@ TEMPLATES = {
     ),
     "weekly_summary": EmailTemplate(
         name="Weekly Summary",
-        subject="📊 Weekly Portfolio Summary — {date}",
+        subject="Weekly Portfolio Summary — {date}",
         body_html="""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #059669; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-                <h1 style="margin: 0; font-size: 20px;">📊 Weekly Summary</h1>
+                <h1 style="margin: 0; font-size: 20px;">Weekly Summary</h1>
             </div>
             <div style="background: #f0fdf4; padding: 20px; border: 1px solid #bbf7d0; border-top: none;">
                 <h2 style="margin-top: 0;">Portfolio Highlights</h2>

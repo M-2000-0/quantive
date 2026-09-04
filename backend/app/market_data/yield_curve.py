@@ -16,8 +16,10 @@ from typing import Optional
 import requests
 
 from app.market_data.cache import TTL_YIELD_CURVE, get_cache
+from app.market_data.quality import get_quality_service
 
 logger = logging.getLogger("quantive.market_data.yield_curve")
+quality = get_quality_service()
 
 # Treasury.gov CSV endpoint (current year)
 TREASURY_CSV_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/{year}?type=daily_treasury_yield_curve&field_tdr_date_value={year}&page&_format=csv"
@@ -135,11 +137,27 @@ def fetch_treasury_yield_curve(
             "fetched_at": datetime.now(timezone.utc).isoformat(),
         }
 
+        # Quality checks
+        quality.record_fetch("treasury_gov", success=True)
+        quality.update_freshness("yield_curve", expected_frequency_seconds=3600)
+
+        # Validate yields
+        for m in maturities:
+            quality.validate_range("yield_pct", m["rate_pct"], "treasury_yield")
+
+        # Check yield curve ordering
+        yield_dict = {m["label"]: m["rate_pct"] for m in maturities}
+        ordering = quality.check_yield_curve_ordering(yield_dict)
+        if not ordering["normal"]:
+            logger.warning(f"Yield curve inversion detected: {ordering['message']}")
+
         cache.set(cache_key, result, TTL_YIELD_CURVE)
         return result
 
     except Exception as e:
         logger.warning(f"Treasury yield curve fetch failed: {e}")
+        quality.record_fetch("treasury_gov", success=False, error=str(e))
+        quality.update_freshness("yield_curve", expected_frequency_seconds=3600)
         return _fallback_yield_curve()
 
 

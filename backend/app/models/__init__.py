@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -97,6 +97,8 @@ class Portfolio(Base):
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    updated_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
 
     organization: Mapped["Organization"] = relationship(back_populates="portfolios")
     instruments: Mapped[list["DebtInstrument"]] = relationship(back_populates="portfolio", cascade="all, delete-orphan")
@@ -113,18 +115,21 @@ class DebtInstrument(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     instrument_type: Mapped[DebtInstrumentType] = mapped_column(SAEnum(DebtInstrumentType), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
-    principal_outstanding: Mapped[float] = mapped_column(Float, nullable=False)
-    coupon_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    principal_outstanding: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    coupon_rate: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
     maturity_date: Mapped[str] = mapped_column(String(10), nullable=False)
     issue_date: Mapped[str] = mapped_column(String(10), nullable=False)
     is_callable: Mapped[bool] = mapped_column(Boolean, default=False)
     call_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     call_price: Mapped[float | None] = mapped_column(Float, nullable=True)
-    spread_bps: Mapped[float] = mapped_column(Float, default=0.0)
+    spread_bps: Mapped[float] = mapped_column(Numeric(18, 6), default=0.0)
+    data_quality: Mapped[str] = mapped_column(String(20), default="verified")  # verified | unverified | disputed | estimated
     amortization_schedule: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    updated_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
 
     portfolio: Mapped["Portfolio"] = relationship(back_populates="instruments")
 
@@ -145,6 +150,7 @@ class OptimizationJob(Base):
     scenario_config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     random_seed: Mapped[int] = mapped_column(Integer, default=42)
     model_version: Mapped[str] = mapped_column(String(50), default="1.0.0")
+    version: Mapped[int] = mapped_column(Integer, default=1)
     progress: Mapped[float] = mapped_column(Float, default=0.0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -166,7 +172,7 @@ class Scenario(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     scenario_config: Mapped[dict] = mapped_column(JSON, nullable=False)
     market_shocks: Mapped[dict] = mapped_column(JSON, nullable=False)
-    probability: Mapped[float] = mapped_column(Float, default=1.0)
+    probability: Mapped[float] = mapped_column(Numeric(18, 6), default=1.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     job: Mapped["OptimizationJob"] = relationship(back_populates="scenarios")
@@ -195,7 +201,7 @@ class BenchmarkResult(Base):
     job_id: Mapped[str] = mapped_column(String(36), ForeignKey("optimization_jobs.id"), nullable=False)
     solver_name: Mapped[str] = mapped_column(String(100), nullable=False)
     execution_time_seconds: Mapped[float] = mapped_column(Float, nullable=False)
-    objective_value: Mapped[float] = mapped_column(Float, nullable=False)
+    objective_value: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
     feasible: Mapped[bool] = mapped_column(Boolean, default=True)
     iterations: Mapped[int] = mapped_column(Integer, default=0)
     metrics: Mapped[dict] = mapped_column(JSON, nullable=False)
@@ -232,7 +238,65 @@ class AuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-# ── Extended models (auth security, user prefs, notifications, etc.) ──────────
+# 
+class DatabaseAuditEntry(Base):
+    """Database-backed immutable audit entry."""
+    __tablename__ = 'database_audit_entries'
+
+    id = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    index = mapped_column(Integer, nullable=False, unique=True)
+    timestamp = mapped_column(DateTime(timezone=True), nullable=False)
+    event_type = mapped_column(String(100), nullable=False)
+    actor_id = mapped_column(String(36), nullable=True)
+    actor_email = mapped_column(String(255), nullable=True)
+    org_id = mapped_column(String(36), nullable=True)
+    resource_type = mapped_column(String(100), nullable=False)
+    resource_id = mapped_column(String(36), nullable=True)
+    action = mapped_column(String(50), nullable=False)
+    details = mapped_column(JSON, nullable=True)
+    ip_address = mapped_column(String(45), nullable=True)
+    previous_hash = mapped_column(String(64), nullable=False)
+    data_hash = mapped_column(String(64), nullable=False)
+    chain_hash = mapped_column(String(64), nullable=False)
+    created_at = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DataProvenance(Base):
+    """Track where data came from and how it was transformed."""
+    __tablename__ = 'data_provenance'
+
+    id = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    resource_type = mapped_column(String(100), nullable=False)
+    resource_id = mapped_column(String(36), nullable=False)
+    source = mapped_column(String(255), nullable=False)
+    source_type = mapped_column(String(50), nullable=False)
+    import_date = mapped_column(DateTime(timezone=True), default=utcnow)
+    imported_by = mapped_column(String(36), nullable=True)
+    transformation = mapped_column(Text, nullable=True)
+    data_hash = mapped_column(String(64), nullable=True)
+    row_count = mapped_column(Integer, nullable=True)
+    validation_status = mapped_column(String(20), default='pending')
+    validation_errors = mapped_column(JSON, nullable=True)
+    metadata_json = mapped_column(JSON, nullable=True)
+    created_at = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ModelVersion(Base):
+    """Track which model version generated which recommendation."""
+    __tablename__ = 'model_versions'
+
+    id = mapped_column(String(36), primary_key=True, default=gen_uuid)
+    model_name = mapped_column(String(100), nullable=False)
+    version = mapped_column(String(50), nullable=False)
+    description = mapped_column(Text, nullable=True)
+    training_data_range = mapped_column(String(100), nullable=True)
+    validation_accuracy = mapped_column(Numeric(5, 4), nullable=True)
+    created_at = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_by = mapped_column(String(36), nullable=True)
+    is_active = mapped_column(Boolean, default=True)
+
+
+# Extended models (auth security, user prefs, notifications, etc.) --
 from app.models.extended import (  # noqa: E402, F401
     ApiKey,
     ConstraintTemplate,
@@ -259,6 +323,17 @@ from app.models.portfolio_access import (  # noqa: E402, F401
     PortfolioAccess,
     PortfolioRole,
 )
+from app.models.government import (  # noqa: E402, F401
+    ContingentLiability,
+    EntityPortfolio,
+    EntityType,
+    FiscalRule,
+    FiscalRuleEvaluation,
+    GovernmentEntity,
+    TransferLink,
+    TransferType,
+    VersionedAssumption,
+)
 from app.models.social import (  # noqa: E402, F401
     ActivityLog,
     Attachment,
@@ -270,3 +345,6 @@ from app.models.social import (  # noqa: E402, F401
     Watchlist,
     WatchlistItem,
 )
+from app.models.market_intelligence import MarketLaunch  # noqa: E402, F401
+from app.models.fintech_tracker import FintechLaunch  # noqa: E402, F401
+from app.models.user_profile import UserProfile, RecommendationInteraction  # noqa: E402, F401

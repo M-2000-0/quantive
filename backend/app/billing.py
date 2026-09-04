@@ -1,0 +1,370 @@
+"""Stripe billing integration for subscription management.
+
+Provides:
+- Subscription tier definitions (Free, Pro, Enterprise)
+- Checkout session creation
+- Webhook handling for payment events
+- Usage tracking and metering
+"""
+import hashlib
+import hmac
+import json
+import logging
+import os
+import secrets
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Optional
+
+import httpx
+
+logger = logging.getLogger("quantive.billing")
+
+
+# ── Subscription Tiers ──────────────────────────────────────────────────
+
+class PlanTier(str, Enum):
+    FREE = "free"
+    PRO = "pro"
+    ENTERPRISE = "enterprise"
+
+
+PLAN_DETAILS = {
+    PlanTier.FREE: {
+        "name": "Free",
+        "price_monthly": 0,
+        "price_yearly": 0,
+        "features": [
+            "1 portfolio",
+            "5 instruments per portfolio",
+            "1 optimization per day",
+            "Basic risk analytics",
+            "Market data (delayed)",
+            "Community support",
+        ],
+        "limits": {
+            "max_portfolios": 1,
+            "max_instruments": 5,
+            "optimizations_per_day": 1,
+            "max_scenarios": 100,
+            "max_users": 1,
+            "data_retention_days": 30,
+        },
+    },
+    PlanTier.PRO: {
+        "name": "Pro",
+        "price_monthly": 499,
+        "price_yearly": 4788,  # 20% discount
+        "stripe_price_monthly": os.environ.get("STRIPE_PRO_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_PRO_YEARLY_PRICE_ID", ""),
+        "features": [
+            "Unlimited portfolios",
+            "Unlimited instruments",
+            "20 optimizations per day",
+            "Advanced risk analytics (VaR, stress testing)",
+            "Real-time market data",
+            "AI Advisor",
+            "ESG scoring",
+            "Excel/PDF export",
+            "Email support",
+            "Webhook integrations",
+        ],
+        "limits": {
+            "max_portfolios": -1,  # unlimited
+            "max_instruments": -1,
+            "optimizations_per_day": 20,
+            "max_scenarios": 10000,
+            "max_users": 5,
+            "data_retention_days": 365,
+        },
+    },
+    PlanTier.ENTERPRISE: {
+        "name": "Enterprise",
+        "price_monthly": 2499,
+        "price_yearly": 23988,  # 20% discount
+        "stripe_price_monthly": os.environ.get("STRIPE_ENTERPRISE_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_ENTERPRISE_YEARLY_PRICE_ID", ""),
+        "features": [
+            "Everything in Pro",
+            "Unlimited optimizations",
+            "Unlimited scenarios",
+            "Multi-user with RBAC",
+            "Custom AI models",
+            "Priority support",
+            "SLA guarantee (99.9%)",
+            "SSO / SAML",
+            "Audit logging",
+            "Custom webhooks",
+            "Dedicated account manager",
+            "On-premise deployment option",
+        ],
+        "limits": {
+            "max_portfolios": -1,
+            "max_instruments": -1,
+            "optimizations_per_day": -1,
+            "max_scenarios": -1,
+            "max_users": -1,
+            "data_retention_days": -1,
+        },
+    },
+}
+
+
+# ── Subscription Store ──────────────────────────────────────────────────
+
+@dataclass
+class Subscription:
+    """A user/org subscription."""
+    id: str
+    org_id: str
+    user_id: str
+    tier: PlanTier
+    billing_cycle: str = "monthly"  # "monthly" or "yearly"
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    status: str = "active"  # active, past_due, canceled, trialing
+    current_period_start: Optional[str] = None
+    current_period_end: Optional[str] = None
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+@dataclass
+class UsageRecord:
+    """Track API usage for metering."""
+    id: str
+    org_id: str
+    resource: str  # "optimization", "export", "api_call"
+    quantity: int = 1
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+_subscriptions: dict[str, Subscription] = {}
+_usage: list[UsageRecord] = []
+
+
+def get_subscription(org_id: str) -> Optional[Subscription]:
+    """Get subscription for an org."""
+    for sub in _subscriptions.values():
+        if sub.org_id == org_id and sub.status in ("active", "trialing"):
+            return sub
+    return None
+
+
+def create_subscription(
+    org_id: str,
+    user_id: str,
+    tier: PlanTier,
+    billing_cycle: str = "monthly",
+    stripe_customer_id: Optional[str] = None,
+    stripe_subscription_id: Optional[str] = None,
+) -> Subscription:
+    """Create a new subscription."""
+    sub_id = secrets.token_urlsafe(16)
+    sub = Subscription(
+        id=sub_id,
+        org_id=org_id,
+        user_id=user_id,
+        tier=tier,
+        billing_cycle=billing_cycle,
+        stripe_customer_id=stripe_customer_id,
+        stripe_subscription_id=stripe_subscription_id,
+    )
+    _subscriptions[sub_id] = sub
+    return sub
+
+
+def record_usage(org_id: str, resource: str, quantity: int = 1) -> UsageRecord:
+    """Record API usage for metering."""
+    usage_id = secrets.token_urlsafe(8)
+    record = UsageRecord(id=usage_id, org_id=org_id, resource=resource, quantity=quantity)
+    _usage.append(record)
+    return record
+
+
+def get_usage(org_id: str, resource: Optional[str] = None, since_hours: int = 24) -> dict:
+    """Get usage stats for an org."""
+    from datetime import timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
+
+    records = [u for u in _usage if u.org_id == org_id and u.timestamp >= cutoff]
+    if resource:
+        records = [u for u in records if u.resource == resource]
+
+    total = sum(r.quantity for r in records)
+    return {
+        "total": total,
+        "by_resource": {},
+        "period_hours": since_hours,
+    }
+
+
+# ── Stripe Integration ─────────────────────────────────────────────────
+
+STRIPE_API_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_BASE_URL = "https://api.stripe.com/v1"
+
+
+async def create_checkout_session(
+    org_id: str,
+    user_id: str,
+    tier: PlanTier,
+    billing_cycle: str = "monthly",
+    success_url: str = "https://quantive.io/settings?billing=success",
+    cancel_url: str = "https://quantive.io/pricing",
+) -> dict:
+    """Create a Stripe Checkout session."""
+    if not STRIPE_API_KEY:
+        # Dev mode: create local subscription
+        sub = create_subscription(org_id, user_id, tier, billing_cycle)
+        return {
+            "checkout_url": success_url,
+            "session_id": f"dev_{sub.id}",
+            "subscription_id": sub.id,
+            "mode": "development",
+        }
+
+    plan = PLAN_DETAILS[tier]
+    price_id = plan.get(f"stripe_price_{billing_cycle}", "")
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{STRIPE_BASE_URL}/checkout/sessions",
+            auth=(STRIPE_API_KEY, ""),
+            data={
+                "mode": "subscription",
+                "success_url": success_url,
+                "cancel_url": cancel_url,
+                "metadata[org_id]": org_id,
+                "metadata[user_id]": user_id,
+                "metadata[tier]": tier.value,
+                "line_items[0][price]": price_id,
+                "line_items[0][quantity]": 1,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        session = resp.json()
+
+    return {
+        "checkout_url": session.get("url"),
+        "session_id": session.get("id"),
+        "mode": "stripe",
+    }
+
+
+async def create_customer_portal(
+    stripe_customer_id: str,
+    return_url: str = "https://quantive.io/settings",
+) -> dict:
+    """Create a Stripe Customer Portal session for managing subscriptions."""
+    if not STRIPE_API_KEY:
+        return {"url": return_url, "mode": "development"}
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{STRIPE_BASE_URL}/billing_portal/sessions",
+            auth=(STRIPE_API_KEY, ""),
+            data={
+                "customer": stripe_customer_id,
+                "return_url": return_url,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        session = resp.json()
+
+    return {"url": session.get("url"), "mode": "stripe"}
+
+
+def verify_stripe_webhook(payload: bytes, signature: str) -> bool:
+    """Verify a Stripe webhook signature."""
+    if not STRIPE_WEBHOOK_SECRET:
+        return True  # In dev, accept all webhooks
+
+    elements = dict(item.split("=", 1) for item in signature.split(" "))
+    timestamp = elements.get("t", "")
+    expected_sig = elements.get("v1", "")
+
+    signed_payload = f"{timestamp}.{payload.decode('utf-8')}"
+    computed = hmac.new(
+        STRIPE_WEBHOOK_SECRET.encode("utf-8"),
+        signed_payload.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+    return hmac.compare_digest(computed, expected_sig)
+
+
+def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
+    """Handle a Stripe webhook event."""
+    obj = data.get("object", {})
+    org_id = obj.get("metadata", {}).get("org_id", "")
+
+    if event_type == "checkout.session.completed":
+        sub = create_subscription(
+            org_id=org_id,
+            user_id=obj.get("metadata", {}).get("user_id", ""),
+            tier=PlanTier(obj.get("metadata", {}).get("tier", "pro")),
+            stripe_customer_id=obj.get("customer"),
+            stripe_subscription_id=obj.get("subscription"),
+        )
+        logger.info(f"Subscription created: {sub.id} for org {org_id}")
+        return {"action": "subscription_created", "subscription_id": sub.id}
+
+    elif event_type == "customer.subscription.updated":
+        # Update subscription status
+        for sub in _subscriptions.values():
+            if sub.stripe_subscription_id == obj.get("id"):
+                sub.status = obj.get("status", "active")
+                sub.updated_at = datetime.now(timezone.utc).isoformat()
+                logger.info(f"Subscription updated: {sub.id} status={sub.status}")
+                return {"action": "subscription_updated", "subscription_id": sub.id}
+
+    elif event_type == "customer.subscription.deleted":
+        for sub in _subscriptions.values():
+            if sub.stripe_subscription_id == obj.get("id"):
+                sub.status = "canceled"
+                sub.updated_at = datetime.now(timezone.utc).isoformat()
+                logger.info(f"Subscription canceled: {sub.id}")
+                return {"action": "subscription_canceled", "subscription_id": sub.id}
+
+    elif event_type == "invoice.payment_failed":
+        for sub in _subscriptions.values():
+            if sub.stripe_customer_id == obj.get("customer"):
+                sub.status = "past_due"
+                sub.updated_at = datetime.now(timezone.utc).isoformat()
+                logger.warning(f"Payment failed for org {org_id}")
+                return {"action": "payment_failed", "org_id": org_id}
+
+    return None
+
+
+# ── Limit Checking ──────────────────────────────────────────────────────
+
+def check_limit(org_id: str, resource: str) -> dict:
+    """Check if an org is within its plan limits.
+
+    Returns:
+        {"allowed": bool, "current": int, "limit": int, "plan": str}
+    """
+    sub = get_subscription(org_id)
+    tier = sub.tier if sub else PlanTier.FREE
+    limits = PLAN_DETAILS[tier]["limits"]
+    limit = limits.get(resource, 0)
+
+    # -1 means unlimited
+    if limit == -1:
+        return {"allowed": True, "current": 0, "limit": -1, "plan": tier.value}
+
+    usage = get_usage(org_id, resource, since_hours=86400)  # last 24h for daily limits
+    current = usage["total"]
+
+    return {
+        "allowed": current < limit,
+        "current": current,
+        "limit": limit,
+        "plan": tier.value,
+    }

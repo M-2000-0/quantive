@@ -124,7 +124,7 @@ class DebtAdvisorAI:
         else:
             recommendation = "**Challenging** conditions. Consider delaying non-urgent issuances or using shorter tenors."
 
-        factors_text = "\n".join(f"- {'✅' if t == 'positive' else '⚠️' if t == 'warning' else '❌' if t == 'negative' else '📊'} {msg}" for t, msg in factors)
+        factors_text = "\n".join(f"- {'[+]' if t == 'positive' else '[!]' if t == 'warning' else '[-]' if t == 'negative' else '[=]'} {msg}" for t, msg in factors)
 
         return {
             "answer": (
@@ -137,7 +137,7 @@ class DebtAdvisorAI:
                 f"- SOFR: {market.sofr_rate:.2f}%\n"
                 f"- 2s10s Spread: {spread:+.0f} bps\n\n"
                 f"**Timing Score:** {score}/100\n\n"
-                f"{'💡 **Tip:** Consider issuing in the next 2-4 weeks while conditions are favorable.' if score >= 60 else '💡 **Tip:** Monitor VIX and yield curve for a better window.' if score >= 40 else '💡 **Tip:** Consider bridging with short-term T-bills until conditions improve.'}"
+                f"{'**Tip:** Consider issuing in the next 2-4 weeks while conditions are favorable.' if score >= 60 else '**Tip:** Monitor VIX and yield curve for a better window.' if score >= 40 else '**Tip:** Consider bridging with short-term T-bills until conditions improve.'}"
             ),
             "data": {"score": score, "factors": [(t, m) for t, m in factors], "market": {"vix": market.vix, "us_10y": market.us_10y_yield, "spread": spread}},
             "confidence": 0.85 if score >= 60 or score <= 40 else 0.70,
@@ -213,7 +213,7 @@ class DebtAdvisorAI:
         if market.vix > 20:
             risks.append(("low", f"Elevated market volatility (VIX {market.vix:.1f}) may widen spreads"))
 
-        risk_text = "\n".join(f"- {'🔴' if s == 'high' else '🟡' if s == 'medium' else '🟢'} {msg}" for s, msg in risks) if risks else "- No significant risks identified"
+        risk_text = "\n".join(f"- {'[HIGH]' if s == 'high' else '[MED]' if s == 'medium' else '[LOW]'} {msg}" for s, msg in risks) if risks else "- No significant risks identified"
 
         return {
             "answer": (

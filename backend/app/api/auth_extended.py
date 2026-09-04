@@ -90,10 +90,10 @@ def forgot_password(data: ForgotPasswordRequest, request: Request, db: Session =
         db.commit()
 
         # TODO: Send email with raw_token via email service
-        # For now, log it for development
+        # NEVER log tokens — use logger.info(f"Password reset requested for {email}") instead
         import logging
         logger = logging.getLogger("quantive.auth")
-        logger.info(f"Password reset token for {email}: {raw_token}")
+        logger.info(f"Password reset requested for {email}")
 
         ip = request.client.host if request.client else None
         log_audit_event(db, user, "user.password_reset_requested", "user", user.id, ip_address=ip)
@@ -185,6 +185,6 @@ def resend_verification(data: ResendVerificationRequest, request: Request, db: S
 
         import logging
         logger = logging.getLogger("quantive.auth")
-        logger.info(f"Email verification token for {email}: {raw_token}")
+        logger.info(f"Email verification requested for {email}")
 
     return {"detail": "If the email exists, a verification link has been sent."}

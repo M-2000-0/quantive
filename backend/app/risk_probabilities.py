@@ -30,7 +30,7 @@ class RiskIndicator:
     investment_amount: float    # input investment
     time_horizon_months: int    # time horizon
     confidence_level: str       # "high", "medium", "low"
-    icon: str = "📊"            # emoji icon for display
+    icon: str = "chart"            # emoji icon for display
 
     def to_dict(self) -> dict:
         return {
@@ -162,7 +162,7 @@ class RiskProbabilityEngine:
             investment=investment,
             time_horizon=time_horizon_months,
             confidence="high",
-            icon="🟢",
+            icon="green",
         ))
 
         # 2. Expected Return — most likely
@@ -174,7 +174,7 @@ class RiskProbabilityEngine:
             investment=investment,
             time_horizon=time_horizon_months,
             confidence="medium",
-            icon="📊",
+            icon="chart",
         ))
 
         # 3. Moderate Upside
@@ -186,7 +186,7 @@ class RiskProbabilityEngine:
             investment=investment,
             time_horizon=time_horizon_months,
             confidence="medium",
-            icon="📈",
+            icon="trend-up",
         ))
 
         # 4. Strong Upside
@@ -198,7 +198,7 @@ class RiskProbabilityEngine:
             investment=investment,
             time_horizon=time_horizon_months,
             confidence="low",
-            icon="🚀",
+            icon="rocket",
         ))
 
         # 5. Moderate Downside
@@ -210,7 +210,7 @@ class RiskProbabilityEngine:
             investment=investment,
             time_horizon=time_horizon_months,
             confidence="medium",
-            icon="⚠️",
+            icon="warning",
         ))
 
         # 6. Severe Downside
@@ -222,7 +222,7 @@ class RiskProbabilityEngine:
             investment=investment,
             time_horizon=time_horizon_months,
             confidence="low",
-            icon="🔴",
+            icon="red",
         ))
 
         # 7. Tail Risk
@@ -234,7 +234,7 @@ class RiskProbabilityEngine:
             investment=investment,
             time_horizon=time_horizon_months,
             confidence="low",
-            icon="💀",
+            icon="skull",
         ))
 
         return indicators
@@ -282,7 +282,7 @@ class RiskProbabilityEngine:
                 annualized_return=annualized + 2 * volatility,
                 risk_level="low",
                 description=f"In favorable markets, ${amount:,.0f} grows to ${best_return:,.0f} ({best_pct:+.1f}%)",
-                icon="🚀",
+                icon="rocket",
             ))
 
             # Expected Return (50th percentile)
@@ -298,7 +298,7 @@ class RiskProbabilityEngine:
                 annualized_return=annualized,
                 risk_level="medium",
                 description=f"Based on current rates, ${amount:,.0f} returns ${expected_return:,.0f} ({expected_pct:+.1f}%)",
-                icon="📊",
+                icon="chart",
             ))
 
             # Moderate Downside (25th percentile)
@@ -314,7 +314,7 @@ class RiskProbabilityEngine:
                 annualized_return=annualized - 1.5 * volatility,
                 risk_level="medium",
                 description=f"If rates rise, ${amount:,.0f} could return ${down_return:,.0f} ({down_pct:+.1f}%)",
-                icon="⚠️",
+                icon="warning",
             ))
 
             # Worst Case (5th percentile)
@@ -330,7 +330,7 @@ class RiskProbabilityEngine:
                 annualized_return=annualized - 3 * volatility,
                 risk_level="high",
                 description=f"In stress conditions, ${amount:,.0f} could return only ${worst_return:,.0f} ({worst_pct:+.1f}%)",
-                icon="🔴",
+                icon="red",
             ))
 
         return scenarios

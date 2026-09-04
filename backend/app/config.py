@@ -1,11 +1,17 @@
+import secrets
+import warnings
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings
 
+# ── Production secret requirements ─────────────────────────────────
+DEFAULT_SECRET_KEY = "change-me-to-a-random-secret-key-in-production"
+MIN_SECRET_KEY_LENGTH = 32  # NIST SP 800-132 minimum
+
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./quantive.db"
-    SECRET_KEY: str = "change-me-to-a-random-secret-key-in-production"
+    SECRET_KEY: str = DEFAULT_SECRET_KEY
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -23,9 +29,82 @@ class Settings(BaseSettings):
     ENABLE_PROVENANCE: bool = True      # Track model origins
     ENVIRONMENT: str = "development"    # "production" enforces real SECRET_KEY
 
+    # ── Data residency controls ─────────────────────────────────────
+    DATA_RESIDENCY_REGION: str = "us-east-1"       # AWS/GCP region
+    DATA_RESIDENCY_COUNTRY: str = "US"             # ISO 3166-1 alpha-2
+    DATA_RESIDENCY_ENCRYPTION: str = "aes-256-gcm" # Encryption at rest
+    DATA_RESIDENCY_KEY_MANAGEMENT: str = "aws-kms"  # aws-kms | azure-keyvault | hsm | local
+    DATA_RESIDENCY_AUDIT_LOGGING: bool = True       # Log all data access
+    DATA_RESIDENCY_MAX_EXPORT_SIZE_MB: int = 100    # Max export size
+    DATA_RESIDENCY_RESTRICT_CROSS_BORDER: bool = True  # Block cross-border transfers
+
+    # ── Approval workflow configuration ──────────────────────────────
+    APPROVAL_FOUR_EYES_THRESHOLD: float = 1_000_000    # $1M requires 2 approvers
+    APPROVAL_SIX_EYES_THRESHOLD: float = 50_000_000    # $50M requires 3 approvers
+    APPROVAL_EIGHT_EYES_THRESHOLD: float = 500_000_000 # $500M requires 4 approvers
+    APPROVAL_MAX_AUTO_APPROVE: float = 100_000         # $100K auto-approved
+    APPROVAL_TIMEOUT_HOURS: int = 48                    # Escalation after 48h
+
+    # ── SLA configuration ───────────────────────────────────────────
+    SLA_UPTIME_TARGET: float = 99.95     # 99.95% uptime target
+    SLA_RTO_HOURS: int = 4               # Recovery Time Objective
+    SLA_RPO_MINUTES: int = 15            # Recovery Point Objective
+    SLA_MAX_LATENCY_MS: int = 500        # P95 latency target
+    SLA_MONTHLY_MAINTENANCE_WINDOW: str = "02:00-06:00 UTC Sunday"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",")]
+
+    def validate_production_config(self):
+        """Validate configuration for production deployments.
+        
+        Called at startup to prevent insecure deployments.
+        """
+        errors = []
+
+        # SECRET_KEY validation
+        if self.SECRET_KEY == DEFAULT_SECRET_KEY:
+            if self.ENVIRONMENT == "production":
+                errors.append(
+                    "CRITICAL: SECRET_KEY is the default value. "
+                    "Set a cryptographically random SECRET_KEY (≥32 bytes) in production. "
+                    "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+                )
+            else:
+                warnings.warn(
+                    "SECRET_KEY is the default value. "
+                    "This is INSECURE and must be changed for production.",
+                    stacklevel=2,
+                )
+        elif len(self.SECRET_KEY) < MIN_SECRET_KEY_LENGTH:
+            errors.append(
+                f"SECRET_KEY must be at least {MIN_SECRET_KEY_LENGTH} bytes. "
+                f"Current length: {len(self.SECRET_KEY)} bytes."
+            )
+
+        # Database validation
+        if self.ENVIRONMENT == "production" and "sqlite" in self.DATABASE_URL:
+            errors.append(
+                "CRITICAL: SQLite is not supported in production. "
+                "Use PostgreSQL with RLS enabled. "
+                "DATABASE_URL must start with postgresql:// or postgres://"
+            )
+
+        # CORS validation
+        if self.ENVIRONMENT == "production" and "localhost" in self.CORS_ORIGINS:
+            errors.append(
+                "CRITICAL: CORS_ORIGINS contains localhost in production. "
+                "Set to your actual domain(s)."
+            )
+
+        if errors:
+            raise ValueError(
+                "Production configuration validation failed:\n"
+                + "\n".join(f"  - {e}" for e in errors)
+            )
+
+        return True
 
     class Config:
         env_file = ".env"
@@ -35,4 +114,8 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    # Validate on first load
+    if settings.ENVIRONMENT == "production":
+        settings.validate_production_config()
+    return settings

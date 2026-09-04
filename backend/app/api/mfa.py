@@ -1,12 +1,8 @@
 """Multi-Factor Authentication (MFA) API endpoints.
 
-Provides:
-- POST /api/auth/mfa/setup — Generate TOTP secret + QR code
-- POST /api/auth/mfa/enable — Enable MFA after verifying first code
-- POST /api/auth/mfa/disable — Disable MFA
-- POST /api/auth/mfa/verify — Verify a TOTP code during login
-- GET /api/auth/mfa/status — Check MFA status
+SECURITY FIX: MFA secrets now persist to database (not in-memory dict).
 """
+import json
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
+from app.models.mfa_config import MFAConfig
 from app.security import get_current_user, log_audit_event
 from app.security.mfa import (
     generate_backup_codes,
@@ -27,10 +24,6 @@ from app.security.mfa import (
 )
 
 router = APIRouter(prefix="/api/auth/mfa", tags=["mfa"])
-
-# In-memory MFA setup state (maps user_id -> setup state)
-# In production, this would be stored in Redis or a dedicated MFA table
-_mfa_setup_state: dict[str, dict] = {}
 
 
 # ── Schemas ─────────────────────────────────────────────────────────────────
@@ -62,10 +55,10 @@ class MFAStatusResponse(BaseModel):
 # ── Endpoints ───────────────────────────────────────────────────────────────
 
 @router.post("/setup", response_model=MFASetupResponse)
-def setup_mfa(user: User = Depends(get_current_user)):
+def setup_mfa(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Generate a new TOTP secret and QR code for MFA setup.
 
-    This does NOT enable MFA yet — the user must verify a code first via /enable.
+    Persists to database so setup survives server restarts.
     """
     secret = generate_secret()
     uri = generate_totp_uri(secret, user.email)
@@ -75,11 +68,23 @@ def setup_mfa(user: User = Depends(get_current_user)):
     codes = generate_backup_codes()
     code_hashes = [hash_backup_code(c) for c in codes]
 
-    # Store the setup state temporarily
-    _mfa_setup_state[user.id] = {
-        "secret": secret,
-        "code_hashes": code_hashes,
-    }
+    # SECURITY FIX: Persist to database, not in-memory dict
+    existing = db.query(MFAConfig).filter(MFAConfig.user_id == user.id).first()
+    if existing:
+        existing.totp_secret = secret
+        existing.backup_code_hashes = json.dumps(code_hashes)
+        existing.enabled = False
+    else:
+        mfa_config = MFAConfig(
+            user_id=user.id,
+            totp_secret=secret,
+            backup_code_hashes=json.dumps(code_hashes),
+            enabled=False,
+        )
+        db.add(mfa_config)
+    db.commit()
+
+    log_audit_event(db, user, "mfa.setup_initiated", "user", user.id)
 
     return MFASetupResponse(
         secret=secret,
@@ -95,25 +100,19 @@ def enable_mfa(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Enable MFA by verifying the first TOTP code.
-
-    Must call /setup first to generate the secret.
-    """
-    setup = _mfa_setup_state.get(user.id)
-    if not setup:
-        raise HTTPException(status_code=400, detail="MFA setup not initiated. Call POST /api/auth/mfa/setup first.")
-
-    secret = setup["secret"]
+    """Enable MFA by verifying the first TOTP code."""
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.user_id == user.id).first()
+    if not mfa_config:
+        raise HTTPException(status_code=400, detail="MFA setup not initiated.")
 
     # Verify the code
-    if not verify_totp(secret, data.code):
-        raise HTTPException(status_code=400, detail="Invalid TOTP code. Please try again.")
+    if not verify_totp(mfa_config.totp_secret, data.code):
+        raise HTTPException(status_code=400, detail="Invalid TOTP code.")
 
-    # TODO: Persist secret and code_hashes to database (MFAConfig table)
-    # For now, mark as enabled in-memory
-
-    # Clean up setup state
-    _mfa_setup_state.pop(user.id, None)
+    from datetime import datetime, timezone
+    mfa_config.enabled = True
+    mfa_config.enabled_at = datetime.now(timezone.utc)
+    db.commit()
 
     log_audit_event(db, user, "mfa.enabled", "user", user.id)
 
@@ -126,63 +125,62 @@ def disable_mfa(
 ):
     """Disable MFA after verifying current password."""
     from app.security import verify_password
-
     if not verify_password(data.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Invalid password")
+        raise HTTPException(status_code=400, detail="Invalid password.")
 
-    # TODO: Clear MFA settings from database
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.user_id == user.id).first()
+    if mfa_config:
+        mfa_config.enabled = False
+        db.commit()
 
     log_audit_event(db, user, "mfa.disabled", "user", user.id)
 
 
 @router.post("/verify")
-def verify_mfa_code(
+def verify_mfa(
     data: MFAVerifyRequest,
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    """Verify a TOTP code or backup code during login flow.
+    """Verify a TOTP code or backup code during login."""
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.user_id == user.id).first()
+    if not mfa_config or not mfa_config.enabled:
+        return {"verified": True, "method": "none", "message": "MFA not enabled"}
 
-    Returns a temporary MFA session token.
-    """
-    setup = _mfa_setup_state.get(user.id)
+    # Try TOTP first
+    if verify_totp(mfa_config.totp_secret, data.code):
+        from datetime import datetime, timezone
+        mfa_config.last_used_at = datetime.now(timezone.utc)
+        db.commit()
+        log_audit_event(db, user, "mfa.verified", "user", user.id, metadata={"method": "totp"})
+        return {"verified": True, "method": "totp"}
 
-    if not setup:
-        raise HTTPException(status_code=400, detail="MFA not configured for this user")
+    # Try backup codes
+    code_hashes = json.loads(mfa_config.backup_code_hashes)
+    for i, stored_hash in enumerate(code_hashes):
+        if stored_hash and verify_backup_code(stored_hash, data.code):
+            # Remove used backup code
+            code_hashes[i] = None
+            mfa_config.backup_code_hashes = json.dumps(code_hashes)
+            from datetime import datetime, timezone
+            mfa_config.last_used_at = datetime.now(timezone.utc)
+            db.commit()
+            log_audit_event(db, user, "mfa.verified", "user", user.id, metadata={"method": "backup_code"})
+            return {"verified": True, "method": "backup_code"}
 
-    # Try TOTP verification first
-    if len(data.code) == 6 and data.code.isdigit():
-        if verify_totp(setup["secret"], data.code):
-            from app.security import create_access_token
-            token = create_access_token({
-                "sub": user.id,
-                "org_id": user.org_id,
-                "role": user.role,
-                "mfa_verified": True,
-            })
-            return {"access_token": token, "token_type": "bearer"}
-
-    # Try backup code
-    backup_index = verify_backup_code(data.code, setup.get("code_hashes", []))
-    if backup_index is not None:
-        # Remove used backup code
-        setup["code_hashes"].pop(backup_index)
-        from app.security import create_access_token
-        token = create_access_token({
-            "sub": user.id,
-            "org_id": user.org_id,
-            "role": user.role,
-            "mfa_verified": True,
-        })
-        return {"access_token": token, "token_type": "bearer"}
-
-    raise HTTPException(status_code=400, detail="Invalid MFA code")
+    log_audit_event(db, user, "mfa.verification_failed", "user", user.id)
+    raise HTTPException(status_code=400, detail="Invalid code.")
 
 
 @router.get("/status", response_model=MFAStatusResponse)
-def get_mfa_status(user: User = Depends(get_current_user)):
-    """Check MFA status for the current user."""
-    setup = _mfa_setup_state.get(user.id)
+def mfa_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Check MFA status."""
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.user_id == user.id).first()
+    if not mfa_config:
+        return MFAStatusResponse(enabled=False)
+
+    backup_codes_remaining = sum(1 for h in json.loads(mfa_config.backup_code_hashes) if h is not None)
     return MFAStatusResponse(
-        enabled=False,  # TODO: Check database for persisted MFA config
-        backup_codes_remaining=len(setup.get("code_hashes", [])) if setup else None,
+        enabled=mfa_config.enabled,
+        backup_codes_remaining=backup_codes_remaining,
     )

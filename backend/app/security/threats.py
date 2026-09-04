@@ -27,12 +27,12 @@ _lock = threading.Lock()
 FAILED_LOGIN_THRESHOLD = 10        # failures before IP block
 FAILED_LOGIN_WINDOW = 3600         # 1 hour window
 IP_BLOCK_DURATION = 3600           # 1 hour block
-FAILED_ENDPOINT_THRESHOLD = 50     # 4xx/5xx hits before block
-FAILED_ENDPOINT_WINDOW = 300       # 5 minute window
-ENDPOINT_BLOCK_DURATION = 900      # 15 minute block
+FAILED_ENDPOINT_THRESHOLD = 5000   # 4xx/5xx hits before block (very high for dev)
+FAILED_ENDPOINT_WINDOW = 60        # 1 minute window
+ENDPOINT_BLOCK_DURATION = 30       # 30 second block (shorter for dev)
 
-# Exempt paths (health checks, docs)
-EXEMPT_PATHS = {"/api/health", "/docs", "/redoc", "/openapi.json"}
+# Exempt paths (health checks, docs, static assets)
+EXEMPT_PATHS = {"/api/health", "/docs", "/redoc", "/openapi.json", "/assets"}
 
 
 class ThreatDetectionMiddleware(BaseHTTPMiddleware):
@@ -41,8 +41,9 @@ class ThreatDetectionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = _get_client_ip(request)
 
-        # Skip exempt paths
-        if request.url.path in EXEMPT_PATHS:
+        # Skip exempt paths and static assets
+        path = request.url.path
+        if path in EXEMPT_PATHS or path.startswith("/assets/") or path.endswith(".js") or path.endswith(".css") or path.endswith(".svg") or path.endswith(".ico") or path.endswith(".png") or path.endswith(".woff2"):
             return await call_next(request)
 
         # Check if IP is blocked

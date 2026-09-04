@@ -16,10 +16,13 @@ from app.database import get_db
 from app.models import User  # Assume User model exists with username, password_hash, org_id, role, is_active
 
 # === JWT Configuration ===
-JWT_SECRET_KEY = "change-this-in-production"  # Use secrets manager in production
-JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30000  # 500 hours ≈ 20 days
-REFRESH_TOKEN_EXPIRE_DAYS = 30
+# SECURITY: Always use settings.SECRET_KEY — never hardcode secrets.
+from app.config import get_settings as _get_settings
+_settings = _get_settings()
+JWT_SECRET_KEY = _settings.SECRET_KEY
+JWT_ALGORITHM = _settings.JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = _settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = _settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
 
 # OAuth2 password bearer - for login/form auth
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import NULLIF, and_, desc, func, select, text
+from sqlalchemy import and_, desc, func, select, text
 
 from app.database import AsyncSessionLocal
 from app.models import Contract, OptimizationJob
@@ -30,46 +30,37 @@ class RevenueShareTracker:
         
         async def _summary():
             async with AsyncSessionLocal() as db:
-                # Build date filters
-                date_filter = ""
+                # SECURITY FIX: Use parameterized queries to prevent SQL injection
+                # Build bind parameters safely
+                bind_params = {"org_id": org_id, "threshold": "2", "fee_pct": "10"}
+                
+                date_clause = ""
                 if start_date and end_date:
-                    date_filter = (
-                        f"AND optimization_jobs.created_at >= '{start_date.isoformat()}' "
-                        f"AND optimization_jobs.created_at <= '{end_date.isoformat()}'"
-                    )
+                    date_clause = "AND optimization_jobs.created_at >= :start_date AND optimization_jobs.created_at <= :end_date"
+                    bind_params["start_date"] = start_date.isoformat()
+                    bind_params["end_date"] = end_date.isoformat()
                 
-                # Base query components
-                base_select = """
-                    COUNT(DISTINCT optimization_jobs.id) as total_optimizations,
-                    COALESCE(SUM((optimization_jobs.baseline_cost - optimization_jobs.financing_cost)::numeric), 0) as total_raw_savings,
-                    COALESCE(SUM(
-                        (CASE WHEN 
-                            (optimization_jobs.baseline_cost - optimization_jobs.financing_cost) / 
-                            NULLIF(optimization_jobs.baseline_cost, 0) >= {threshold}::numeric/100 
-                        THEN (optimization_jobs.baseline_cost - optimization_jobs.financing_cost) * {fee_pct}::numeric/100 
-                        ELSE 0 END)
-                    ), 0) as total_fees_earned,
-                    COALESCE(COUNT(DISTINCT contracts.org_id), 0) as orgs_served,
-                """
-                
-                threshold = str(Decimal("2"))  # 2% default
-                fee_pct = str(Decimal("10"))    # 10% default
-                
-                full_select = base_select.format(
-                    threshold=threshold,
-                    fee_pct=fee_pct,
-                )
-                
-                # Full query with date filter
-                query_text = f"""
-                    SELECT {full_select}
+                # Parameterized query - no f-strings, no format strings
+                query_text = """
+                    SELECT
+                        COUNT(DISTINCT optimization_jobs.id) as total_optimizations,
+                        COALESCE(SUM((optimization_jobs.baseline_cost - optimization_jobs.financing_cost)::numeric), 0) as total_raw_savings,
+                        COALESCE(SUM(
+                            (CASE WHEN 
+                                (optimization_jobs.baseline_cost - optimization_jobs.financing_cost) / 
+                                func.nullif(optimization_jobs.baseline_cost, 0) >= :threshold::numeric/100 
+                            THEN (optimization_jobs.baseline_cost - optimization_jobs.financing_cost) * :fee_pct::numeric/100 
+                            ELSE 0 END)
+                        ), 0) as total_fees_earned,
+                        COALESCE(COUNT(DISTINCT contracts.org_id), 0) as orgs_served
                     FROM optimization_jobs
                     LEFT JOIN contracts ON optimization_jobs.contract_id = contracts.id
-                    WHERE contracts.org_id = '{org_id}' {date_filter}
+                    WHERE contracts.org_id = :org_id
                     AND contracts.status = 'active'
+                    {date_clause}
                 """
                 
-                result = await db.execute(text(query_text))
+                result = await db.execute(text(query_text), bind_params)
                 row = result.first()
                 
                 # Calculate average savings
@@ -137,7 +128,7 @@ class RevenueShareTracker:
                                         OptimizationJob.financing_cost.isnot(None),
                                         (
                                             (OptimizationJob.baseline_cost - OptimizationJob.financing_cost) / 
-                                            NULLIF(OptimizationJob.baseline_cost, 0) >= 0.02
+                                            func.nullif(OptimizationJob.baseline_cost, 0) >= 0.02
                                         ),
                                         (OptimizationJob.baseline_cost - OptimizationJob.financing_cost) * Decimal("0.1"),
                                         else_=Decimal("0"),
@@ -307,7 +298,7 @@ class RevenueShareTracker:
                                         OptimizationJob.financing_cost.isnot(None),
                                         (
                                             (OptimizationJob.baseline_cost - OptimizationJob.financing_cost) / 
-                                            NULLIF(OptimizationJob.baseline_cost, 0) >= 0.02
+                                            func.nullif(OptimizationJob.baseline_cost, 0) >= 0.02
                                         ),
                                         (OptimizationJob.baseline_cost - OptimizationJob.financing_cost) * Decimal("0.1"),
                                         else_=Decimal("0"),
@@ -385,7 +376,7 @@ class RevenueShareTracker:
                                         OptimizationJob.financing_cost.isnot(None),
                                         (
                                             (OptimizationJob.baseline_cost - OptimizationJob.financing_cost) / 
-                                            NULLIF(OptimizationJob.baseline_cost, 0) >= 0.02
+                                            func.nullif(OptimizationJob.baseline_cost, 0) >= 0.02
                                         ),
                                         (OptimizationJob.baseline_cost - OptimizationJob.financing_cost) * Decimal("0.1"),
                                         else_=Decimal("0"),

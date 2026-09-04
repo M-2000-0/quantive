@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -85,6 +85,7 @@ class DebtInstrumentCreate(BaseModel):
     call_date: Optional[str] = None
     call_price: Optional[float] = None
     spread_bps: float = Field(default=0.0, ge=-1000, le=5000)
+    data_quality: str = Field(default="verified")
 
     @field_validator("maturity_date", "issue_date", "call_date")
     @classmethod
@@ -101,6 +102,26 @@ class DebtInstrumentCreate(BaseModel):
         if v not in valid:
             raise ValueError(f"Invalid currency. Must be one of: {', '.join(sorted(valid))}")
         return v
+
+    @model_validator(mode="after")
+    def validate_dates(self):
+        """Maturity must be after issue date; call date must be within range."""
+        from datetime import datetime as _dt
+        try:
+            issue = _dt.strptime(self.issue_date, "%Y-%m-%d")
+            maturity = _dt.strptime(self.maturity_date, "%Y-%m-%d")
+        except (ValueError, TypeError):
+            return self  # format already caught by field validators
+        if maturity <= issue:
+            raise ValueError("maturity_date must be after issue_date")
+        if self.call_date:
+            try:
+                call = _dt.strptime(self.call_date, "%Y-%m-%d")
+                if call < issue or call > maturity:
+                    raise ValueError("call_date must be between issue_date and maturity_date")
+            except ValueError:
+                pass  # already validated as a date
+        return self
 
 
 class DebtInstrumentResponse(BaseModel):

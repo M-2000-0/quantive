@@ -92,6 +92,8 @@ def parse_excel_portfolio(file_content: bytes, filename: str = "") -> dict:
     # Parse instruments
     instruments = []
     warnings = []
+    duplicates = []
+    seen = set()
 
     for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         if not any(row):
@@ -100,6 +102,16 @@ def parse_excel_portfolio(file_content: bytes, filename: str = "") -> dict:
         try:
             instrument = _parse_row(row, col_map, headers)
             if instrument and instrument.get("name"):
+                # Duplicate detection: same name + maturity + principal
+                key = (
+                    instrument.get("name", "").lower().strip(),
+                    instrument.get("maturity_date", ""),
+                    instrument.get("principal_outstanding", 0),
+                )
+                if key in seen:
+                    duplicates.append({"row": row_idx, "name": instrument["name"], "reason": "Duplicate of an earlier row (same name, maturity, principal)"})
+                    continue
+                seen.add(key)
                 instruments.append(instrument)
         except Exception as e:
             warnings.append(f"Row {row_idx}: {str(e)}")
@@ -113,8 +125,11 @@ def parse_excel_portfolio(file_content: bytes, filename: str = "") -> dict:
         "name": portfolio_name,
         "instruments": instruments,
         "warnings": warnings,
+        "duplicates": duplicates,
+        "preview_ready": True,
         "stats": {
             "total_instruments": len(instruments),
+            "duplicates_skipped": len(duplicates),
             "currencies": list(set(i.get("currency", "USD") for i in instruments)),
             "total_principal": sum(i.get("principal_outstanding", 0) for i in instruments),
             "columns_mapped": len([v for v in col_map.values() if v is not None]),

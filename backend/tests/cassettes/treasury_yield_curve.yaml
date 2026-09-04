@@ -1,0 +1,74 @@
+interactions:
+  - request:
+      body: null
+      headers:
+        Accept:
+        - application/json
+        User-Agent:
+        - Quantive/1.0
+      method: GET
+      uri: https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/daily_treasury_yield_curve?sort=-record_date&page%5Bsize%5D=100
+    response:
+      body:
+        string: '{"data":[{"record_date":"2026-08-29","BC_1MONTH":4.35,"BC_3MONTH":4.42,"BC_6MONTH":4.38,"BC_1YEAR":4.25,"BC_2YEAR":4.15,"BC_3YEAR":4.10,"BC_5YEAR":4.12,"BC_7YEAR":4.20,"BC_10YEAR":4.30,"BC_20YEAR":4.55,"BC_30YEAR":4.68}],"total":1,"page":{"page":1,"pages":1}}'
+      headers:
+        content-type:
+        - application/json
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: null
+      headers:
+        Accept:
+        - application/json
+        User-Agent:
+        - Quantive/1.0
+      method: GET
+      uri: https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/daily_treasury_yield_curve?sort=-record_date&page%5Bsize%5D=100
+    response:
+      body:
+        string: '{"data":[{"record_date":"2026-08-29","BC_1MONTH":4.35,"BC_3MONTH":4.42,"BC_6MONTH":4.38,"BC_1YEAR":4.25,"BC_2YEAR":4.15,"BC_3YEAR":4.10,"BC_5YEAR":4.12,"BC_7YEAR":4.20,"BC_10YEAR":4.30,"BC_20YEAR":4.55,"BC_30YEAR":4.68}],"total":1,"page":{"page":1,"pages":1}}'
+      headers:
+        content-type:
+        - application/json
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: null
+      headers:
+        Accept:
+        - application/json
+        User-Agent:
+        - Quantive/1.0
+      method: GET
+      uri: https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/daily_treasury_yield_curve?sort=record_date&filter=record_date%3Agte%3A2026-01-01%2Crecord_date%3Alte%3A2026-01-31&page%5Bsize%5D=1000
+    response:
+      body:
+        string: '{"data":[{"record_date":"2026-01-15","BC_1MONTH":4.30,"BC_3MONTH":4.38,"BC_10YEAR":4.28,"BC_2YEAR":4.18,"BC_3YEAR":4.12,"BC_5YEAR":4.15,"BC_7YEAR":4.22,"BC_30YEAR":4.65}],"total":1,"page":{"page":1,"pages":1}}'
+      headers:
+        content-type:
+        - application/json
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: null
+      headers:
+        Accept:
+        - application/json
+        User-Agent:
+        - Quantive/1.0
+      method: GET
+      uri: https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny?sort=-record_date&page%5Bsize%5D=1
+    response:
+      body:
+        string: '{"data":[{"record_date":"2026-08-29","debt_interest_holding":35000000000000}],"total":1,"page":{"page":1,"pages":1}}'
+      headers:
+        content-type:
+        - application/json
+      status:
+        code: 200
+        message: OK
+version: 1
