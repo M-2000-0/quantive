@@ -23,7 +23,10 @@ export default function Tabs({ tabs, activeTab, onChange, children }: TabsProps)
             <button
               key={tab.id}
               role="tab"
+              id={`tab-${tab.id}`}
               aria-selected={isActive}
+              aria-controls={`tabpanel-${tab.id}`}
+              tabIndex={isActive ? 0 : -1}
               disabled={tab.disabled}
               onClick={() => onChange(tab.id)}
               className={`

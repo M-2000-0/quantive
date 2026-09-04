@@ -5,9 +5,9 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary: 'glass-button-primary text-white hover:text-white',
-  secondary: 'glass-button-secondary text-slate-700 hover:text-slate-900',
+  secondary: 'glass-button-secondary text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white',
   danger: 'bg-gradient-to-br from-red-600 to-red-700 text-white border border-white/15 shadow-[0_4px_16px_rgba(220,38,38,0.28),inset_0_1px_0_rgba(255,255,255,0.2)] hover:from-red-700 hover:to-red-800',
-  ghost: 'text-slate-600 hover:bg-white/60 hover:text-slate-900 border border-transparent hover:border-white/50 hover:shadow-sm backdrop-blur-md',
+  ghost: 'text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border border-transparent hover:border-white/50 dark:hover:border-white/10 hover:shadow-sm backdrop-blur-md',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

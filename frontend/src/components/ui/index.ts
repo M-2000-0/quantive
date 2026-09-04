@@ -8,4 +8,5 @@ export { default as Tabs } from './Tabs';
 export { default as ProgressBar } from './ProgressBar';
 export { default as Modal } from './Modal';
 export { default as Breadcrumbs } from './Breadcrumbs';
+export { default as ConfidenceBadge } from './ConfidenceBadge';
 export { SkeletonText, SkeletonCard, SkeletonTable } from './Skeleton';

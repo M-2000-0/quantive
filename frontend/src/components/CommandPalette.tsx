@@ -32,12 +32,32 @@ const PAGE_ITEMS: Array<{ label: string; path: string; hint: string }> = [
   { label: 'Explainability', path: '/explain', hint: 'Model explain' },
   { label: 'Risk Intelligence', path: '/risk-intel', hint: 'Sanctions, liquidity' },
   { label: 'Maturity Ladder', path: '/maturity', hint: 'Cashflow & ladder' },
+  { label: 'Flight Recorder', path: '/flight-recorder', hint: 'Decision audit trail' },
+  { label: 'Trust Dashboard', path: '/trust-dashboard', hint: 'Confidence & uncertainty' },
+  { label: 'Maturity Assessment', path: '/maturity-assessment', hint: 'Government scoring' },
+  { label: 'Red Team', path: '/red-team', hint: 'AI challenger analysis' },
+  { label: 'Assumption Tracker', path: '/assumption-tracker', hint: 'Forecast accuracy' },
+  { label: 'Excel Import', path: '/excel-import', hint: 'Import workbooks' },
+  { label: 'Go to Assess', path: '/dashboard', hint: 'Section 1' },
+  { label: 'Go to Simulate', path: '/optimizations/new', hint: 'Section 2' },
+  { label: 'Go to Decide', path: '/advisor', hint: 'Section 3' },
+  { label: 'Go to Approve', path: '/flight-recorder', hint: 'Section 4' },
+  { label: 'Go to Monitor', path: '/audit', hint: 'Section 5' },
   { label: 'ESG / Green', path: '/esg', hint: 'Green bonds' },
   { label: 'Rating Simulator', path: '/ratings', hint: 'S&P / Moody’s' },
   { label: 'Audit Log', path: '/audit', hint: 'Activity trail' },
   { label: 'Security', path: '/security', hint: 'Threats & health' },
   { label: 'System Status', path: '/status', hint: 'Health & version' },
   { label: 'Settings', path: '/settings', hint: 'Account & org' },
+  { label: 'News Feed', path: '/news', hint: 'News ingestion' },
+  { label: 'Tasks', path: '/tasks', hint: 'Task management' },
+  { label: 'Meetings', path: '/meetings', hint: 'Meeting scheduler' },
+  { label: 'Help Center', path: '/help', hint: 'FAQ & support' },
+  { label: 'Support Tickets', path: '/tickets', hint: 'Customer support' },
+  { label: 'Bug Reports', path: '/bugs', hint: 'Bug tracking' },
+  { label: 'Revenue Dashboard', path: '/revenue', hint: 'Revenue & MRR' },
+  { label: 'Sales Pipeline', path: '/pipeline', hint: 'Deal tracking' },
+  { label: 'Email Campaigns', path: '/campaigns', hint: 'Email automation' },
 ];
 
 // ── Fuzzy scoring ──────────────────────────────────────────────────────────
@@ -115,22 +135,19 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       label: p.label,
       category: 'Pages',
       hint: p.hint,
-      action: () => { navigate(p.path); onClose(); },
-    }));
+      action: () => { navigate(p.path); onClose(); } }));
     const portfolios: CommandItem[] = portfolioItems.map(p => ({
       id: `portfolio:${p.id}`,
       label: p.name,
       category: 'Portfolios',
       hint: `Open portfolio ${p.name}`,
-      action: () => { navigate(`/portfolios/${p.id}`); onClose(); },
-    }));
+      action: () => { navigate(`/portfolios/${p.id}`); onClose(); } }));
     const optimizations: CommandItem[] = optimizationItems.map(o => ({
       id: `opt:${o.id}`,
       label: o.name,
       category: 'Optimizations',
       hint: o.status,
-      action: () => { navigate(`/optimizations/${o.id}`); onClose(); },
-    }));
+      action: () => { navigate(`/optimizations/${o.id}`); onClose(); } }));
     const actions: CommandItem[] = [
       {
         id: 'theme-toggle',
@@ -147,15 +164,13 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
             else if (cur === 'light') localStorage.setItem('quantive_theme', 'dark');
           } catch { /* */ }
           onClose();
-        },
-      },
+        } },
       {
         id: 'cmd-settings',
         label: 'Open Settings',
         category: 'Actions',
         hint: '⌘K → settings',
-        action: () => { navigate('/settings'); onClose(); },
-      },
+        action: () => { navigate('/settings'); onClose(); } },
     ];
     return [...pages, ...portfolios, ...optimizations, ...actions];
   }, [navigate, onClose, portfolioItems, optimizationItems]);
@@ -285,7 +300,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
                         >
                           <span className="flex items-center gap-3 min-w-0">
                             <span className={`h-7 w-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 border ${active ? 'bg-gradient-to-br from-blue-500 to-indigo-500 text-white border-white/20 shadow' : 'bg-white/60 dark:bg-white/10 text-slate-500 border-white/40'}`}>
-                              {item.category === 'Portfolios' ? '◧' : item.category === 'Optimizations' ? '⬢' : item.category === 'Pages' ? '◩' : '⚡'}
+                              {item.category === 'Portfolios' ? 'Square' : item.category === 'Optimizations' ? 'Hexagon' : item.category === 'Pages' ? 'LayoutGrid' : 'Zap'}
                             </span>
                             <span className="min-w-0">
                               <span className={`block text-sm font-medium truncate ${active ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-100'}`}>{item.label}</span>

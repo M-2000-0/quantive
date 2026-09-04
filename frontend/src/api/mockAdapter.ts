@@ -1,184 +1,95 @@
-import type { User, Portfolio, OptimizationJob, Strategy, BenchmarkResult, AuditEvent, Report } from '../types';
-import {
-  MOCK_PORTFOLIOS,
-  MOCK_OPTIMIZATION_JOB,
-  MOCK_STRATEGIES,
-  MOCK_BENCHMARKS,
-  MOCK_AUDIT_EVENTS,
-} from './mock';
+import { MOCK_PORTFOLIOS, MOCK_STRATEGIES, MOCK_BENCHMARKS, MOCK_AUDIT_EVENTS, MOCK_USER } from './mock';
 
-const MOCK_USER: User = {
-  id: 'user-001',
-  email: 'admin@treasury.gov',
-  name: 'Treasury Admin',
-  role: 'admin',
-  org_id: 'org-001',
-  is_active: true,
-  created_at: '2026-01-01T00:00:00Z',
-};
+export let useMock = false;
 
-const MOCK_REPORT: Report = {
-  job_id: MOCK_OPTIMIZATION_JOB.id,
-  job_name: MOCK_OPTIMIZATION_JOB.name,
-  status: 'completed',
-  optimization_type: MOCK_OPTIMIZATION_JOB.optimization_type,
-  created_at: MOCK_OPTIMIZATION_JOB.created_at,
-  completed_at: MOCK_OPTIMIZATION_JOB.completed_at,
-  random_seed: MOCK_OPTIMIZATION_JOB.random_seed,
-  model_version: MOCK_OPTIMIZATION_JOB.model_version,
-  portfolio: {
-    name: MOCK_PORTFOLIOS[0].name,
-    num_instruments: MOCK_PORTFOLIOS[0].instruments.length,
-  },
-  strategies: MOCK_STRATEGIES.map((s) => ({
-    name: s.name,
-    description: s.description,
-    rank: s.rank,
-    metrics: s.metrics,
-    stress_test_results: s.stress_test_results,
-  })),
-  benchmarks: MOCK_BENCHMARKS.map((b) => ({
-    solver_name: b.solver_name,
-    execution_time_seconds: b.execution_time_seconds,
-    objective_value: b.objective_value,
-    feasible: b.feasible,
-    iterations: b.iterations,
-    metrics: b.metrics,
-  })),
-  summary: {
-    best_strategy: MOCK_STRATEGIES[0].name,
-    total_instruments: MOCK_PORTFOLIOS[0].instruments.length,
-    solver_count: MOCK_BENCHMARKS.length,
-    scenario_count: 6,
-  },
-};
-
-export let useMock = true;
-
-export function setMockEnabled(enabled: boolean) {
-  useMock = enabled;
+export function setMockEnabled(value: boolean) {
+  useMock = value;
 }
 
-function delay(ms = 300): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function login({ email }: { email: string; password: string }) {
+  return {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    token_type: 'bearer',
+    user: { ...MOCK_USER, email: 'admin@treasury.gov' },
+  };
 }
+
+async function register({ email, name }: { email: string; password: string; name: string }) {
+  return {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    token_type: 'bearer',
+    user: { ...MOCK_USER, email, name: name || 'Treasury Admin' },
+  };
+}
+
+async function me() {
+  return { ...MOCK_USER };
+}
+
+async function refresh(_token: string) {
+  return {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    token_type: 'bearer',
+    user: { ...MOCK_USER },
+  };
+}
+
+const MOCK_JOBS = [
+  { id: 'opt-001', name: 'Q1 Refinancing Pass', status: 'completed' },
+];
 
 export const mockAdapter = {
-  auth: {
-    me: async (): Promise<User> => {
-      await delay(200);
-      return MOCK_USER;
-    },
-    login: async (_data: { email: string; password: string }) => {
-      await delay(400);
-      return {
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        token_type: 'bearer',
-        user: MOCK_USER,
-      };
-    },
-    register: async (_data: { email: string; password: string; name: string; org_name?: string }) => {
-      await delay(400);
-      return {
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        token_type: 'bearer',
-        user: MOCK_USER,
-      };
-    },
-    refresh: async (_refresh_token: string) => {
-      await delay(200);
-      return {
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        token_type: 'bearer',
-        user: MOCK_USER,
-      };
-    },
-  },
-
+  auth: { login, register, me, refresh },
   portfolios: {
-    list: async (): Promise<{ portfolios: Portfolio[]; total: number }> => {
-      await delay(300);
-      return { portfolios: MOCK_PORTFOLIOS, total: MOCK_PORTFOLIOS.length };
+    list: async () => ({ portfolios: MOCK_PORTFOLIOS, total: MOCK_PORTFOLIOS.length }),
+    get: async (id: string) => {
+      const found = MOCK_PORTFOLIOS.find((p) => p.id === id);
+      if (!found) throw new Error('Portfolio not found');
+      return found;
     },
-    get: async (id: string): Promise<Portfolio> => {
-      await delay(200);
-      const portfolio = MOCK_PORTFOLIOS.find((p) => p.id === id);
-      if (!portfolio) throw new Error('Portfolio not found');
-      return portfolio;
-    },
-    create: async (data: { name: string; description: string; instruments?: Array<Record<string, unknown>> }) => {
-      await delay(400);
-      return {
-        id: 'port-new',
-        name: data.name,
-        description: data.description,
-        org_id: 'org-001',
-        created_by: 'user-001',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        instruments: (data.instruments || []) as unknown as Portfolio['instruments'],
-      };
-    },
-    delete: async (_id: string): Promise<void> => {
-      await delay(300);
-    },
-    upload: async (_formData: FormData): Promise<Portfolio> => {
-      await delay(500);
-      return MOCK_PORTFOLIOS[0];
-    },
+    create: async ({ name, description }: { name: string; description: string }) => ({
+      id: 'port-new',
+      name,
+      description,
+    }),
+    delete: async (_id: string) => undefined as void,
+    upload: async (_formData: FormData) => MOCK_PORTFOLIOS[0],
   },
-
   optimizations: {
-    list: async (): Promise<OptimizationJob[]> => {
-      await delay(300);
-      return [MOCK_OPTIMIZATION_JOB];
+    list: async () => [...MOCK_JOBS],
+    get: async (id: string) => {
+      const found = MOCK_JOBS.find((j) => j.id === id);
+      if (!found) throw new Error('Optimization not found');
+      return found;
     },
-    get: async (id: string): Promise<OptimizationJob> => {
-      await delay(200);
-      if (id !== MOCK_OPTIMIZATION_JOB.id) throw new Error('Optimization not found');
-      return MOCK_OPTIMIZATION_JOB;
-    },
-    create: async (data: Record<string, unknown>): Promise<OptimizationJob> => {
-      await delay(500);
-      return { ...MOCK_OPTIMIZATION_JOB, ...data, id: 'opt-new', created_at: new Date().toISOString() } as OptimizationJob;
-    },
-    cancel: async (_id: string): Promise<void> => {
-      await delay(200);
-    },
-    strategies: async (_id: string): Promise<Strategy[]> => {
-      await delay(400);
-      return MOCK_STRATEGIES;
-    },
-    benchmarks: async (_id: string): Promise<BenchmarkResult[]> => {
-      await delay(300);
-      return MOCK_BENCHMARKS;
-    },
-    results: async (_id: string) => {
-      await delay(300);
-      return [
-        { id: 'res-001', metrics: MOCK_STRATEGIES[0].metrics, allocation: MOCK_STRATEGIES[0].allocations },
-        { id: 'res-002', metrics: MOCK_STRATEGIES[1].metrics, allocation: MOCK_STRATEGIES[1].allocations },
-        { id: 'res-003', metrics: MOCK_STRATEGIES[2].metrics, allocation: MOCK_STRATEGIES[2].allocations },
-      ];
-    },
-    report: async (_id: string): Promise<Report> => {
-      await delay(400);
-      return MOCK_REPORT;
-    },
+    create: async ({ name }: { name: string }) => ({ id: 'opt-new', name, status: 'queued' }),
+    cancel: async (_id: string) => undefined as void,
+    strategies: async (_id: string) => [...MOCK_STRATEGIES],
+    benchmarks: async (_id: string) => [...MOCK_BENCHMARKS],
+    results: async (_id: string) => [
+      { id: 'res-001', metrics: {}, allocation: {} },
+      { id: 'res-002', metrics: {}, allocation: {} },
+      { id: 'res-003', metrics: {}, allocation: {} },
+    ],
+    report: async (id: string) => ({
+      job_id: id,
+      strategies: [...MOCK_STRATEGIES],
+      benchmarks: [...MOCK_BENCHMARKS],
+      summary: { best_strategy: 'Strategy A' },
+    }),
   },
-
   audit: {
-    list: async (_params?: { limit?: number; offset?: number; action?: string; resource_type?: string }): Promise<AuditEvent[]> => {
-      await delay(300);
-      return MOCK_AUDIT_EVENTS;
-    },
+    list: async () => [...MOCK_AUDIT_EVENTS],
   },
-
-  health: async (): Promise<{ status: string; version: string }> => {
-    await delay(100);
-    return { status: 'healthy', version: '2.1.0' };
+  health: async () => ({ status: 'healthy', version: '2.1.0' }),
+  knowledgeGraph: {
+    search: async (query: string, _nodeTypes: string[]) => ({
+      success: true as const,
+      data: { nodes: [], edges: [], total: 0 },
+      query,
+    }),
   },
 };

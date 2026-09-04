@@ -306,6 +306,61 @@ export interface RiskSummary {
   generated_at: string;
 }
 
+// ── National Risk Operating System (Layer 6) Types ───────────────────
+
+export interface RiskCategoryPanel {
+  id: RiskCategory;
+  title: string;
+  icon: string;
+  color: string;
+}
+
+export interface RiskSummaryData {
+  overall: number;
+  by_category: Record<RiskCategory, number>;
+  category_counts: Record<RiskCategory, number>;
+  entity_id: string;
+  entity_type: string;
+  trending?: string;
+}
+
+export interface EarlyWarningSignal {
+  id: string;
+  name: string;
+  category: string;
+  indicator: string;
+  currentValue: number;
+  threshold: number;
+  unit: string;
+  direction: 'above_danger' | 'below_danger';
+  status: 'normal' | 'watch' | 'warning' | 'critical';
+  trend: 'improving' | 'stable' | 'deteriorating';
+  description: string;
+  lastUpdated: string;
+}
+
+export enum RiskCategory {
+  CYBER = 'cyber',
+  FISCAL = 'fiscal',
+  CLIMATE = 'climate',
+  INFRASTRUCTURE = 'infrastructure',
+  GEOPOLITICAL = 'geopolitical',
+  SUPPLY_CHAIN = 'supply_chain',
+}
+
+export enum RiskSeverity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
+}
+
+export enum TrendDirection {
+  IMPROVING = 'improving',
+  STABLE = 'stable',
+  DETERIORATING = 'deteriorating',
+}
+
 // ── Notification Types ─────────────────────────────────────────────
 
 export interface Notification {

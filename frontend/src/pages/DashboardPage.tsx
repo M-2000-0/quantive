@@ -1,334 +1,368 @@
-import { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowUpRight, ChevronRight, Loader2, Wallet } from 'lucide-react';
 import { api } from '../api';
-import AppShell from '../components/layout/AppShell';
-import StatCard from '../components/ui/StatCard';
-import Card, { CardHeader } from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
-import Button from '../components/ui/Button';
-import { formatCurrency, formatDate, statusVariant, statusLabel } from '../utils';
-import type { Portfolio, OptimizationJob } from '../types';
+import AssetTracker from '../components/AssetTracker';
+import DailyBriefing from '../components/DailyBriefing';
+import FirstRunWizard from '../components/FirstRunWizard';
+import MarketPulseWidget from '../components/MarketPulseWidget';
+import SavingsDashboard from '../components/SavingsDashboard';
 
-function weightedAvgMaturity(instruments: Portfolio['instruments']): number {
-  if (instruments.length === 0) return 0;
-  const now = Date.now();
-  const yearMs = 365.25 * 24 * 60 * 60 * 1000;
-  const totalPrincipal = instruments.reduce((s, i) => s + i.principal_outstanding, 0);
-  if (totalPrincipal === 0) return 0;
-  const weighted = instruments.reduce((s, i) => {
-    const maturityMs = new Date(i.maturity_date).getTime() - now;
-    const years = Math.max(0, maturityMs / yearMs);
-    return s + (i.principal_outstanding / totalPrincipal) * years;
-  }, 0);
-  return weighted;
+interface MaturityBucket {
+  year: number;
+  count: number;
+  total_principal: number;
+}
+
+interface DashboardSummary {
+  total_debt: number;
+  instrument_count: number;
+  currency_count: number;
+  portfolio_count: number;
+  avg_maturity_years: number;
+  weighted_coupon_pct: number;
+  active_optimizations: number;
+  completed_optimizations: number;
+  risk_scores: {
+    refinancing_risk: number;
+    currency_risk: number;
+    interest_rate_risk: number;
+    overall: number;
+  };
+  maturity_distribution: MaturityBucket[];
+  top_currencies: Array<{ currency: string; total_principal: number; percentage: number }>;
+}
+
+interface DashboardTask {
+  id: string;
+  type: string;
+  title: string;
+  meta: string;
+  status: string;
+  priority: string;
+  link?: string;
+}
+
+function formatCurrency(value: number): string {
+  if (value >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+  if (value >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
+  return `$${value.toFixed(0)}`;
+}
+
+function riskColor(score: number): string {
+  if (score >= 75) return 'red';
+  if (score >= 50) return 'amber';
+  return 'green';
+}
+
+function riskLabel(score: number): string {
+  const c = riskColor(score);
+  return c === 'red' ? 'High' : c === 'amber' ? 'Medium' : 'Low';
 }
 
 export default function DashboardPage() {
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [jobs, setJobs] = useState<OptimizationJob[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [tasks, setTasks] = useState<DashboardTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [showChartTable, setShowChartTable] = useState(false);
+  const [params] = useSearchParams();
+  const searchQuery = (params.get('q') ?? '').trim().toLowerCase();
 
-  useEffect(() => {
-    Promise.all([
-      api.portfolios.list().catch(() => ({ data: [] as Portfolio[], meta: { total: 0 } })),
-      api.optimizations.list().catch(() => ({ data: [] as OptimizationJob[], meta: { total: 0 } })),
-    ]).then(([p, j]) => {
-      setPortfolios((p as { data: Portfolio[] }).data || []);
-      setJobs((j as { data: OptimizationJob[] }).data || []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const summaryData = (await api.dashboard.summary()) as unknown as DashboardSummary;
+      const tasksData = (await api.dashboard.tasks()) as unknown as DashboardTask[];
+      setSummary(summaryData);
+      setTasks(Array.isArray(tasksData) ? tasksData : []);
+      setLastSync(new Date());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load dashboard');
+    } finally {
       setLoading(false);
-    });
+    }
   }, []);
 
-  const allInstruments = useMemo(() => portfolios.flatMap((p) => p.instruments ?? []), [portfolios]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const totalDebt = useMemo(() => allInstruments.reduce((s, i) => s + i.principal_outstanding, 0), [allInstruments]);
+  const filteredTasks = useMemo(() => {
+    if (!searchQuery) return tasks;
+    return tasks.filter((t) =>
+      `${t.title} ${t.meta} ${t.status}`.toLowerCase().includes(searchQuery),
+    );
+  }, [tasks, searchQuery]);
 
-  const currencies = useMemo(() => [...new Set(allInstruments.map((i) => i.currency))], [allInstruments]);
+  const stats = summary
+    ? [
+        { value: formatCurrency(summary.total_debt), label: 'Total debt', tone: 'blue' },
+        { value: `${summary.weighted_coupon_pct.toFixed(1)}%`, label: 'Weighted coupon', tone: 'green' },
+        { value: `${summary.instrument_count}`, label: 'Instruments', tone: 'slate' },
+        { value: `${summary.risk_scores.overall.toFixed(0)} / 100`, label: 'Risk score', tone: riskColor(summary.risk_scores.overall) },
+      ]
+    : [
+        { value: '—', label: 'Total debt', tone: 'blue' },
+        { value: '—', label: 'Weighted coupon', tone: 'green' },
+        { value: '—', label: 'Instruments', tone: 'slate' },
+        { value: '—', label: 'Risk score', tone: 'slate' },
+      ];
 
-  const avgMaturity = useMemo(() => weightedAvgMaturity(allInstruments), [allInstruments]);
+  const maxPrincipal = summary?.maturity_distribution.length
+    ? Math.max(...summary.maturity_distribution.map((b) => b.total_principal))
+    : 1;
 
-  const completedJobs = useMemo(() => jobs.filter((j) => j.status === 'completed'), [jobs]);
+  const displayTasks = filteredTasks.length > 0
+    ? filteredTasks
+    : tasks.length > 0 && searchQuery
+      ? []
+      : [{ title: 'No active tasks', meta: 'All clear', state: 'On track' } as unknown as DashboardTask];
 
-  const baselineCost = useMemo(() => {
-    if (completedJobs.length === 0) return 0;
-    const firstJob = completedJobs[0];
-    return (firstJob.objectives as Record<string, unknown>)?.baseline_cost as number || totalDebt * 0.06;
-  }, [completedJobs, totalDebt]);
-
-  const bestCost = useMemo(() => {
-    if (completedJobs.length === 0) return 0;
-    return baselineCost > 0 ? baselineCost * 0.96 : totalDebt * 0.057;
-  }, [completedJobs, baselineCost, totalDebt]);
-
-  const improvementPct = baselineCost > 0 ? ((baselineCost - bestCost) / baselineCost * 100).toFixed(1) : '0.0';
-  const stressResilience = completedJobs.length > 0 ? 91 : 0;
+  const keyMetrics = summary
+    ? [
+        { title: 'Avg maturity', value: `${summary.avg_maturity_years} yr`, trend: summary.avg_maturity_years > 5 ? 'Long-term' : 'Short-term' },
+        { title: 'Portfolios', value: `${summary.portfolio_count}`, trend: summary.completed_optimizations > 0 ? `${summary.completed_optimizations} optimized` : 'No optimizations yet' },
+        { title: 'Currencies', value: `${summary.currency_count}`, trend: summary.top_currencies[0]?.currency ? `Primary: ${summary.top_currencies[0].currency}` : 'N/A' },
+      ]
+    : [
+        { title: 'Avg maturity', value: '—', trend: 'Loading...' },
+        { title: 'Portfolios', value: '—', trend: 'Loading...' },
+        { title: 'Currencies', value: '—', trend: 'Loading...' },
+      ];
 
   if (loading) {
     return (
-      <AppShell>
-        <LoadingSpinner message="Loading dashboard..." />
-      </AppShell>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', color: '#6b7280' }}>
+          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <p style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: '#dc2626' }}>Failed to load dashboard</p>
+          <p style={{ color: '#6b7280', marginBottom: 16 }}>{error}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <AppShell>
-      <div className="px-8 py-6 max-w-[1440px] mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Executive Dashboard</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Portfolio overview and optimization status</p>
-          </div>
-          <div className="text-sm text-slate-500 font-medium tabular-nums">
-            {formatDate(new Date().toISOString())}
-          </div>
+    <div>
+      <section className="hero-card">
+        <div>
+          <p className="eyebrow">Good morning</p>
+          <h1>Everything you need, with less noise.</h1>
+          {lastSync && (
+            <p style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+              Last synced {lastSync.toLocaleTimeString()}
+            </p>
+          )}
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Portfolio Overview
-          </h2>
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              label="Total Debt"
-              value={formatCurrency(totalDebt)}
-              icon={<span className="text-lg">$</span>}
-            />
-            <StatCard
-              label="Instruments"
-              value={allInstruments.length}
-              icon={<span className="text-lg">▦</span>}
-            />
-            <StatCard
-              label="Currencies"
-              value={currencies.length}
-              changeLabel={currencies.join(', ')}
-              icon={<span className="text-lg">●</span>}
-            />
-            <StatCard
-              label="Avg Maturity"
-              value={`${avgMaturity.toFixed(1)} yrs`}
-              icon={<span className="text-lg">◷</span>}
-            />
+        <div className="hero-meta">
+          <div className="meta-pill">
+            <Wallet size={14} />
+            {summary ? `${summary.portfolio_count} portfolio${summary.portfolio_count !== 1 ? 's' : ''} active` : 'No portfolios'}
+          </div>
+          <div className="meta-pill subtle">
+            <ArrowUpRight size={14} />
+            {summary?.active_optimizations
+              ? `${summary.active_optimizations} optimization${summary.active_optimizations !== 1 ? 's' : ''} running`
+              : 'Ready to optimize'}
           </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-          <Card>
-            <CardHeader title="Current Risk Profile" subtitle="Aggregate risk metrics across all portfolios" />
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[13px] font-medium text-slate-600">Financing Cost</span>
-                  <span className="text-sm font-bold text-slate-900 tabular-nums">{formatCurrency(baselineCost)}</span>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[13px] font-medium text-slate-600">Refinancing Risk</span>
-                  <span className="text-sm font-bold text-slate-900 tabular-nums">18%</span>
-                </div>
-                <div className="w-full bg-white/50 backdrop-blur-sm border border-white/40 rounded-full h-2.5 p-0.5">
-                  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full h-full shadow-sm" style={{ width: '18%' }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[13px] font-medium text-slate-600">Interest Rate Exposure</span>
-                  <span className="text-sm font-bold text-slate-900 tabular-nums">22%</span>
-                </div>
-                <div className="w-full bg-white/50 backdrop-blur-sm border border-white/40 rounded-full h-2.5 p-0.5">
-                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-full h-full shadow-sm" style={{ width: '22%' }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[13px] font-medium text-slate-600">Currency Exposure</span>
-                  <span className="text-sm font-bold text-slate-900 tabular-nums">15%</span>
-                </div>
-                <div className="w-full bg-white/50 backdrop-blur-sm border border-white/40 rounded-full h-2.5 p-0.5">
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full h-full shadow-sm" style={{ width: '15%' }} />
-                </div>
-              </div>
-            </div>
-          </Card>
+      <section className="stats-grid qa-grid-4">
+        {stats.map(({ value, label, tone }) => (
+          <article key={label} className={`stat-card ${tone}`}>
+            <div className="stat-value">{value}</div>
+            <div className="stat-label">{label}</div>
+          </article>
+        ))}
+      </section>
 
-          <Card>
-            <CardHeader title="Optimization Status" subtitle="Latest optimization results" />
-            {completedJobs.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Baseline Cost</span>
-                  <span className="text-sm font-semibold text-slate-900 tabular-nums">{formatCurrency(baselineCost)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Best Strategy</span>
-                  <span className="text-sm font-semibold text-emerald-700 tabular-nums">{formatCurrency(bestCost)}</span>
-                </div>
-                <div className="h-px bg-white/40" />
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Improvement</span>
-                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-500/12 text-emerald-700 border border-emerald-500/20">{improvementPct}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Stress Resilience</span>
-                  <span className="text-sm font-bold text-slate-900 tabular-nums">{stressResilience}%</span>
-                </div>
-                <div className="pt-2">
-                  <Link to={`/optimizations/${jobs[0]?.id}`}>
-                    <Button variant="secondary" size="sm" fullWidth>
-                      View Full Report
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">No completed optimizations yet. Run your first optimization to see results.</p>
-            )}
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-          <div className="col-span-2">
-            <Card padding={false}>
-              <div className="px-6 py-4 border-b border-white/40 bg-white/20 backdrop-blur-xl flex items-center justify-between rounded-t-[20px]">
-                <div>
-                  <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">Portfolios</h3>
-                  <p className="text-sm text-slate-500 mt-0.5">{portfolios.length} total</p>
-                </div>
-                <Link to="/portfolios/new">
-                  <Button variant="primary" size="sm">New Portfolio</Button>
-                </Link>
-              </div>
-              {portfolios.length === 0 ? (
-                <div className="px-6 py-12 text-center">
-                  <p className="text-sm text-slate-500">No portfolios created yet.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-white/30">
-                  {portfolios.map((p) => (
-                    <Link
-                      key={p.id}
-                      to={`/portfolios/${p.id}`}
-                      className="flex items-center justify-between px-6 py-4 hover:bg-white/40 backdrop-blur-sm transition-colors"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold tracking-tight text-slate-900 truncate">{p.name}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {p.instruments?.length ?? 0} instruments · Updated {formatDate(p.updated_at)}
-                        </p>
-                      </div>
-                      <div className="ml-4 text-sm font-bold text-slate-900 tabular-nums bg-white/60 border border-white/60 rounded-full px-3 py-1 backdrop-blur-md">
-                        {formatCurrency((p.instruments ?? []).reduce((s, i) => s + i.principal_outstanding, 0))}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </Card>
+      <section className="content-grid qa-grid-2">
+        <article className="panel panel-large">
+          <div className="panel-header">
+            <h2>Maturity distribution</h2>
+            <button className="soft-button" type="button" onClick={() => setShowChartTable((v) => !v)}>
+              {showChartTable ? 'Show chart' : 'All years'} <ChevronRight size={14} />
+            </button>
           </div>
 
-          <div>
-            <Card padding={false}>
-              <div className="px-6 py-4 border-b border-white/40 bg-white/20 backdrop-blur-xl rounded-t-[20px]">
-                <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">Quick Actions</h3>
-              </div>
-              <div className="p-4 space-y-2.5 bg-white/10">
-                <Link to="/portfolios/new" className="block">
-                  <Button variant="secondary" size="md" fullWidth leftIcon={<span>+</span>}>
-                    New Portfolio
-                  </Button>
-                </Link>
-                <Link to="/optimizations/new" className="block">
-                  <Button variant="primary" size="md" fullWidth leftIcon={<span>▶</span>}>
-                    Run Optimization
-                  </Button>
-                </Link>
-                <Link to="/audit" className="block">
-                  <Button variant="ghost" size="md" fullWidth leftIcon={<span>▤</span>}>
-                    View Audit Log
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        <Card padding={false}>
-          <div className="px-6 py-4 border-b border-white/40 bg-white/20 backdrop-blur-xl flex items-center justify-between rounded-t-[20px]">
-            <div>
-              <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">Recent Optimizations</h3>
-              <p className="text-sm text-slate-500 mt-0.5">{jobs.length} total runs</p>
-            </div>
-            <Link to="/optimizations/new">
-              <Button variant="secondary" size="sm">New Optimization</Button>
-            </Link>
-          </div>
-          {jobs.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <p className="text-sm text-slate-500">No optimization runs yet.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+          {summary?.maturity_distribution.length ? (
+            showChartTable ? (
+              <table className="q-table" aria-label="Maturity distribution data table">
                 <thead>
-                  <tr className="border-b border-white/40 bg-white/30 backdrop-blur-xl">
-                    <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Name</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Progress</th>
-                    <th className="text-left px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Created</th>
-                    <th className="text-right px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Action</th>
+                  <tr>
+                    <th>Year</th>
+                    <th>Instruments</th>
+                    <th>Total principal</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/30">
-                  {jobs.slice(0, 10).map((j) => (
-                    <tr key={j.id} className="hover:bg-white/35 backdrop-blur-sm transition-colors bg-white/15">
-                      <td className="px-6 py-3.5">
-                        <p className="font-semibold tracking-tight text-slate-900">{j.name}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{j.optimization_type.replace(/_/g, ' ')}</p>
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <Badge variant={statusVariant(j.status)}>{statusLabel(j.status)}</Badge>
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-24 bg-white/50 backdrop-blur-sm border border-white/40 rounded-full h-2 p-0.5">
-                            <div
-                              className={`rounded-full h-full transition-all duration-500 shadow-sm ${
-                                j.status === 'completed'
-                                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
-                                  : j.status === 'failed'
-                                    ? 'bg-gradient-to-r from-red-500 to-rose-600'
-                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600'
-                              }`}
-                              style={{ width: `${Math.max(2, j.progress * 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-bold text-slate-600 tabular-nums w-10 text-right">
-                            {(j.progress * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-slate-500 tabular-nums">
-                        {formatDate(j.created_at)}
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <Link
-                          to={`/optimizations/${j.id}`}
-                          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-white/60 border border-white/60 text-blue-700 hover:bg-white/80 backdrop-blur-md shadow-sm transition-colors"
-                        >
-                          View
-                        </Link>
-                      </td>
+                <tbody>
+                  {summary.maturity_distribution.slice(0, 10).map((bucket) => (
+                    <tr key={bucket.year}>
+                      <td>{bucket.year}</td>
+                      <td>{bucket.count}</td>
+                      <td>{formatCurrency(bucket.total_principal)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            ) : (
+              <div className="chart" role="list" aria-label="Maturity distribution chart. Activate View as table for exact values.">
+                {summary.maturity_distribution.slice(0, 10).map((bucket) => (
+                  <button
+                    key={bucket.year}
+                    type="button"
+                    role="listitem"
+                    className="bar-wrap"
+                    title={`${bucket.year}: ${formatCurrency(bucket.total_principal)} (${bucket.count} instruments)`}
+                    aria-label={`${bucket.year}: ${formatCurrency(bucket.total_principal)}, ${bucket.count} instruments`}
+                    style={{ background: 'none', border: 'none', cursor: 'default', padding: 0 }}
+                  >
+                    <span
+                      className="bar"
+                      aria-hidden="true"
+                      style={{ height: `${Math.max(4, (bucket.total_principal / maxPrincipal) * 100)}%` }}
+                    />
+                    <span className="bar-year" aria-hidden="true">{bucket.year}</span>
+                  </button>
+                ))}
+              </div>
+            )
+          ) : (
+            <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>
+              No maturity data available
             </div>
           )}
-        </Card>
-      </div>
-    </AppShell>
+        </article>
+
+        <article className="panel" aria-live="polite">
+          <div className="panel-header">
+            <h2>Priority tasks</h2>
+            <Link className="soft-button" to="/optimizations">View all</Link>
+          </div>
+
+          {searchQuery && (
+            <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+              {filteredTasks.length} result{filteredTasks.length === 1 ? '' : 's'} for “{params.get('q')}”{' '}
+              <Link to="/dashboard">Clear</Link>
+            </p>
+          )}
+
+          <div className="task-list">
+            {displayTasks.length === 0 ? (
+              <p style={{ padding: 16, color: '#6b7280', fontSize: 13 }}>
+                No tasks match your search. <Link to="/dashboard">Clear search</Link>
+              </p>
+            ) : (
+              displayTasks.map((task: DashboardTask & { state?: string }) => (
+                <div key={task.id || task.title} className="task-item">
+                  <div className="task-dot" />
+                  <div className="task-copy">
+                    <strong>{task.title}</strong>
+                    <span>{task.meta}</span>
+                  </div>
+                  <span className="task-state">{task.state || task.status}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="bottom-grid qa-grid-2">
+        <article className="panel">
+          <div className="panel-header">
+            <h2>Key metrics</h2>
+          </div>
+
+          <div className="metric-list">
+            {keyMetrics.map(({ title, value, trend }) => (
+              <div key={title} className="metric-row">
+                <span>{title}</span>
+                <strong>{value}</strong>
+                <em>{trend}</em>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel">
+          <div className="panel-header">
+            <h2>Risk breakdown</h2>
+          </div>
+          <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+            Scores are out of 100 — higher means more risk. <Link to="/settings">Learn more</Link>
+          </p>
+
+          <div className="metric-list">
+            {summary ? (
+              <>
+                <div className="metric-row">
+                  <span>Refinancing</span>
+                  <strong>{summary.risk_scores.refinancing_risk.toFixed(0)} / 100</strong>
+                  <em style={{ color: riskColor(summary.risk_scores.refinancing_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.refinancing_risk) === 'amber' ? '#d97706' : '#16a34a' }}>
+                    {riskLabel(summary.risk_scores.refinancing_risk)}
+                  </em>
+                </div>
+                <div className="metric-row">
+                  <span>Currency</span>
+                  <strong>{summary.risk_scores.currency_risk.toFixed(0)} / 100</strong>
+                  <em style={{ color: riskColor(summary.risk_scores.currency_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.currency_risk) === 'amber' ? '#d97706' : '#16a34a' }}>
+                    {riskLabel(summary.risk_scores.currency_risk)}
+                  </em>
+                </div>
+                <div className="metric-row">
+                  <span>Interest rate</span>
+                  <strong>{summary.risk_scores.interest_rate_risk.toFixed(0)} / 100</strong>
+                  <em style={{ color: riskColor(summary.risk_scores.interest_rate_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.interest_rate_risk) === 'amber' ? '#d97706' : '#16a34a' }}>
+                    {riskLabel(summary.risk_scores.interest_rate_risk)}
+                  </em>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: 16, textAlign: 'center', color: '#9ca3af' }}>No risk data</div>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <FirstRunWizard />
+
+      <section className="qa-grid-2" style={{ display: 'grid', gap: 20, marginTop: 24 }}>
+        <MarketPulseWidget />
+        <DailyBriefing />
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <SavingsDashboard />
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <AssetTracker />
+      </section>
+    </div>
   );
 }

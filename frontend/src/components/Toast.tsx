@@ -40,8 +40,7 @@ const VARIANT_STYLES: Record<string, string> = {
   'job-queued': 'border-l-4 border-l-slate-400 bg-slate-50/90 text-slate-800',
   'job-running': 'border-l-4 border-l-blue-400 bg-blue-50/90 text-slate-800',
   'job-completed': 'border-l-4 border-l-emerald-400 bg-emerald-50/90 text-emerald-900',
-  'job-failed': 'border-l-4 border-l-red-400 bg-red-50/90 text-red-900',
-};
+  'job-failed': 'border-l-4 border-l-red-400 bg-red-50/90 text-red-900' };
 
 const VARIANT_ICONS: Record<string, string> = {
   success: '✓',
@@ -55,8 +54,7 @@ const VARIANT_ICONS: Record<string, string> = {
   'job-queued': '⏳',
   'job-running': '⟳',
   'job-completed': '✓',
-  'job-failed': '✕',
-};
+  'job-failed': '✕' };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -80,14 +78,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       queued: 'Job Queued',
       running: 'Job Running',
       completed: 'Job Completed',
-      failed: 'Job Failed',
-    };
+      failed: 'Job Failed' };
     const defaults: Record<JobStatus, string> = {
       queued: 'Your optimization is queued and will start shortly.',
       running: 'Optimization is in progress…',
       completed: 'Optimization completed successfully.',
-      failed: 'Optimization failed. Check details.',
-    };
+      failed: 'Optimization failed. Check details.' };
     const title = opts?.title ?? titles[status];
     const msg = opts?.message ?? defaults[status];
     const full = opts?.jobId ? `${title}${msg ? `: ${msg}` : ''} (${opts.jobId.slice(0,8)})` : (msg ? `${title}: ${msg}` : title);
@@ -105,7 +101,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast, addJobToast, notifyJobStatus }}>
       {children}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+      <div role="region" aria-live="polite" aria-label="Notifications" className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
         {toasts.map((t) => {
           const style = VARIANT_STYLES[t.variant] ?? VARIANT_STYLES[t.jobStatus ?? 'info'];
           const icon = VARIANT_ICONS[t.variant] ?? VARIANT_ICONS[t.jobStatus ?? 'info'] ?? 'ℹ';

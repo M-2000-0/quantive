@@ -295,14 +295,16 @@ export const api = {
     cacheClear: () => request<{ cleared: number }>('/market/cache/clear', { method: 'POST' }),
   },
 
-  // ── Risk Probabilities ──────────────────────────────────────────────
+  // ── Risk ────────────────────────────────────────────────────────────
   risk: {
-    summary: (portfolioId: string) => request<RiskSummary>(`/portfolios/${portfolioId}/risk-summary`),
-    investmentScenarios: (portfolioId: string, amount: number) =>
-      request<{ investment_amount: number; scenarios: InvestmentScenario[] }>(`/portfolios/${portfolioId}/investment-scenarios?investment_amount=${amount}`),
-    score: (portfolioId: string) => request<RiskScore>(`/portfolios/${portfolioId}/risk-score`),
-    var: (portfolioId: string, confidence?: number) =>
-      request<VaRResult[]>(`/portfolios/${portfolioId}/var?confidence=${confidence || 0.95}`),
+    cyberSummary: (entityId: string) => request<{ overall: number; by_category: Record<string, number>; category_counts: Record<string, number> }>(`/risk/cyber/summary?entity_id=${entityId}`),
+    fiscalSummary: (entityId: string) => request<{ overall: number; by_category: Record<string, number>; category_counts: Record<string, number> }>(`/risk/fiscal/summary?entity_id=${entityId}`),
+    climateSummary: (entityId: string) => request<{ overall: number; by_category: Record<string, number>; category_counts: Record<string, number> }>(`/risk/climate/summary?entity_id=${entityId}`),
+    infrastructureSummary: (entityId: string) => request<{ overall: number; by_category: Record<string, number>; category_counts: Record<string, number> }>(`/risk/infrastructure/summary?entity_id=${entityId}`),
+    geopoliticalSummary: (entityId: string) => request<{ overall: number; by_category: Record<string, number>; category_counts: Record<string, number> }>(`/risk/geopolitical/summary?entity_id=${entityId}`),
+    supplyChainSummary: (entityId: string) => request<{ overall: number; by_category: Record<string, number>; category_counts: Record<string, number> }>(`/risk/supply-chain/summary?entity_id=${entityId}`),
+    aggregate: (entityId: string, entityType?: string, weights?: Record<string, number>) => request<{ overall_score: number; by_category: Record<string, number>; category_counts: Record<string, number> }>(`/risk/aggregate/${entityId}?entity_type=${entityType || 'government'}`),
+    earlyWarning: (entityId: string) => request<{ signals: Array<{ id: string; name: string; category: string; indicator: string; currentValue: number; threshold: number; unit: string; direction: string; status: string; trend: string; description: string; lastUpdated: string }>; total_signals: number; critical_signals: number }>(`/risk/early-warning/${entityId}`),
   },
 
   // ── Watchlists ──────────────────────────────────────────────────────
@@ -409,6 +411,57 @@ export const api = {
   // ── Dashboard ───────────────────────────────────────────────────────
   dashboard: {
     summary: () => request<Record<string, unknown>>('/dashboard/summary'),
+    tasks: (limit?: number) => request<Array<Record<string, unknown>>>(`/dashboard/tasks${limit ? `?limit=${limit}` : ''}`),
+  },
+
+  // ── Procurement Intelligence (Layer 7) ─────────────────────────────
+  procurement: {
+    listRequests: () => request<{ data: any[]; meta: any }>('/procurement'),
+    getRequest: (id: string) => request<Record<string, any>>(`/procurement/${id}`),
+    createRequest: (data: Record<string, any>) =>
+      request<Record<string, any>>('/procurement', { method: 'POST', body: JSON.stringify(data) }),
+    detectWaste: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/waste`),
+    wasteSummary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/waste/summary`),
+    detectBottlenecks: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/bottlenecks`),
+    bottlenecksSummary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/bottlenecks/summary`),
+    benchmarkVendors: (requestId: string, vendorMetrics?: Record<string, any>) => {
+      const qs = new URLSearchParams();
+      if (vendorMetrics) {
+        qs.set("vendorMetrics", JSON.stringify(vendorMetrics));
+      }
+      return request<Record<string, any>>(`/procurement/${requestId}/benchmarks?${qs.toString()}`);
+    },
+    benchmarksSummary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/benchmarks/summary`),
+    forecastOutcomes: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/forecast`),
+    forecastSummary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/forecast/summary`),
+    integrate: (requestId: string, problemId?: string) => {
+      const qs = new URLSearchParams();
+      if (problemId) qs.set("problemId", problemId);
+      return request<Record<string, any>>(
+        `/procurement/${requestId}/integrate?${qs.toString()}`
+      );
+    },
+    healthCheck: () => request<{ status: string }>("/procurement/health/check"),
+    // snake_case aliases used by ProcurementDashboard — same endpoints.
+    list_requests: () => request<{ data: any[]; meta: any }>('/procurement'),
+    get_request: (id: string) => request<Record<string, any>>(`/procurement/${id}`),
+    create_request: (data: Record<string, any>) =>
+      request<Record<string, any>>('/procurement', { method: 'POST', body: JSON.stringify(data) }),
+    waste_summary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/waste/summary`),
+    bottlenecks_summary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/bottlenecks/summary`),
+    benchmarks_summary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/benchmarks/summary`),
+    forecast_summary: (requestId: string) =>
+      request<Record<string, any>>(`/procurement/${requestId}/forecast/summary`),
   },
 
   // ── Security ──────────────────────────────────────────────────────
@@ -511,6 +564,75 @@ export const api = {
     checkSource: (source: string) => request<{ name: string; provider: string; url: string; status: string; latency_ms: number | null; last_value: string | null; error: string | null; tested_at: string }>(`/market/health/${source}`),
   },
 
+  // ── First-Run Wizard ────────────────────────────────────────────────
+  firstRun: {
+    status: () => request<Record<string, unknown>>('/first-run/status'),
+    createDemoPortfolio: () => request<Record<string, unknown>>('/first-run/demo-portfolio', { method: 'POST' }),
+    quickOptimize: (portfolioId?: string) => {
+      const qs = portfolioId ? `?portfolio_id=${portfolioId}` : '';
+      return request<Record<string, unknown>>(`/first-run/quick-optimize${qs}`, { method: 'POST' });
+    },
+    savingsOpportunity: (portfolioId?: string) => {
+      const qs = portfolioId ? `?portfolio_id=${portfolioId}` : '';
+      return request<Record<string, unknown>>(`/first-run/savings-opportunity${qs}`);
+    },
+    quickStartData: () => request<Record<string, unknown>>('/first-run/quick-start-data'),
+  },
+
+  // ── Savings Dashboard ────────────────────────────────────────────────
+  savings: {
+    summary: () => request<Record<string, unknown>>('/savings/summary'),
+    history: (days?: number) => request<Record<string, unknown>>(`/savings/history${days ? `?days=${days}` : ''}`),
+    comparison: (portfolioId?: string) => {
+      const qs = portfolioId ? `?portfolio_id=${portfolioId}` : '';
+      return request<Record<string, unknown>>(`/savings/comparison${qs}`);
+    },
+    milestones: () => request<Record<string, unknown>>('/savings/milestones'),
+  },
+
+  // ── Market Pulse ─────────────────────────────────────────────────────
+  marketPulse: {
+    get: () => request<Record<string, unknown>>('/market-pulse'),
+    yieldCurve: () => request<Record<string, unknown>>('/market-pulse/yield-curve'),
+    refinancingWindows: () => request<Record<string, unknown>>('/market-pulse/refinancing-windows'),
+  },
+
+  // ── Daily Briefing ───────────────────────────────────────────────────
+  briefing: {
+    get: () => request<Record<string, unknown>>('/briefing'),
+    actionItems: () => request<Record<string, unknown>>('/briefing/action-items'),
+    maturityTimeline: (days?: number) => request<Record<string, unknown>>(`/briefing/maturity-timeline${days ? `?horizon_days=${days}` : ''}`),
+  },
+
+  // ── Asset Tracker ────────────────────────────────────────────────────
+  assets: {
+    getAll: () => request<Record<string, unknown>>('/assets/all'),
+    crypto: {
+      list: () => request<Record<string, unknown>>('/assets/crypto'),
+      detail: (coinId: string) => request<Record<string, unknown>>(`/assets/crypto/${coinId}`),
+      history: (coinId: string, days?: number) => request<Record<string, unknown>>(`/assets/crypto/${coinId}/history?days=${days || 30}`),
+      fearGreed: () => request<Record<string, unknown>>('/assets/crypto/fear-greed'),
+    },
+    commodities: {
+      list: () => request<Record<string, unknown>>('/assets/commodities'),
+      detail: (symbol: string) => request<Record<string, unknown>>(`/assets/commodities/${encodeURIComponent(symbol)}`),
+    },
+    fx: {
+      list: () => request<Record<string, unknown>>('/assets/fx'),
+      detail: (pair: string) => request<Record<string, unknown>>(`/assets/fx/${pair}`),
+    },
+    correlation: (assets?: string, days?: number) => {
+      const qs = new URLSearchParams();
+      if (assets) qs.set('assets', assets);
+      if (days) qs.set('days', String(days));
+      return request<Record<string, unknown>>(`/assets/correlation?${qs.toString()}`);
+    },
+    allocation: (portfolioId?: string) => {
+      const qs = portfolioId ? `?portfolio_id=${portfolioId}` : '';
+      return request<Record<string, unknown>>(`/assets/allocation${qs}`);
+    },
+  },
+
   // ── Health ──────────────────────────────────────────────────────────
   health: () => request<{ status: string; version: string; database?: string }>('/health'),
 
@@ -600,6 +722,140 @@ export const api = {
     if (params.shock_probability) qs.set('shock_probability', String(params.shock_probability));
     if (params.num_evaluation_qubits) qs.set('num_evaluation_qubits', String(params.num_evaluation_qubits));
     return request<{ circuit_id: string; num_evaluation_qubits: number; total_qubits: number; circuit_depth: number; precision: number; rotation_angle: number; total_gates: number; performance_comparison: Record<string, number> }>(`/quantum/qae/analyze?${qs.toString()}`);
+  },
+
+  // ── News ─────────────────────────────────────────────────────────────
+  news: {
+    listSources: () => request<any[]>('/news/sources'),
+    createSource: (data: { name: string; source_type: string; url?: string; config_json?: Record<string, unknown> }) =>
+      request<any>('/news/sources', { method: 'POST', body: JSON.stringify(data) }),
+    deleteSource: (id: string) => request<void>(`/news/sources/${id}`, { method: 'DELETE' }),
+    toggleSource: (id: string) => request<{ is_active: boolean }>(`/news/sources/${id}/toggle`, { method: 'POST' }),
+    listArticles: (params?: { category?: string; ticker?: string; search?: string; starred_only?: boolean; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any[]>(`/news/articles?${qs.toString()}`);
+    },
+    getArticle: (id: string) => request<any>(`/news/articles/${id}`),
+    markRead: (id: string) => request<void>(`/news/articles/${id}/read`, { method: 'POST' }),
+    toggleStar: (id: string) => request<{ is_starred: boolean }>(`/news/articles/${id}/star`, { method: 'POST' }),
+    getDigest: (hours?: number) => request<any>(`/news/digest${hours ? `?hours=${hours}` : ''}`),
+    ingest: () => request<any>('/news/ingest', { method: 'POST' }),
+    getStats: () => request<any>('/news/stats'),
+  },
+
+  // ── Tasks ────────────────────────────────────────────────────────────
+  tasks: {
+    list: (params?: { status?: string; priority?: string; assigned_to?: string; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any[]>(`/tasks?${qs.toString()}`);
+    },
+    create: (data: { title: string; description?: string; priority?: string; assigned_to?: string; due_date?: string }) =>
+      request<any>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+    get: (id: string) => request<any>(`/tasks/${id}`),
+    update: (id: string, data: Record<string, unknown>) =>
+      request<any>(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+    listComments: (id: string) => request<any[]>(`/tasks/${id}/comments`),
+    addComment: (id: string, content: string) =>
+      request<any>(`/tasks/${id}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
+  },
+
+  // ── Meetings ─────────────────────────────────────────────────────────
+  meetings: {
+    list: (params?: { start_after?: string; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any[]>(`/meetings?${qs.toString()}`);
+    },
+    create: (data: { title: string; description?: string; start_time: string; end_time: string; location?: string; meeting_url?: string; attendee_ids?: string[] }) =>
+      request<any>('/meetings', { method: 'POST', body: JSON.stringify(data) }),
+    get: (id: string) => request<any>(`/meetings/${id}`),
+    update: (id: string, data: Record<string, unknown>) =>
+      request<any>(`/meetings/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request<void>(`/meetings/${id}`, { method: 'DELETE' }),
+    rsvp: (id: string, status: string) => request<any>(`/meetings/${id}/rsvp?status=${status}`, { method: 'POST' }),
+    listAttendees: (id: string) => request<any[]>(`/meetings/${id}/attendees`),
+  },
+
+  // ── AI Intelligence ──────────────────────────────────────────────────
+  ai: {
+    getMarketSummary: (useLlm?: boolean) => request<any>(`/ai/market-summary${useLlm ? '?use_llm=true' : ''}`),
+    getNewsSummary: (hours?: number) => request<any>(`/ai/news-summary${hours ? `?hours=${hours}` : ''}`),
+    getArticleSummary: (id: string) => request<any>(`/ai/news-summary/${id}`),
+    explainStock: (symbol: string) => request<any>(`/ai/explain-stock/${symbol}`),
+    getSignalConflicts: (symbol: string) => request<any>(`/ai/signal-conflicts/${symbol}`),
+    getModelPerformance: (params?: { model_name?: string; hours?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any>(`/ai/model-performance?${qs.toString()}`);
+    },
+    getDriftAlerts: () => request<any>('/ai/drift-alerts'),
+  },
+
+  // ── Support ──────────────────────────────────────────────────────────
+  support: {
+    listTickets: (params?: { status?: string; priority?: string; category?: string; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any[]>(`/support/tickets?${qs.toString()}`);
+    },
+    createTicket: (data: { subject: string; description: string; category?: string; priority?: string }) =>
+      request<any>('/support/tickets', { method: 'POST', body: JSON.stringify(data) }),
+    getTicket: (id: string) => request<any>(`/support/tickets/${id}`),
+    updateTicket: (id: string, data: Record<string, unknown>) =>
+      request<any>(`/support/tickets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    listTicketMessages: (id: string) => request<any[]>(`/support/tickets/${id}/messages`),
+    addTicketMessage: (id: string, content: string, isInternal?: boolean) =>
+      request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: JSON.stringify({ content, is_internal: isInternal }) }),
+    listFaq: () => request<any[]>('/support/faq'),
+    createFaqCategory: (data: { name: string; description?: string }) =>
+      request<any>('/support/faq/categories', { method: 'POST', body: JSON.stringify(data) }),
+    createFaqItem: (data: { category_id: string; question: string; answer: string }) =>
+      request<any>('/support/faq/items', { method: 'POST', body: JSON.stringify(data) }),
+    markFaqHelpful: (id: string) => request<any>(`/support/faq/items/${id}/helpful`, { method: 'POST' }),
+    listBugs: (params?: { status?: string; severity?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any[]>(`/support/bugs?${qs.toString()}`);
+    },
+    createBug: (data: { title: string; description: string; severity?: string; steps_to_reproduce?: string; expected_behavior?: string; actual_behavior?: string; environment?: string }) =>
+      request<any>('/support/bugs', { method: 'POST', body: JSON.stringify(data) }),
+    updateBug: (id: string, data: Record<string, unknown>) =>
+      request<any>(`/support/bugs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    chat: (content: string) =>
+      request<any>('/support/chat', { method: 'POST', body: JSON.stringify({ content }) }),
+  },
+
+  // ── Management ───────────────────────────────────────────────────────
+  management: {
+    getRevenue: () => request<any>('/management/revenue'),
+    getMRR: () => request<any>('/management/mrr'),
+    getCustomers: () => request<any>('/management/customers'),
+    getChurn: () => request<any>('/management/churn'),
+    listDeals: (params?: { stage?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any[]>(`/management/pipeline?${qs.toString()}`);
+    },
+    createDeal: (data: { name: string; company?: string; value?: number; stage?: string; probability?: number; expected_close_date?: string; notes?: string }) =>
+      request<any>('/management/pipeline', { method: 'POST', body: JSON.stringify(data) }),
+    updateDeal: (id: string, data: Record<string, unknown>) =>
+      request<any>(`/management/pipeline/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteDeal: (id: string) => request<void>(`/management/pipeline/${id}`, { method: 'DELETE' }),
+    getPipelineSummary: () => request<any>('/management/pipeline/summary'),
+    listCampaigns: () => request<any[]>('/management/campaigns'),
+    createCampaign: (data: { name: string; subject: string; body: string }) =>
+      request<any>('/management/campaigns', { method: 'POST', body: JSON.stringify(data) }),
+    getActivity: (hours?: number) => request<any>(`/management/activity${hours ? `?hours=${hours}` : ''}`),
+  },
+
+  // ── Backup ───────────────────────────────────────────────────────────
+  backup: {
+    getStatus: () => request<any>('/backup/status'),
+    trigger: () => request<any>('/backup/trigger', { method: 'POST' }),
+    verify: () => request<any>('/backup/verify'),
   },
 };
 

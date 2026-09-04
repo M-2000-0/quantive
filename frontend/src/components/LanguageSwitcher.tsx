@@ -4,15 +4,13 @@ const LABELS: Record<Locale, string> = {
   en: 'EN',
   es: 'ES',
   fr: 'FR',
-  pt: 'PT',
-};
+  pt: 'PT' };
 
 const FULL_NAMES: Record<Locale, string> = {
   en: 'English',
   es: 'Espanol',
   fr: 'Francais',
-  pt: 'Portugues',
-};
+  pt: 'Portugues' };
 
 export default function LanguageSwitcher() {
   const { locale, setLocale, availableLocales } = useI18n();

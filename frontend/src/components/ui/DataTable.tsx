@@ -56,7 +56,7 @@ export default function DataTable<T extends Record<string, unknown>>({
 
   if (loading) {
     return (
-      <div className="glass-card overflow-hidden">
+      <div className="glass-card overflow-hidden" role="status" aria-live="polite">
         <div className="px-4 py-10 text-center text-sm text-slate-500">Loading…</div>
       </div>
     );
@@ -65,7 +65,7 @@ export default function DataTable<T extends Record<string, unknown>>({
   return (
     <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" role="grid">
           <thead>
             <tr className="border-b border-white/50 bg-white/35 backdrop-blur-xl">
               {columns.map((col) => (
@@ -73,9 +73,14 @@ export default function DataTable<T extends Record<string, unknown>>({
                   key={col.key}
                   onClick={() => handleSort(col.key)}
                   style={{ width: col.width }}
+                  role="columnheader"
+                  aria-sort={sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort(col.key); } }}
                   className={`
                     ${headerPadding} text-left text-[11px] font-bold uppercase tracking-widest text-slate-500
                     select-none cursor-pointer hover:bg-white/40 transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:rounded
                     ${col.align === 'center' ? 'text-center' : ''}
                     ${col.align === 'right' ? 'text-right' : ''}
                   `}
@@ -107,8 +112,11 @@ export default function DataTable<T extends Record<string, unknown>>({
                 <tr
                   key={rowIdx}
                   onClick={() => onRowClick?.(row)}
+                  onKeyDown={onRowClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick?.(row); } } : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? 'row' : undefined}
                   className={`
-                    ${onRowClick ? 'cursor-pointer hover:bg-white/45' : 'hover:bg-white/25'}
+                    ${onRowClick ? 'cursor-pointer hover:bg-white/45 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/20' : 'hover:bg-white/25'}
                     transition-colors bg-white/20 backdrop-blur-sm
                   `}
                 >

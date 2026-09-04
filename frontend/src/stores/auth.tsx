@@ -30,23 +30,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.auth.login({ email, password });
-    localStorage.setItem('access_token', res.access_token);
-    localStorage.setItem('refresh_token', res.refresh_token);
+    // SECURITY: Tokens stored as httpOnly cookies by backend — not in localStorage
     localStorage.setItem('user', JSON.stringify(res.user));
     setUser(res.user);
   }, []);
 
   const register = useCallback(async (email: string, password: string, name: string, orgName?: string) => {
     const res = await api.auth.register({ email, password, name, org_name: orgName });
-    localStorage.setItem('access_token', res.access_token);
-    localStorage.setItem('refresh_token', res.refresh_token);
+    // SECURITY: Tokens stored as httpOnly cookies by backend — not in localStorage
     localStorage.setItem('user', JSON.stringify(res.user));
     setUser(res.user);
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+  const logout = useCallback(async () => {
+    // Clear httpOnly cookies via backend logout endpoint
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
     localStorage.removeItem('user');
     setUser(null);
   }, []);

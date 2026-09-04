@@ -1,21 +1,34 @@
 // ── Quantive Desktop — Electron Wrapper ──────────────────────────────
 // Government-grade desktop application.
-// React frontend + Python FastAPI backend, all running locally.
+// Jinja2 templates served by Python FastAPI backend, all running locally.
 // Zero internet required. Air-gapped deployment ready.
 
-const { app, BrowserWindow, Menu, globalShortcut, shell, ipcMain, nativeTheme, protocol } = require('electron');
+const { app, BrowserWindow, Menu, globalShortcut, shell, ipcMain, nativeTheme } = require('electron');
 const path = require('path');
-const fs = require('fs');
 const http = require('http');
 const { spawn } = require('child_process');
 
 let mainWindow = null;
 let backendProcess = null;
-let frontendServer = null;
 
 const isDev = !app.isPackaged;
 const BACKEND_PORT = 8000;
-const FRONTEND_PORT = 5199;
+
+function waitForBackend(url, maxRetries = 30, delayMs = 500) {
+  return new Promise((resolve, reject) => {
+    let retries = 0;
+    const check = () => {
+      http.get(url, (res) => {
+        res.resume();
+        resolve();
+      }).on('error', () => {
+        if (++retries >= maxRetries) return reject(new Error('Backend did not start'));
+        setTimeout(check, delayMs);
+      });
+    };
+    check();
+  });
+}
 
 // ── Backend Management ───────────────────────────────────────────────
 
@@ -51,60 +64,11 @@ function stopBackend() {
   }
 }
 
-// ── Frontend Static Server ───────────────────────────────────────────
-
-function startFrontendServer() {
-  const distPath = path.join(__dirname, 'dist');
-
-  const MIME = {
-    '.html': 'text/html',
-    '.js': 'application/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.svg': 'image/svg+xml',
-    '.png': 'image/png',
-    '.ico': 'image/x-icon',
-    '.woff2': 'font/woff2',
-    '.woff': 'font/woff',
-    '.ttf': 'font/ttf',
-  };
-
-  frontendServer = http.createServer((req, res) => {
-    let url = req.url.split('?')[0];
-    if (url === '/') url = '/index.html';
-
-    const filePath = path.join(distPath, url);
-
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      const ext = path.extname(filePath);
-      res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-      fs.createReadStream(filePath).pipe(res);
-    } else {
-      // SPA fallback — serve index.html for client-side routes
-      const indexPath = path.join(distPath, 'index.html');
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      fs.createReadStream(indexPath).pipe(res);
-    }
-  });
-
-  frontendServer.listen(FRONTEND_PORT, '127.0.0.1', () => {
-    console.log(`[Quantive] Frontend serving on http://127.0.0.1:${FRONTEND_PORT}`);
-  });
-}
-
-function stopFrontendServer() {
-  if (frontendServer) {
-    frontendServer.close();
-    frontendServer = null;
-  }
-}
-
 // ── Window Creation ──────────────────────────────────────────────────
 
 function createWindow() {
   const isWin11 = process.platform === 'win32';
   const isMac = process.platform === 'darwin';
-  const distPath = path.join(__dirname, 'dist');
 
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -133,8 +97,8 @@ function createWindow() {
     show: false,
   });
 
-  // Load from local HTTP server (backdrop-filter / glass needs HTTP, not file://)
-  mainWindow.loadURL(`http://127.0.0.1:${FRONTEND_PORT}`);
+  // Load from FastAPI backend — serves Jinja2 templates
+  mainWindow.loadURL(`http://127.0.0.1:${BACKEND_PORT}`);
 
   // Show when ready — no flash
   mainWindow.once('ready-to-show', () => {
@@ -155,13 +119,15 @@ function createWindow() {
 // ── Menu ─────────────────────────────────────────────────────────────
 
 function createMenu() {
+  const nav = (route) => () => mainWindow?.loadURL(`http://127.0.0.1:${BACKEND_PORT}${route}`);
+
   const template = [
     {
       label: 'Quantive',
       submenu: [
         { label: 'About Quantive', role: 'about' },
         { type: 'separator' },
-        { label: 'Preferences', accelerator: 'CmdOrCtrl+,', click: () => mainWindow?.webContents.send('navigate', '/settings') },
+        { label: 'Preferences', accelerator: 'CmdOrCtrl+,', click: nav('/settings') },
         { type: 'separator' },
         { label: 'Quit', accelerator: 'CmdOrCtrl+Q', role: 'quit' },
       ],
@@ -169,8 +135,8 @@ function createMenu() {
     {
       label: 'File',
       submenu: [
-        { label: 'New Portfolio', accelerator: 'CmdOrCtrl+N', click: () => mainWindow?.webContents.send('navigate', '/portfolios/new') },
-        { label: 'New Optimization', accelerator: 'CmdOrCtrl+Shift+N', click: () => mainWindow?.webContents.send('navigate', '/optimizations/new') },
+        { label: 'New Portfolio', accelerator: 'CmdOrCtrl+N', click: nav('/portfolios/new') },
+        { label: 'New Optimization', accelerator: 'CmdOrCtrl+Shift+N', click: nav('/optimizations/new') },
         { type: 'separator' },
         { label: 'Export Report', accelerator: 'CmdOrCtrl+E', click: () => mainWindow?.webContents.send('export-report') },
         { type: 'separator' },
@@ -180,13 +146,11 @@ function createMenu() {
     {
       label: 'View',
       submenu: [
-        { label: 'Dashboard', accelerator: 'CmdOrCtrl+D', click: () => mainWindow?.webContents.send('navigate', '/dashboard') },
-        { label: 'Portfolio', accelerator: 'CmdOrCtrl+1', click: () => mainWindow?.webContents.send('navigate', '/portfolios') },
-        { label: 'Market Data', accelerator: 'CmdOrCtrl+2', click: () => mainWindow?.webContents.send('navigate', '/market') },
-        { label: 'Risk', accelerator: 'CmdOrCtrl+3', click: () => mainWindow?.webContents.send('navigate', '/risk') },
-        { label: 'Optimize', accelerator: 'CmdOrCtrl+4', click: () => mainWindow?.webContents.send('navigate', '/optimizations/new') },
-        { type: 'separator' },
-        { label: 'Toggle Dark Mode', accelerator: 'CmdOrCtrl+Shift+D', click: () => mainWindow?.webContents.send('toggle-theme') },
+        { label: 'Dashboard', accelerator: 'CmdOrCtrl+D', click: nav('/dashboard') },
+        { label: 'Portfolio', accelerator: 'CmdOrCtrl+1', click: nav('/portfolios') },
+        { label: 'Market Data', accelerator: 'CmdOrCtrl+2', click: nav('/market') },
+        { label: 'Risk', accelerator: 'CmdOrCtrl+3', click: nav('/risk') },
+        { label: 'Optimize', accelerator: 'CmdOrCtrl+4', click: nav('/optimizations/new') },
         { type: 'separator' },
         { label: 'Reload', accelerator: 'CmdOrCtrl+R', role: 'reload' },
         { label: 'Force Reload', accelerator: 'CmdOrCtrl+Shift+R', role: 'forceReload' },
@@ -211,15 +175,15 @@ function createMenu() {
 
 // ── App Lifecycle ────────────────────────────────────────────────────
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   startBackend();
-  startFrontendServer();
+  await waitForBackend(`http://127.0.0.1:${BACKEND_PORT}/login`);
   createWindow();
   createMenu();
 
   // Global shortcuts
   globalShortcut.register('CmdOrCtrl+Shift+Space', () => {
-    mainWindow?.webContents.send('toggle-command-palette');
+    mainWindow?.loadURL(`http://127.0.0.1:${BACKEND_PORT}/copilot`);
   });
 
   app.on('activate', () => {
@@ -233,7 +197,6 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   stopBackend();
-  stopFrontendServer();
   globalShortcut.unregisterAll();
 });
 

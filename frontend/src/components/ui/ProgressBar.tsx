@@ -17,9 +17,9 @@ const variantStyles: Record<ProgressVariant, string> = {
 };
 
 const sizeStyles: Record<ProgressSize, string> = {
-  sm: 'h-2',
-  md: 'h-2.5',
-  lg: 'h-3.5',
+  sm: 'rounded-full',
+  md: 'rounded-full',
+  lg: 'rounded-full',
 };
 
 export default function ProgressBar({
@@ -35,23 +35,21 @@ export default function ProgressBar({
     <div className="w-full">
       {(label || showPercentage) && (
         <div className="flex items-center justify-between mb-2">
-          {label && <span className="text-sm font-semibold text-slate-800">{label}</span>}
+          {label && <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</span>}
           {showPercentage && (
-            <span className="text-xs font-bold tabular-nums px-2 py-0.5 rounded-full bg-white/60 border border-white/60 backdrop-blur-md text-slate-700 shadow-sm">{clampedValue.toFixed(0)}%</span>
+            <span className="text-xs font-bold tabular-nums px-2 py-0.5 rounded-full bg-white/60 dark:bg-white/10 border border-white/60 dark:border-white/10 backdrop-blur-md text-slate-700 dark:text-slate-300 shadow-sm">{clampedValue.toFixed(0)}%</span>
           )}
         </div>
       )}
-      <div className={`w-full bg-white/50 backdrop-blur-md border border-white/50 rounded-full overflow-hidden shadow-inner ${sizeStyles[size]}`}>
+      <div className={`liquid-progress ${sizeStyles[size]}`} style={{ height: size === 'sm' ? '8px' : size === 'lg' ? '14px' : '10px' }}>
         <div
-          className={`${variantStyles[variant]} rounded-full transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] shadow-sm relative overflow-hidden ${sizeStyles[size]}`}
+          className={`liquid-progress-fill ${variantStyles[variant]} ${sizeStyles[size]}`}
           style={{ width: `${clampedValue}%` }}
           role="progressbar"
           aria-valuenow={clampedValue}
           aria-valuemin={0}
           aria-valuemax={100}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent pointer-events-none" />
-        </div>
+        />
       </div>
     </div>
   );

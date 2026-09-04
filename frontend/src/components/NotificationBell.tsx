@@ -77,21 +77,20 @@ export default function NotificationBell() {
   };
 
   const typeIcons: Record<string, string> = {
-    optimization_complete: '✅',
-    rate_alert: '📈',
-    risk_change: '⚠️',
-    report_ready: '📄',
+    optimization_complete: 'CheckCircle',
+    rate_alert: 'TrendingUp',
+    risk_change: 'AlertTriangle',
+    report_ready: 'FileText',
     system: '🔧',
-    default: '🔔',
-  };
+    default: '🔔' };
 
   return (
     <div ref={ref} className="relative">
       <button
         onClick={handleOpen}
-        className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:bg-white/10"
+        className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:bg-white/10 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 border border-transparent hover:border-white/20 dark:hover:border-white/10 hover:shadow-sm backdrop-blur-md"
       >
-        <svg className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
         </svg>
         {unreadCount > 0 && (
