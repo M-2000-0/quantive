@@ -1,0 +1,139 @@
+# Quantive Production Deployment
+# Usage: docker compose -f docker-compose.prod.yml up -d
+#
+# This sets up:
+# - PostgreSQL 16 with persistent storage
+# - Redis 7 for caching and rate limiting
+# - Backend (FastAPI + Uvicorn with 4 workers)
+# - Frontend (Nginx serving static build)
+# - Nginx reverse proxy with SSL termination
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: quantive-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quantive
+      POSTGRES_USER: quantive
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantive -d quantive"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quantive-internal
+
+  # ── Redis Cache ──────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: quantive-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-change-me-in-production}
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change-me-in-production}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quantive-internal
+
+  # ── Backend API ──────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: quantive-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql+asyncpg://quantive:${POSTGRES_PASSWORD}@postgres:5432/quantive
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://yourdomain.gov}
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - RATE_LIMIT_PER_MINUTE=2000
+      - LOG_LEVEL=WARNING
+      - WORKERS=4
+      - MAX_UPLOAD_SIZE_MB=50
+      - OPTIMIZATION_TIMEOUT_SECONDS=120
+      - SOLVER_TIMEOUT_SECONDS=60
+    volumes:
+      - backend-uploads:/app/uploads
+      - backend-logs:/app/logs
+    networks:
+      - quantive-internal
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4'
+        reservations:
+          memory: 2G
+          cpus: '2'
+
+  # ── Frontend (Nginx) ────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: quantive-frontend
+    restart: unless-stopped
+    networks:
+      - quantive-internal
+
+  # ── Nginx Reverse Proxy ─────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: quantive-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deployment/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./deployment/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    networks:
+      - quantive-internal
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  backend-uploads:
+    driver: local
+  backend-logs:
+    driver: local
+  nginx-logs:
+    driver: local
+
+networks:
+  quantive-internal:
+    driver: bridge
