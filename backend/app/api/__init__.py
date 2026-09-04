@@ -101,6 +101,7 @@ from app.api import (
     compliance_check_api,
     fx_hedging_api,
     pdf_export_api,
+    market_monitor_api,
 )
 from app.database import get_db
 from app.security.threats import router as threats_router
@@ -214,6 +215,7 @@ router.include_router(backup_monitor.router)
 router.include_router(compliance_check_api.router)
 router.include_router(fx_hedging_api.router)
 router.include_router(pdf_export_api.router)
+router.include_router(market_monitor_api.router)
 
 
 @router.get("/api/health")

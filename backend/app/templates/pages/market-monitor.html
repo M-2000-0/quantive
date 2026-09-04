@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}Market Monitor — Quantive{% endblock %}
+{% block content %}
+<style>
+  .mm-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .mm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .mm-header h1 { font-size: 1.5rem; font-weight: 600; color: #e2e8f0; margin: 0; }
+  .mm-btn { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: background 0.2s; }
+  .mm-btn:hover { background: #1d4ed8; }
+  .mm-btn.secondary { background: #374151; }
+  .mm-btn.secondary:hover { background: #4b5563; }
+  .mm-card { background: #1a1f2e; border: 1px solid #2d3548; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .mm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .mm-metric { background: #111827; border: 1px solid #2d3548; border-radius: 8px; padding: 14px; text-align: center; }
+  .mm-metric .value { font-size: 1.6rem; font-weight: 700; color: #60a5fa; }
+  .mm-metric .label { font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+  .mm-table { width: 100%; border-collapse: collapse; }
+  .mm-table th { text-align: left; padding: 8px 10px; color: #9ca3af; font-size: 0.7rem; text-transform: uppercase; border-bottom: 1px solid #2d3548; letter-spacing: 0.05em; }
+  .mm-table td { padding: 8px 10px; color: #e2e8f0; border-bottom: 1px solid #1f2937; font-size: 0.85rem; }
+  .mm-table tr:hover td { background: #1f2937; }
+  .mm-up { color: #34d399; }
+  .mm-down { color: #f87171; }
+  .mm-flat { color: #6b7280; }
+  .mm-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+  .mm-badge.star { background: #064e3b; color: #34d399; }
+  .mm-badge.watch { background: #1e3a5f; color: #60a5fa; }
+  .mm-badge.monitor { background: #374151; color: #9ca3af; }
+  .mm-insight { padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #2563eb; background: #111827; }
+  .mm-insight.critical { border-left-color: #f87171; }
+  .mm-insight.high { border-left-color: #fbbf24; }
+  .mm-insight .title { font-weight: 600; color: #e2e8f0; font-size: 0.85rem; }
+  .mm-insight .summary { color: #9ca3af; font-size: 0.8rem; margin-top: 4px; }
+  .mm-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .mm-tab { padding: 6px 14px; border-radius: 6px; border: 1px solid #2d3548; background: transparent; color: #9ca3af; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+  .mm-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .mm-section-title { font-size: 0.9rem; font-weight: 600; color: #e2e8f0; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #2d3548; }
+  .mm-empty { text-align: center; padding: 40px; color: #6b7280; font-size: 0.85rem; }
+</style>
+
+<div class="mm-container">
+  <div class="mm-header">
+    <div>
+      <h1>Market Monitor</h1>
+      <p style="color: #6b7280; font-size: 0.85rem; margin-top: 4px;">Real-time market tracking, discovery, and alerts</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="mm-btn secondary" onclick="loadData()">Refresh Data</button>
+      <button class="mm-btn" onclick="runIngestion()">Fetch Live Prices</button>
+    </div>
+  </div>
+
+  <!-- Market Pulse Strip -->
+  <div class="mm-card" id="pulseCard">
+    <div class="mm-section-title">Market Pulse</div>
+    <div id="pulseSummary" style="color: #9ca3af; font-size: 0.85rem;">Loading...</div>
+    <div class="mm-grid" style="margin-top: 12px;" id="pulseMetrics"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="mm-tabs">
+    <button class="mm-tab active" onclick="showTab('assets', this)">All Assets</button>
+    <button class="mm-tab" onclick="showTab('discovery', this)">Discovery</button>
+    <button class="mm-tab" onclick="showTab('insights', this)">Insights</button>
+    <button class="mm-tab" onclick="showTab('alerts', this)">Alerts</button>
+    <button class="mm-tab" onclick="showTab('watchlist', this)">Watchlist</button>
+  </div>
+
+  <!-- Assets Tab -->
+  <div id="tab-assets">
+    <div class="mm-card">
+      <div class="mm-section-title">Tracked Assets</div>
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <button class="mm-tab active" onclick="filterAssets('all', this)" style="font-size:0.75rem;padding:4px 10px;">All</button>
+        <button class="mm-tab" onclick="filterAssets('stock', this)" style="font-size:0.75rem;padding:4px 10px;">Stocks</button>
+        <button class="mm-tab" onclick="filterAssets('crypto', this)" style="font-size:0.75rem;padding:4px 10px;">Crypto</button>
+        <button class="mm-tab" onclick="filterAssets('fx', this)" style="font-size:0.75rem;padding:4px 10px;">Forex</button>
+        <button class="mm-tab" onclick="filterAssets('bond', this)" style="font-size:0.75rem;padding:4px 10px;">Bonds</button>
+      </div>
+      <div id="assetsTable"></div>
+    </div>
+  </div>
+
+  <!-- Discovery Tab -->
+  <div id="tab-discovery" style="display:none;">
+    <div class="mm-card">
+      <div class="mm-section-title">Discovery Scores</div>
+      <div id="discoveryContent" class="mm-empty">Run "Fetch Live Prices" to generate discovery scores</div>
+    </div>
+  </div>
+
+  <!-- Insights Tab -->
+  <div id="tab-insights" style="display:none;">
+    <div class="mm-card">
+      <div class="mm-section-title">Daily Insights</div>
+      <div id="insightsContent" class="mm-empty">Run "Fetch Live Prices" to generate insights</div>
+    </div>
+  </div>
+
+  <!-- Alerts Tab -->
+  <div id="tab-alerts" style="display:none;">
+    <div class="mm-card">
+      <div class="mm-section-title">Your Alerts</div>
+      <div style="margin-bottom: 12px;">
+        <button class="mm-btn" onclick="createTestAlert()">Create Test Alert</button>
+      </div>
+      <div id="alertsContent" class="mm-empty">No alerts yet. Create one to get started.</div>
+    </div>
+  </div>
+
+  <!-- Watchlist Tab -->
+  <div id="tab-watchlist" style="display:none;">
+    <div class="mm-card">
+      <div class="mm-section-title">Watchlist</div>
+      <div style="margin-bottom: 12px;">
+        <input id="watchlistInput" placeholder="Add symbol (e.g., TSLA)" style="background:#111827;color:#e2e8f0;border:1px solid #374151;border-radius:6px;padding:6px 10px;font-size:0.85rem;width:150px;">
+        <button class="mm-btn" onclick="addToWatchlist()" style="margin-left: 8px;">Add</button>
+      </div>
+      <div id="watchlistContent" class="mm-empty">Your watchlist is empty.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allAssets = [];
+let currentFilter = 'all';
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/v1/market-monitor/assets', {credentials: 'include'});
+    const data = await res.json();
+    allAssets = data.assets || [];
+    renderAssets();
+  } catch(e) {}
+  loadPulse();
+  loadInsights();
+  loadAlerts();
+  loadWatchlist();
+  loadDiscovery();
+}
+
+async function runIngestion() {
+  document.getElementById('assetsTable').innerHTML = '<div class="mm-empty">Fetching live data...</div>';
+  try {
+    const res = await fetch('/api/v1/market-monitor/ingest', {method:'POST', credentials:'include'});
+    const data = await res.json();
+    loadData();
+  } catch(e) {
+    document.getElementById('assetsTable').innerHTML = '<div class="mm-empty">Error fetching data</div>';
+  }
+}
+
+async function loadPulse() {
+  try {
+    const res = await fetch('/api/v1/market-monitor/pulse', {credentials:'include'});
+    const data = await res.json();
+    document.getElementById('pulseSummary').textContent = data.summary || 'No data yet';
+    document.getElementById('pulseMetrics').innerHTML = `
+      <div class="mm-metric"><div class="value ${data.stock_avg_change >= 0 ? 'mm-up' : 'mm-down'}">${data.stock_avg_change >= 0 ? '+' : ''}${data.stock_avg_change}%</div><div class="label">Stocks Avg</div></div>
+      <div class="mm-metric"><div class="value ${data.crypto_avg_change >= 0 ? 'mm-up' : 'mm-down'}">${data.crypto_avg_change >= 0 ? '+' : ''}${data.crypto_avg_change}%</div><div class="label">Crypto Avg</div></div>
+      <div class="mm-metric"><div class="value">${data.asset_counts?.stocks || 0}</div><div class="label">Stocks</div></div>
+      <div class="mm-metric"><div class="value">${data.asset_counts?.crypto || 0}</div><div class="label">Crypto</div></div>
+      <div class="mm-metric"><div class="value">${data.asset_counts?.fx || 0}</div><div class="label">FX Pairs</div></div>
+      <div class="mm-metric"><div class="value">${data.asset_counts?.bonds || 0}</div><div class="label">Bonds</div></div>
+    `;
+  } catch(e) {}
+}
+
+function renderAssets() {
+  let assets = allAssets;
+  if (currentFilter !== 'all') {
+    assets = assets.filter(a => a.asset_class === currentFilter);
+  }
+  if (assets.length === 0) {
+    document.getElementById('assetsTable').innerHTML = '<div class="mm-empty">No assets tracked. Click "Fetch Live Prices" to start.</div>';
+    return;
+  }
+  let html = '<table class="mm-table"><thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>Change</th><th>Volume</th><th>Market Cap</th><th>Score</th></tr></thead><tbody>';
+  for (const a of assets) {
+    const change = a.day_change_pct || 0;
+    const cls = change > 0 ? 'mm-up' : change < 0 ? 'mm-down' : 'mm-flat';
+    const score = a.discovery_score || 0;
+    const badge = score >= 80 ? 'star' : score >= 60 ? 'watch' : 'monitor';
+    html += `<tr>
+      <td style="font-weight:600;">${a.symbol}</td>
+      <td style="color:#9ca3af;">${(a.name || '').substring(0, 25)}</td>
+      <td>$${formatNum(a.current_price || 0)}</td>
+      <td class="${cls}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</td>
+      <td style="color:#9ca3af;">${formatVolume(a.volume_24h || 0)}</td>
+      <td style="color:#9ca3af;">${formatMcap(a.market_cap || 0)}</td>
+      <td>${score > 0 ? `<span class="mm-badge ${badge}">${score}</span>` : '—'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('assetsTable').innerHTML = html;
+}
+
+function filterAssets(cls, btn) {
+  currentFilter = cls;
+  document.querySelectorAll('#tab-assets .mm-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderAssets();
+}
+
+async function loadInsights() {
+  try {
+    const res = await fetch('/api/v1/market-monitor/insights', {credentials:'include'});
+    const data = await res.json();
+    if (!data.insights || data.insights.length === 0) {
+      document.getElementById('insightsContent').innerHTML = '<div class="mm-empty">No insights yet. Fetch live data first.</div>';
+      return;
+    }
+    let html = '';
+    for (const i of data.insights) {
+      html += `<div class="mm-insight ${i.priority}">
+        <div class="title">${i.title}</div>
+        <div class="summary">${i.summary}</div>
+      </div>`;
+    }
+    document.getElementById('insightsContent').innerHTML = html;
+  } catch(e) {}
+}
+
+async function loadAlerts() {
+  try {
+    const res = await fetch('/api/v1/market-monitor/alerts', {credentials:'include'});
+    const data = await res.json();
+    if (!data.alerts || data.alerts.length === 0) {
+      document.getElementById('alertsContent').innerHTML = '<div class="mm-empty">No alerts. Create one to get started.</div>';
+      return;
+    }
+    let html = '<table class="mm-table"><thead><tr><th>Symbol</th><th>Type</th><th>Condition</th><th>Threshold</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+    for (const a of data.alerts) {
+      html += `<tr>
+        <td style="font-weight:600;">${a.symbol}</td>
+        <td>${a.alert_type}</td>
+        <td>${a.condition}</td>
+        <td>${a.threshold}</td>
+        <td><span class="mm-badge watch">Active</span></td>
+        <td><button class="mm-btn secondary" style="padding:4px 8px;font-size:0.75rem;" onclick="deleteAlert('${a.id}')">Delete</button></td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('alertsContent').innerHTML = html;
+  } catch(e) {}
+}
+
+async function createTestAlert() {
+  const symbol = prompt('Asset symbol for alert (e.g., AAPL, BTC):');
+  if (!symbol) return;
+  const type = prompt('Alert type: price_above, price_below, price_change_pct, volume_spike');
+  if (!type) return;
+  const threshold = parseFloat(prompt('Threshold value:'));
+  if (isNaN(threshold)) return;
+
+  await fetch('/api/v1/market-monitor/alerts/create', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({symbol: symbol.toUpperCase(), alert_type: type, condition: 'above', threshold: threshold})
+  });
+  loadAlerts();
+}
+
+async function deleteAlert(id) {
+  await fetch(`/api/v1/market-monitor/alerts/${id}`, {method:'DELETE', credentials:'include'});
+  loadAlerts();
+}
+
+async function loadDiscovery() {
+  try {
+    const res = await fetch('/api/v1/market-monitor/discovery', {credentials:'include'});
+    const data = await res.json();
+    if (!data.assets || data.assets.length === 0) {
+      document.getElementById('discoveryContent').innerHTML = '<div class="mm-empty">No discovery scores yet. Fetch live data first.</div>';
+      return;
+    }
+    let html = '<table class="mm-table"><thead><tr><th>Symbol</th><th>Score</th><th>Classification</th><th>Signals</th></tr></thead><tbody>';
+    for (const a of data.assets) {
+      const cls = a.classification || 'quiet';
+      const badgeCls = cls === 'rising_star' || cls === 'emerging_token' ? 'star' : cls === 'watch' ? 'watch' : 'monitor';
+      const signals = Object.keys(a.discovery_signals || {}).join(', ') || '—';
+      html += `<tr>
+        <td style="font-weight:600;">${a.symbol}</td>
+        <td><span class="mm-badge ${badgeCls}">${a.discovery_score || 0}</span></td>
+        <td style="text-transform:capitalize;">${cls.replace('_', ' ')}</td>
+        <td style="color:#9ca3af;font-size:0.8rem;">${signals}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('discoveryContent').innerHTML = html;
+  } catch(e) {}
+}
+
+async function loadWatchlist() {
+  try {
+    const res = await fetch('/api/v1/market-monitor/watchlist', {credentials:'include'});
+    const data = await res.json();
+    if (!data.watchlist || data.watchlist.length === 0) {
+      document.getElementById('watchlistContent').innerHTML = '<div class="mm-empty">Watchlist is empty. Add symbols above.</div>';
+      return;
+    }
+    let html = '<table class="mm-table"><thead><tr><th>Symbol</th><th>Price</th><th>Change</th><th>Action</th></tr></thead><tbody>';
+    for (const a of data.watchlist) {
+      const change = a.day_change_pct || 0;
+      const cls = change > 0 ? 'mm-up' : change < 0 ? 'mm-down' : 'mm-flat';
+      html += `<tr>
+        <td style="font-weight:600;">${a.symbol}</td>
+        <td>$${formatNum(a.current_price || 0)}</td>
+        <td class="${cls}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</td>
+        <td><button class="mm-btn secondary" style="padding:4px 8px;font-size:0.75rem;" onclick="removeWatchlist('${a.symbol}')">Remove</button></td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('watchlistContent').innerHTML = html;
+  } catch(e) {}
+}
+
+async function addToWatchlist() {
+  const symbol = document.getElementById('watchlistInput').value.trim();
+  if (!symbol) return;
+  await fetch('/api/v1/market-monitor/watchlist/add', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({symbol: symbol.toUpperCase(), asset_class: 'stock', name: symbol})
+  });
+  document.getElementById('watchlistInput').value = '';
+  loadWatchlist();
+}
+
+async function removeWatchlist(symbol) {
+  await fetch(`/api/v1/market-monitor/watchlist/${symbol}`, {method:'DELETE', credentials:'include'});
+  loadWatchlist();
+}
+
+function showTab(tab, btn) {
+  document.querySelectorAll('.mm-container > [id^="tab-"]').forEach(t => t.style.display = 'none');
+  document.getElementById('tab-' + tab).style.display = 'block';
+  document.querySelectorAll('.mm-tabs .mm-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function formatNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toFixed(2);
+}
+
+function formatVolume(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return n.toString();
+}
+
+function formatMcap(n) {
+  if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(0) + 'M';
+  return '$' + n.toFixed(0);
+}
+
+// Auto-load on page load
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
+{% endblock %}
