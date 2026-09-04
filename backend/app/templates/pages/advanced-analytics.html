@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+{% block title %}Advanced Analytics — Quantive{% endblock %}
+{% block page_title %}Advanced Analytics{% endblock %}
+
+{% block content %}
+<style>
+  .aa-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; }
+  .aa-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin: 0 0 12px; }
+  .positive { color: #22c55e; }
+  .negative { color: #ef4444; }
+  .neutral { color: rgba(255,255,255,0.5); }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; }
+  .tab-btn { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .tab-btn.active { background: rgba(99,102,241,0.2); color: #C0C0C0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; }
+  .badge-green { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .badge-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .badge-yellow { background: rgba(234,179,8,0.15); color: #eab308; }
+  .badge-blue { background: rgba(99,102,241,0.15); color: #C0C0C0; }
+  .bar-chart { display: flex; align-items: end; gap: 4px; height: 120px; padding-top: 8px; }
+  .bar { flex: 1; border-radius: 3px 3px 0 0; transition: height 0.5s; min-width: 20px; }
+  .loading-shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; height: 20px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .corr-cell { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 600; }
+</style>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('tax')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Tax Harvesting
+  </button>
+  <button class="tab-btn" onclick="showTab('risk')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Risk Parity
+  </button>
+  <button class="tab-btn" onclick="showTab('perf')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg> Performance
+  </button>
+</div>
+
+<!-- ═══ TAX HARVESTING TAB ═══ -->
+<div id="tab-tax">
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="aa-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Total Losses</div>
+      <div id="tax-total-loss" style="font-size:1.5rem;font-weight:800" class="negative">--</div>
+    </div>
+    <div class="aa-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Potential Tax Savings</div>
+      <div id="tax-total-savings" style="font-size:1.5rem;font-weight:800" class="positive">--</div>
+    </div>
+    <div class="aa-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Wash Sale Risks</div>
+      <div id="tax-wash-risks" style="font-size:1.5rem;font-weight:800" class="neutral">--</div>
+    </div>
+  </div>
+
+  <div class="aa-card" style="margin-bottom:16px">
+    <h3>Harvesting Candidates (Ranked by Tax Savings)</h3>
+    <div id="tax-candidates"></div>
+  </div>
+
+  <div class="aa-card">
+    <h3>Annual Savings Estimate</h3>
+    <div id="tax-savings-estimate"></div>
+  </div>
+</div>
+
+<!-- ═══ RISK PARITY TAB ═══ -->
+<div id="tab-risk" style="display:none;">
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="aa-card">
+      <h3>Risk Parity Allocation</h3>
+      <div id="rp-weights"></div>
+    </div>
+    <div class="aa-card">
+      <h3>Risk Contributions</h3>
+      <div id="rp-risk-contrib"></div>
+    </div>
+  </div>
+
+  <div class="aa-card" style="margin-bottom:16px">
+    <h3>Risk Parity vs Traditional 60/40</h3>
+    <div id="rp-comparison"></div>
+  </div>
+
+  <div class="aa-card" style="margin-bottom:16px">
+    <h3>Stress Test Results</h3>
+    <div id="rp-stress"></div>
+  </div>
+
+  <div class="aa-card">
+    <h3>Best Hedges (Low/Negative Correlation)</h3>
+    <div id="rp-hedges"></div>
+  </div>
+</div>
+
+<!-- ═══ PERFORMANCE TAB ═══ -->
+<div id="tab-perf" style="display:none;">
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="aa-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Alpha (Annual)</div>
+      <div id="perf-alpha" style="font-size:1.5rem;font-weight:800">--</div>
+    </div>
+    <div class="aa-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Sharpe Ratio</div>
+      <div id="perf-sharpe" style="font-size:1.5rem;font-weight:800">--</div>
+    </div>
+    <div class="aa-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Max Drawdown</div>
+      <div id="perf-drawdown" style="font-size:1.5rem;font-weight:800">--</div>
+    </div>
+  </div>
+
+  <div class="aa-card" style="margin-bottom:16px">
+    <h3>Cumulative Returns (Portfolio vs Benchmark)</h3>
+    <div id="perf-cumulative" style="height:140px"></div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="aa-card">
+      <h3>Brinson Attribution</h3>
+      <div id="perf-brinson"></div>
+    </div>
+    <div class="aa-card">
+      <h3>Top Contributors</h3>
+      <div id="perf-top-contrib"></div>
+    </div>
+  </div>
+
+  <div class="aa-card">
+    <h3>Sector Breakdown</h3>
+    <div id="perf-sectors"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+function authHeaders() {
+  const t = localStorage.getItem('token');
+  return t ? { 'Authorization': 'Bearer ' + t } : {};
+}
+function fmt(n, d=2) {
+  if (n === null || n === undefined || isNaN(n)) return '--';
+  return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '--';
+  return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+}
+function fmtUSD(n) {
+  if (!n) return '--';
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+  return '$' + fmt(n);
+}
+function changeClass(n) {
+  if (n > 0) return 'positive';
+  if (n < 0) return 'negative';
+  return 'neutral';
+}
+function corrColor(v) {
+  if (v >= 0.7) return 'background:rgba(239,68,68,0.3);color:#ef4444';
+  if (v >= 0.3) return 'background:rgba(234,179,8,0.2);color:#eab308';
+  if (v >= -0.1) return 'background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5)';
+  if (v >= -0.3) return 'background:rgba(34,197,94,0.15);color:#22c55e';
+  return 'background:rgba(34,197,94,0.25);color:#22c55e';
+}
+function showTab(tab) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('tab-' + tab).style.display = 'block';
+  event.target.classList.add('active');
+}
+
+// ── TAX HARVESTING ──
+async function loadTaxHarvesting() {
+  try {
+    const [positionsRes, candidatesRes, savingsRes] = await Promise.all([
+      fetch(API + '/tax-harvest/positions', { headers: authHeaders() }),
+      fetch(API + '/tax-harvest/candidates', { headers: authHeaders() }),
+      fetch(API + '/tax-harvest/savings-estimate', { headers: authHeaders() }),
+    ]);
+    const positions = await positionsRes.json();
+    const candidates = await candidatesRes.json();
+    const savings = await savingsRes.json();
+
+    document.getElementById('tax-total-loss').textContent = fmtUSD(positions.summary.total_unrealized_losses);
+    document.getElementById('tax-total-savings').textContent = fmtUSD(positions.summary.total_potential_tax_savings);
+    document.getElementById('tax-wash-risks').textContent = positions.summary.wash_sale_risks + ' of ' + positions.summary.harvestable_positions;
+
+    // Candidates
+    const candEl = document.getElementById('tax-candidates');
+    candEl.innerHTML = candidates.candidates.map(c => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+        <div style="width:60px;font-weight:700;color:#C0C0C0">${escapeHtml(c.symbol)}</div>
+        <div style="flex:1">
+          <div style="font-size:0.85rem;color:rgba(255,255,255,0.7)">${escapeHtml(c.name)}</div>
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">${c.holding_period} | ${c.holding_days} days held</div>
+        </div>
+        <div style="text-align:right">
+          <div class="negative" style="font-weight:600">-${fmtUSD(c.unrealized_loss)}</div>
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">-${c.loss_pct}%</div>
+        </div>
+        <div style="text-align:right;width:100px">
+          <div class="positive" style="font-weight:600">+${fmtUSD(c.tax_savings)}</div>
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">tax savings</div>
+        </div>
+        <div style="width:120px">
+          ${c.wash_sale_risk ? '<span class="badge badge-yellow">Wash Sale Risk</span>' : '<span class="badge badge-green">Clear</span>'}
+          ${c.recommended_substitute ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:2px">Replace: ${c.recommended_substitute}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    // Savings estimate
+    const savEl = document.getElementById('tax-savings-estimate');
+    savEl.innerHTML = `
+      <div class="grid-2">
+        <div style="padding:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+          <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Optimal Strategy</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#22c55e;margin:4px 0">${fmtUSD(savings.optimal_strategy.annual_savings)}</div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5)">${savings.optimal_strategy.description}</div>
+        </div>
+        <div style="padding:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
+          <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Conservative Strategy</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#C0C0C0;margin:4px 0">${fmtUSD(savings.conservative_strategy.annual_savings)}</div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5)">${savings.conservative_strategy.description}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:12px;border-radius:8px;background:rgba(0,0,0,0.15)">
+        <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:8px">Tax Tips</div>
+        ${savings.tax_tips.map(t => `<div style="font-size:0.8rem;color:rgba(255,255,255,0.6);padding:4px 0"><span style="color:#C0C0C0;margin-right:6px">*</span>${t}</div>`).join('')}
+      </div>
+    `;
+  } catch(e) { console.error('Tax harvesting error:', e); }
+}
+
+// ── RISK PARITY ──
+async function loadRiskParity() {
+  try {
+    const [allocRes, corrRes, stressRes] = await Promise.all([
+      fetch(API + '/risk-parity/allocation', { headers: authHeaders() }),
+      fetch(API + '/risk-parity/correlation', { headers: authHeaders() }),
+      fetch(API + '/risk-parity/stress-test', { headers: authHeaders() }),
+    ]);
+    const alloc = await allocRes.json();
+    const corr = await corrRes.json();
+    const stress = await stressRes.json();
+
+    const rp = alloc.risk_parity;
+
+    // Risk Parity Weights
+    const weightsEl = document.getElementById('rp-weights');
+    const sortedWeights = Object.entries(rp.weights).sort((a, b) => b[1] - a[1]);
+    weightsEl.innerHTML = sortedWeights.map(([asset, weight]) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+        <div style="width:140px;font-size:0.85rem;color:rgba(255,255,255,0.7)">${asset.replace(/_/g, ' ')}</div>
+        <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.05);overflow:hidden">
+          <div style="height:100%;width:${weight}%;background:#E0E0E0;border-radius:4px"></div>
+        </div>
+        <div style="width:50px;text-align:right;font-weight:600">${weight}%</div>
+      </div>
+    `).join('');
+
+    // Risk Contributions
+    const rcEl = document.getElementById('rp-risk-contrib');
+    const rcColors = ['#E0E0E0','#E0E0E0','#C0C0C0','#D0D0D0','#E8E8E8','#f43f5e','#ef4444','#f97316','#eab308','#22c55e'];
+    const sortedRC = Object.entries(rp.risk_contributions).sort((a, b) => b[1] - a[1]);
+    rcEl.innerHTML = sortedRC.map(([asset, rc], i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+        <div style="width:140px;font-size:0.85rem;color:rgba(255,255,255,0.7)">${asset.replace(/_/g, ' ')}</div>
+        <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.05);overflow:hidden">
+          <div style="height:100%;width:${rc * 5}%;background:${rcColors[i % rcColors.length]};border-radius:4px"></div>
+        </div>
+        <div style="width:50px;text-align:right;font-weight:600">${rc}%</div>
+      </div>
+    `).join('');
+
+    // Comparison
+    const compEl = document.getElementById('rp-comparison');
+    compEl.innerHTML = `
+      <div class="grid-2">
+        <div>
+          <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:8px">Risk Parity</div>
+          <div style="font-size:1.1rem;font-weight:700;color:#C0C0C0">${rp.portfolio_volatility}% volatility</div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5)">Diversification: ${alloc.comparison.risk_parity_diversification}</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:8px">Traditional 60/40</div>
+          <div style="font-size:1.1rem;font-weight:700;color:rgba(255,255,255,0.7)">${alloc.traditional_60_40.portfolio_volatility}% volatility</div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5)">Diversification: ${alloc.comparison.traditional_diversification}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:12px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2)">
+        <span style="color:#22c55e;font-weight:700">${alloc.comparison.vol_reduction}% lower volatility</span>
+        <span style="color:rgba(255,255,255,0.5);font-size:0.8rem"> with risk parity approach</span>
+      </div>
+    `;
+
+    // Stress Test
+    const stressEl = document.getElementById('rp-stress');
+    stressEl.innerHTML = `
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="text-align:left;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">
+              <th style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.06)">Scenario</th>
+              <th style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.06)">Risk Parity</th>
+              <th style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.06)">Traditional</th>
+              <th style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.06)">Advantage</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${stress.scenarios.map(s => `
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+                <td style="padding:8px;font-size:0.85rem;color:rgba(255,255,255,0.7)">${s.scenario}</td>
+                <td style="padding:8px;font-weight:600" class="${changeClass(s.risk_parity_impact)}">${fmtPct(s.risk_parity_impact)}</td>
+                <td style="padding:8px;font-weight:600" class="${changeClass(s.traditional_impact)}">${fmtPct(s.traditional_impact)}</td>
+                <td style="padding:8px;font-weight:600" class="${s.advantage > 0 ? 'positive' : 'negative'}">${fmtPct(s.advantage)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // Hedges
+    const hedgeEl = document.getElementById('rp-hedges');
+    hedgeEl.innerHTML = corr.best_hedges.map(h => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+        <span style="font-size:0.85rem;color:rgba(255,255,255,0.7)">${h.pair}</span>
+        <span class="negative" style="font-weight:600">${h.correlation.toFixed(2)}</span>
+      </div>
+    `).join('') + (corr.best_hedges.length === 0 ? '<div style="color:rgba(255,255,255,0.4);font-size:0.85rem">No strong negative correlations found</div>' : '');
+  } catch(e) { console.error('Risk parity error:', e); }
+}
+
+// ── PERFORMANCE ──
+async function loadPerformance() {
+  try {
+    const [attrRes, monthlyRes, brinsonRes, riskRes] = await Promise.all([
+      fetch(API + '/performance/attribution', { headers: authHeaders() }),
+      fetch(API + '/performance/monthly', { headers: authHeaders() }),
+      fetch(API + '/performance/brinson', { headers: authHeaders() }),
+      fetch(API + '/performance/risk-metrics', { headers: authHeaders() }),
+    ]);
+    const attr = await attrRes.json();
+    const monthly = await monthlyRes.json();
+    const brinson = await brinsonRes.json();
+    const risk = await riskRes.json();
+
+    // Key metrics
+    document.getElementById('perf-alpha').textContent = fmtPct(attr.alpha);
+    document.getElementById('perf-alpha').className = changeClass(attr.alpha);
+    document.getElementById('perf-sharpe').textContent = fmt(risk.sharpe_ratio, 2);
+    document.getElementById('perf-sharpe').style.color = risk.sharpe_ratio > 1 ? '#22c55e' : risk.sharpe_ratio > 0 ? '#eab308' : '#ef4444';
+    document.getElementById('perf-drawdown').textContent = '-' + risk.max_drawdown + '%';
+    document.getElementById('perf-drawdown').className = 'negative';
+
+    // Cumulative returns chart
+    const cumEl = document.getElementById('perf-cumulative');
+    const maxCum = Math.max(...monthly.monthly_data.map(m => Math.max(m.cumulative_portfolio, m.cumulative_benchmark)));
+    const minCum = Math.min(...monthly.monthly_data.map(m => Math.min(m.cumulative_portfolio, m.cumulative_benchmark)));
+    const range = maxCum - minCum || 1;
+    cumEl.innerHTML = '<div style="display:flex;gap:2px;height:120px;align-items:end">' +
+      monthly.monthly_data.map(m => {
+        const ph = ((m.cumulative_portfolio - minCum) / range * 100 + 5);
+        const bh = ((m.cumulative_benchmark - minCum) / range * 100 + 5);
+        return `<div style="flex:1;display:flex;gap:2px;align-items:end">
+          <div style="flex:1;height:${ph}px;background:${m.cumulative_portfolio >= m.cumulative_benchmark ? '#22c55e' : '#ef4444'};border-radius:2px 2px 0 0;opacity:0.8" title="Portfolio: ${m.cumulative_portfolio}%"></div>
+          <div style="flex:1;height:${bh}px;background:rgba(255,255,255,0.15);border-radius:2px 2px 0 0" title="Benchmark: ${m.cumulative_benchmark}%"></div>
+        </div>`;
+      }).join('') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:0.65rem;color:rgba(255,255,255,0.3);margin-top:4px">' +
+      monthly.monthly_data.map(m => `<span>${m.month.slice(5)}</span>`).join('') + '</div>' +
+      '<div style="margin-top:8px;font-size:0.75rem"><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;vertical-align:middle;margin-right:4px"></span>Portfolio <span style="display:inline-block;width:10px;height:10px;background:rgba(255,255,255,0.15);border-radius:2px;vertical-align:middle;margin:0 4px 0 12px"></span>Benchmark</div>';
+
+    // Brinson
+    const brinsonEl = document.getElementById('perf-brinson');
+    brinsonEl.innerHTML = `
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:rgba(0,0,0,0.15)">
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Allocation</div>
+          <div style="font-weight:700" class="${changeClass(brinson.summary.total_allocation_effect)}">${fmtPct(brinson.summary.total_allocation_effect * 100)}</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:rgba(0,0,0,0.15)">
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Selection</div>
+          <div style="font-weight:700" class="${changeClass(brinson.summary.total_selection_effect)}">${fmtPct(brinson.summary.total_selection_effect * 100)}</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:rgba(0,0,0,0.15)">
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Total Active</div>
+          <div style="font-weight:700" class="${changeClass(brinson.summary.total_active_return)}">${fmtPct(brinson.summary.total_active_return * 100)}</div>
+        </div>
+      </div>
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.5)">Primary driver: <strong style="color:#C0C0C0">${brinson.summary.primary_driver}</strong></div>
+    `;
+
+    // Top contributors
+    const topEl = document.getElementById('perf-top-contrib');
+    topEl.innerHTML = attr.top_contributors.map(s => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+        <div style="width:50px;font-weight:700;color:#C0C0C0;font-size:0.85rem">${escapeHtml(s.symbol)}</div>
+        <div style="flex:1;font-size:0.8rem;color:rgba(255,255,255,0.5)">${escapeHtml(s.name)}</div>
+        <div style="width:60px;text-align:right;font-weight:600" class="${changeClass(s.contribution)}">${fmtPct(s.contribution)}</div>
+      </div>
+    `).join('');
+
+    // Sectors
+    const sectEl = document.getElementById('perf-sectors');
+    sectEl.innerHTML = attr.sector_breakdown.map(s => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+        <div style="width:140px;font-size:0.85rem;color:rgba(255,255,255,0.7)">${s.sector.replace(/_/g, ' ')}</div>
+        <div style="width:50px;font-size:0.8rem;text-align:right;color:rgba(255,255,255,0.5)">${(s.weight * 100).toFixed(1)}%</div>
+        <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.05);overflow:hidden">
+          <div style="height:100%;width:${Math.min(Math.abs(s.contribution) * 25, 100)}%;background:${s.contribution > 0 ? '#22c55e' : '#ef4444'};border-radius:4px"></div>
+        </div>
+        <div style="width:60px;text-align:right;font-weight:600" class="${changeClass(s.contribution)}">${fmtPct(s.contribution)}</div>
+      </div>
+    `).join('');
+  } catch(e) { console.error('Performance attribution error:', e); }
+}
+
+// ── Init ──
+async function initWithRetry(fn, retries=3, delay=1000) {
+  for (let i=0; i<retries; i++) { try { await fn(); return; } catch(e) { if (i < retries-1) await new Promise(r => setTimeout(r, delay)); } }
+}
+setTimeout(() => initWithRetry(loadTaxHarvesting), 500);
+setTimeout(() => initWithRetry(loadRiskParity), 1500);
+setTimeout(() => initWithRetry(loadPerformance), 2500);
+</script>
+{% endblock %}

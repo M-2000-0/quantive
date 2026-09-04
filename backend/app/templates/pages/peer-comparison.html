@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Peer Comparison - Quantive{% endblock %}
+{% set active_page = 'market' %}
+{% block page_title %}Peer Comparison{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Peer Group</div>
+    <div class="stat-value">12 Nations</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Your Rank</div>
+    <div class="stat-value" style="color:var(--green);">3rd</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Benchmark</div>
+    <div class="stat-value" style="font-size:16px;">G7 Average</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Peer Comparison Matrix</div>
+  <table>
+    <thead><tr><th>Nation</th><th>Debt/GDP</th><th>Rating</th><th>Return</th><th>Volatility</th><th>Sharpe</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Your Portfolio</td><td>--%</td><td><span class="badge badge-green">AA+</span></td><td style="color:var(--green);">+6.8%</td><td>--%</td><td>--</td></tr>
+      <tr><td>United States</td><td>--%</td><td><span class="badge badge-green">AAA</span></td><td style="color:var(--green);">+5.2%</td><td>--%</td><td>--</td></tr>
+      <tr><td>Germany</td><td>--%</td><td><span class="badge badge-green">AAA</span></td><td style="color:var(--green);">+3.8%</td><td>--%</td><td>--</td></tr>
+      <tr><td>United Kingdom</td><td>--%</td><td><span class="badge badge-green">AA</span></td><td style="color:var(--green);">+4.4%</td><td>--%</td><td>--</td></tr>
+      <tr><td>Japan</td><td>--%</td><td><span class="badge badge-yellow">A+</span></td><td style="color:var(--green);">+2.1%</td><td>--%</td><td>--</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

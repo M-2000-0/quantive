@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Advanced Analysis — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;padding:32px 24px">
+  <div style="margin-bottom:32px">
+    <div class="stat-label" style="margin-bottom:8px">ADVANCED ANALYSIS</div>
+    <h1 style="font-size:28px;font-weight:700;color:var(--text);margin:0">Sovereign Debt Intelligence</h1>
+    <p style="font-size:13px;color:var(--text3);margin-top:6px">CAC analysis, pari passu exposure, ratings shadow model, tax effects, settlement risk</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div style="display:flex;gap:4px;margin-bottom:24px;overflow-x:auto">
+    <button onclick="loadSection('cac')" class="tab-btn active" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:rgba(96,165,250,0.1);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">CAC Analysis</button>
+    <button onclick="loadSection('pari-passu')" class="tab-btn" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">Pari Passu</button>
+    <button onclick="loadSection('ratings')" class="tab-btn" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">Ratings Shadow</button>
+    <button onclick="loadSection('tax')" class="tab-btn" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">Withholding Tax</button>
+    <button onclick="loadSection('settlement')" class="tab-btn" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">Settlement Risk</button>
+    <button onclick="loadSection('arrears')" class="tab-btn" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">Arrears</button>
+  </div>
+
+  <div id="analysis-content" class="glass" style="padding:24px">
+    <div style="color:var(--text3);font-size:12px">Select an analysis module above</div>
+  </div>
+</div>
+
+<script>
+function activateTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.style.background = 'transparent';
+    b.style.color = 'var(--text2)';
+  });
+  event.target.style.background = 'rgba(96,165,250,0.1)';
+  event.target.style.color = 'var(--blue)';
+}
+
+async function loadSection(section) {
+  activateTab(section);
+  const el = document.getElementById('analysis-content');
+  el.innerHTML = '<div style="color:var(--blue);font-size:12px">Loading analysis...</div>';
+
+  try {
+    const res = await fetch(`/api/advanced-analysis/${section === 'ratings' ? 'ratings-shadow' : section === 'tax' ? 'withholding-tax' : section}`).then(r=>r.json());
+
+    if (section === 'cac') el.innerHTML = renderCAC(res);
+    else if (section === 'pari-passu') el.innerHTML = renderPariPassu(res);
+    else if (section === 'ratings') el.innerHTML = renderRatings(res);
+    else if (section === 'tax') el.innerHTML = renderTax(res);
+    else if (section === 'settlement') el.innerHTML = renderSettlement(res);
+    else if (section === 'arrears') el.innerHTML = renderArrears(res);
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderCAC(d) {
+  const p = d.portfolio_cac_profile;
+  return `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">WITH CAC</div><div style="font-size:20px;font-weight:800;color:var(--green)">${p.with_cac}</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">WITHOUT CAC</div><div style="font-size:20px;font-weight:800;color:var(--red)">${p.without_cac}</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">SINGLE-LIMB</div><div style="font-size:20px;font-weight:800;color:var(--text)">${p.single_limb_aggregation}</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">TWO-LIMB</div><div style="font-size:20px;font-weight:800;color:var(--text)">${p.two_limb_aggregation}</div></div>
+    </div>
+    <div style="padding:16px;border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:600;color:var(--text)">Hardest to Restructure</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">${d.restructuring_simulation.hardest_to_restructure.instrument}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">$${(d.restructuring_simulation.hardest_to_restructure.outstanding_usd_m/1000).toFixed(1)}B outstanding | Vulture fund concentration: ${d.restructuring_simulation.hardest_to_restructure.holder_concentration}</div>
+      <div style="font-size:11px;color:var(--red);margin-top:4px">Litigation risk: ${d.restructuring_simulation.hardest_to_restructure.litigation_risk}</div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-top:12px"><strong>Recommendation:</strong> ${d.risk_assessment.recommendation}</div>
+  `;
+}
+
+function renderPariPassu(d) {
+  return `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">BROAD PARI PASSU</div><div style="font-size:20px;font-weight:800;color:var(--red)">${d.exposure_summary.broad_pari_passu}</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">EXPOSURE</div><div style="font-size:20px;font-weight:800;color:var(--text)">$${(d.exposure_summary.total_broad_exposure_usd_m/1000).toFixed(0)}B</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">% OF PORTFOLIO</div><div style="font-size:20px;font-weight:800;color:var(--text)">${d.exposure_summary.pct_of_portfolio}%</div></div>
+    </div>
+    ${d.high_risk_instruments.map(i => `<div style="padding:12px;border-left:3px solid var(--red);background:rgba(0,0,0,0.1);margin-bottom:8px;border-radius:0 6px 6px 0">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">${i.instrument}</div>
+      <div style="font-size:11px;color:var(--text3)">$${(i.notional_usd_m/1000).toFixed(1)}B | ${i.clause_type} | ${i.jurisdiction}</div>
+    </div>`).join('')}
+  `;
+}
+
+function renderRatings(d) {
+  return `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      ${Object.entries(d.current_ratings).map(([k,v]) => `<div style="padding:16px;border-radius:8px;background:rgba(0,0,0,0.2);text-align:center">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase">${k}</div>
+        <div style="font-size:24px;font-weight:800;color:var(--text);margin-top:4px">${v.rating}</div>
+        <div style="font-size:11px;color:${v.outlook==='positive'?'var(--green)':v.outlook==='negative'?'var(--red)':'var(--text3)'}">${v.outlook}</div>
+      </div>`).join('')}
+    </div>
+    <div style="padding:16px;border-radius:8px;border:1px solid var(--border);margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">Shadow Model: <span style="color:var(--blue)">${d.shadow_model_results.shadow_rating}</span></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Distance to upgrade: ${d.shadow_model_results.distance_to_upgrade} points | Distance to downgrade: ${d.shadow_model_results.distance_to_downgrade} points</div>
+    </div>
+    <div class="stat-label" style="margin-bottom:8px">FACTOR ANALYSIS</div>
+    ${Object.entries(d.factor_weights).map(([k,v]) => `<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div style="width:140px;font-size:11px;color:var(--text2)">${k.replace(/_/g,' ')}</div>
+      <div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden">
+        <div style="width:${v.current_score}%;height:100%;background:${v.current_score>=v.threshold_for_upgrade?'var(--green)':'#fbbf24'};border-radius:3px"></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text);width:30px">${v.current_score}</div>
+      <div style="font-size:10px;color:var(--text3);width:80px">upgrade: ${v.threshold_for_upgrade}</div>
+    </div>`).join('')}
+  `;
+}
+
+function renderTax(d) {
+  return `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">WEIGHTED WHT</div><div style="font-size:20px;font-weight:800;color:#fbbf24">${d.portfolio_tax_impact.weighted_avg_withholding_pct}%</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">ADDITIONAL COST</div><div style="font-size:20px;font-weight:800;color:var(--red)">$${(d.portfolio_tax_impact.effective_additional_cost_usd_m/1000).toFixed(1)}B</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">OPTIMIZATION</div><div style="font-size:20px;font-weight:800;color:var(--green)">$${d.optimization_opportunity.annual_savings_usd_m}M</div></div>
+    </div>
+    ${d.treaty_rates.map(t => `<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:6px;border:1px solid var(--border);margin-bottom:6px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${t.beneficial?'var(--green)':'var(--red)'}"></div>
+      <div style="flex:1;font-size:12px;color:var(--text)">${t.country}</div>
+      <div style="font-size:11px;color:var(--text3)">Treaty: ${t.treaty_rate_pct}% | WHT: ${t.withholding_pct}%</div>
+      <div style="font-size:10px;color:var(--text3);max-width:250px">${t.note}</div>
+    </div>`).join('')}
+  `;
+}
+
+function renderSettlement(d) {
+  return `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      ${Object.entries(d.custody_breakdown).map(([k,v]) => `<div style="padding:16px;border-radius:8px;background:rgba(0,0,0,0.2)">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase">${k.replace(/_/g,' ')}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${v.pct}%</div>
+        <div style="font-size:11px;color:var(--text3)">${v.instruments} instruments | $${(v.notional_usd_m/1000).toFixed(0)}B</div>
+      </div>`).join('')}
+    </div>
+    <div style="padding:16px;border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">Investor Base Accessibility</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Euroclearable: ${d.accessibility.euroclearable_total_pct}% | Pension fund eligible: ${d.accessibility.pension_fund_eligible_pct}%</div>
+      <div style="font-size:11px;color:var(--red);margin-top:4px">${d.accessibility.note}</div>
+    </div>
+  `;
+}
+
+function renderArrears(d) {
+  return `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">TOTAL ARREARS</div><div style="font-size:20px;font-weight:800;color:var(--red)">$${(d.current_arrears.total_arrears_usd_m/1000).toFixed(1)}B</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">DAYS LATE</div><div style="font-size:20px;font-weight:800;color:#fbbf24">${d.current_arrears.average_days_late}</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">SUPPLIERS AFFECTED</div><div style="font-size:20px;font-weight:800;color:var(--text)">${d.current_arrears.overdue_suppliers.toLocaleString()}</div></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)"><div style="font-size:10px;color:var(--text3)">ANNUAL COST</div><div style="font-size:20px;font-weight:800;color:var(--red)">$${(d.fiscal_cost.total_annual_cost_usd_m/1000).toFixed(1)}B</div></div>
+    </div>
+    <div style="padding:16px;border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">SME Crowding-Out Effect</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Private credit reduction: $${d.crowding_out_effects.estimated_private_credit_reduction_usd_b}B | SME loan availability: -${d.crowding_out_effects.sme_loan_availability_reduction_pct}% | GDP drag: ${d.crowding_out_effects.gdp_impact_pct}%</div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-top:12px"><strong>Recommendation:</strong> ${d.recommendation}</div>
+  `;
+}
+</script>
+{% endblock %}

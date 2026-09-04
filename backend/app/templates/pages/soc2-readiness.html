@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}SOC 2 Readiness — Quantive{% endblock %}
+{% block page_title %}SOC 2 Readiness{% endblock %}
+
+{% block content %}
+<style>
+  .soc-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; margin-bottom: 12px; }
+  .progress-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .check-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.82rem; }
+  .check-item:last-child { border-bottom: none; }
+  .check-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
+  .check-done { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .check-partial { background: rgba(234,179,8,0.15); color: #eab308; }
+  .check-missing { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .check-na { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); }
+</style>
+
+<!-- Header -->
+<div style="margin-bottom:24px">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px">Compliance</div>
+  <div style="font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:4px">SOC 2 Type II Readiness</div>
+  <div style="font-size:0.85rem;color:rgba(255,255,255,0.5)">Assessment of controls across all 5 Trust Service Criteria</div>
+</div>
+
+<!-- Overall Score -->
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:24px">
+  <div style="padding:24px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);text-align:center">
+    <div style="font-size:2.5rem;font-weight:800;color:#22c55e" id="overall-score">--</div>
+    <div style="font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-top:4px">Overall Readiness</div>
+    <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" id="overall-bar" style="width:0%;background:#22c55e"></div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="criteria-cards"></div>
+</div>
+
+<!-- Trust Service Criteria Sections -->
+<div id="criteria-sections"></div>
+
+<script>
+const CRITERIA = [
+  {
+    id: 'security',
+    name: 'Security',
+    code: 'CC6-CC8',
+    controls: [
+      { name: 'MFA enforced for all admin accounts', status: 'done' },
+      { name: 'RBAC enforced server-side on every endpoint', status: 'done' },
+      { name: 'TLS 1.3 for all data in transit', status: 'done' },
+      { name: 'Encryption at rest (AES-256)', status: 'done' },
+      { name: 'Immutable audit logging with hash chain', status: 'done' },
+      { name: 'Rate limiting on all API endpoints', status: 'done' },
+      { name: 'Input sanitization against SQL/XSS injection', status: 'done' },
+      { name: 'Content Security Policy headers', status: 'done' },
+      { name: 'Dependency vulnerability scanning', status: 'partial' },
+      { name: 'Penetration testing (annual)', status: 'missing' },
+    ]
+  },
+  {
+    id: 'availability',
+    name: 'Availability',
+    code: 'A1',
+    controls: [
+      { name: '99.9% uptime SLA monitoring', status: 'done' },
+      { name: 'Automated health checks', status: 'done' },
+      { name: 'Graceful degradation on data source failure', status: 'done' },
+      { name: 'Rate limiting with backoff', status: 'done' },
+      { name: 'Database backup system', status: 'done' },
+      { name: 'DR/BCP plan documented', status: 'missing' },
+      { name: 'Load testing completed', status: 'missing' },
+    ]
+  },
+  {
+    id: 'processing',
+    name: 'Processing Integrity',
+    code: 'PI1',
+    controls: [
+      { name: 'Schema validation on all inputs', status: 'done' },
+      { name: 'Data quality flags per record', status: 'done' },
+      { name: 'Confidence intervals on all outputs', status: 'done' },
+      { name: 'Maker-checker approval workflow', status: 'done' },
+      { name: 'Optimistic locking on concurrent edits', status: 'partial' },
+      { name: 'Automated reconciliation checks', status: 'missing' },
+    ]
+  },
+  {
+    id: 'confidentiality',
+    name: 'Confidentiality',
+    code: 'C1',
+    controls: [
+      { name: 'Secrets in environment variables (not code)', status: 'done' },
+      { name: 'Field-level encryption for sensitive data', status: 'partial' },
+      { name: 'Data classification policy', status: 'done' },
+      { name: 'PII redaction in logs', status: 'done' },
+      { name: 'Air-gapped LLM inference option', status: 'done' },
+      { name: 'Data retention policy enforced', status: 'missing' },
+    ]
+  },
+  {
+    id: 'privacy',
+    name: 'Privacy',
+    code: 'P1-P8',
+    controls: [
+      { name: 'Data minimization in collection', status: 'done' },
+      { name: 'User consent management', status: 'partial' },
+      { name: 'Right to deletion support', status: 'missing' },
+      { name: 'Cross-border data transfer controls', status: 'partial' },
+      { name: 'Privacy impact assessment', status: 'missing' },
+    ]
+  }
+];
+
+function renderChecklist() {
+  const criteriaContainer = document.getElementById('criteria-cards');
+  const sectionsContainer = document.getElementById('criteria-sections');
+  let totalDone = 0, totalItems = 0;
+  
+  CRITERIA.forEach(c => {
+    const done = c.controls.filter(x => x.status === 'done').length;
+    const partial = c.controls.filter(x => x.status === 'partial').length;
+    const total = c.controls.length;
+    totalDone += done;
+    totalItems += total;
+    const pct = Math.round((done / total) * 100);
+    const color = pct >= 80 ? '#22c55e' : pct >= 60 ? '#eab308' : '#ef4444';
+    
+    // Criteria card
+    criteriaContainer.innerHTML += '<div style="padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);text-align:center">' +
+      '<div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">' + c.name + '</div>' +
+      '<div style="font-size:1.3rem;font-weight:800;color:' + color + ';margin:4px 0">' + pct + '%</div>' +
+      '<div style="font-size:0.65rem;color:rgba(255,255,255,0.3)">' + done + '/' + total + ' controls</div>' +
+      '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+    '</div>';
+    
+    // Section
+    let controlsHTML = c.controls.map(ctrl => {
+      const iconClass = ctrl.status === 'done' ? 'check-done' : ctrl.status === 'partial' ? 'check-partial' : ctrl.status === 'na' ? 'check-na' : 'check-missing';
+      const icon = ctrl.status === 'done' ? '\u2713' : ctrl.status === 'partial' ? '\u25CB' : ctrl.status === 'na' ? '-' : '\u2717';
+      return '<div class="check-item">' +
+        '<div class="check-icon ' + iconClass + '">' + icon + '</div>' +
+        '<span style="flex:1">' + ctrl.name + '</span>' +
+        '<span style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-transform:uppercase">' + ctrl.status + '</span>' +
+      '</div>';
+    }).join('');
+    
+    sectionsContainer.innerHTML += '<div class="soc-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+        '<div style="font-size:0.85rem;font-weight:700;color:#fff">' + c.name + ' <span style="font-size:0.7rem;color:rgba(255,255,255,0.3)">' + c.code + '</span></div>' +
+        '<span style="font-size:0.75rem;color:rgba(255,255,255,0.4)">' + done + '/' + total + '</span>' +
+      '</div>' +
+      controlsHTML +
+    '</div>';
+  });
+  
+  // Overall score
+  const overallPct = Math.round((totalDone / totalItems) * 100);
+  document.getElementById('overall-score').textContent = overallPct + '%';
+  document.getElementById('overall-bar').style.width = overallPct + '%';
+}
+
+renderChecklist();
+</script>
+{% endblock %}

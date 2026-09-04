@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Multi-Eyes Review - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Multi-Eyes Review{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Pending Reviews</div>
+    <div class="stat-value" style="color:var(--yellow);">5</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Completed (30d)</div>
+    <div class="stat-value">28</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Review Time</div>
+    <div class="stat-value">2.4 hrs</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Pending Multi-Eyes Reviews</div>
+  <table>
+    <thead><tr><th>Decision</th><th>Required Approvers</th><th>Current</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Rebalance Sovereign Core</td><td>3 of 5</td><td>2 of 3</td><td><span class="badge badge-yellow">Awaiting 1</span></td><td><button class="btn btn-primary btn-sm">Review</button></td></tr>
+      <tr><td style="font-weight:600;">Green Bond Issuance</td><td>3 of 5</td><td>3 of 3</td><td><span class="badge badge-green">Approved</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+      <tr><td style="font-weight:600;">Risk Limit Override</td><td>2 of 3</td><td>1 of 2</td><td><span class="badge badge-yellow">Awaiting 1</span></td><td><button class="btn btn-primary btn-sm">Review</button></td></tr>
+      <tr><td style="font-weight:600;">New Counterparty</td><td>2 of 3</td><td>0 of 2</td><td><span class="badge badge-red">Awaiting 2</span></td><td><button class="btn btn-primary btn-sm">Review</button></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

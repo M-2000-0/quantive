@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% block title %}Trading Tools — Quantive{% endblock %}
+{% block page_title %}Trading Tools{% endblock %}
+
+{% block content %}
+<style>
+  .tool-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .tool-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin: 0 0 12px; }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; }
+  .tab-btn { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .tab-btn.active { background: rgba(99,102,241,0.2); color: #C0C0C0; }
+  .positive { color: #22c55e; }
+  .negative { color: #ef4444; }
+  .neutral { color: rgba(255,255,255,0.5); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+  .badge-buy { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .badge-sell { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .badge-hold { background: rgba(234,179,8,0.15); color: #eab308; }
+  .badge-fire { background: rgba(239,68,68,0.25); color: #ef4444; }
+  .badge-warn { background: rgba(234,179,8,0.25); color: #eab308; }
+  .badge-ok { background: rgba(34,197,94,0.25); color: #22c55e; }
+  .form-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .form-input { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: #fff; font-size: 0.85rem; }
+  .form-input::placeholder { color: rgba(255,255,255,0.3); }
+  .form-select { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(30,30,30,0.9); color: #fff; font-size: 0.85rem; }
+  .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+  .btn-primary { background: #E0E0E0; color: #fff; }
+  .btn-danger { background: rgba(239,68,68,0.2); color: #ef4444; }
+  .btn-success { background: rgba(34,197,94,0.2); color: #22c55e; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .metric { text-align: center; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.02); }
+  .metric-value { font-size: 1.5rem; font-weight: 700; }
+  .metric-label { font-size: 0.7rem; color: rgba(255,255,255,0.4); text-transform: uppercase; }
+  .earnings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .loading-shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; height: 20px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  canvas { width: 100% !important; max-height: 300px; }
+</style>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('alerts')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Price Alerts</button>
+  <button class="tab-btn" onclick="showTab('backtest')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg> Backtesting</button>
+  <button class="tab-btn" onclick="showTab('earnings')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Earnings</button>
+  <button class="tab-btn" onclick="showTab('screener')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Screener</button>
+</div>
+
+<!-- ═══ ALERTS TAB ═══ -->
+<div id="tab-alerts">
+  <div class="tool-card">
+    <h3>Create Price Alert</h3>
+    <div class="form-row">
+      <input type="text" class="form-input" id="alert-symbol" placeholder="Symbol (e.g. AAPL)" style="width: 120px;">
+      <select class="form-select" id="alert-type" style="width: 180px;">
+        <option value="price_above">Price Above</option>
+        <option value="price_below">Price Below</option>
+        <option value="rsi_overbought">RSI Overbought (>70)</option>
+        <option value="rsi_oversold">RSI Oversold (<30)</option>
+        <option value="change_pct">% Change</option>
+      </select>
+      <input type="number" class="form-input" id="alert-threshold" placeholder="Threshold" style="width: 120px;">
+      <button class="btn btn-primary" onclick="createAlert()">Create Alert</button>
+    </div>
+  </div>
+  <div class="tool-card">
+    <h3>Active Alerts</h3>
+    <div id="alerts-list"><div class="loading-shimmer"></div></div>
+  </div>
+  <div class="tool-card">
+    <h3>Alert History</h3>
+    <div id="alerts-history"></div>
+  </div>
+</div>
+
+<!-- ═══ BACKTEST TAB ═══ -->
+<div id="tab-backtest" style="display:none;">
+  <div class="tool-card">
+    <h3>Run Backtest</h3>
+    <div class="form-row">
+      <input type="text" class="form-input" id="bt-symbol" placeholder="Symbol" value="SPY" style="width:120px;">
+      <select class="form-select" id="bt-strategy">
+        <option value="sma_crossover">SMA Crossover</option>
+        <option value="rsi_reversal">RSI Reversal</option>
+        <option value="macd">MACD Crossover</option>
+        <option value="momentum">Price Momentum</option>
+      </select>
+      <select class="form-select" id="bt-days">
+        <option value="90">90 Days</option>
+        <option value="180">180 Days</option>
+        <option value="365" selected>1 Year</option>
+      </select>
+      <input type="number" class="form-input" id="bt-capital" value="10000" placeholder="Capital" style="width:120px;">
+      <button class="btn btn-primary" onclick="runBacktest()">Run Backtest</button>
+    </div>
+  </div>
+  <div id="bt-results"></div>
+</div>
+
+<!-- ═══ EARNINGS TAB ═══ -->
+<div id="tab-earnings" style="display:none;">
+  <div class="tool-card">
+    <h3>Upcoming Earnings</h3>
+    <div id="earnings-this-week" style="margin-bottom: 16px;"></div>
+    <div id="earnings-this-month"></div>
+  </div>
+</div>
+
+<!-- ═══ SCREENER TAB ═══ -->
+<div id="tab-screener" style="display:none;">
+  <div class="tool-card">
+    <h3>Quick Screener</h3>
+    <div class="form-row">
+      <button class="btn btn-primary" onclick="quickScreen('dividend_kings')">Dividend Kings</button>
+      <button class="btn btn-primary" onclick="quickScreen('high_momentum')">High Momentum</button>
+      <button class="btn btn-primary" onclick="quickScreen('oversold')">Oversold (RSI<30)</button>
+      <button class="btn btn-primary" onclick="quickScreen('large_cap')">Large Cap</button>
+    </div>
+  </div>
+  <div class="tool-card">
+    <h3>Results</h3>
+    <div id="screener-results"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let authToken = localStorage.getItem('token');
+function authHeaders() { return authToken ? {'Authorization': 'Bearer ' + authToken} : {}; }
+
+function showTab(tab) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('tab-' + tab).style.display = 'block';
+  event.target.classList.add('active');
+  if (tab === 'alerts') loadAlerts();
+  if (tab === 'earnings') loadEarnings();
+}
+
+// ── Alerts ──
+async function loadAlerts() {
+  try {
+    const r = await fetch(API + '/alerts', {headers: authHeaders()});
+    const data = await r.json();
+    const el = document.getElementById('alerts-list');
+    if (!data.alerts || data.alerts.length === 0) {
+      el.innerHTML = '<div style="color:rgba(255,255,255,0.4);padding:12px;">No alerts yet. Create one above.</div>';
+      return;
+    }
+    el.innerHTML = data.alerts.map(a => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+        <div>
+          <span style="font-weight:600;color:#C0C0C0;">${escapeHtml(a.symbol)}</span>
+          <span style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-left:8px;">${a.alert_type.replace('_',' ')}</span>
+          ${a.threshold ? '<span style="font-size:0.85rem;margin-left:8px;">at ' + a.threshold + '</span>' : ''}
+          ${a.current_price ? '<span style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-left:8px;">current: $' + a.current_price + '</span>' : ''}
+          ${a.current_rsi ? '<span style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-left:8px;">RSI: ' + a.current_rsi + '</span>' : ''}
+        </div>
+        <div>
+          ${a.triggered ? '<span class="badge badge-fire">TRIGGERED</span>' : '<span class="badge badge-ok">ACTIVE</span>'}
+          <button class="btn btn-danger" style="padding:4px 8px;font-size:0.7rem;margin-left:4px;" onclick="deleteAlert('${a.id}')">X</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function createAlert() {
+  const body = {
+    symbol: document.getElementById('alert-symbol').value.toUpperCase(),
+    alert_type: document.getElementById('alert-type').value,
+    threshold: parseFloat(document.getElementById('alert-threshold').value) || null,
+    message: '',
+    active: true,
+  };
+  if (!body.symbol) return alert('Enter a symbol');
+  await fetch(API + '/alerts', {method:'POST', headers:{'Content-Type':'application/json',...authHeaders()}, body: JSON.stringify(body)});
+  loadAlerts();
+}
+
+async function deleteAlert(id) {
+  await fetch(API + '/alerts/' + id, {method:'DELETE', headers: authHeaders()});
+  loadAlerts();
+}
+
+// ── Backtest ──
+async function runBacktest() {
+  const el = document.getElementById('bt-results');
+  el.innerHTML = '<div class="loading-shimmer" style="height:200px;"></div>';
+  try {
+    const body = {
+      symbol: document.getElementById('bt-symbol').value.toUpperCase(),
+      strategy: document.getElementById('bt-strategy').value,
+      days: parseInt(document.getElementById('bt-days').value),
+      initial_capital: parseFloat(document.getElementById('bt-capital').value) || 10000,
+    };
+    const r = await fetch(API + '/backtest/run', {method:'POST', headers:{'Content-Type':'application/json',...authHeaders()}, body: JSON.stringify(body)});
+    const data = await r.json();
+    const m = data.metrics;
+    el.innerHTML = `
+      <div class="grid-3" style="margin-bottom:16px;">
+        <div class="metric"><div class="metric-value ${m.total_return_pct >= 0 ? 'positive' : 'negative'}">${m.total_return_pct >= 0 ? '+' : ''}${m.total_return_pct}%</div><div class="metric-label">Total Return</div></div>
+        <div class="metric"><div class="metric-value ${m.sharpe_ratio >= 1 ? 'positive' : m.sharpe_ratio < 0 ? 'negative' : 'neutral'}">${m.sharpe_ratio}</div><div class="metric-label">Sharpe Ratio</div></div>
+        <div class="metric"><div class="metric-value negative">-${m.max_drawdown_pct}%</div><div class="metric-label">Max Drawdown</div></div>
+        <div class="metric"><div class="metric-value positive">${m.cagr}%</div><div class="metric-label">CAGR</div></div>
+        <div class="metric"><div class="metric-value neutral">${m.win_rate_pct}%</div><div class="metric-label">Win Rate</div></div>
+        <div class="metric"><div class="metric-value neutral">${m.total_trades}</div><div class="metric-label">Total Trades</div></div>
+      </div>
+      <div class="tool-card">
+        <h3>Equity Curve</h3>
+        <canvas id="equity-chart"></canvas>
+      </div>
+      <div class="tool-card">
+        <h3>Trade Log</h3>
+        ${data.trades.map(t => `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.85rem;">
+            <span class="${t.type === 'BUY' ? 'positive' : 'negative'}" style="font-weight:600;">${t.type}</span>
+            <span>Day ${t.day}</span>
+            <span>$${t.price.toFixed(2)}</span>
+            <span>${t.shares.toFixed(2)} shares</span>
+            ${t.pnl !== undefined ? `<span class="${t.pnl >= 0 ? 'positive' : 'negative'}">P&L: $${t.pnl.toFixed(2)} (${t.pnl_pct}%)</span>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+    drawEquityCurve(data.equity_curve);
+  } catch(e) { el.innerHTML = '<div class="tool-card">Error: ' + e.message + '</div>'; }
+}
+
+function drawEquityCurve(curve) {
+  const canvas = document.getElementById('equity-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth - 40;
+  canvas.width = W; canvas.height = 200;
+  const equities = curve.map(e => e.equity);
+  const min = Math.min(...equities) * 0.99;
+  const max = Math.max(...equities) * 1.01;
+  const step = W / (equities.length - 1);
+
+  ctx.clearRect(0, 0, W, 200);
+  ctx.beginPath();
+  equities.forEach((eq, i) => {
+    const x = i * step;
+    const y = 200 - ((eq - min) / (max - min) * 180);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = equities[equities.length - 1] >= equities[0] ? '#22c55e' : '#ef4444';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Fill area
+  ctx.lineTo(W, 200); ctx.lineTo(0, 200); ctx.closePath();
+  ctx.fillStyle = equities[equities.length - 1] >= equities[0] ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+  ctx.fill();
+}
+
+// ── Earnings ──
+async function loadEarnings() {
+  try {
+    const r = await fetch(API + '/earnings/upcoming?days=60', {headers: authHeaders()});
+    const data = await r.json();
+    document.getElementById('earnings-this-week').innerHTML = `
+      <h3 style="color:#ef4444;font-size:0.9rem;margin-bottom:8px;">THIS WEEK (${data.summary.this_week})</h3>
+      ${(data.this_week || []).map(e => earningsRow(e)).join('')}
+      ${data.this_week.length === 0 ? '<div style="color:rgba(255,255,255,0.4);padding:8px 0;">No earnings this week</div>' : ''}
+    `;
+    document.getElementById('earnings-this-month').innerHTML = `
+      <h3 style="color:#eab308;font-size:0.9rem;margin-bottom:8px;">THIS MONTH (${data.summary.this_month})</h3>
+      ${(data.this_month || []).map(e => earningsRow(e)).join('')}
+      ${data.this_month.length === 0 ? '<div style="color:rgba(255,255,255,0.4);padding:8px 0;">No earnings this month</div>' : ''}
+    `;
+  } catch(e) { console.error(e); }
+}
+
+function earningsRow(e) {
+  const urgencyClass = e.days_until <= 7 ? 'badge-fire' : e.days_until <= 14 ? 'badge-warn' : 'badge-ok';
+  return `
+    <div class="earnings-row">
+      <div>
+        <span style="font-weight:600;color:#C0C0C0;">${escapeHtml(e.symbol)}</span>
+        <span style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin-left:6px;">${e.name}</span>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.85rem;">${e.next_date}</div>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Est EPS: $${e.estimate_eps}</div>
+      </div>
+      <span class="badge ${urgencyClass}">${e.days_until}d</span>
+    </div>
+  `;
+}
+
+// ── Screener ──
+async function quickScreen(preset) {
+  const el = document.getElementById('screener-results');
+  el.innerHTML = '<div class="loading-shimmer" style="height:100px;"></div>';
+  try {
+    const r = await fetch(API + '/screener/quick?preset=' + preset, {headers: authHeaders()});
+    const data = await r.json();
+    el.innerHTML = `
+      <div style="margin-bottom:8px;color:rgba(255,255,255,0.4);font-size:0.8rem;">
+        Found ${data.total_found} stocks matching "${preset.replace('_', ' ')}"
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.06);">Symbol</th>
+              <th style="text-align:left;padding:8px;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.06);">Name</th>
+              <th style="text-align:right;padding:8px;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.06);">Price</th>
+              <th style="text-align:right;padding:8px;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.06);">Change</th>
+              <th style="text-align:right;padding:8px;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.06);">Yield</th>
+              <th style="text-align:center;padding:8px;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.06);">RSI</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.results.map(s => `
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.03);">
+                <td style="padding:8px;font-weight:600;color:#C0C0C0;">${escapeHtml(s.symbol)}</td>
+                <td style="padding:8px;color:rgba(255,255,255,0.5);font-size:0.85rem;">${escapeHtml(s.name)}</td>
+                <td style="padding:8px;text-align:right;">$${s.price.toFixed(2)}</td>
+                <td style="padding:8px;text-align:right;" class="${s.change_pct >= 0 ? 'positive' : 'negative'}">${s.change_pct >= 0 ? '+' : ''}${s.change_pct.toFixed(2)}%</td>
+                <td style="padding:8px;text-align:right;" class="${s.dividend_yield > 0 ? 'positive' : 'neutral'}">${s.dividend_yield.toFixed(1)}%</td>
+                <td style="padding:8px;text-align:center;">${s.rsi ? s.rsi.toFixed(0) : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch(e) { el.innerHTML = '<div>Error loading screener data</div>'; }
+}
+
+// Init
+loadAlerts();
+</script>
+{% endblock %}

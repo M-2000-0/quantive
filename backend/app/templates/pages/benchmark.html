@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Benchmark - Quantive{% endblock %}
+{% set active_page = 'market' %}
+{% block page_title %}Benchmarking{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Benchmark</div>
+    <div class="stat-value" style="font-size:16px;">Bloomberg Global Agg</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Tracking Error</div>
+    <div class="stat-value">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Active Return</div>
+    <div class="stat-value" style="color:var(--green);">+1.6%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Information Ratio</div>
+    <div class="stat-value">--</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Benchmark Comparison</div>
+  <table>
+    <thead><tr><th>Metric</th><th>Portfolio</th><th>Benchmark</th><th>Difference</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">YTD Return</td><td style="color:var(--green);">+6.8%</td><td>+5.2%</td><td style="color:var(--green);">+1.6%</td></tr>
+      <tr><td style="font-weight:600;">Volatility</td><td>--%</td><td>--%</td><td style="color:var(--green);">-1.6%</td></tr>
+      <tr><td style="font-weight:600;">Sharpe Ratio</td><td>--</td><td>--</td><td style="color:var(--green);">+0.48</td></tr>
+      <tr><td style="font-weight:600;">Max Drawdown</td><td>-3.2%</td><td>-6.8%</td><td style="color:var(--green);">+3.6%</td></tr>
+      <tr><td style="font-weight:600;">Duration</td><td>6.4 yrs</td><td>7.2 yrs</td><td>-0.8 yrs</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

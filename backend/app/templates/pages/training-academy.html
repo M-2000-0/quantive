@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Training Academy - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Training Academy{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Courses</div>
+    <div class="stat-value">24</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Enrolled Users</div>
+    <div class="stat-value">48</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Completion Rate</div>
+    <div class="stat-value" style="color:var(--green);">82%</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Course Catalog</div>
+  <table>
+    <thead><tr><th>Course</th><th>Category</th><th>Duration</th><th>Enrolled</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Portfolio Optimization Fundamentals</td><td>Core</td><td>4 hrs</td><td>42</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">Risk Management Essentials</td><td>Core</td><td>3 hrs</td><td>38</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">AI Copilot Mastery</td><td>Advanced</td><td>2 hrs</td><td>28</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">Compliance & Audit Trail</td><td>Compliance</td><td>2.5 hrs</td><td>34</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">Crisis Management Protocol</td><td>Advanced</td><td>1.5 hrs</td><td>18</td><td><span class="badge badge-yellow">Draft</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

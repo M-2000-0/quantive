@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+{% block title %}Create Portfolio — Quantive{% endblock %}
+{% block page_title %}Create Portfolio{% endblock %}
+
+{% block content %}
+<style>
+  .step { display: none; }
+  .step.active { display: block; }
+  .step-bar { display: flex; gap: 8px; margin-bottom: 24px; }
+  .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.08); }
+  .step-dot.active { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.3); }
+  .step-dot.done { background: rgba(34,197,94,0.15); color: #22c55e; border-color: rgba(34,197,94,0.3); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .form-grid, .form-grid-3 { grid-template-columns: 1fr; } }
+  .form-field { margin-bottom: 12px; }
+  .form-field label { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.9); font-size: 0.85rem; outline: none; box-sizing: border-box; }
+  .form-field input:focus, .form-field select:focus { border-color: rgba(255,255,255,0.2); }
+  .form-field .hint { font-size: 0.68rem; color: rgba(255,255,255,0.3); margin-top: 3px; }
+  .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-size: 0.85rem; cursor: pointer; font-weight: 600; }
+  .btn-primary { background: rgba(255,255,255,0.1); color: #fff; }
+  .btn-primary:hover { background: rgba(255,255,255,0.15); }
+  .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .inst-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 12px; }
+  .inst-table th { text-align: left; padding: 8px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .inst-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .inst-table tr:hover { background: rgba(255,255,255,0.02); }
+  .remove-btn { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 1rem; }
+  .remove-btn:hover { color: #ef4444; }
+  .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 24px; }
+  .success-card { text-align: center; padding: 40px; }
+  .success-icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+  .csv-upload { border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+  .csv-upload:hover { border-color: rgba(255,255,255,0.25); }
+  .csv-upload input { display: none; }
+</style>
+
+<!-- Step Bar -->
+<div class="step-bar">
+  <div class="step-dot active" id="dot-1">1</div>
+  <div class="step-dot" id="dot-2">2</div>
+  <div class="step-dot" id="dot-3">3</div>
+</div>
+
+<!-- Step 1: Portfolio Info -->
+<div class="step active" id="step-1">
+  <div class="card">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:16px">Portfolio Information</div>
+    <div class="form-grid">
+      <div class="form-field"><label>Portfolio Name *</label><input type="text" id="p-name" placeholder="e.g. Mexico Sovereign Debt" required></div>
+      <div class="form-field"><label>Primary Currency *</label>
+        <select id="p-currency"><option value="USD">USD</option><option value="MXN" selected>MXN</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="JPY">JPY</option><option value="BRL">BRL</option><option value="ARS">ARS</option><option value="CLP">CLP</option><option value="COP">COP</option><option value="PEN">PEN</option></select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label>Risk Tolerance</label>
+        <select id="p-risk"><option value="conservative">Conservative</option><option value="moderate" selected>Moderate</option><option value="aggressive">Aggressive</option></select>
+      </div>
+      <div class="form-field"><label>Investment Horizon (years)</label><input type="number" id="p-horizon" value="10" min="1" max="50"></div>
+    </div>
+    <div class="form-field"><label>Description</label><textarea id="p-desc" rows="2" placeholder="Optional description of this portfolio's purpose..."></textarea></div>
+    <div class="btn-row">
+      <a href="/portfolios" class="btn btn-secondary">Cancel</a>
+      <button class="btn btn-primary" onclick="goStep(2)">Next: Add Instruments</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: Instruments -->
+<div class="step" id="step-2">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4)">Debt Instruments</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.75rem" onclick="showAddForm()">+ Add Manually</button>
+        <label class="btn btn-secondary" style="padding:6px 12px;font-size:0.75rem;cursor:pointer">
+          + Import CSV
+          <input type="file" accept=".csv" onchange="handleCSV(event)" style="display:none">
+        </label>
+      </div>
+    </div>
+
+    <!-- Add Instrument Form -->
+    <div id="add-form" style="display:none;margin-bottom:16px;padding:16px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.15)">
+      <div class="form-grid-3">
+        <div class="form-field"><label>Name *</label><input type="text" id="i-name" placeholder="e.g. MBonos 5Y 2028"></div>
+        <div class="form-field"><label>Type *</label>
+          <select id="i-type">
+            <option value="sovereign_bond">Sovereign Bond</option>
+            <option value="treasury_bond">Treasury Bond</option>
+            <option value="t_bill">T-Bill</option>
+            <option value="eurobond">Eurobond</option>
+            <option value="floating_rate_note">Floating Rate Note</option>
+            <option value="inflation_linked">Inflation Linked</option>
+            <option value="concessional_loan">Concessional Loan</option>
+            <option value="commercial_loan">Commercial Loan</option>
+            <option value="domestic_bond">Domestic Bond</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Currency *</label>
+          <select id="i-currency"><option>USD</option><option>MXN</option><option>EUR</option><option>GBP</option><option>JPY</option><option>BRL</option></select>
+        </div>
+      </div>
+      <div class="form-grid-3">
+        <div class="form-field"><label>Principal Outstanding *</label><input type="number" id="i-principal" placeholder="e.g. 50000000000" step="any"></div>
+        <div class="form-field"><label>Coupon Rate (%) *</label><input type="number" id="i-coupon" placeholder="e.g. 9.75" step="0.01"></div>
+        <div class="form-field"><label>Spread (bps)</label><input type="number" id="i-spread" value="0" step="1"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-field"><label>Issue Date *</label><input type="date" id="i-issue"></div>
+        <div class="form-field"><label>Maturity Date *</label><input type="date" id="i-maturity"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-field"><label>Is Callable?</label><select id="i-callable"><option value="false">No</option><option value="true">Yes</option></select></div>
+        <div class="form-field"><label>Call Date</label><input type="date" id="i-call-date"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="hideAddForm()">Cancel</button>
+        <button class="btn btn-primary" onclick="addInstrument()">Add Instrument</button>
+      </div>
+    </div>
+
+    <!-- CSV Upload Area -->
+    <div id="csv-upload" style="display:none;margin-bottom:16px">
+      <div class="csv-upload" onclick="document.getElementById('csv-file').click()">
+        <input type="file" id="csv-file" accept=".csv" onchange="handleCSV(event)">
+        <div style="font-size:1.5rem;margin-bottom:8px">CSV</div>
+        <div style="font-size:0.85rem;color:rgba(255,255,255,0.6)">Drop CSV file or click to upload</div>
+        <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);margin-top:4px">Columns: name, type, currency, principal, coupon, issue_date, maturity_date</div>
+      </div>
+    </div>
+
+    <!-- Instruments Table -->
+    <table class="inst-table" id="inst-table" style="display:none">
+      <thead><tr><th>Name</th><th>Type</th><th>Currency</th><th>Principal</th><th>Coupon</th><th>Maturity</th><th></th></tr></thead>
+      <tbody id="inst-body"></tbody>
+    </table>
+
+    <div id="inst-count" style="font-size:0.75rem;color:rgba(255,255,255,0.35);margin-top:8px"></div>
+
+    <!-- Quick Add Presets -->
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.04)">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.3);margin-bottom:8px">Quick Add Presets</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-secondary" style="padding:5px 10px;font-size:0.7rem" onclick="addPreset('mexico')">Mexico Sovereign</button>
+        <button class="btn btn-secondary" style="padding:5px 10px;font-size:0.7rem" onclick="addPreset('us_treasury')">US Treasury</button>
+        <button class="btn btn-secondary" style="padding:5px 10px;font-size:0.7rem" onclick="addPreset('uk_gilt')">UK Gilts</button>
+        <button class="btn btn-secondary" style="padding:5px 10px;font-size:0.7rem" onclick="addPreset('brazil')">Brazil Bonds</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">Back</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Next: Review & Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 3: Review -->
+<div class="step" id="step-3">
+  <div class="card">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:16px">Review & Create</div>
+
+    <div id="review-summary"></div>
+
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.04)">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.3);margin-bottom:8px">Instruments (<span id="review-count">0</span>)</div>
+      <div id="review-instruments" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">Back</button>
+      <button class="btn btn-primary" id="create-btn" onclick="createPortfolio()">Create Portfolio</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 4: Success -->
+<div class="step" id="step-4">
+  <div class="card success-card">
+    <div class="success-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+    <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:8px">Portfolio Created</h2>
+    <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-bottom:24px" id="success-msg"></p>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+      <a href="/portfolios" class="btn btn-secondary">View Portfolios</a>
+    </div>
+  </div>
+</div>
+
+<script>
+let instruments = [];
+let currentStep = 1;
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById('dot-' + i);
+    dot.classList.remove('active', 'done');
+    if (i < n) dot.classList.add('done');
+    else if (i === n) dot.classList.add('active');
+  }
+  currentStep = n;
+  if (n === 3) renderReview();
+}
+
+// ── Add Instrument ────────────────────────────────────────────────
+function showAddForm() { document.getElementById('add-form').style.display = 'block'; }
+function hideAddForm() { document.getElementById('add-form').style.display = 'none'; clearAddForm(); }
+function clearAddForm() {
+  ['i-name','i-principal','i-coupon','i-spread','i-issue','i-maturity','i-call-date'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('i-type').selectedIndex = 0;
+  document.getElementById('i-currency').selectedIndex = 0;
+  document.getElementById('i-callable').value = 'false';
+}
+
+function addInstrument() {
+  const name = document.getElementById('i-name').value.trim();
+  const type = document.getElementById('i-type').value;
+  const currency = document.getElementById('i-currency').value;
+  const principal = parseFloat(document.getElementById('i-principal').value);
+  const coupon = parseFloat(document.getElementById('i-coupon').value);
+  const spread = parseFloat(document.getElementById('i-spread').value) || 0;
+  const issue = document.getElementById('i-issue').value;
+  const maturity = document.getElementById('i-maturity').value;
+  const callable = document.getElementById('i-callable').value === 'true';
+  const callDate = document.getElementById('i-call-date').value || null;
+
+  if (!name || !principal || !coupon || !issue || !maturity) {
+    alert('Please fill in all required fields'); return;
+  }
+  if (new Date(maturity) <= new Date(issue)) {
+    alert('Maturity date must be after issue date'); return;
+  }
+
+  instruments.push({ name, type, currency, principal, coupon, spread, issue_date: issue, maturity_date: maturity, is_callable: callable, call_date: callDate });
+  renderInstruments();
+  hideAddForm();
+}
+
+function removeInstrument(i) {
+  instruments.splice(i, 1);
+  renderInstruments();
+}
+
+function renderInstruments() {
+  const tbody = document.getElementById('inst-body');
+  const table = document.getElementById('inst-table');
+  const count = document.getElementById('inst-count');
+  if (instruments.length === 0) { table.style.display = 'none'; count.textContent = ''; return; }
+  table.style.display = '';
+  count.textContent = instruments.length + ' instrument(s) — Total: ' + fmtB(instruments.reduce((s, i) => s + i.principal, 0));
+  tbody.innerHTML = instruments.map((inst, i) =>
+    '<tr><td style="font-weight:600">' + esc(inst.name) + '</td>' +
+    '<td>' + inst.type.replace(/_/g, ' ') + '</td>' +
+    '<td>' + inst.currency + '</td>' +
+    '<td>' + fmtB(inst.principal) + '</td>' +
+    '<td>' + inst.coupon.toFixed(2) + '%</td>' +
+    '<td>' + inst.maturity_date + '</td>' +
+    '<td><button class="remove-btn" onclick="removeInstrument(' + i + ')">&times;</button></td></tr>'
+  ).join('');
+}
+
+// ── CSV Import ────────────────────────────────────────────────────
+const FIELD_MAP = {
+  name: ['name', 'instrument_name', 'bond_name', 'security_name', 'description'],
+  type: ['type', 'instrument_type', 'bond_type', 'security_type', 'category'],
+  currency: ['currency', 'ccy', 'iso', 'denomination'],
+  principal: ['principal', 'principal_outstanding', 'face_value', 'notional', 'amount', 'value'],
+  coupon: ['coupon', 'coupon_rate', 'rate', 'yield', 'interest_rate'],
+  spread: ['spread', 'spread_bps', 'bps', 'margin'],
+  issue_date: ['issue_date', 'issue', 'start_date', 'settlement_date', 'origination_date'],
+  maturity_date: ['maturity_date', 'maturity', 'end_date', 'expiry', 'due_date'],
+  is_callable: ['is_callable', 'callable', 'has_call'],
+  call_date: ['call_date', 'call_exercise_date'],
+};
+const REQUIRED_FIELDS = ['name', 'type', 'currency', 'principal', 'coupon', 'issue_date', 'maturity_date'];
+const VALID_TYPES = ['sovereign_bond', 'treasury_bond', 't_bill', 'eurobond', 'floating_rate_note', 'inflation_linked', 'concessional_loan', 'commercial_loan', 'domestic_bond'];
+const VALID_CURRENCIES = ['USD', 'MXN', 'EUR', 'GBP', 'JPY', 'BRL', 'ARS', 'CLP', 'COP', 'PEN', 'CHF', 'CAD', 'AUD', 'NGN', 'GHS', 'KES', 'ZAR', 'TRY', 'SAR', 'AED'];
+let csvData = { headers: [], rows: [], mapping: {}, validated: [], duplicates: [], stats: {} };
+
+function handleCSV(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const text = ev.target.result;
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { alert('CSV must have a header row and at least one data row.'); return; }
+    const headers = lines[0].split(',').map(h => h.trim());
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].split(',').map(v => v.trim());
+      if (vals.length < 2) continue;
+      const row = {};
+      headers.forEach((h, idx) => row[h] = vals[idx] || '');
+      row._rowNum = i;
+      rows.push(row);
+    }
+    csvData.headers = headers;
+    csvData.rows = rows;
+    csvData.mapping = autoMap(headers);
+    csvData.validated = validateRows(rows, csvData.mapping);
+    csvData.duplicates = detectDuplicates(csvData.validated);
+    csvData.stats = computeStats(csvData.validated);
+    showCSVModal();
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function autoMap(headers) {
+  const mapping = {};
+  for (const [field, aliases] of Object.entries(FIELD_MAP)) {
+    mapping[field] = '';
+    for (const h of headers) {
+      const hl = h.toLowerCase().replace(/[\s_-]/g, '');
+      for (const alias of aliases) {
+        if (hl === alias.replace(/[\s_-]/g, '') || hl.includes(alias.replace(/[\s_-]/g, ''))) {
+          mapping[field] = h;
+          break;
+        }
+      }
+      if (mapping[field]) break;
+    }
+  }
+  return mapping;
+}
+
+function validateRows(rows, mapping) {
+  return rows.map(row => {
+    const errors = [];
+    const parsed = {};
+    for (const field of REQUIRED_FIELDS) {
+      const col = mapping[field];
+      const val = col ? (row[col] || '').trim() : '';
+      if (!val) { errors.push(field + ' is required'); parsed[field] = ''; continue; }
+      if (field === 'type') {
+        const normalized = val.toLowerCase().replace(/[\s-]/g, '_');
+        const match = VALID_TYPES.find(t => t === normalized || t.includes(normalized) || normalized.includes(t.replace(/_/g, '')));
+        parsed[field] = match || val;
+        if (!match) errors.push('Invalid type: ' + val);
+      } else if (field === 'currency') {
+        const upper = val.toUpperCase();
+        parsed[field] = VALID_CURRENCIES.includes(upper) ? upper : val;
+        if (!VALID_CURRENCIES.includes(upper)) errors.push('Invalid currency: ' + val);
+      } else if (field === 'principal' || field === 'coupon' || field === 'spread') {
+        const num = parseFloat(val);
+        if (isNaN(num) || num < 0) errors.push(field + ' must be a positive number, got: ' + val);
+        parsed[field] = num || 0;
+      } else if (field === 'issue_date' || field === 'maturity_date') {
+        const d = new Date(val);
+        if (isNaN(d.getTime())) errors.push(field + ' invalid date: ' + val);
+        parsed[field] = val;
+      } else {
+        parsed[field] = val;
+      }
+    }
+    // Validate maturity > issue
+    if (parsed.issue_date && parsed.maturity_date) {
+      if (new Date(parsed.maturity_date) <= new Date(parsed.issue_date))
+        errors.push('Maturity must be after issue date');
+    }
+    // Optional fields
+    const spreadCol = mapping.spread;
+    parsed.spread = spreadCol ? parseFloat(row[spreadCol]) || 0 : 0;
+    const callCol = mapping.is_callable;
+    parsed.is_callable = callCol ? (row[callCol] || '').toLowerCase() === 'true' : false;
+    const callDateCol = mapping.call_date;
+    parsed.call_date = callDateCol ? row[callDateCol] || null : null;
+    parsed._rowNum = row._rowNum;
+    parsed._raw = row;
+    parsed._errors = errors;
+    parsed._valid = errors.length === 0;
+    return parsed;
+  });
+}
+
+function detectDuplicates(validated) {
+  const seen = {};
+  const dupes = [];
+  validated.forEach((row, idx) => {
+    if (!row._valid) return;
+    const key = (row.name || '').toLowerCase() + '|' + (row.principal || 0) + '|' + (row.maturity_date || '');
+    if (seen[key] !== undefined) {
+      dupes.push({ first: seen[key] + 1, second: idx + 1, name: row.name });
+    }
+    seen[key] = idx;
+  });
+  return dupes;
+}
+
+function computeStats(validated) {
+  const valid = validated.filter(r => r._valid);
+  const invalid = validated.filter(r => !r._valid);
+  const totalPrincipal = valid.reduce((s, r) => s + (r.principal || 0), 0);
+  const currencies = [...new Set(valid.map(r => r.currency))];
+  const types = [...new Set(valid.map(r => r.type))];
+  return { total: validated.length, valid: valid.length, invalid: invalid.length, totalPrincipal, currencies, types };
+}
+
+function showCSVModal() {
+  let modal = document.getElementById('csv-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'csv-modal';
+    document.body.appendChild(modal);
+  }
+  const s = csvData.stats;
+  const d = csvData.duplicates;
+  modal.innerHTML = '
+    <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)closeCSVModal()">
+      <div style="background:#111;border:1px solid rgba(255,255,255,0.1);border-radius:12px;width:90%;max-width:900px;max-height:85vh;overflow-y:auto;padding:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.5)">CSV Import Preview</div>
+          <button onclick="closeCSVModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:1.2rem">&times;</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+          <div style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)"><div style="font-size:0.65rem;color:rgba(255,255,255,0.35)">Total Rows</div><div style="font-size:1.1rem;font-weight:700">' + s.total + '</div></div>
+          <div style="padding:10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15)"><div style="font-size:0.65rem;color:rgba(34,197,94,0.7)">Valid</div><div style="font-size:1.1rem;font-weight:700;color:#22c55e">' + s.valid + '</div></div>
+          <div style="padding:10px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15)"><div style="font-size:0.65rem;color:rgba(239,68,68,0.7)">Invalid</div><div style="font-size:1.1rem;font-weight:700;color:#ef4444">' + s.invalid + '</div></div>
+          <div style="padding:10px;border-radius:8px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.15)"><div style="font-size:0.65rem;color:rgba(234,179,8,0.7)">Duplicates</div><div style="font-size:1.1rem;font-weight:700;color:#eab308">' + d.length + '</div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.35);margin-bottom:8px">Column Mapping</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' +
+            REQUIRED_FIELDS.map(f => {
+              const opts = csvData.headers.map(h => '<option value="' + h + '"' + (csvData.mapping[f] === h ? ' selected' : '') + '>' + h + '</option>').join('');
+              return '<div><label style="font-size:0.65rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:2px">' + f + '</label><select style="width:100%;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.9);font-size:0.75rem" onchange="csvData.mapping.\'' + f + '\']=this.value;csvData.validated=validateRows(csvData.rows,csvData.mapping);csvData.stats=computeStats(csvData.validated);showCSVModal()"><option value="">-- skip --</option>' + opts + '</select></div>';
+            }).join('') +
+          '</div>
+        </div>
+        <div style="margin-bottom:16px;max-height:250px;overflow-y:auto">
+          <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.35);margin-bottom:8px">Preview (first 10 rows)</div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.75rem">
+            <thead><tr style="text-align:left">
+              <th style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4)">Row</th>
+              <th style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4)">Name</th>
+              <th style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4)">Type</th>
+              <th style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4)">Principal</th>
+              <th style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4)">Coupon</th>
+              <th style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4)">Maturity</th>
+              <th style="padding:6px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.4)">Status</th>
+            </tr></thead>
+            <tbody>' +
+              csvData.validated.slice(0, 10).map(r => {
+                const statusColor = r._valid ? '#22c55e' : '#ef4444';
+                const statusText = r._valid ? 'OK' : r._errors[0];
+                return '<tr style="border-bottom:1px solid rgba(255,255,255,0.03)">' +
+                  '<td style="padding:6px;color:rgba(255,255,255,0.4)">' + r._rowNum + '</td>' +
+                  '<td style="padding:6px;font-weight:600">' + esc(r.name || '') + '</td>' +
+                  '<td style="padding:6px">' + (r.type || '') + '</td>' +
+                  '<td style="padding:6px">' + (r.principal ? '$' + r.principal.toLocaleString() : '') + '</td>' +
+                  '<td style="padding:6px">' + (r.coupon || '') + '%</td>' +
+                  '<td style="padding:6px">' + (r.maturity_date || '') + '</td>' +
+                  '<td style="padding:6px;color:' + statusColor + ';font-size:0.7rem">' + statusText + '</td>' +
+                '</tr>';
+              }).join('') +
+            '</tbody></table>
+          ' + (csvData.validated.length > 10 ? '<div style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-align:center;padding:8px">Showing 10 of ' + csvData.validated.length + ' rows</div>' : '') + '
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="closeCSVModal()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.8rem">Cancel</button>
+          <button onclick="importValidRows()" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(34,197,94,0.15);color:#22c55e;cursor:pointer;font-size:0.8rem;font-weight:600">Import ' + s.valid + ' Valid Rows</button>
+        </div>
+      </div>
+    </div>';
+}
+
+function closeCSVModal() {
+  const m = document.getElementById('csv-modal');
+  if (m) m.remove();
+}
+
+function importValidRows() {
+  const valid = csvData.validated.filter(r => r._valid);
+  valid.forEach(r => {
+    instruments.push({
+      name: r.name,
+      type: r.type,
+      currency: r.currency,
+      principal: r.principal,
+      coupon: r.coupon,
+      spread: r.spread || 0,
+      issue_date: r.issue_date,
+      maturity_date: r.maturity_date,
+      is_callable: r.is_callable,
+      call_date: r.call_date,
+    });
+  });
+  renderInstruments();
+  closeCSVModal();
+}
+
+// ── Presets ───────────────────────────────────────────────────────
+const PRESETS = {
+  mexico: [
+    { name: "MBonos 5Y 2028", type: "sovereign_bond", currency: "MXN", principal: 55e9, coupon: 9.75, spread: 0, issue_date: "2023-09-14", maturity_date: "2028-09-14", is_callable: false, call_date: null },
+    { name: "MBonos 10Y 2033", type: "sovereign_bond", currency: "MXN", principal: 62e9, coupon: 8.75, spread: 0, issue_date: "2023-09-14", maturity_date: "2033-09-14", is_callable: false, call_date: null },
+    { name: "UDIBONO 2028", type: "inflation_linked", currency: "MXN", principal: 35e9, coupon: 5.25, spread: 0, issue_date: "2023-06-15", maturity_date: "2028-06-15", is_callable: false, call_date: null },
+    { name: "CETES 28-day", type: "t_bill", currency: "MXN", principal: 32e9, coupon: 10.50, spread: 0, issue_date: "2026-09-11", maturity_date: "2026-10-09", is_callable: false, call_date: null },
+    { name: "Global USD 2032", type: "eurobond", currency: "USD", principal: 2.5e9, coupon: 6.25, spread: 0, issue_date: "2022-01-21", maturity_date: "2032-01-21", is_callable: false, call_date: null },
+  ],
+  us_treasury: [
+    { name: "UST 2Y", type: "treasury_bond", currency: "USD", principal: 500e6, coupon: 4.15, spread: 0, issue_date: "2026-06-30", maturity_date: "2028-06-30", is_callable: false, call_date: null },
+    { name: "UST 5Y", type: "treasury_bond", currency: "USD", principal: 750e6, coupon: 4.12, spread: 0, issue_date: "2026-06-30", maturity_date: "2031-06-30", is_callable: false, call_date: null },
+    { name: "UST 10Y", type: "treasury_bond", currency: "USD", principal: 1e9, coupon: 4.30, spread: 0, issue_date: "2026-06-30", maturity_date: "2036-06-30", is_callable: false, call_date: null },
+    { name: "UST 30Y", type: "treasury_bond", currency: "USD", principal: 500e6, coupon: 4.68, spread: 0, issue_date: "2026-06-30", maturity_date: "2056-06-30", is_callable: false, call_date: null },
+  ],
+  uk_gilt: [
+    { name: "UK Gilt 2Y", type: "sovereign_bond", currency: "GBP", principal: 400e6, coupon: 4.25, spread: 0, issue_date: "2025-09-01", maturity_date: "2027-09-01", is_callable: false, call_date: null },
+    { name: "UK Gilt 10Y", type: "sovereign_bond", currency: "GBP", principal: 600e6, coupon: 4.50, spread: 0, issue_date: "2023-09-01", maturity_date: "2033-09-01", is_callable: false, call_date: null },
+    { name: "UK IL Gilt 30Y", type: "inflation_linked", currency: "GBP", principal: 300e6, coupon: 1.00, spread: 0, issue_date: "2022-03-01", maturity_date: "2052-03-01", is_callable: false, call_date: null },
+  ],
+  brazil: [
+    { name: "NTN-F 2029", type: "sovereign_bond", currency: "BRL", principal: 25e9, coupon: 10.00, spread: 0, issue_date: "2024-01-15", maturity_date: "2029-01-15", is_callable: false, call_date: null },
+    { name: "LTN 2032", type: "treasury_bond", currency: "BRL", principal: 30e9, coupon: 12.50, spread: 0, issue_date: "2025-01-15", maturity_date: "2032-01-15", is_callable: false, call_date: null },
+    { name: "NTN-A 2035", type: "inflation_linked", currency: "BRL", principal: 15e9, coupon: 6.00, spread: 0, issue_date: "2024-06-15", maturity_date: "2035-06-15", is_callable: false, call_date: null },
+  ],
+};
+
+function addPreset(key) {
+  const preset = PRESETS[key];
+  if (!preset) return;
+  instruments = instruments.concat(preset.map(i => ({...i})));
+  renderInstruments();
+}
+
+// ── Review ────────────────────────────────────────────────────────
+function renderReview() {
+  const name = document.getElementById('p-name').value.trim() || 'Untitled';
+  const currency = document.getElementById('p-currency').value;
+  const risk = document.getElementById('p-risk').value;
+  const horizon = document.getElementById('p-horizon').value;
+  const total = instruments.reduce((s, i) => s + i.principal, 0);
+  const currencies = [...new Set(instruments.map(i => i.currency))];
+  const types = [...new Set(instruments.map(i => i.type))];
+
+  document.getElementById('review-summary').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">' +
+      reviewItem('Portfolio', name) +
+      reviewItem('Currency', currency) +
+      reviewItem('Risk', risk) +
+      reviewItem('Horizon', horizon + 'Y') +
+      reviewItem('Total Value', fmtB(total)) +
+      reviewItem('Instruments', instruments.length) +
+      reviewItem('Currencies', currencies.join(', ')) +
+      reviewItem('Types', types.length + ' types') +
+    '</div>';
+
+  document.getElementById('review-count').textContent = instruments.length;
+  document.getElementById('review-instruments').innerHTML = instruments.map(inst =>
+    '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.8rem">' +
+      '<span style="font-weight:600">' + esc(inst.name) + '</span>' +
+      '<span style="color:rgba(255,255,255,0.4)">' + inst.currency + ' ' + fmtB(inst.principal) + ' @ ' + inst.coupon.toFixed(2) + '%</span>' +
+    '</div>'
+  ).join('');
+}
+
+function reviewItem(label, value) {
+  return '<div style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">' +
+    '<div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">' + label + '</div>' +
+    '<div style="font-size:0.9rem;font-weight:700;color:rgba(255,255,255,0.9)">' + value + '</div></div>';
+}
+
+// ── Create ────────────────────────────────────────────────────────
+async function createPortfolio() {
+  const btn = document.getElementById('create-btn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+
+  const name = document.getElementById('p-name').value.trim();
+  const desc = document.getElementById('p-desc').value.trim();
+  const risk = document.getElementById('p-risk').value;
+  const horizon = document.getElementById('p-horizon').value;
+  const currency = document.getElementById('p-currency').value;
+
+  try {
+    const r = await fetch('/api/ui/portfolios', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        description: (desc ? desc + ' | ' : '') + 'Risk: ' + risk + ' | Horizon: ' + horizon + 'Y | Currency: ' + currency,
+        instruments: instruments.map(i => ({
+          name: i.name,
+          instrument_type: i.type,
+          currency: i.currency,
+          principal_outstanding: i.principal,
+          coupon_rate: i.coupon,
+          spread_bps: i.spread,
+          issue_date: i.issue_date,
+          maturity_date: i.maturity_date,
+          is_callable: i.is_callable,
+          call_date: i.call_date,
+        }))
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Failed to create');
+
+    document.getElementById('success-msg').textContent = 'Created "' + name + '" with ' + instruments.length + ' instruments totaling ' + fmtB(instruments.reduce((s, i) => s + i.principal, 0));
+    goStep(4);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Create Portfolio';
+    alert(e.message);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function fmtB(v) {
+  if (v >= 1e12) return '$' + (v/1e12).toFixed(2) + 'T';
+  if (v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  return '$' + v.toLocaleString();
+}
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+{% endblock %}

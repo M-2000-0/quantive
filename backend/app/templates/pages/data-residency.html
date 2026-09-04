@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Data Residency - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Data Residency{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Primary Region</div>
+    <div class="stat-value" style="font-size:16px;">US-East</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Data Sovereignty</div>
+    <div class="stat-value" style="color:var(--green);">Compliant</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Replication</div>
+    <div class="stat-value">3 regions</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Data Residency Configuration</div>
+  <table>
+    <thead><tr><th>Data Type</th><th>Region</th><th>Encryption</th><th>Compliance</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Portfolio Data</td><td>US-East</td><td>AES-256-GCM</td><td>SOC 2</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">Trade Records</td><td>US-East</td><td>AES-256-GCM</td><td>SOX</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">User Data</td><td>US-East</td><td>AES-256-GCM</td><td>GDPR</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">Audit Logs</td><td>US-East + EU-West</td><td>AES-256-GCM</td><td>SOC 2</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">Analytics Data</td><td>US-East</td><td>AES-256-GCM</td><td>SOC 2</td><td><span class="badge badge-green">Compliant</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

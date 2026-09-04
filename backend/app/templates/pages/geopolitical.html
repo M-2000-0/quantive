@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Geopolitical Analysis - Quantive{% endblock %}
+{% set active_page = 'risk' %}
+{% block page_title %}Geopolitical Analysis{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Risk Level</div>
+    <div class="stat-value" style="color:var(--yellow);">Elevated</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Active Events</div>
+    <div class="stat-value">8</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Portfolio Exposure</div>
+    <div class="stat-value"><span id="geo-exposure">--</span></div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Geopolitical Events</div>
+  <table>
+    <thead><tr><th>Event</th><th>Region</th><th>Impact</th><th>Probability</th><th>Portfolio Risk</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">US-China Trade Tensions</td><td>Asia-Pacific</td><td><span class="badge badge-red">High</span></td><td>35%</td><td style="color:var(--red);"><span id="geo-risk1">--</span></td></tr>
+      <tr><td style="font-weight:600;">EU Energy Policy Shift</td><td>Europe</td><td><span class="badge badge-yellow">Medium</span></td><td>50%</td><td style="color:var(--yellow);"><span id="geo-risk2">--</span></td></tr>
+      <tr><td style="font-weight:600;">EM Debt Restructuring</td><td>Emerging Markets</td><td><span class="badge badge-yellow">Medium</span></td><td>25%</td><td style="color:var(--yellow);"><span id="geo-risk3">--</span></td></tr>
+      <tr><td style="font-weight:600;">Middle East Escalation</td><td>Middle East</td><td><span class="badge badge-yellow">Medium</span></td><td>20%</td><td style="color:var(--green);"><span id="geo-risk4">--</span></td></tr>
+      <tr><td style="font-weight:600;">UK Political Instability</td><td>Europe</td><td><span class="badge badge-blue">Low</span></td><td>15%</td><td style="color:var(--green);"><span id="geo-risk5">--</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

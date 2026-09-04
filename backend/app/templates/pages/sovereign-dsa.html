@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Sovereign DSA - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Sovereign Debt Sustainability Analysis{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">DSA Status</div>
+    <div class="stat-value" style="color:var(--green);">Sustainable</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Debt/GDP (Current)</div>
+    <div class="stat-value">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Debt/GDP (Projected 5Y)</div>
+    <div class="stat-value">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Sustainability Score</div>
+    <div class="stat-value" style="color:var(--green);">A</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">DSA Metrics</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">PV of Debt/PV Revenue</span><span style="font-size:13px;font-weight:600;">284%</span></div><div class="progress"><div class="progress-fill" style="width:57%;background:var(--yellow);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Debt Service/Revenue</span><span style="font-size:13px;font-weight:600;">--%</span></div><div class="progress"><div class="progress-fill" style="width:47%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Primary Balance/GDP</span><span style="font-size:13px;font-weight:600;">+0.4%</span></div><div class="progress"><div class="progress-fill" style="width:40%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">GDP Growth (Real)</span><span style="font-size:13px;font-weight:600;">--%</span></div><div class="progress"><div class="progress-fill" style="width:64%;background:var(--green);"></div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Risk Factors</div>
+    <table>
+      <thead><tr><th>Factor</th><th>Impact</th><th>Probability</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600;">Global recession</td><td style="color:var(--red);">High</td><td>15%</td><td><span class="badge badge-yellow">Monitor</span></td></tr>
+        <tr><td style="font-weight:600;">Rate spike (+300bps)</td><td style="color:var(--red);">High</td><td>10%</td><td><span class="badge badge-yellow">Monitor</span></td></tr>
+        <tr><td style="font-weight:600;">FX depreciation</td><td style="color:var(--yellow);">Medium</td><td>20%</td><td><span class="badge badge-green">Hedged</span></td></tr>
+        <tr><td style="font-weight:600;">Commodity shock</td><td style="color:var(--yellow);">Medium</td><td>12%</td><td><span class="badge badge-green">Hedged</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

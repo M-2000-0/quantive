@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% block title %}Market Intelligence — Quantive{% endblock %}
+{% block page_title %}Market Intelligence{% endblock %}
+
+{% block content %}
+<style>
+  .mi-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; transition: border-color 0.2s; }
+  .mi-card:hover { border-color: rgba(255,255,255,0.15); }
+  .mi-stat { text-align: center; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }
+  .mi-stat .num { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; }
+  .mi-stat .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-top: 4px; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-input { flex: 1; min-width: 200px; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.9); font-size: 0.85rem; outline: none; }
+  .filter-input:focus { border-color: rgba(255,255,255,0.2); }
+  .filter-input::placeholder { color: rgba(255,255,255,0.3); }
+  select.filter-input { appearance: none; cursor: pointer; padding-right: 30px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .status-rumored { background: rgba(156,163,175,0.15); color: #9ca3af; }
+  .status-announced { background: rgba(99,102,241,0.15); color: #C0C0C0; }
+  .status-in_development { background: rgba(234,179,8,0.15); color: #eab308; }
+  .status-beta { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .status-pilot { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .status-in_production { background: rgba(16,185,129,0.15); color: #10b981; }
+  .status-soon { background: rgba(249,115,22,0.15); color: #f97316; }
+  .status-delayed { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .status-cancelled { background: rgba(107,114,128,0.15); color: #6b7280; }
+  .status-awaiting_funding { background: rgba(168,85,247,0.15); color: #a855f7; }
+  .confidence-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .confidence-high { background: #22c55e; }
+  .confidence-medium { background: #eab308; }
+  .confidence-low { background: #ef4444; }
+  .industry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; margin-bottom: 16px; }
+  .industry-chip { padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.6); transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+  .industry-chip:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); }
+  .industry-chip.active { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff; }
+  .industry-chip .count { font-size: 0.65rem; color: rgba(255,255,255,0.3); }
+  .launch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+  .launch-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; }
+  .launch-card h4 { font-size: 0.95rem; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .launch-card .company { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+  .launch-card .desc { font-size: 0.8rem; color: rgba(255,255,255,0.6); line-height: 1.5; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .launch-card .meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .launch-card .meta-item { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+  .pagination { display: flex; justify-content: center; gap: 4px; margin-top: 20px; }
+  .page-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem; }
+  .page-btn:hover { background: rgba(255,255,255,0.05); }
+  .page-btn.active { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+  .results-info { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex; }
+  .modal-content { background: #111; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal-content h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+  .modal-content .field { margin-bottom: 12px; }
+  .modal-content .field-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.4); margin-bottom: 2px; }
+  .modal-content .field-value { font-size: 0.85rem; color: rgba(255,255,255,0.8); line-height: 1.5; }
+  .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 1.2rem; cursor: pointer; }
+  .loading-bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 16px; }
+  .loading-bar-fill { height: 100%; background: rgba(255,255,255,0.2); border-radius: 2px; transition: width 0.3s; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } .launch-grid { grid-template-columns: 1fr; } }
+</style>
+
+<!-- Summary Stats -->
+<div id="summary-stats" class="grid-4" style="margin-bottom:20px">
+  <div class="mi-stat"><div class="num" id="stat-total">--</div><div class="label">Total Launches</div></div>
+  <div class="mi-stat"><div class="num" id="stat-industries">--</div><div class="label">Industries</div></div>
+  <div class="mi-stat"><div class="num" id="stat-subcategories">--</div><div class="label">Subcategories</div></div>
+  <div class="mi-stat"><div class="num" id="stat-soon">--</div><div class="label">Launching Soon</div></div>
+</div>
+
+<!-- Loading Bar -->
+<div class="loading-bar"><div id="loading-fill" class="loading-bar-fill" style="width:0%"></div></div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <input type="text" id="search-input" class="filter-input" placeholder="Search by name, company, or description..." oninput="debounceSearch()">
+  <select id="filter-industry" class="filter-input" style="max-width:200px" onchange="onFilterChange()">
+    <option value="">All Industries</option>
+  </select>
+  <select id="filter-subcategory" class="filter-input" style="max-width:200px" onchange="onFilterChange()">
+    <option value="">All Subcategories</option>
+  </select>
+  <select id="filter-status" class="filter-input" style="max-width:180px" onchange="onFilterChange()">
+    <option value="">All Statuses</option>
+  </select>
+  <button onclick="clearFilters()" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(255,255,255,0.5);font-size:0.8rem;cursor:pointer">Clear</button>
+  <button onclick="exportCSV()" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export CSV
+  </button>
+</div>
+
+<!-- Industry Chips -->
+<div id="industry-chips" class="industry-grid"></div>
+
+<!-- Results -->
+<div class="results-info" id="results-info"></div>
+<div id="launch-grid" class="launch-grid"></div>
+
+<!-- Pagination -->
+<div class="pagination" id="pagination"></div>
+
+<!-- Detail Modal -->
+<div id="detail-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content" id="modal-body"></div>
+</div>
+
+<script>
+const API = '/api/market-intelligence';
+let currentPage = 1;
+let currentFilters = {};
+let industryData = {};
+let searchTimeout = null;
+
+// ── Init ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  showLoading(true);
+  await Promise.all([loadSummary(), loadIndustries(), loadStatuses()]);
+  await search();
+  showLoading(false);
+});
+
+// ── Load Summary ──────────────────────────────────────────────────
+async function loadSummary() {
+  try {
+    const r = await fetch(API + '/summary');
+    const d = await r.json();
+    setText('stat-total', d.total_launches.toLocaleString());
+    setText('stat-industries', d.total_industries);
+    setText('stat-subcategories', d.total_subcategories);
+    setText('stat-soon', (d.status_distribution.soon || 0) + (d.status_distribution.beta || 0) + (d.status_distribution.pilot || 0));
+  } catch(e) { console.error('Summary error:', e); }
+}
+
+// ── Load Industries ───────────────────────────────────────────────
+async function loadIndustries() {
+  try {
+    const r = await fetch(API + '/industries');
+    industryData = await r.json();
+    const sel = document.getElementById('filter-industry');
+    const chips = document.getElementById('industry-chips');
+    let chipHtml = '';
+    Object.keys(industryData).sort().forEach(ind => {
+      const count = industryData[ind].reduce((s, sub) => s + sub.count, 0);
+      chipHtml += '<div class="industry-chip" onclick="selectIndustry(\'' + ind.replace(/'/g, "\\'") + '\')"><span>' + ind + '</span><span class="count">' + count + '</span></div>';
+      const opt = document.createElement('option');
+      opt.value = ind;
+      opt.textContent = ind + ' (' + count + ')';
+      sel.appendChild(opt);
+    });
+    chips.innerHTML = chipHtml;
+  } catch(e) { console.error('Industries error:', e); }
+}
+
+// ── Load Statuses ─────────────────────────────────────────────────
+async function loadStatuses() {
+  try {
+    const r = await fetch(API + '/status-options');
+    const d = await r.json();
+    const sel = document.getElementById('filter-status');
+    Object.entries(d).forEach(([key, desc]) => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = key.replace(/_/g, ' ');
+      sel.appendChild(opt);
+    });
+  } catch(e) { console.error('Status error:', e); }
+}
+
+// ── Search ────────────────────────────────────────────────────────
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => { currentPage = 1; search(); }, 300);
+}
+
+function onFilterChange() {
+  currentPage = 1;
+  // Update subcategory options when industry changes
+  const industry = document.getElementById('filter-industry').value;
+  const subSel = document.getElementById('filter-subcategory');
+  subSel.innerHTML = '<option value="">All Subcategories</option>';
+  if (industry && industryData[industry]) {
+    industryData[industry].forEach(sub => {
+      const opt = document.createElement('option');
+      opt.value = sub.subcategory;
+      opt.textContent = sub.subcategory + ' (' + sub.count + ')';
+      subSel.appendChild(opt);
+    });
+  }
+  // Update industry chips
+  document.querySelectorAll('.industry-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.querySelector('span').textContent === industry);
+  });
+  search();
+}
+
+function selectIndustry(industry) {
+  document.getElementById('filter-industry').value = industry;
+  onFilterChange();
+}
+
+function clearFilters() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('filter-industry').value = '';
+  document.getElementById('filter-subcategory').innerHTML = '<option value="">All Subcategories</option>';
+  document.getElementById('filter-status').value = '';
+  document.querySelectorAll('.industry-chip').forEach(c => c.classList.remove('active'));
+  currentPage = 1;
+  search();
+}
+
+async function search() {
+  showLoading(true);
+  const params = new URLSearchParams();
+  params.set('page', currentPage);
+  params.set('page_size', 50);
+  const q = document.getElementById('search-input').value.trim();
+  const industry = document.getElementById('filter-industry').value;
+  const subcategory = document.getElementById('filter-subcategory').value;
+  const status = document.getElementById('filter-status').value;
+  if (q) params.set('q', q);
+  if (industry) params.set('industry', industry);
+  if (subcategory) params.set('subcategory', subcategory);
+  if (status) params.set('status', status);
+
+  try {
+    const r = await fetch(API + '/launches?' + params.toString());
+    const d = await r.json();
+    renderResults(d);
+    renderPagination(d);
+  } catch(e) {
+    document.getElementById('launch-grid').innerHTML = '<div style="padding:40px;text-align:center;color:rgba(255,255,255,0.3)">Error loading data. Make sure the database has been seeded.</div>';
+  }
+  showLoading(false);
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderResults(data) {
+  const grid = document.getElementById('launch-grid');
+  const info = document.getElementById('results-info');
+  info.textContent = 'Showing ' + ((data.page - 1) * data.page_size + 1) + '-' + Math.min(data.page * data.page_size, data.total) + ' of ' + data.total.toLocaleString() + ' launches';
+
+  if (data.items.length === 0) {
+    grid.innerHTML = '<div style="padding:40px;text-align:center;color:rgba(255,255,255,0.3)">No launches match your filters. Try broadening your search.</div>';
+    return;
+  }
+
+  grid.innerHTML = data.items.map(item => {
+    const statusClass = 'status-' + item.status;
+    const statusLabel = item.status.replace(/_/g, ' ');
+    return '<div class="launch-card" onclick="showDetail(\'' + item.id + '\')" style="cursor:pointer">' +
+      '<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:4px">' +
+        '<h4>' + esc(item.name) + '</h4>' +
+        '<span class="status-badge ' + statusClass + '">' + statusLabel + '</span>' +
+      '</div>' +
+      '<div class="company">' + esc(item.company) + '</div>' +
+      '<div class="desc">' + esc(item.description) + '</div>' +
+      '<div class="meta">' +
+        '<span class="meta-item"><span class="confidence-dot confidence-' + item.confidence + '"></span>' + item.confidence + '</span>' +
+        '<span class="meta-item">' + esc(item.industry) + ' / ' + esc(item.subcategory) + '</span>' +
+        (item.estimated_launch ? '<span class="meta-item">' + esc(item.estimated_launch) + '</span>' : '') +
+        (item.market_size_billion ? '<span class="meta-item">$' + item.market_size_billion + 'B market</span>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderPagination(data) {
+  const pag = document.getElementById('pagination');
+  if (data.total_pages <= 1) { pag.innerHTML = ''; return; }
+  let html = '<button class="page-btn" onclick="goPage(' + (data.page - 1) + ')" ' + (data.page <= 1 ? 'disabled' : '') + '>Prev</button>';
+  const start = Math.max(1, data.page - 3);
+  const end = Math.min(data.total_pages, data.page + 3);
+  if (start > 1) html += '<button class="page-btn" onclick="goPage(1)">1</button>';
+  if (start > 2) html += '<span style="padding:6px;color:rgba(255,255,255,0.3)">...</span>';
+  for (let i = start; i <= end; i++) {
+    html += '<button class="page-btn' + (i === data.page ? ' active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+  }
+  if (end < data.total_pages - 1) html += '<span style="padding:6px;color:rgba(255,255,255,0.3)">...</span>';
+  if (end < data.total_pages) html += '<button class="page-btn" onclick="goPage(' + data.total_pages + ')">' + data.total_pages + '</button>';
+  html += '<button class="page-btn" onclick="goPage(' + (data.page + 1) + ')" ' + (data.page >= data.total_pages ? 'disabled' : '') + '>Next</button>';
+  pag.innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; search(); window.scrollTo(0, 0); }
+
+// ── Detail Modal ──────────────────────────────────────────────────
+async function showDetail(id) {
+  try {
+    const r = await fetch(API + '/launches/' + id);
+    const item = await r.json();
+    const statusClass = 'status-' + item.status;
+    document.getElementById('modal-body').innerHTML =
+      '<div style="position:relative">' +
+        '<button class="modal-close" onclick="closeModal()" style="position:absolute;top:0;right:0;background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.2rem;cursor:pointer">&times;</button>' +
+        '<h3>' + esc(item.name) + '</h3>' +
+        '<div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-bottom:16px">' + esc(item.company) + '</div>' +
+        '<div class="field"><div class="field-label">Description</div><div class="field-value">' + esc(item.description) + '</div></div>' +
+        '<div class="field"><div class="field-label">Target Market</div><div class="field-value">' + esc(item.target_market) + '</div></div>' +
+        '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
+          '<div class="field"><div class="field-label">Status</div><span class="status-badge ' + statusClass + '">' + item.status.replace(/_/g, ' ') + '</span></div>' +
+          '<div class="field"><div class="field-label">Estimated Launch</div><div class="field-value">' + esc(item.estimated_launch || 'TBD') + '</div></div>' +
+          '<div class="field"><div class="field-label">Confidence</div><div class="field-value"><span class="confidence-dot confidence-' + item.confidence + '"></span>' + item.confidence + '</div></div>' +
+          '<div class="field"><div class="field-label">Market Size</div><div class="field-value">' + (item.market_size_billion ? '$' + item.market_size_billion + 'B' : 'N/A') + '</div></div>' +
+        '</div>' +
+        (item.competitive_advantage ? '<div class="field"><div class="field-label">Competitive Advantage</div><div class="field-value">' + esc(item.competitive_advantage) + '</div></div>' : '') +
+        (item.risk_factors ? '<div class="field"><div class="field-label">Risk Factors</div><div class="field-value">' + esc(item.risk_factors) + '</div></div>' : '') +
+        '<div class="field"><div class="field-label">Industry / Subcategory</div><div class="field-value">' + esc(item.industry) + ' / ' + esc(item.subcategory) + '</div></div>' +
+      '</div>';
+    document.getElementById('detail-modal').classList.add('active');
+  } catch(e) { console.error('Detail error:', e); }
+}
+
+function closeModal() { document.getElementById('detail-modal').classList.remove('active'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Helpers ───────────────────────────────────────────────────────
+function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function showLoading(on) {
+  const bar = document.getElementById('loading-fill');
+  bar.style.width = on ? '60%' : '100%';
+  if (!on) setTimeout(() => { bar.style.width = '0%'; }, 300);
+}
+
+// ── CSV Export ────────────────────────────────────────────────────
+function exportCSV() {
+  const params = new URLSearchParams();
+  const q = document.getElementById('search-input').value.trim();
+  const industry = document.getElementById('filter-industry').value;
+  const subcategory = document.getElementById('filter-subcategory').value;
+  const status = document.getElementById('filter-status').value;
+  if (q) params.set('q', q);
+  if (industry) params.set('industry', industry);
+  if (subcategory) params.set('subcategory', subcategory);
+  if (status) params.set('status', status);
+  const url = API + '/export' + (params.toString() ? '?' + params.toString() : '');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'market-intelligence-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+</script>
+{% endblock %}

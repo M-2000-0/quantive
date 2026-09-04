@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Security - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Security Dashboard{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Security Score</div>
+    <div class="stat-value" style="color:var(--green);">A+</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Active Sessions</div>
+    <div class="stat-value">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Failed Logins (24h)</div>
+    <div class="stat-value" style="color:var(--green);">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">MFA Coverage</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Security Events</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius);background:var(--green-bg);">
+        <span class="badge badge-green">Pass</span>
+        <span style="font-size:13px;">SSL certificate valid (expires 2027-03-15)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius);background:var(--green-bg);">
+        <span class="badge badge-green">Pass</span>
+        <span style="font-size:13px;">All encryption keys rotated within policy</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius);background:var(--green-bg);">
+        <span class="badge badge-green">Pass</span>
+        <span style="font-size:13px;">Penetration test completed — no critical findings</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius);background:var(--yellow-bg);">
+        <span class="badge badge-yellow">Info</span>
+        <span style="font-size:13px;">Password policy review scheduled for Q4</span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Active Sessions</div>
+    <table>
+      <thead><tr><th>User</th><th>IP</th><th>Device</th><th>Last Active</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600;">J. Smith</td><td>192.168.1.42</td><td>Chrome / macOS</td><td>Now</td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Revoke</button></td></tr>
+        <tr><td style="font-weight:600;">M. Chen</td><td>10.0.0.18</td><td>Firefox / Windows</td><td>5m ago</td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Revoke</button></td></tr>
+        <tr><td style="font-weight:600;">A. Patel</td><td>172.16.0.8</td><td>Safari / iOS</td><td>1h ago</td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Revoke</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Explainability - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Explainability{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Explanations Generated</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Confidence</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Human Review Rate</div>
+    <div class="stat-value">12%</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Recent Explanations</div>
+  <table>
+    <thead><tr><th>Decision</th><th>Model</th><th>Key Factors</th><th>Confidence</th><th>Date</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Rebalance to optimized weights</td><td>Black-Litterman</td><td>Yield curve, inflation</td><td><span class="badge badge-green">96%</span></td><td>2026-08-28</td></tr>
+      <tr><td style="font-weight:600;">Reduce IG credit by 3%</td><td>Mean-Variance</td><td>Credit spreads</td><td><span class="badge badge-green">91%</span></td><td>2026-08-27</td></tr>
+      <tr><td style="font-weight:600;">Hold EUR/USD position</td><td>Macro Model</td><td>ECB policy</td><td><span class="badge badge-yellow">78%</span></td><td>2026-08-25</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

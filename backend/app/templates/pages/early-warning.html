@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Early Warning - Quantive{% endblock %}
+{% set active_page = 'risk' %}
+{% block page_title %}Early Warning Signals{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Warnings</div>
+    <div class="stat-value" style="color:var(--yellow);">7</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Critical</div>
+    <div class="stat-value" style="color:var(--red);">2</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Resolved (30d)</div>
+    <div class="stat-value" style="color:var(--green);">23</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Warning Signals</div>
+  <table>
+    <thead><tr><th>Signal</th><th>Category</th><th>Severity</th><th>Triggered</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Yield curve inversion deepening</td><td>Market</td><td><span class="badge badge-red">Critical</span></td><td>2h ago</td><td><span class="badge badge-red">Active</span></td></tr>
+      <tr><td style="font-weight:600;">Credit spread widening > 50bps</td><td>Credit</td><td><span class="badge badge-red">Critical</span></td><td>6h ago</td><td><span class="badge badge-red">Active</span></td></tr>
+      <tr><td style="font-weight:600;">FX volatility spike (VIX > 20)</td><td>Currency</td><td><span class="badge badge-yellow">Warning</span></td><td>1d ago</td><td><span class="badge badge-yellow">Monitoring</span></td></tr>
+      <tr><td style="font-weight:600;">Liquidity coverage below threshold</td><td>Liquidity</td><td><span class="badge badge-yellow">Warning</span></td><td>2d ago</td><td><span class="badge badge-yellow">Monitoring</span></td></tr>
+      <tr><td style="font-weight:600;">Counterparty exposure concentration</td><td>Credit</td><td><span class="badge badge-yellow">Warning</span></td><td>3d ago</td><td><span class="badge badge-green">Mitigating</span></td></tr>
+      <tr><td style="font-weight:600;">Duration limit approaching</td><td>Market</td><td><span class="badge badge-blue">Info</span></td><td>5d ago</td><td><span class="badge badge-green">Mitigating</span></td></tr>
+      <tr><td style="font-weight:600;">Settlement fails exceeding threshold</td><td>Operational</td><td><span class="badge badge-blue">Info</span></td><td>7d ago</td><td><span class="badge badge-green">Mitigating</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

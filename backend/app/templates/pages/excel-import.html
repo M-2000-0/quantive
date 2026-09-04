@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Excel Import - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Excel Import Wizard{% endblock %}
+{% block content %}
+<div style="max-width:640px;margin:0 auto;">
+  <div class="card" style="padding:28px;">
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:24px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#0a0a0b;display:grid;place-items:center;font-size:14px;font-weight:800;">1</div>
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-size:14px;color:var(--text3);">2</div>
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-size:14px;color:var(--text3);">3</div>
+    </div>
+    <div class="section-title" style="text-align:center;">Step 1: Upload File</div>
+    <div style="border:2px dashed var(--border2);border-radius:var(--radius2);padding:48px 24px;text-align:center;margin-top:16px;cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.5" style="margin-bottom:12px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Drop your Excel file here</div>
+      <div style="font-size:12px;color:var(--text3);">Supports .xlsx, .xls, .csv</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn btn-primary">Continue</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

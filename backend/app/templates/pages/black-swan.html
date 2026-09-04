@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Black Swan Simulation - Quantive{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}Black Swan Simulation{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Events Modeled</div>
+    <div class="stat-value" id="bs-events">--</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Worst Case Loss</div>
+    <div class="stat-value" style="color:var(--red);"><span id="bs-worst-case">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Recovery Time</div>
+    <div class="stat-value" id="bs-recovery">--</div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:20px;">
+  <div class="section-title">Event Library</div>
+  <table>
+    <thead><tr><th>Event</th><th>Category</th><th>Frequency</th><th>Impact</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Default Contagion</td><td>Credit</td><td>1-in-50yr</td><td style="color:var(--red);">-<span id="bs-impact-default">--</span></td><td><button class="btn btn-ghost btn-sm">Simulate</button></td></tr>
+      <tr><td style="font-weight:600;">Global Rate Spike (+500bps)</td><td>Market</td><td>1-in-30yr</td><td style="color:var(--red);">-<span id="bs-impact-rate">--</span></td><td><button class="btn btn-ghost btn-sm">Simulate</button></td></tr>
+      <tr><td style="font-weight:600;">Pandemic Lockdown</td><td>Macro</td><td>1-in-100yr</td><td style="color:var(--red);">-<span id="bs-impact-pandemic">--</span></td><td><button class="btn btn-ghost btn-sm">Simulate</button></td></tr>
+      <tr><td style="font-weight:600;">Currency Crisis</td><td>FX</td><td>1-in-20yr</td><td style="color:var(--red);">-<span id="bs-impact-fx">--</span></td><td><button class="btn btn-ghost btn-sm">Simulate</button></td></tr>
+      <tr><td style="font-weight:600;">Geopolitical Sanctions</td><td>Political</td><td>1-in-15yr</td><td style="color:var(--red);">-<span id="bs-impact-geo">--</span></td><td><button class="btn btn-ghost btn-sm">Simulate</button></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

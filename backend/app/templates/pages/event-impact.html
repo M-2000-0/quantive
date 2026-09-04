@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Event Impact - Quantive{% endblock %}
+{% set active_page = 'risk' %}
+{% block page_title %}Event Impact Dashboard{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Events Tracked</div>
+    <div class="stat-value">142</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">High Impact</div>
+    <div class="stat-value" style="color:var(--red);">8</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Portfolio Exposure</div>
+    <div class="stat-value"><span id="ei-exposure">--</span></div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Recent Events</div>
+  <table>
+    <thead><tr><th>Event</th><th>Category</th><th>Impact</th><th>Exposure</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Fed Rate Decision</td><td>Monetary</td><td><span class="badge badge-red">High</span></td><td style="color:var(--red);"><span id="ei-ev1">--</span></td><td><span class="badge badge-green">Hedged</span></td></tr>
+      <tr><td style="font-weight:600;">EU Trade Agreement</td><td>Political</td><td><span class="badge badge-yellow">Medium</span></td><td style="color:var(--yellow);"><span id="ei-ev2">--</span></td><td><span class="badge badge-yellow">Monitoring</span></td></tr>
+      <tr><td style="font-weight:600;">EM Currency Crisis</td><td>FX</td><td><span class="badge badge-yellow">Medium</span></td><td style="color:var(--yellow);"><span id="ei-ev3">--</span></td><td><span class="badge badge-green">Hedged</span></td></tr>
+      <tr><td style="font-weight:600;">Oil Price Spike</td><td>Commodity</td><td><span class="badge badge-blue">Low</span></td><td style="color:var(--green);"><span id="ei-ev4">--</span></td><td><span class="badge badge-green">Hedged</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

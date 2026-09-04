@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Anti-Corruption - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Anti-Corruption{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Compliance Score</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Checks Performed</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Flags Raised</div>
+    <div class="stat-value" style="color:var(--green);">0</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Anti-Corruption Controls</div>
+  <table>
+    <thead><tr><th>Control</th><th>Status</th><th>Last Checked</th><th>Findings</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Conflict of Interest Screening</td><td><span class="badge badge-green">Pass</span></td><td>Daily</td><td style="color:var(--green);">0</td></tr>
+      <tr><td style="font-weight:600;">Gift & Hospitality Register</td><td><span class="badge badge-green">Pass</span></td><td>Weekly</td><td style="color:var(--green);">0</td></tr>
+      <tr><td style="font-weight:600;">Vendor Due Diligence</td><td><span class="badge badge-green">Pass</span></td><td>Per Transaction</td><td style="color:var(--green);">0</td></tr>
+      <tr><td style="font-weight:600;">Transaction Monitoring</td><td><span class="badge badge-green">Pass</span></td><td>Real-time</td><td style="color:var(--green);">0</td></tr>
+      <tr><td style="font-weight:600;">Whistleblower Channel</td><td><span class="badge badge-green">Active</span></td><td>Ongoing</td><td style="color:var(--green);">0</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

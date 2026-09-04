@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Sovereign Health - Quantive{% endblock %}
+{% set active_page = 'risk' %}
+{% block page_title %}Sovereign Health Metrics{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Credit Rating</div>
+    <div class="stat-value" style="color:var(--green);">AA+</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Debt/GDP</div>
+    <div class="stat-value">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Fiscal Balance</div>
+    <div class="stat-value" style="color:var(--red);">-2.8%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Reserve Coverage</div>
+    <div class="stat-value" style="color:var(--green);">8.2 mo</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Key Metrics</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">GDP Growth</span><span style="font-size:13px;font-weight:600;color:var(--green);">+3.2%</span></div><div class="progress"><div class="progress-fill" style="width:64%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Inflation</span><span style="font-size:13px;font-weight:600;">--%</span></div><div class="progress"><div class="progress-fill" style="width:41%;background:var(--yellow);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Current Account</span><span style="font-size:13px;font-weight:600;color:var(--green);">+1.8%</span></div><div class="progress"><div class="progress-fill" style="width:59%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">FX Reserves</span><span style="font-size:13px;font-weight:600;">$482B</span></div><div class="progress"><div class="progress-fill" style="width:78%;background:var(--blue);"></div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Health Assessment</div>
+    <table>
+      <thead><tr><th>Indicator</th><th>Score</th><th>Trend</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600;">Fiscal Sustainability</td><td><span class="badge badge-green">Strong</span></td><td style="color:var(--green);">Improving</td></tr>
+        <tr><td style="font-weight:600;">External Position</td><td><span class="badge badge-green">Strong</span></td><td style="color:var(--text3);">Stable</td></tr>
+        <tr><td style="font-weight:600;">Monetary Credibility</td><td><span class="badge badge-green">Strong</span></td><td style="color:var(--green);">Improving</td></tr>
+        <tr><td style="font-weight:600;">Political Stability</td><td><span class="badge badge-yellow">Moderate</span></td><td style="color:var(--red);">Deteriorating</td></tr>
+        <tr><td style="font-weight:600;">Institutional Quality</td><td><span class="badge badge-green">Strong</span></td><td style="color:var(--text3);">Stable</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

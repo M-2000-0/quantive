@@ -1,0 +1,739 @@
+{% extends "base.html" %}
+{% block title %}Overview — Quantive
+<style>
+@keyframes loadingPulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+.loading-dash { animation: loadingPulse 1.5s ease-in-out infinite; color: var(--text3); }
+</style>
+
+{% endblock %}
+{% block content %}
+<div style="min-height:100%;margin:-24px;padding:24px">
+
+  <!-- HERO -->
+  <div style="display:grid;grid-template-columns:1fr auto;gap:40px;align-items:start;margin-bottom:40px">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite"></div>
+        <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--green)">Live</span>
+        <span id="market-time" style="font-size:10px;text-transform:none;letter-spacing:0;color:var(--text3)"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:4px">Mexico Sovereign Portfolio
+        <span style="font-size:8px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 5px;text-transform:none;letter-spacing:0.05em">Live data</span>
+      </div>
+      <div class="display-xl" style="color:#fff">$<span id="hero-total-num"><span class="loading-dash">--</span></span><span style="font-size:32px;color:var(--text3);font-weight:600">B</span></div>
+      <div style="font-size:13px;color:var(--text3);margin-top:10px"><span id="hero-sub"><span id="hero-sub-loading">Loading...</span> · 6 currencies · 7.2yr avg maturity</span></div>
+
+      <div style="display:flex;gap:32px;margin-top:24px;flex-wrap:wrap">
+        <div>
+          <div class="stat-label">Efficiency Gain</div>
+          <div style="font-size:26px;font-weight:800;color:var(--green);letter-spacing:-0.03em"><span id="hero-gain">+4.8%</span></div>
+        </div>
+        <div style="width:1px;background:var(--border);align-self:stretch"></div>
+        <div>
+          <div class="stat-label">Potential Savings</div>
+          <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.03em">$<span id="hero-savings">12.7</span><span style="font-size:14px;color:var(--text3)">B</span></div>
+        </div>
+        <div style="width:1px;background:var(--border);align-self:stretch"></div>
+        <div>
+          <div class="stat-label">Health Score</div>
+          <div style="display:flex;align-items:baseline;gap:3px">
+            <span id="hero-risk" style="font-size:26px;font-weight:800;color:var(--green);letter-spacing:-0.03em">87</span>
+            <span style="font-size:12px;color:var(--text3)">/100</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:180px">
+      <a href="/optimizations/new" class="btn btn-primary" style="width:100%;justify-content:center;padding:10px 16px">Run Optimization</a>
+      <a href="/whatif" class="btn btn-secondary" style="width:100%;justify-content:center;padding:10px 16px">Scenario Analysis</a>
+      <a href="/portfolios/new" class="btn btn-secondary" style="width:100%;justify-content:center;padding:10px 16px">Create Portfolio</a>
+      <a href="/approvals" class="btn btn-secondary" style="width:100%;justify-content:center;padding:10px 16px;position:relative">
+        Alerts <span id="alert-badge" style="display:none;background:#ef4444;color:#fff;padding:1px 6px;border-radius:10px;font-size:0.65rem;margin-left:4px"></span>
+      </a>
+    </div>
+  </div>
+
+  <!-- LIVE MARKET DATA STRIP -->
+  <div id="market-strip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:24px;padding:12px 16px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04)">
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">2Y Treasury</div>
+      <div id="ms-2y" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">5Y Treasury</div>
+      <div id="ms-5y" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">10Y Treasury</div>
+      <div id="ms-10y" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">30Y Treasury</div>
+      <div id="ms-30y" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,0.06);align-self:stretch"></div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">USD/MXN</div>
+      <div id="ms-mxn" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">USD/JPY</div>
+      <div id="ms-jpy" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">DXY</div>
+      <div id="ms-dxy" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Curve</div>
+      <div id="ms-curve" style="font-size:14px;font-weight:600;color:var(--green)">--</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Spread</div>
+      <div id="ms-spread" style="font-size:16px;font-weight:700;color:#fff">--</div>
+    </div>
+  </div>
+
+  <!-- CHART + AI INSIGHTS -->
+  <div style="display:grid;grid-template-columns:3fr 1fr;gap:16px;margin-bottom:24px">
+    <div class="glass" style="padding:24px">
+      <div class="section-title">Debt Portfolio Performance</div>
+      <svg viewBox="0 0 600 180" style="width:100%;height:160px;margin-top:12px">
+        <defs>
+          <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+          </linearGradient>
+        </defs>
+        <!-- Gridlines -->
+        <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2,4"/>
+        <line x1="0" y1="70" x2="600" y2="70" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2,4"/>
+        <line x1="0" y1="110" x2="600" y2="110" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2,4"/>
+        <line x1="0" y1="150" x2="600" y2="150" stroke="rgba(255,255,255,0.04)"/>
+        <!-- Portfolio line -->
+        <path d="M0,130 C50,125 100,115 150,105 C200,95 250,88 300,78 C350,68 400,60 450,50 C500,42 550,35 600,28" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+        <path d="M0,130 C50,125 100,115 150,105 C200,95 250,88 300,78 C350,68 400,60 450,50 C500,42 550,35 600,28 L600,180 L0,180 Z" fill="url(#chartFill)"/>
+        <!-- Benchmark -->
+        <path d="M0,135 C50,132 100,126 150,118 C200,110 250,102 300,94 C350,86 400,78 450,70 C500,62 550,55 600,48" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- Data points -->
+        <circle cx="0" cy="130" r="3" fill="#fff"/>
+        <circle cx="300" cy="78" r="3" fill="#fff"/>
+        <circle cx="600" cy="28" r="3" fill="#fff"/>
+        <!-- Labels -->
+        <text id="chart-end" x="605" y="32" font-size="10" fill="#fff" font-weight="700" font-family="Inter">--</text>
+        <text x="305" y="72" font-size="9" fill="var(--text3)" font-family="Inter">--</text>
+        <text x="5" y="22" font-size="9" fill="var(--text3)" font-family="Inter">--</text>
+        <text x="5" y="154" font-size="9" fill="var(--text3)" font-family="Inter">--</text>
+        <!-- Legend -->
+        <line x1="420" y1="18" x2="435" y2="18" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+        <text x="440" y="21" font-size="9" fill="var(--text3)" font-family="Inter">Portfolio</text>
+        <line x1="490" y1="18" x2="505" y2="18" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="510" y="21" font-size="9" fill="var(--text3)" font-family="Inter">Benchmark</text>
+      </svg>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="ai-card" style="padding:20px;flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+          <div class="ai-pulse"></div>
+          <span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue)">AI Advisor</span>
+        </div>
+        <p id="ai-text" style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px">Refinance maturities now. Loading analysis...</p>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px">
+          <span style="font-size:20px;font-weight:800;color:var(--green)">$<span id="ai-savings">--</span><span style="font-size:11px;color:var(--text3)">B</span></span>
+          <span style="font-size:10px;color:var(--text3)">annual savings</span>
+        </div>
+        <div style="font-size:10px;color:var(--text3)">Confidence: <span id="ai-confidence">%</span></div>
+      </div>
+      <div class="glass" style="padding:16px">
+        <div class="section-title">Today</div>
+        <div id="today-list" style="font-size:11px;color:var(--text2);margin-top:6px">Loading market events…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOVEREIGN METRICS STRIP -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="section-title" style="margin:0">Sovereign Metrics</div>
+    <div style="font-size:9px;color:var(--text3)"><span id="snapshot-time" style="color:var(--green);font-weight:600">Live</span> · portfolio profile is live data</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:24px">
+    <div style="background:#000;padding:16px">
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Debt-to-GDP</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.03em;margin-top:4px"><span id="strip-gdp">--</span><span style="font-size:11px;color:var(--text3)">%</span></div>
+    </div>
+    <div style="background:#000;padding:16px">
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Fiscal Deficit</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.03em;margin-top:4px"><span id="strip-fiscal">--</span><span style="font-size:11px;color:var(--text3)">%</span></div>
+    </div>
+    <div style="background:#000;padding:16px">
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Avg Yield</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.03em;margin-top:4px"><span id="strip-yield">--</span><span style="font-size:11px;color:var(--text3)">%</span></div>
+    </div>
+    <div style="background:#000;padding:16px">
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Refinancing</div>
+      <div style="font-size:22px;font-weight:800;color:var(--yellow);letter-spacing:-0.03em;margin-top:4px"><span id="strip-refinance">--</span><span style="font-size:11px;color:var(--text3)">%</span></div>
+    </div>
+    <div style="background:#000;padding:16px">
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Duration</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.03em;margin-top:4px"><span id="strip-duration">--</span><span style="font-size:11px;color:var(--text3)">yr</span></div>
+    </div>
+    <div style="background:#000;padding:16px">
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">FX Exposure</div>
+      <div style="font-size:22px;font-weight:800;color:var(--red);letter-spacing:-0.03em;margin-top:4px"><span id="strip-fx">--</span><span style="font-size:11px;color:var(--text3)">%</span></div>
+    </div>
+  </div>
+
+  <!-- TREEMAP + RISK + ACTIVITY -->
+  <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin-bottom:24px">
+    <div class="glass" style="padding:20px">
+      <div class="section-title">Debt Allocation <span style="font-size:8px;text-transform:none;letter-spacing:0.05em;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 5px">Live</span></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:3px;height:200px;margin-top:10px">
+        <div style="background:rgba(255,255,255,0.06);border-radius:4px;padding:12px;display:flex;flex-direction:column;justify-content:flex-end;grid-row:1/3">
+          <div style="font-size:10px;color:var(--text3)">USD Bonds</div>
+          <div style="font-size:18px;font-weight:800;color:#fff"><span id="alloc-usd">--</span>%</div>
+          <div style="font-size:10px;color:var(--text3)">$<span id="alloc-usd-val">--</span>B</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:4px;padding:10px;display:flex;flex-direction:column;justify-content:flex-end">
+          <div style="font-size:9px;color:var(--text3)">MXN</div>
+          <div style="font-size:14px;font-weight:700;color:#fff"><span id="alloc-mxn">--</span>%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border-radius:4px;padding:10px;display:flex;flex-direction:column;justify-content:flex-end">
+          <div style="font-size:9px;color:var(--text3)">EUR</div>
+          <div style="font-size:14px;font-weight:700;color:#fff"><span id="alloc-eur">--</span>%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border-radius:4px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end">
+          <div style="font-size:9px;color:var(--text3)">Other</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text2)"><span id="alloc-other">22</span>%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border-radius:4px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end">
+          <div style="font-size:9px;color:var(--text3)">JPY</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text2)"><span id="alloc-jpy">--</span>%</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:10px"><span id="alloc-footer"><span id="alloc-footer-value">Loading...</span></span></div>
+    </div>
+
+    <div class="glass" style="padding:20px">
+      <div class="section-title">Risk Profile <span style="font-size:8px;text-transform:none;letter-spacing:0.05em;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 5px">Live</span></div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px"><span>Refinancing</span><span style="font-weight:600;color:var(--yellow)" id="risk-refinancing">82%</span></div>
+          <div class="progress"><div class="progress-fill" id="risk-refinancing-fill" style="width:82%;background:var(--yellow)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px"><span>Currency</span><span style="font-weight:600;color:var(--red)" id="risk-currency">98%</span></div>
+          <div class="progress"><div class="progress-fill" id="risk-currency-fill" style="width:98%;background:var(--red)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px"><span>Interest Rate</span><span style="font-weight:600;color:var(--green)">12%</span></div>
+          <div class="progress"><div class="progress-fill" style="width:12%;background:var(--green)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px"><span>Liquidity</span><span style="font-weight:600;color:var(--yellow)">45%</span></div>
+          <div class="progress"><div class="progress-fill" style="width:45%;background:var(--yellow)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:20px">
+      <div class="section-title">AI Insights</div>
+      <div id="insights-list" style="margin-top:10px">
+        <div class="activity-item"><div class="activity-dot" style="background:var(--text3)"></div><div><div class="activity-text">Loading insights…</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMAND PALETTE -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px">
+    <a href="/optimizations/new" class="cmd-card">
+      <div class="cmd-icon" style="background:rgba(255,255,255,0.05)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#fff">Optimization</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Run constrained solver</div></div>
+    </a>
+    <a href="/risk" class="cmd-card">
+      <div class="cmd-icon" style="background:rgba(255,255,255,0.05)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#fff">Risk Command</div><div style="font-size:10px;color:var(--text3);margin-top:1px">VaR and stress testing</div></div>
+    </a>
+    <a href="/copilot" class="cmd-card">
+      <div class="cmd-icon" style="background:rgba(255,255,255,0.05)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#fff">AI Advisor</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Ask anything</div></div>
+    </a>
+    <a href="/whatif" class="cmd-card">
+      <div class="cmd-icon" style="background:rgba(255,255,255,0.05)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#fff">Scenario Lab</div><div style="font-size:10px;color:var(--text3);margin-top:1px">What-if analysis</div></div>
+    </a>
+  </div>
+
+  <!-- FAKE DOOR TEST BUTTONS -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+    <button onclick="trackFakeDoor('backtest')" class="cmd-card" style="text-align:left;border:1px dashed rgba(234,179,8,0.3);background:rgba(234,179,8,0.03)">
+      <div class="cmd-icon" style="background:rgba(234,179,8,0.1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#eab308">Backtest Strategy</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Test historical performance</div></div>
+    </button>
+    <a href="javascript:void(0)" onclick="exportDashboardPDF()" class="cmd-card" style="text-align:left;border:1px solid rgba(255,255,255,0.06)">
+      <div class="cmd-icon" style="background:rgba(255,255,255,0.05)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#fff">Export PDF Report</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Printable policy briefing</div></div>
+    </a>
+    <button onclick="trackFakeDoor('ml-signals')" class="cmd-card" style="text-align:left;border:1px dashed rgba(234,179,8,0.3);background:rgba(234,179,8,0.03)">
+      <div class="cmd-icon" style="background:rgba(234,179,8,0.1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#eab308">ML Trading Signals</div><div style="font-size:10px;color:var(--text3);margin-top:1px">AI-powered buy/sell</div></div>
+    </button>
+    <button onclick="trackFakeDoor('tax-harvest')" class="cmd-card" style="text-align:left;border:1px dashed rgba(234,179,8,0.3);background:rgba(234,179,8,0.03)">
+      <div class="cmd-icon" style="background:rgba(234,179,8,0.1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg></div>
+      <div><div style="font-size:12px;font-weight:600;color:#eab308">Tax-Loss Harvest</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Optimize tax efficiency</div></div>
+    </button>
+  </div>
+  <script>
+  function trackFakeDoor(feature) {
+    // Log click for analytics
+    const clicks = JSON.parse(localStorage.getItem('fake_door_clicks') || '{}');
+    clicks[feature] = (clicks[feature] || 0) + 1;
+    clicks[feature + '_last'] = new Date().toISOString();
+    localStorage.setItem('fake_door_clicks', JSON.stringify(clicks));
+    // Show coming soon notification
+    const names = {backtest: 'Strategy Backtesting', 'ml-signals': 'ML Trading Signals', 'tax-harvest': 'Tax-Loss Harvesting'};
+    alert(names[feature] + ' is coming soon! We tracked your interest (' + clicks[feature] + ' total clicks).');
+  }
+  </script>
+
+  <!-- MATURITY WALL + SYSTEM -->
+  <div style="display:grid;grid-template-columns:3fr 1fr;gap:16px">
+    <div class="glass" style="padding:24px">
+      <div class="section-title">Maturity Profile <span style="font-size:8px;text-transform:none;letter-spacing:0.05em;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 5px">Live</span></div>
+      <div style="display:flex;align-items:flex-end;gap:0;height:160px;margin-top:12px;padding-left:40px;position:relative">
+        <!-- Y-axis -->
+        <div style="position:absolute;left:0;top:0;bottom:0;width:36px;display:flex;flex-direction:column;justify-content:space-between;font-size:8px;color:var(--text3);text-align:right;padding-right:6px">
+          <span>$80B</span><span>$60B</span><span>$40B</span><span>$20B</span><span>$0</span>
+        </div>
+        <!-- Gridlines -->
+        <svg style="position:absolute;left:40px;right:0;top:0;height:100%;pointer-events:none">
+          <line x1="0" y1="0" x2="100%" y2="0" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,4"/>
+          <line x1="0" y1="25%" x2="100%" y2="25%" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,4"/>
+          <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,4"/>
+          <line x1="0" y1="75%" x2="100%" y2="75%" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,4"/>
+        </svg>
+        <!-- Bars -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">
+          <div style="font-size:9px;font-weight:600;color:var(--text2);margin-bottom:3px">$52B</div>
+          <div style="width:60%;display:flex;flex-direction:column;gap:1px">
+            <div style="height:48px;background:rgba(255,255,255,0.12);border-radius:3px 3px 0 0"></div>
+            <div style="height:30px;background:rgba(255,255,255,0.06)"></div>
+            <div style="height:14px;background:rgba(255,255,255,0.03);border-radius:0 0 3px 3px"></div>
+          </div>
+          <div style="font-size:9px;color:var(--text3);margin-top:5px">2026</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">
+          <div style="font-size:9px;font-weight:600;color:var(--red);margin-bottom:3px">$68B</div>
+          <div style="width:60%;display:flex;flex-direction:column;gap:1px">
+            <div style="height:64px;background:rgba(255,255,255,0.15);border-radius:3px 3px 0 0"></div>
+            <div style="height:38px;background:rgba(255,255,255,0.08)"></div>
+            <div style="height:14px;background:rgba(255,255,255,0.04);border-radius:0 0 3px 3px"></div>
+          </div>
+          <div style="font-size:9px;color:var(--red);margin-top:5px;font-weight:600">2027</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">
+          <div style="font-size:9px;font-weight:600;color:var(--text2);margin-bottom:3px">$44B</div>
+          <div style="width:60%;display:flex;flex-direction:column;gap:1px">
+            <div style="height:36px;background:rgba(255,255,255,0.10);border-radius:3px 3px 0 0"></div>
+            <div style="height:42px;background:rgba(255,255,255,0.05)"></div>
+            <div style="height:12px;background:rgba(255,255,255,0.03);border-radius:0 0 3px 3px"></div>
+          </div>
+          <div style="font-size:9px;color:var(--text3);margin-top:5px">2028</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">
+          <div style="font-size:9px;font-weight:600;color:var(--text2);margin-bottom:3px">$32B</div>
+          <div style="width:60%;display:flex;flex-direction:column;gap:1px">
+            <div style="height:28px;background:rgba(255,255,255,0.08);border-radius:3px 3px 0 0"></div>
+            <div style="height:20px;background:rgba(255,255,255,0.04)"></div>
+            <div style="height:10px;background:rgba(255,255,255,0.02);border-radius:0 0 3px 3px"></div>
+          </div>
+          <div style="font-size:9px;color:var(--text3);margin-top:5px">2029</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end">
+          <div style="font-size:9px;font-weight:600;color:var(--text2);margin-bottom:3px">$24B</div>
+          <div style="width:60%;display:flex;flex-direction:column;gap:1px">
+            <div style="height:20px;background:rgba(255,255,255,0.06);border-radius:3px 3px 0 0"></div>
+            <div style="height:14px;background:rgba(255,255,255,0.03);border-radius:0 0 3px 3px"></div>
+          </div>
+          <div style="font-size:9px;color:var(--text3);margin-top:5px">2030+</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;font-size:9px;color:var(--text3)">
+        <span>USD</span><span>MXN</span><span>EUR</span><span style="margin-left:auto"><span id="mat-total">Total: <span id="mat-total-value">Loading...</span></span></span>
+      </div>
+    </div>
+
+  <!-- COMPARISON MODE -->
+  <div class="glass" style="padding:20px;margin-bottom:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="section-title" style="margin:0">Portfolio Comparison</div>
+      <div style="display:flex;gap:8px">
+        <select id="cmp-mode" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.8);font-size:0.75rem" onchange="loadComparison()">
+          <option value="portfolios">Cross-Portfolio</option>
+          <option value="optimization">Current vs Optimized</option>
+          <option value="risk">Risk Profile Diff</option>
+        </select>
+      </div>
+    </div>
+    <div id="comparison-content" style="font-size:0.8rem;color:rgba(255,255,255,0.5)">Loading comparison...</div>
+  </div>
+
+    <div class="glass" style="padding:20px">
+      <div class="section-title">System</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+        <div style="width:5px;height:5px;border-radius:50%;background:var(--green)"></div>
+        <span style="font-size:11px;color:var(--text2)">All systems operational</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+          <div style="width:4px;height:4px;border-radius:50%;background:var(--green)"></div>
+          <span style="font-size:11px;color:var(--text2);flex:1">API</span>
+          <span style="font-size:10px;color:var(--green);font-weight:600">12ms</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+          <div style="width:4px;height:4px;border-radius:50%;background:var(--green)"></div>
+          <span style="font-size:11px;color:var(--text2);flex:1">Market Data</span>
+          <span style="font-size:10px;color:var(--green);font-weight:600">Live</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+          <div style="width:4px;height:4px;border-radius:50%;background:var(--blue)"></div>
+          <span style="font-size:11px;color:var(--text2);flex:1">Optimizer</span>
+          <span style="font-size:10px;color:var(--blue);font-weight:600">Ready</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+          <div style="width:4px;height:4px;border-radius:50%;background:var(--purple)"></div>
+          <span style="font-size:11px;color:var(--text2);flex:1">PQC</span>
+          <span style="font-size:10px;color:var(--purple);font-weight:600">Active</span>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+        <div>
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Uptime</div>
+          <div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px">99.97<span style="font-size:10px;color:var(--text3)">%</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Latency</div>
+          <div style="font-size:14px;font-weight:700;color:var(--green);margin-top:2px">12<span style="font-size:9px;color:var(--text3)">ms</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+
+  function moneyB(millions) {
+    if (millions >= 1000) return (millions / 1000).toFixed(1);
+    return (millions / 1000).toFixed(2);
+  }
+  function moneyRaw(dollars) {
+    if (dollars >= 1e9) return (dollars / 1e9).toFixed(1);
+    if (dollars >= 1e6) return (dollars / 1e6).toFixed(0);
+    return dollars.toFixed(0);
+  }
+  function pctClass(v) {
+    if (v >= 80) return 'var(--green)';
+    if (v >= 60) return 'var(--yellow)';
+    return 'var(--red)';
+  }
+
+  async function loadDashboard() {
+    let snapshot = null, ai = null, health = null;
+    try { snapshot = await (await fetch('/api/realtime/market-snapshot')).json(); } catch (e) {}
+    try { ai = await (await fetch('/api/ai-advisor/summary')).json(); } catch (e) {}
+    try { health = await (await fetch('/api/ai-advisor/portfolio-health')).json(); } catch (e) {}
+
+    const sp = snapshot && snapshot.sovereign_portfolio;
+    const eco = snapshot && snapshot.economic;
+
+    // Populate live market strip
+    if (snapshot && snapshot.yield_curve) {
+      const yc = snapshot.yield_curve;
+      const raw = yc.raw && yc.raw.rates ? yc.raw.rates : {};
+      const setMs = (id, val, suffix) => {
+        if (val !== undefined && val !== null && $(id)) $(id).textContent = val + (suffix || '%');
+      };
+      setMs('ms-2y', yc.two_year);
+      setMs('ms-5y', yc.five_year);
+      setMs('ms-10y', yc.ten_year);
+      setMs('ms-30y', yc.thirty_year);
+      if ($('ms-curve')) $('ms-curve').textContent = (yc.curve_status || 'N/A').replace(/_/g, ' ');
+      if ($('ms-spread')) $('ms-spread').textContent = (yc.two_ten_spread_bps !== undefined ? yc.two_ten_spread_bps.toFixed(0) : '--') + 'bps';
+    }
+    if (snapshot && snapshot.fx_rates) {
+      const fx = snapshot.fx_rates;
+      if ($('ms-mxn')) $('ms-mxn').textContent = fx.usd_mxn ? fx.usd_mxn.toFixed(2) : '--';
+      if ($('ms-jpy')) $('ms-jpy').textContent = fx.usd_jpy ? fx.usd_jpy.toFixed(2) : '--';
+      if ($('ms-dxy')) $('ms-dxy').textContent = fx.dxy_approx ? fx.dxy_approx.toFixed(1) : '--';
+    }
+
+    if (sp) {
+      const total = sp.total_debt_usd_m; // in millions
+      const currs = sp.currency_breakdown ? Object.keys(sp.currency_breakdown) : [];
+      if ($('hero-total-num')) $('hero-total-num').textContent = moneyB(total);
+      if ($('hero-sub')) $('hero-sub').textContent =
+        sp.instruments_count + ' instruments · ' + currs.length + ' currencies · ' + sp.avg_maturity_years + 'yr avg maturity';
+      if ($('strip-gdp') && eco) $('strip-gdp').textContent = eco.debt_to_gdp;
+      if ($('strip-yield')) $('strip-yield').textContent = sp.avg_coupon_pct;
+      if ($('strip-refinance')) $('strip-refinance').textContent = sp.refinancing_risk_pct;
+      if ($('strip-fx')) $('strip-fx').textContent = sp.fx_exposure_pct;
+      if ($('strip-duration')) $('strip-duration').textContent = sp.avg_maturity_years;
+      if ($('alloc-footer-value')) $('alloc-footer-value').textContent = '$' + moneyB(total) + 'B across ' + sp.instruments_count + ' instruments';
+      if ($('chart-end')) $('chart-end').textContent = '$' + moneyB(total) + 'B';
+      if ($('mat-total-value')) $('mat-total-value').textContent = '$' + moneyB(total) + 'B across ' + sp.instruments_count + ' instruments';
+
+      const cb = sp.currency_breakdown;
+      if (cb && (total || true)) {
+        const setAlloc = (id, key) => {
+          const v = cb[key];
+          if (v === undefined) return;
+          if ($(id)) $(id).textContent = Math.round(v);
+        };
+        setAlloc('alloc-usd', 'USD'); setAlloc('alloc-mxn', 'MXN'); setAlloc('alloc-eur', 'EUR');
+        setAlloc('alloc-jpy', 'JPY'); setAlloc('alloc-other', 'other');
+        const usdVal = (cb.USD || 0) / 100 * total;
+        if ($('alloc-usd-val')) $('alloc-usd-val').textContent = Math.round(usdVal / 1000);
+      }
+    }
+
+    if (snapshot && $('snapshot-time')) {
+      try {
+        const t = new Date(snapshot.timestamp);
+        $('snapshot-time').textContent = 'Updated ' + t.toISOString().substr(11, 8) + ' UTC';
+      } catch (e) {}
+    }
+
+    if (snapshot && snapshot.market_events && $('today-list')) {
+      const impactColor = { positive: 'var(--green)', negative: 'var(--red)', neutral: 'var(--blue)' };
+      $('today-list').innerHTML = snapshot.market_events.slice(0, 3).map(function (ev) {
+        const dot = impactColor[ev.impact] || 'var(--text3)';
+        return '<div style="display:flex;gap:6px;align-items:center;margin-top:3px">' +
+          '<span style="width:4px;height:4px;border-radius:50%;background:' + dot + ';flex-shrink:0"></span>' +
+          '<span style="flex:1">' + ev.event + '</span>' +
+          '<span style="color:var(--text3)">' + ev.time + '</span></div>';
+      }).join('');
+    }
+
+    if (ai) {
+      if ($('hero-risk')) {
+        $('hero-risk').textContent = ai.health_score;
+        $('hero-risk').style.color = pctClass(ai.health_score);
+      }
+      if ($('ai-text')) $('ai-text').textContent = ai.summary;
+
+      const totalSavings = (ai.refinancing_proposals || []).reduce(function (s, p) {
+        return s + (p.estimated_annual_savings || 0);
+      }, 0);
+      const conf = ai.refinancing_proposals && ai.refinancing_proposals[0]
+        ? ai.refinancing_proposals[0].confidence_pct : null;
+      if ($('ai-savings')) $('ai-savings').textContent = moneyRaw(totalSavings);
+      if ($('ai-confidence')) $('ai-confidence').textContent = (conf !== null ? conf : '—') + '%';
+
+      const opps = (ai.insights || []).filter(function (i) { return i.category === 'opportunity'; });
+      const oppTotal = opps.reduce(function (s, i) { return s + (i.impact_usd || 0); }, 0);
+      if ($('hero-savings')) $('hero-savings').textContent = moneyRaw(oppTotal);
+      if ($('hero-gain') && sp && sp.total_debt_usd_m > 0) {
+        $('hero-gain').textContent = '+' + (oppTotal / 1e6 / sp.total_debt_usd_m * 100).toFixed(1) + '%';
+      }
+
+      if ($('insights-list') && ai.insights) {
+        const dotColor = { opportunity: 'var(--green)', risk: 'var(--red)', recommendation: 'var(--blue)', observation: 'var(--text3)' };
+        $('insights-list').innerHTML = ai.insights.slice(0, 4).map(function (ins) {
+          const dot = dotColor[ins.category] || 'var(--text3)';
+          return '<div class="activity-item">' +
+            '<div class="activity-dot" style="background:' + dot + '"></div>' +
+            '<div style="flex:1"><div class="activity-text" style="text-transform:capitalize">' + ins.title + '</div>' +
+            '<div class="activity-detail">' + ins.detail + '</div></div>' +
+            '<div class="activity-time">' + (ins.priority || '') + '</div></div>';
+        }).join('');
+      }
+    }
+
+    if (health && health.factors) {
+      const f = {};
+      health.factors.forEach(function (x) { f[x.name.toLowerCase()] = x.score; });
+      const ref = f['refinancing risk'];
+      const cur = f['currency diversification'];
+      if (ref !== undefined) {
+        if ($('risk-refinancing')) $('risk-refinancing').textContent = ref + '%';
+        if ($('risk-refinancing-fill')) $('risk-refinancing-fill').style.width = ref + '%';
+      }
+      if (cur !== undefined) {
+        if ($('risk-currency')) $('risk-currency').textContent = cur + '%';
+        if ($('risk-currency-fill')) $('risk-currency-fill').style.width = cur + '%';
+      }
+    }
+  }
+
+  // ── ALERT COUNT ────────────────────────────────────────────
+  async function loadAlertCount() {
+    try {
+      const resp = await fetch('/api/alerts/count', { credentials: 'include' });
+      const data = await resp.json();
+      const badge = document.getElementById('alert-badge');
+      if (badge && data.count > 0) {
+        badge.textContent = data.count;
+        badge.style.display = 'inline';
+      } else if (badge) {
+        badge.style.display = 'none';
+      }
+    } catch(e) {}
+  }
+
+  async function checkAlertsBackground() {
+    try {
+      await fetch('/api/alerts/check', { method: 'POST', credentials: 'include' });
+      loadAlertCount();
+    } catch(e) {}
+  }
+
+  // ── PDF EXPORT ──────────────────────────────────────────────
+  function exportDashboardPDF() {
+    const win = window.open('', '_blank');
+    const snap = document.getElementById('hero-total-num')?.textContent || '--';
+    const sub = document.getElementById('hero-sub')?.textContent || '';
+    const gain = document.getElementById('hero-gain')?.textContent || '--';
+    const savings = document.getElementById('hero-savings')?.textContent || '--';
+    const health = document.getElementById('hero-risk')?.textContent || '--';
+    const gdp = document.getElementById('strip-gdp')?.textContent || '--';
+    const yield_ = document.getElementById('strip-yield')?.textContent || '--';
+    const refi = document.getElementById('strip-refinance')?.textContent || '--';
+    const dur = document.getElementById('strip-duration')?.textContent || '--';
+    const aiText = document.getElementById('ai-text')?.textContent || '';
+    const ms2y = document.getElementById('ms-2y')?.textContent || '--';
+    const ms10y = document.getElementById('ms-10y')?.textContent || '--';
+    const ms30y = document.getElementById('ms-30y')?.textContent || '--';
+    const msMxn = document.getElementById('ms-mxn')?.textContent || '--';
+    const msCurve = document.getElementById('ms-curve')?.textContent || '--';
+
+    win.document.write('<!DOCTYPE html><html><head><title>Quantive Dashboard Report</title>' +
+      '<style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#222;line-height:1.6}' +
+      'h1{font-size:24px;border-bottom:2px solid #333;padding-bottom:8px}' +
+      'h2{font-size:18px;margin-top:24px;color:#444}' +
+      '.meta{font-size:12px;color:#888;margin-bottom:24px}' +
+      '.kpi{display:inline-block;padding:8px 16px;margin:4px;border-radius:6px;background:#f5f5f5;font-size:13px}' +
+      '.kpi strong{font-size:16px;display:block}' +
+      '.disclaimer{margin-top:32px;padding:12px;background:#fff3cd;border-radius:6px;font-size:11px;color:#666}' +
+      '@media print{body{margin:0}}</style></head><body>');
+    win.document.write('<h1>Quantive - Sovereign Debt Dashboard Report</h1>');
+    win.document.write('<div class="meta">Generated: ' + new Date().toLocaleString() + ' | Source: US Treasury & ECB Live Data</div>');
+    win.document.write('<div class="kpi"><strong>$' + snap + 'B</strong>Total Portfolio</div>');
+    win.document.write('<div class="kpi"><strong>' + gain + '</strong>Efficiency Gain</div>');
+    win.document.write('<div class="kpi"><strong>$' + savings + 'B</strong>Potential Savings</div>');
+    win.document.write('<div class="kpi"><strong>' + health + '/100</strong>Health Score</div>');
+    win.document.write('<h2>Portfolio Summary</h2><p>' + sub + '</p>');
+    win.document.write('<h2>Sovereign Metrics</h2>');
+    win.document.write('<table><tr><td>Debt-to-GDP</td><td><strong>' + gdp + '%</strong></td></tr>');
+    win.document.write('<tr><td>Avg Yield</td><td><strong>' + yield_ + '%</strong></td></tr>');
+    win.document.write('<tr><td>Refinancing Risk</td><td><strong>' + refi + '%</strong></td></tr>');
+    win.document.write('<tr><td>Duration</td><td><strong>' + dur + ' years</strong></td></tr></table>');
+    win.document.write('<h2>Market Data</h2>');
+    win.document.write('<table><tr><td>2Y Treasury</td><td><strong>' + ms2y + '</strong></td></tr>');
+    win.document.write('<tr><td>10Y Treasury</td><td><strong>' + ms10y + '</strong></td></tr>');
+    win.document.write('<tr><td>30Y Treasury</td><td><strong>' + ms30y + '</strong></td></tr>');
+    win.document.write('<tr><td>USD/MXN</td><td><strong>' + msMxn + '</strong></td></tr>');
+    win.document.write('<tr><td>Curve Status</td><td><strong>' + msCurve + '</strong></td></tr></table>');
+    if (aiText) { win.document.write('<h2>AI Advisor Summary</h2><p>' + aiText + '</p>'); }
+    win.document.write('<div class="disclaimer">AUTOMATED ANALYTICAL OUTPUT: FOR DECISION-SUPPORT PURPOSES ONLY. DOES NOT CONSTITUTE FINANCIAL, LEGAL, OR BINDING SOVEREIGN ISSUANCE ADVICE.</div>');
+    win.document.write('</body></html>');
+    win.document.close();
+    setTimeout(function() { win.print(); }, 500);
+  }
+
+  // ── COMPARISON MODE ─────────────────────────────────────────
+  async function loadComparison() {
+    const mode = document.getElementById('cmp-mode').value;
+    const el = document.getElementById('comparison-content');
+    if (!el) return;
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Loading...</div>';
+
+    try {
+      if (mode === 'portfolios') {
+        const data = await (await fetch('/api/portfolio-agg/compare', {credentials: 'include'})).json();
+        const comp = data.comparison || [];
+        if (comp.length === 0) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">No portfolios to compare</div>'; return; }
+        const maxVal = Math.max(...comp.map(c => c.value));
+        el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(' + Math.min(comp.length, 4) + ',1fr);gap:12px">' +
+          comp.map(p => {
+            const barW = (p.value / maxVal * 100);
+            const retColor = p.return_pct > 10 ? 'var(--green)' : p.return_pct > 0 ? 'var(--yellow)' : 'var(--red)';
+            return '<div style="padding:14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">' +
+              '<div style="font-size:0.75rem;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">' + p.name + '</div>' +
+              '<div style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:4px">$' + (p.value/1e9).toFixed(1) + 'B</div>' +
+              '<div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-bottom:6px">' +
+                '<span style="color:' + retColor + '">' + (p.return_pct > 0 ? '+' : '') + p.return_pct.toFixed(1) + '%</span>' +
+                '<span style="color:var(--text3)">' + p.holdings + ' instruments</span>' +
+              '</div>' +
+              '<div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.05);overflow:hidden">' +
+                '<div style="height:100%;width:' + barW + '%;background:' + retColor + ';border-radius:2px"></div>' +
+              '</div>' +
+              '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:0.65rem;color:var(--text3)">' +
+                '<span>Risk: ' + p.risk_level + '</span>' +
+                '<span>P&L: $' + (p.pnl/1e9).toFixed(1) + 'B</span>' +
+              '</div>' +
+            '</div>';
+          }).join('') + '</div>';
+      } else if (mode === 'optimization') {
+        const data = await (await fetch('/api/rebalancing/check', {credentials: 'include'})).json();
+        const drift = data.drift_analysis || [];
+        el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+          '<div><div style="font-size:0.7rem;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Current Allocation</div>' +
+            drift.map(d => '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.75rem;border-bottom:1px solid rgba(255,255,255,0.03)">' +
+              '<span style="color:rgba(255,255,255,0.6)">' + d.asset_class.replace(/_/g, ' ') + '</span>' +
+              '<span style="font-weight:600;color:#fff">' + d.current_pct + '%</span></div>').join('') + '</div>' +
+          '<div><div style="font-size:0.7rem;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Target Allocation</div>' +
+            drift.map(d => {
+              const diff = d.current_pct - d.target_pct;
+              const diffColor = Math.abs(diff) > 10 ? 'var(--red)' : Math.abs(diff) > 5 ? 'var(--yellow)' : 'var(--green)';
+              return '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.75rem;border-bottom:1px solid rgba(255,255,255,0.03)">' +
+                '<span style="color:rgba(255,255,255,0.6)">' + d.asset_class.replace(/_/g, ' ') + '</span>' +
+                '<span style="font-weight:600;color:' + diffColor + '">' + d.target_pct + '% <span style="font-size:0.65rem;color:' + diffColor + '">(' + (diff > 0 ? '+' : '') + diff.toFixed(1) + '%)</span></span></div>';
+            }).join('') + '</div>' +
+        '</div>' +
+        '<div style="margin-top:12px;padding:10px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);font-size:0.75rem;color:rgba(255,255,255,0.6)">' +
+          'Total drift: <strong style="color:var(--red)">' + data.total_drift + '%</strong> | Score: <strong style="color:var(--red)">' + data.rebalance_score + '</strong> | ' + data.total_trades + ' trades recommended ($' + (data.total_trade_value/1e9).toFixed(1) + 'B)' +
+        '</div>';
+      } else if (mode === 'risk') {
+        const data = await (await fetch('/api/ai-advisor/portfolio-health', {credentials: 'include'})).json();
+        const factors = data.factors || [];
+        el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(' + Math.min(factors.length, 4) + ',1fr);gap:12px">' +
+          factors.map(f => {
+            const color = f.score >= 80 ? 'var(--green)' : f.score >= 60 ? 'var(--yellow)' : 'var(--red)';
+            return '<div style="padding:14px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);text-align:center">' +
+              '<div style="font-size:0.65rem;text-transform:uppercase;color:var(--text3);margin-bottom:8px">' + f.name + '</div>' +
+              '<div style="font-size:1.8rem;font-weight:800;color:' + color + ';letter-spacing:-0.03em">' + f.score + '</div>' +
+              '<div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.05);overflow:hidden;margin-top:8px">' +
+                '<div style="height:100%;width:' + f.score + '%;background:' + color + ';border-radius:2px"></div>' +
+              '</div>' +
+              '<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:6px">' + (f.detail || '') + '</div>' +
+            '</div>';
+          }).join('') + '</div>';
+      }
+    } catch(e) {
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">Failed to load comparison data</div>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadDashboard();
+    loadComparison();
+    loadAlertCount();
+    checkAlertsBackground();
+    setInterval(loadDashboard, 60000);
+    setInterval(loadComparison, 120000);
+    setInterval(loadAlertCount, 30000);
+    setInterval(checkAlertsBackground, 300000);  // Check alerts every 5 min
+  });
+})();
+</script>
+
+<style>
+@keyframes loadingPulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+.loading-dash { animation: loadingPulse 1.5s ease-in-out infinite; color: var(--text3); }
+</style>
+
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Billing - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Billing{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Current Plan</div>
+    <div class="stat-value" style="color:var(--accent);">Professional</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Monthly Cost</div>
+    <div class="stat-value">$8,400</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Next Billing</div>
+    <div class="stat-value" style="font-size:16px;">2026-09-01</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Payment Method</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:14px;border-radius:var(--radius);background:var(--surface-2);">
+      <div style="font-size:24px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+      <div>
+        <div style="font-weight:600;font-size:13px;">Visa ending in 4242</div>
+        <div style="font-size:12px;color:var(--text2);">Expires 12/2028</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;">Update</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Billing History</div>
+    <table>
+      <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>2026-08-01</td><td>$8,400</td><td><span class="badge badge-green">Paid</span></td></tr>
+        <tr><td>2026-07-01</td><td>$8,400</td><td><span class="badge badge-green">Paid</span></td></tr>
+        <tr><td>2026-06-01</td><td>$8,400</td><td><span class="badge badge-green">Paid</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

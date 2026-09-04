@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Digital Twin - Quantive
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Model Coverage</div>
+    <div class="stat-value" style="color:var(--green);">94%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Active Simulations</div>
+    <div class="stat-value">6</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Calibration</div>
+    <div class="stat-value" style="font-size:16px;">1 hour ago</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Digital Twin Domains</div>
+  <table>
+    <thead><tr><th>Domain</th><th>Coverage</th><th>Accuracy</th><th>Last Updated</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Debt</td><td>98%</td><td>96%</td><td>Real-time</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Fiscal Flows</td><td>94%</td><td>92%</td><td>1h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">External Trade</td><td>88%</td><td>89%</td><td>6h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Banking Sector</td><td>92%</td><td>94%</td><td>1h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Energy Systems</td><td>78%</td><td>85%</td><td>1d ago</td><td><span class="badge badge-yellow">Updating</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}Digital Twin Simulation
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Model Coverage</div>
+    <div class="stat-value" style="color:var(--green);">94%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Active Simulations</div>
+    <div class="stat-value">6</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Calibration</div>
+    <div class="stat-value" style="font-size:16px;">1 hour ago</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Digital Twin Domains</div>
+  <table>
+    <thead><tr><th>Domain</th><th>Coverage</th><th>Accuracy</th><th>Last Updated</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Debt</td><td>98%</td><td>96%</td><td>Real-time</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Fiscal Flows</td><td>94%</td><td>92%</td><td>1h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">External Trade</td><td>88%</td><td>89%</td><td>6h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Banking Sector</td><td>92%</td><td>94%</td><td>1h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Energy Systems</td><td>78%</td><td>85%</td><td>1d ago</td><td><span class="badge badge-yellow">Updating</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Model Accuracy</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Simulations Today</div>
+    <div class="stat-value"><span id="dt-sims">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Calibration</div>
+    <div class="stat-value" style="font-size:16px;"><span id="dt-calibration">--</span></div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Digital Twin Status</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Data Sync</span><span class="badge badge-green">Live</span></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Model Version</span><span style="font-size:13px;font-weight:600;">v3.2.1</span></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Calibration Method</span><span style="font-size:13px;font-weight:600;">Maximum Likelihood</span></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Asset Classes</span><span style="font-size:13px;font-weight:600;">5 active</span></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Correlation Matrix</span><span style="font-size:13px;font-weight:600;">Rolling 252d</span></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Recent Simulations</div>
+    <table>
+      <thead><tr><th>Time</th><th>Scenario</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>14:32</td><td>Rate +150bps</td><td style="color:var(--red);"-<span id="dt-sim1">--</span></td></tr>
+        <tr><td>13:15</td><td>FX -10%</td><td style="color:var(--red);"-<span id="dt-sim2">--</span></td></tr>
+        <tr><td>11:48</td><td>Spread +75bps</td><td style="color:var(--red);"-<span id="dt-sim3">--</span></td></tr>
+        <tr><td>10:22</td><td>Risk-On Rally</td><td style="color:var(--green);"+<span id="dt-sim4">--</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Model Coverage</div>
+    <div class="stat-value" style="color:var(--green);">94%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Active Simulations</div>
+    <div class="stat-value">6</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Calibration</div>
+    <div class="stat-value" style="font-size:16px;">1 hour ago</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Digital Twin Domains</div>
+  <table>
+    <thead><tr><th>Domain</th><th>Coverage</th><th>Accuracy</th><th>Last Updated</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Debt</td><td>98%</td><td>96%</td><td>Real-time</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Fiscal Flows</td><td>94%</td><td>92%</td><td>1h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">External Trade</td><td>88%</td><td>89%</td><td>6h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Banking Sector</td><td>92%</td><td>94%</td><td>1h ago</td><td><span class="badge badge-green">Live</span></td></tr>
+      <tr><td style="font-weight:600;">Energy Systems</td><td>78%</td><td>85%</td><td>1d ago</td><td><span class="badge badge-yellow">Updating</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

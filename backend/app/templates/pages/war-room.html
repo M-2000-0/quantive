@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}War Room - Quantive{% endblock %}
+{% set active_page = 'risk' %}
+{% block page_title %}War Room{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-ghost btn-sm" style="color:var(--red);">Activate War Room</button>
+{% endblock %}
+{% block content %}
+<div style="padding:24px;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:20px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="width:12px;height:12px;border-radius:50%;background:var(--green);"></div>
+    <div>
+      <div style="font-weight:700;font-size:15px;">War Room: Standby</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:2px;">No active crisis. All systems monitored.</div>
+    </div>
+  </div>
+</div>
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Sessions</div>
+    <div class="stat-value">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Activation</div>
+    <div class="stat-value" style="font-size:16px;">2026-07-15</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Response Time</div>
+    <div class="stat-value">4.2 min</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">War Room Playbook</div>
+  <table>
+    <thead><tr><th>Scenario</th><th>Team</th><th>Communication</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Default</td><td>Treasury + Legal + Risk</td><td>Encrypted Channel</td><td><span class="badge badge-green">Ready</span></td></tr>
+      <tr><td style="font-weight:600;">Market Crash</td><td>Risk + Trading + Ops</td><td>Secure Video</td><td><span class="badge badge-green">Ready</span></td></tr>
+      <tr><td style="font-weight:600;">Cyber Attack</td><td>IT Security + Legal</td><td>Isolated Channel</td><td><span class="badge badge-green">Ready</span></td></tr>
+      <tr><td style="font-weight:600;">Liquidity Crisis</td><td>Treasury + Central Bank</td><td>Encrypted Channel</td><td><span class="badge badge-green">Ready</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

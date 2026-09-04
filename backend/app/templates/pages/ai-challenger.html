@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}AI Challenger - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}AI Challenger{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Challenges</div>
+    <div class="stat-value" style="color:var(--yellow);">3</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Win Rate</div>
+    <div class="stat-value" style="color:var(--green);">72%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Alpha</div>
+    <div class="stat-value" style="color:var(--green);">+1.4%</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Challenge Results</div>
+  <table>
+    <thead><tr><th>Challenge</th><th>Challenger</th><th>Baseline</th><th>Alpha</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Core Rebalance</td><td>BL v3</td><td>Equal Weight</td><td style="color:var(--green);">+2.2%</td><td><span class="badge badge-green">Won</span></td></tr>
+      <tr><td style="font-weight:600;">Duration Extension</td><td>MV Enhanced</td><td>Current Portfolio</td><td style="color:var(--green);">+0.8%</td><td><span class="badge badge-green">Won</span></td></tr>
+      <tr><td style="font-weight:600;">FX Hedging Strategy</td><td>Macro Model</td><td>Static Hedge</td><td style="color:var(--red);">-0.4%</td><td><span class="badge badge-red">Lost</span></td></tr>
+      <tr><td style="font-weight:600;">Credit Allocation</td><td>Risk Parity</td><td>Market Cap</td><td style="color:var(--green);">+1.1%</td><td><span class="badge badge-green">Won</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

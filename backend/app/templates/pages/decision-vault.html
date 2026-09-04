@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Decision Vault - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Decision Vault{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Decisions Stored</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Immutability Score</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Audit</div>
+    <div class="stat-value" style="font-size:16px;">2026-08-25</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Recent Decisions</div>
+  <table>
+    <thead><tr><th>ID</th><th>Decision</th><th>Author</th><th>Hash</th><th>Timestamp</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#3842</td><td style="font-weight:600;">Rebalance to Optimized Weights</td><td>J. Smith</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x7a3f...e21</td><td>2026-08-28 14:32</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#3841</td><td style="font-weight:600;">Issue $3B Green Bond</td><td>M. Chen</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x2b8c...f44</td><td>2026-08-27 09:15</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#3840</td><td style="font-weight:600;">Extend Duration by 0.5Y</td><td>A. Patel</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x9d1e...a87</td><td>2026-08-25 16:48</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#3839</td><td style="font-weight:600;">Approve New Counterparty</td><td>S. Lee</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x4f2a...c93</td><td>2026-08-24 11:22</td><td><span class="badge badge-green">Verified</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

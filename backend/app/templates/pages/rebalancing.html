@@ -1,0 +1,559 @@
+{% extends "base.html" %}
+{% block title %}Rebalancing & Aggregator — Quantive{% endblock %}
+{% block page_title %}Portfolio Intelligence{% endblock %}
+
+{% block content %}
+<style>
+  .pi-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; }
+  .pi-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin: 0 0 12px; }
+  .price-cell { font-variant-numeric: tabular-nums; }
+  .positive { color: #22c55e; }
+  .negative { color: #ef4444; }
+  .neutral { color: rgba(255,255,255,0.5); }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; }
+  .tab-btn { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .tab-btn.active { background: rgba(99,102,241,0.2); color: #C0C0C0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .drift-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05); overflow: hidden; margin-top: 4px; }
+  .drift-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .trade-card { padding: 12px; border-radius: 8px; border-left: 3px solid; margin-bottom: 8px; background: rgba(0,0,0,0.15); }
+  .trade-buy { border-color: #22c55e; }
+  .trade-sell { border-color: #ef4444; }
+  .score-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; }
+  .loading-shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; height: 20px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .sparkline { display: flex; align-items: end; gap: 1px; height: 24px; }
+  .sparkline-bar { width: 3px; border-radius: 1px; transition: height 0.3s; }
+</style>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('rebalance')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M12 3v18M3 12h18"/></svg> Rebalancing
+  </button>
+  <button class="tab-btn" onclick="showTab('live')">
+    <span class="live-dot" style="margin-right:6px"></span> Live Prices
+  </button>
+  <button class="tab-btn" onclick="showTab('aggregate')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Aggregator
+  </button>
+</div>
+
+<!-- ═══ REBALANCING TAB ═══ -->
+<div id="tab-rebalance">
+  <!-- Score + Status -->
+  <div class="grid-2" style="margin-bottom: 16px;">
+    <div class="pi-card" style="display:flex;align-items:center;gap:20px">
+      <div id="rebal-score" class="score-circle" style="border: 4px solid #22c55e;">
+        <div>
+          <div id="rebal-score-val" style="font-size:1.5rem;font-weight:800">--</div>
+          <div style="font-size:0.6rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Score</div>
+        </div>
+      </div>
+      <div>
+        <div id="rebal-status" style="font-size:1.1rem;font-weight:700;margin-bottom:4px">Loading...</div>
+        <div id="rebal-summary" style="font-size:0.8rem;color:rgba(255,255,255,0.5)">Checking portfolio drift...</div>
+      </div>
+    </div>
+    <div class="pi-card" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Total Portfolio Value</div>
+        <div id="total-portfolio-value" style="font-size:1.8rem;font-weight:800">--</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Unrealized P&L</div>
+        <div id="total-pnl" style="font-size:1.2rem;font-weight:700">--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drift Analysis -->
+  <div class="pi-card" style="margin-bottom: 16px;">
+    <h3>Allocation Drift Analysis</h3>
+    <div id="drift-list"></div>
+  </div>
+
+  <!-- Trade Recommendations -->
+  <div class="pi-card" style="margin-bottom: 16px;">
+    <h3>Trade Recommendations</h3>
+    <div id="trade-recs"></div>
+  </div>
+
+  <!-- Holdings Table -->
+  <div class="pi-card">
+    <h3>Current Holdings</h3>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.4)">
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Symbol</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Shares</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Price</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Value</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">P&L</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Asset Class</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);text-align:right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="holdings-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LIVE PRICES TAB ═══ -->
+<div id="tab-live" style="display:none;">
+  <!-- Market Snapshot -->
+  <div class="grid-3" style="margin-bottom: 16px;">
+    <div class="pi-card" id="idx-spy">
+      <h3>S&P 500</h3>
+      <div id="live-spy-price" style="font-size:1.5rem;font-weight:800">--</div>
+      <div id="live-spy-change" class="neutral" style="font-size:0.85rem">--</div>
+    </div>
+    <div class="pi-card" id="idx-qqq">
+      <h3>NASDAQ 100</h3>
+      <div id="live-qqq-price" style="font-size:1.5rem;font-weight:800">--</div>
+      <div id="live-qqq-change" class="neutral" style="font-size:0.85rem">--</div>
+    </div>
+    <div class="pi-card" id="idx-iwm">
+      <h3>Russell 2000</h3>
+      <div id="live-iwm-price" style="font-size:1.5rem;font-weight:800">--</div>
+      <div id="live-iwm-change" class="neutral" style="font-size:0.85rem">--</div>
+    </div>
+  </div>
+
+  <!-- Streaming Prices -->
+  <div class="pi-card" style="margin-bottom: 16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0"><span class="live-dot" style="margin-right:6px"></span> Live Watchlist Prices</h3>
+      <button onclick="refreshPrices()" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.75rem">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh
+      </button>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Symbol</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Price</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Change</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Volume</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Sparkline</th>
+          </tr>
+        </thead>
+        <tbody id="live-prices-body">
+          <tr><td colspan="5"><div class="loading-shimmer"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="live-updated" style="text-align:right;font-size:0.7rem;color:rgba(255,255,255,0.3);margin-top:8px"></div>
+  </div>
+
+  <!-- Sector Snapshot -->
+  <div class="pi-card">
+    <h3>Sector Snapshot</h3>
+    <div id="sector-snapshot"></div>
+  </div>
+</div>
+
+<!-- ═══ AGGREGATOR TAB ═══ -->
+<div id="tab-aggregate" style="display:none;">
+  <!-- Aggregate Stats -->
+  <div class="grid-3" style="margin-bottom: 16px;">
+    <div class="pi-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Combined Value</div>
+      <div id="agg-total-value" style="font-size:1.5rem;font-weight:800">--</div>
+      <div id="agg-total-pnl" class="neutral" style="font-size:0.85rem">--</div>
+    </div>
+    <div class="pi-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Portfolios</div>
+      <div id="agg-port-count" style="font-size:1.5rem;font-weight:800">--</div>
+      <div id="agg-holdings" style="font-size:0.85rem;color:rgba(255,255,255,0.5)">--</div>
+    </div>
+    <div class="pi-card">
+      <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Concentration Risk</div>
+      <div id="agg-risk" style="font-size:1.5rem;font-weight:800">--</div>
+      <div id="agg-top-holding" style="font-size:0.85rem;color:rgba(255,255,255,0.5)">--</div>
+    </div>
+  </div>
+
+  <!-- Portfolio Comparison -->
+  <div class="pi-card" style="margin-bottom: 16px;">
+    <h3>Portfolio Comparison</h3>
+    <div id="portfolio-comparison"></div>
+  </div>
+
+  <!-- Combined Allocation -->
+  <div class="pi-card" style="margin-bottom: 16px;">
+    <h3>Combined Asset Allocation</h3>
+    <div id="combined-alloc"></div>
+  </div>
+
+  <!-- Top Holdings -->
+  <div class="pi-card">
+    <h3>Top Holdings (All Portfolios)</h3>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="text-align:left;font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Symbol</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Value</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Weight</th>
+            <th style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)">Portfolios</th>
+          </tr>
+        </thead>
+        <tbody id="agg-holdings-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let priceHistory = {};
+
+function authHeaders() {
+  const t = localStorage.getItem('token');
+  return t ? { 'Authorization': 'Bearer ' + t } : {};
+}
+function fetchOpts(extra = {}) {
+  return { credentials: 'include', ...extra };
+}
+
+function fmt(n, d=2) {
+  if (n === null || n === undefined || isNaN(n)) return '--';
+  return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '--';
+  return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+}
+
+function fmtUSD(n) {
+  if (!n) return '--';
+  if (Math.abs(n) >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+  return '$' + fmt(n);
+}
+
+function changeClass(n) {
+  if (n > 0) return 'positive';
+  if (n < 0) return 'negative';
+  return 'neutral';
+}
+
+function showTab(tab) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('tab-' + tab).style.display = 'block';
+  event.target.classList.add('active');
+  if (tab === 'live') loadLivePrices();
+}
+
+// ── REBALANCING ──
+async function loadRebalancing() {
+  try {
+    const [portfolioRes, checkRes] = await Promise.all([
+      fetch(API + '/rebalancing/portfolio', fetchOpts({ headers: authHeaders() })),
+      fetch(API + '/rebalancing/check', fetchOpts({ headers: authHeaders() })),
+    ]);
+    const portfolio = await portfolioRes.json();
+    const check = await checkRes.json();
+
+    // Score
+    const scoreEl = document.getElementById('rebal-score-val');
+    const scoreCircle = document.getElementById('rebal-score');
+    scoreEl.textContent = Math.round(check.rebalance_score);
+    const color = check.rebalance_score > 80 ? '#22c55e' : check.rebalance_score > 50 ? '#eab308' : '#ef4444';
+    scoreCircle.style.borderColor = color;
+    scoreEl.style.color = color;
+
+    document.getElementById('rebal-status').textContent = check.status.replace('_', ' ');
+    document.getElementById('rebal-status').style.color = color;
+    document.getElementById('rebal-summary').textContent =
+      `${check.total_trades} trades recommended | $${fmt(check.total_trade_value)} total | Total drift: ${check.total_drift.toFixed(1)}%`;
+
+    // Portfolio value
+    document.getElementById('total-portfolio-value').textContent = fmtUSD(portfolio.total_value);
+    const pnlEl = document.getElementById('total-pnl');
+    pnlEl.textContent = fmtPct(portfolio.total_pnl_pct) + ' (' + fmtUSD(portfolio.total_pnl) + ')';
+    pnlEl.className = changeClass(portfolio.total_pnl);
+
+    // Drift analysis
+    const driftEl = document.getElementById('drift-list');
+    driftEl.innerHTML = check.drift_analysis.map(d => {
+      const driftColor = Math.abs(d.drift_pct) > 10 ? '#ef4444' : Math.abs(d.drift_pct) > 5 ? '#eab308' : '#22c55e';
+      const barWidth = Math.min(Math.abs(d.drift_pct) / 15 * 100, 100);
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+          <div style="width:160px;font-size:0.8rem;color:rgba(255,255,255,0.7)">${d.asset_class.replace(/_/g, ' ')}</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;margin-bottom:2px">
+              <span>Current: ${d.current_pct}%</span>
+              <span>Target: ${d.target_pct}%</span>
+            </div>
+            <div class="drift-bar">
+              <div class="drift-bar-fill" style="width:${barWidth}%;background:${driftColor}"></div>
+            </div>
+          </div>
+          <div style="width:70px;text-align:right;font-size:0.85rem;font-weight:600;color:${driftColor}">${d.drift_pct > 0 ? '+' : ''}${d.drift_pct}%</div>
+        </div>
+      `;
+    }).join('');
+
+    // Trade recommendations
+    const tradesEl = document.getElementById('trade-recs');
+    if (check.trade_recommendations.length === 0) {
+      tradesEl.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No trades needed - portfolio is well balanced</div>';
+    } else {
+      tradesEl.innerHTML = check.trade_recommendations.map(t => `
+        <div class="trade-card ${t.action === 'BUY' ? 'trade-buy' : 'trade-sell'}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <span style="font-weight:700;color:${t.action === 'BUY' ? '#22c55e' : '#ef4444'}">${escapeHtml(t.action)}</span>
+              <span style="font-weight:600;color:#C0C0C0;margin-left:8px">${escapeHtml(t.symbol)}</span>
+              <span style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-left:6px">${t.name}</span>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:600">${t.shares} shares</div>
+              <div style="font-size:0.75rem;color:rgba(255,255,255,0.5)">${fmtUSD(t.estimated_amount)}</div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:4px">${t.reason}</div>
+        </div>
+      `).join('');
+    }
+
+    // Holdings table with batch operations
+    const bodyEl = document.getElementById('holdings-body');
+    bodyEl.innerHTML = portfolio.holdings.map((h, idx) => `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.03)" data-idx="${idx}">
+        <td style="padding:10px 12px;font-weight:600;color:#C0C0C0">${escapeHtml(h.symbol)}</td>
+        <td style="padding:10px 12px">${h.shares}</td>
+        <td style="padding:10px 12px" class="price-cell">$${fmt(h.current_price)}</td>
+        <td style="padding:10px 12px" class="price-cell">${fmtUSD(h.market_value)}</td>
+        <td style="padding:10px 12px" class="${changeClass(h.unrealized_pnl)} price-cell">${fmtPct(h.unrealized_pnl_pct)}</td>
+        <td style="padding:10px 12px;font-size:0.8rem;color:rgba(255,255,255,0.5)">${h.asset_class}</td>
+        <td style="padding:10px 12px;text-align:right">
+          <button onclick="deleteInstrument('${h.instrument_id || ''}','${escapeHtml(h.name)}')" style="background:none;border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.7rem">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error('Rebalancing load error:', e); }
+}
+
+// ── INSTRUMENT MANAGEMENT ──
+async function deleteInstrument(id, name) {
+  if (!id) { alert('Cannot delete: no instrument ID'); return; }
+  if (!confirm('Delete "' + name + '"? This action cannot be undone.')) return;
+  try {
+    const token = localStorage.getItem('token');
+    const resp = await fetch('/api/portfolios/' + (portfolioId || '') + '/instruments/' + id, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+    });
+    if (resp.ok || resp.status === 204) {
+      loadRebalancing();
+    } else {
+      const data = await resp.json();
+      alert(data.detail || 'Delete failed');
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+let portfolioId = null;
+
+// ── LIVE PRICES ──
+async function loadLivePrices() {
+  try {
+    const [pricesRes, snapshotRes, sectorRes] = await Promise.all([
+      fetch(API + '/streaming/prices', fetchOpts({ headers: authHeaders() })),
+      fetch(API + '/streaming/market-snapshot', fetchOpts({ headers: authHeaders() })),
+      fetch(API + '/streaming/sector-snapshot', fetchOpts({ headers: authHeaders() })),
+    ]);
+
+    const prices = await pricesRes.json();
+    const snapshot = await snapshotRes.json();
+    const sectors = await sectorRes.json();
+
+    // Index cards
+    for (const [sym, data] of Object.entries(snapshot.indices || {})) {
+      const key = sym.toLowerCase();
+      const priceEl = document.getElementById('live-' + key + '-price');
+      const changeEl = document.getElementById('live-' + key + '-change');
+      if (priceEl) { priceEl.textContent = '$' + fmt(data.price); }
+      if (changeEl) { changeEl.textContent = fmtPct(data.change_pct); changeEl.className = changeClass(data.change_pct); }
+    }
+
+    // Prices table
+    const body = document.getElementById('live-prices-body');
+    body.innerHTML = (prices.prices || []).map(p => {
+      // Build mini sparkline
+      if (!priceHistory[p.symbol]) priceHistory[p.symbol] = [];
+      priceHistory[p.symbol].push(p.price);
+      if (priceHistory[p.symbol].length > 20) priceHistory[p.symbol].shift();
+
+      const hist = priceHistory[p.symbol];
+      const minP = Math.min(...hist);
+      const maxP = Math.max(...hist);
+      const range = maxP - minP || 1;
+
+      const sparkHTML = hist.map(v => {
+        const h = Math.max(((v - minP) / range) * 20 + 2, 2);
+        const c = v >= hist[0] ? '#22c55e' : '#ef4444';
+        return `<div class="sparkline-bar" style="height:${h}px;background:${c}"></div>`;
+      }).join('');
+
+      return `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+          <td style="padding:10px 12px;font-weight:600;color:#C0C0C0">${p.symbol}</td>
+          <td style="padding:10px 12px" class="price-cell">$${fmt(p.price)}</td>
+          <td style="padding:10px 12px" class="${changeClass(p.change_pct)} price-cell">${fmtPct(p.change_pct)}</td>
+          <td style="padding:10px 12px;font-size:0.8rem;color:rgba(255,255,255,0.4)">${(p.volume||0).toLocaleString()}</td>
+          <td style="padding:10px 12px"><div class="sparkline">${sparkHTML}</div></td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('live-updated').textContent = 'Updated: ' + new Date(prices.updated_at).toLocaleTimeString();
+
+    // Sector snapshot
+    const sectEl = document.getElementById('sector-snapshot');
+    sectEl.innerHTML = (sectors.sectors || []).map(s => `
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+        <div style="width:50px;font-weight:600;color:#C0C0C0;font-size:0.85rem">${escapeHtml(s.symbol)}</div>
+        <div style="flex:1;color:rgba(255,255,255,0.6);font-size:0.85rem">${escapeHtml(s.name)}</div>
+        <div style="width:60px" class="price-cell">$${fmt(s.price)}</div>
+        <div style="width:80px" class="${changeClass(s.change_pct)} price-cell">${fmtPct(s.change_pct)}</div>
+        <div style="width:60px;text-align:center">
+          <span style="padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;
+            background:${s.signal === 'BUY' ? 'rgba(34,197,94,0.15)' : s.signal === 'SELL' ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)'};
+            color:${s.signal === 'BUY' ? '#22c55e' : s.signal === 'SELL' ? '#ef4444' : '#eab308'}">${s.signal}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { console.error('Live prices load error:', e); }
+}
+
+function refreshPrices() { loadLivePrices(); }
+
+// ── AGGREGATOR ──
+async function loadAggregator() {
+  try {
+    const [aggRes, compRes, holdRes] = await Promise.all([
+      fetch(API + '/portfolio-agg/aggregate', fetchOpts({ headers: authHeaders() })),
+      fetch(API + '/portfolio-agg/compare', fetchOpts({ headers: authHeaders() })),
+      fetch(API + '/portfolio-agg/holdings', fetchOpts({ headers: authHeaders() })),
+    ]);
+
+    const agg = await aggRes.json();
+    const comp = await compRes.json();
+    const holds = await holdRes.json();
+
+    // Stats
+    document.getElementById('agg-total-value').textContent = fmtUSD(agg.total_value);
+    const pnlEl = document.getElementById('agg-total-pnl');
+    pnlEl.textContent = fmtPct(agg.total_pnl_pct) + ' (' + fmtUSD(agg.total_pnl) + ')';
+    pnlEl.className = changeClass(agg.total_pnl);
+    document.getElementById('agg-port-count').textContent = agg.portfolio_count;
+    document.getElementById('agg-holdings').textContent = agg.total_holdings + ' total holdings';
+    document.getElementById('agg-risk').textContent = agg.concentration_risk;
+    document.getElementById('agg-risk').style.color = agg.concentration_risk === 'HIGH' ? '#ef4444' : agg.concentration_risk === 'MODERATE' ? '#eab308' : '#22c55e';
+    if (agg.top_holdings && agg.top_holdings[0]) {
+      document.getElementById('agg-top-holding').textContent = 'Top: ' + agg.top_holdings[0].symbol + ' (' + agg.top_holdings[0].pct + '%)';
+    }
+
+    // Portfolio comparison
+    const compEl = document.getElementById('portfolio-comparison');
+    const maxVal = Math.max(...comp.comparison.map(c => c.value));
+    compEl.innerHTML = comp.comparison.map(c => {
+      const barW = (c.value / maxVal * 100);
+      const retColor = c.return_pct > 10 ? '#22c55e' : c.return_pct > 0 ? '#eab308' : '#ef4444';
+      return `
+        <div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div>
+              <span style="font-weight:700;color:var(--text)">${escapeHtml(c.name)}</span>
+              <span style="padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:600;margin-left:8px;
+                background:${c.risk_level === 'AGGRESSIVE' ? 'rgba(239,68,68,0.15)' : c.risk_level === 'MODERATE' ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)'};
+                color:${c.risk_level === 'AGGRESSIVE' ? '#ef4444' : c.risk_level === 'MODERATE' ? '#eab308' : '#22c55e'}">${c.risk_level}</span>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700">${fmtUSD(c.value)}</div>
+              <div style="font-size:0.8rem;color:${retColor}">${fmtPct(c.return_pct)}</div>
+            </div>
+          </div>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:hidden">
+            <div style="height:100%;width:${barW}%;background:${retColor};border-radius:3px"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Combined allocation
+    const allocEl = document.getElementById('combined-alloc');
+    const allocColors = ['#E0E0E0','#E0E0E0','#C0C0C0','#D0D0D0','#E8E8E8','#f43f5e','#ef4444','#f97316','#eab308'];
+    allocEl.innerHTML = '<div style="display:flex;gap:4px;height:24px;border-radius:12px;overflow:hidden;margin-bottom:12px">' +
+      Object.entries(agg.combined_allocation || {}).map(([k, v], i) =>
+        `<div style="width:${v}%;background:${allocColors[i % allocColors.length]};min-width:2px" title="${k}: ${v}%"></div>`
+      ).join('') + '</div>' +
+      Object.entries(agg.combined_allocation || {}).map(([k, v], i) =>
+        `<span style="display:inline-block;margin-right:12px;font-size:0.75rem;color:rgba(255,255,255,0.6)">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${allocColors[i % allocColors.length]};vertical-align:middle;margin-right:4px"></span>
+          ${k.replace(/_/g, ' ')}: ${v}%
+        </span>`
+      ).join('');
+
+    // Top holdings
+    const holdBody = document.getElementById('agg-holdings-body');
+    holdBody.innerHTML = (holds.holdings || []).slice(0, 15).map(h => `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.03)">
+        <td style="padding:10px 12px;font-weight:600;color:#C0C0C0">${escapeHtml(h.symbol)}</td>
+        <td style="padding:10px 12px" class="price-cell">${fmtUSD(h.total_value)}</td>
+        <td style="padding:10px 12px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:60px;height:6px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:hidden">
+              <div style="height:100%;width:${Math.min(h.pct_of_total, 100)}%;background:#E0E0E0;border-radius:3px"></div>
+            </div>
+            <span style="font-size:0.8rem;color:rgba(255,255,255,0.5)">${h.pct_of_total}%</span>
+          </div>
+        </td>
+        <td style="padding:10px 12px;font-size:0.8rem;color:rgba(255,255,255,0.5)">${(h.portfolios || []).join(', ')}</td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error('Aggregator load error:', e); }
+}
+
+// ── Init ──
+async function initWithRetry(fn, retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try { await fn(); return; } catch(e) { if (i < retries - 1) await new Promise(r => setTimeout(r, delay)); }
+  }
+}
+
+// Stagger initial loads
+setTimeout(() => initWithRetry(loadRebalancing), 500);
+setTimeout(() => initWithRetry(loadAggregator), 1000);
+
+// Auto-refresh live prices every 30 seconds
+let liveInterval = null;
+function startLiveRefresh() {
+  if (liveInterval) clearInterval(liveInterval);
+  liveInterval = setInterval(() => {
+    if (document.getElementById('tab-live').style.display !== 'none') {
+      loadLivePrices();
+    }
+  }, 30000);
+}
+startLiveRefresh();
+</script>
+{% endblock %}

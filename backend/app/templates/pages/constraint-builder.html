@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Constraint Builder - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Constraint Builder{% endblock %}
+{% block content %}
+<div class="card" style="padding:28px;margin-bottom:20px;">
+  <div class="section-title">Add Constraint</div>
+  <form style="display:flex;flex-direction:column;gap:16px;margin-top:12px;">
+    <div class="grid grid-3">
+      <div>
+        <label class="label">Asset Class</label>
+        <select class="input"><option>All</option><option>Fixed Income</option><option>Equity</option><option>FX</option><option>Commodity</option></select>
+      </div>
+      <div>
+        <label class="label">Constraint Type</label>
+        <select class="input"><option>Max Weight</option><option>Min Weight</option><option>Duration Range</option><option>Rating Floor</option><option>Sector Limit</option></select>
+      </div>
+      <div>
+        <label class="label">Value</label>
+        <input type="text" class="input" placeholder="e.g. 30%">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="submit" class="btn btn-primary">Add Constraint</button>
+    </div>
+  </form>
+</div>
+<div class="card">
+  <div class="section-title">Active Constraints</div>
+  <table>
+    <thead><tr><th>Asset Class</th><th>Type</th><th>Value</th><th>Enforced</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">All</td><td>Max Weight</td><td>30%</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Remove</button></td></tr>
+      <tr><td style="font-weight:600;">Fixed Income</td><td>Duration Range</td><td>3-8 years</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Remove</button></td></tr>
+      <tr><td style="font-weight:600;">Fixed Income</td><td>Rating Floor</td><td>BBB+</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Remove</button></td></tr>
+      <tr><td style="font-weight:600;">Equity</td><td>Max Weight</td><td>15%</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Remove</button></td></tr>
+      <tr><td style="font-weight:600;">All</td><td>Sector Limit</td><td>20%</td><td><span class="badge badge-yellow">Paused</span></td><td><button class="btn btn-ghost btn-sm" style="color:var(--red);">Remove</button></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

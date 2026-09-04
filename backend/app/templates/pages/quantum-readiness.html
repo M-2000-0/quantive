@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Quantum Readiness - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Quantum Readiness{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Quantum Score</div>
+    <div class="stat-value" style="color:var(--green);">Level 3</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Post-Quantum Algorithms</div>
+    <div class="stat-value">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Migration Progress</div>
+    <div class="stat-value" style="color:var(--yellow);">68%</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Quantum Readiness Assessment</div>
+  <table>
+    <thead><tr><th>Component</th><th>Status</th><th>Algorithm</th><th>Migration</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">TLS Certificates</td><td><span class="badge badge-green">Migrated</span></td><td>CRYSTALS-Kyber</td><td><span class="badge badge-green">100%</span></td></tr>
+      <tr><td style="font-weight:600;">Data Encryption</td><td><span class="badge badge-green">Migrated</span></td><td>CRYSTALS-Dilithium</td><td><span class="badge badge-green">100%</span></td></tr>
+      <tr><td style="font-weight:600;">Digital Signatures</td><td><span class="badge badge-yellow">In Progress</span></td><td>FALCON</td><td><span class="badge badge-yellow">72%</span></td></tr>
+      <tr><td style="font-weight:600;">Key Exchange</td><td><span class="badge badge-yellow">In Progress</span></td><td>CRYSTALS-Kyber</td><td><span class="badge badge-yellow">65%</span></td></tr>
+      <tr><td style="font-weight:600;">Hash Functions</td><td><span class="badge badge-green">Migrated</span></td><td>SHA-3 / SPHINCS+</td><td><span class="badge badge-green">100%</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

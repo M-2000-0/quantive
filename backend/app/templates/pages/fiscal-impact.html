@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Fiscal Impact - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Fiscal Impact Analysis{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Net Fiscal Impact</div>
+    <div class="stat-value" style="color:var(--green);"><span id="fi-net">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Policies Analyzed</div>
+    <div class="stat-value">18</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Implementation Cost</div>
+    <div class="stat-value"><span id="fi-cost">--</span></div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Fiscal Impact Summary</div>
+  <table>
+    <thead><tr><th>Policy</th><th>Revenue Impact</th><th>Cost Impact</th><th>Net Impact</th><th>Timeline</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Tax Reform 2026</td><td style="color:var(--green);"><span id="fi-rev1">--</span></td><td style="color:var(--red);"><span id="fi-cost1">--</span></td><td style="color:var(--green);"><span id="fi-net1">--</span></td><td>5 years</td></tr>
+      <tr><td style="font-weight:600;">Infrastructure Spend</td><td style="color:var(--green);"><span id="fi-rev2">--</span></td><td style="color:var(--red);"><span id="fi-cost2">--</span></td><td style="color:var(--red);"><span id="fi-net2">--</span></td><td>10 years</td></tr>
+      <tr><td style="font-weight:600;">Rate Cut (50bps)</td><td style="color:var(--red);"><span id="fi-rev3">--</span></td><td style="color:var(--green);"><span id="fi-cost3">--</span></td><td style="color:var(--green);"><span id="fi-net3">--</span></td><td>Immediate</td></tr>
+      <tr><td style="font-weight:600;">Green Bond Issuance</td><td style="color:var(--green);"><span id="fi-rev4">--</span></td><td style="color:var(--red);"><span id="fi-cost4">--</span></td><td style="color:var(--green);"><span id="fi-net4">--</span></td><td>5 years</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

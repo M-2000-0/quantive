@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}ZK Policy - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Zero-Knowledge Policy{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">ZK Proofs Generated</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Verification Rate</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Privacy Level</div>
+    <div class="stat-value" style="color:var(--green);">Maximum</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">ZK Policy Configuration</div>
+  <table>
+    <thead><tr><th>Policy</th><th>Type</th><th>Status</th><th>Last Verified</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Decision Integrity Proof</td><td>zk-SNARK</td><td><span class="badge badge-green">Active</span></td><td>Real-time</td></tr>
+      <tr><td style="font-weight:600;">Compliance Proof</td><td>zk-STARK</td><td><span class="badge badge-green">Active</span></td><td>Real-time</td></tr>
+      <tr><td style="font-weight:600;">Audit Trail Proof</td><td>zk-SNARK</td><td><span class="badge badge-green">Active</span></td><td>Real-time</td></tr>
+      <tr><td style="font-weight:600;">Identity Verification</td><td>zk-Identity</td><td><span class="badge badge-green">Active</span></td><td>2h ago</td></tr>
+      <tr><td style="font-weight:600;">Data Residency Proof</td><td>zk-STARK</td><td><span class="badge badge-green">Active</span></td><td>1d ago</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

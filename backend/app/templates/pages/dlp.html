@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}DLP - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Data Loss Prevention{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">DLP Status</div>
+    <div class="stat-value" style="color:var(--green);">Active</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Policies Enforced</div>
+    <div class="stat-value">24</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Blocks (30d)</div>
+    <div class="stat-value" style="color:var(--yellow);">3</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">DLP Policies</div>
+  <table>
+    <thead><tr><th>Policy</th><th>Type</th><th>Scope</th><th>Status</th><th>Blocks</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Financial Data Export</td><td>Prevent</td><td>All Users</td><td><span class="badge badge-green">Active</span></td><td>2</td></tr>
+      <tr><td style="font-weight:600;">PII Detection</td><td>Detect</td><td>All Users</td><td><span class="badge badge-green">Active</span></td><td>1</td></tr>
+      <tr><td style="font-weight:600;">Email Classification</td><td>Classify</td><td>All Users</td><td><span class="badge badge-green">Active</span></td><td>0</td></tr>
+      <tr><td style="font-weight:600;">USB Data Transfer</td><td>Block</td><td>All Users</td><td><span class="badge badge-green">Active</span></td><td>0</td></tr>
+      <tr><td style="font-weight:600;">Cloud Upload</td><td>Prevent</td><td>All Users</td><td><span class="badge badge-green">Active</span></td><td>0</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

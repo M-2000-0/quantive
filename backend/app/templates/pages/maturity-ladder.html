@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Maturity Ladder - Quantive{% endblock %}
+{% set active_page = 'market' %}
+{% block page_title %}Maturity Ladder{% endblock %}
+{% block content %}
+<div class="card" style="padding:28px;">
+  <div class="section-title">Maturity Progression</div>
+  <div style="display:flex;flex-direction:column;gap:20px;margin-top:16px;">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:var(--green-bg);display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--green);flex-shrink:0;">1</div>
+      <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level 1: Foundation</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Basic data collection, manual processes</div></div>
+      <span class="badge badge-green">Completed</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:var(--green-bg);display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--green);flex-shrink:0;">2</div>
+      <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level 2: Standardized</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Automated reporting, standardized workflows</div></div>
+      <span class="badge badge-green">Completed</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:var(--green-bg);display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--green);flex-shrink:0;">3</div>
+      <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level 3: Integrated</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Cross-portfolio analytics, real-time monitoring</div></div>
+      <span class="badge badge-green">Completed</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:var(--yellow-bg);display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--yellow);flex-shrink:0;">4</div>
+      <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level 4: Optimized</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">AI-driven decisions, predictive analytics</div></div>
+      <span class="badge badge-yellow">In Progress</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="width:48px;height:48px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--text3);flex-shrink:0;">5</div>
+      <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Level 5: Autonomous</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Full automation, self-optimizing systems</div></div>
+      <span class="badge badge-default">Target</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

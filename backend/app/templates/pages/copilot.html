@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}AI Advisor — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:900px;margin:0 auto;padding:32px 24px">
+  <!-- Header -->
+  <div style="margin-bottom:32px">
+    <div class="stat-label" style="margin-bottom:8px">AI ADVISOR</div>
+    <h1 style="font-size:28px;font-weight:700;color:var(--text);margin:0">Sovereign Finance Intelligence</h1>
+    <p style="font-size:13px;color:var(--text3);margin-top:6px">Ask questions about your portfolio, get refinancing proposals, analyze risk scenarios</p>
+  </div>
+
+  <!-- Health Score Card -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="stat-label" style="margin-bottom:8px">PORTFOLIO HEALTH</div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span id="health-score" style="font-size:48px;font-weight:800;color:var(--text)">--</span>
+          <span style="font-size:14px;color:var(--text3)">/100</span>
+        </div>
+        <p id="health-summary" style="font-size:13px;color:var(--text2);margin-top:8px;max-width:500px;line-height:1.5"></p>
+      </div>
+      <div id="health-factors" style="display:flex;flex-direction:column;gap:8px;min-width:200px"></div>
+    </div>
+  </div>
+
+  <!-- Refinancing Proposals -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">REFINANCING PROPOSALS</div>
+    <div id="proposals-list" style="display:flex;flex-direction:column;gap:12px">
+      <div style="color:var(--text3);font-size:12px">Loading proposals...</div>
+    </div>
+  </div>
+
+  <!-- Insights -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">PORTFOLIO INSIGHTS</div>
+    <div id="insights-list" style="display:flex;flex-direction:column;gap:12px">
+      <div style="color:var(--text3);font-size:12px">Loading insights...</div>
+    </div>
+  </div>
+
+  <!-- Chat Interface -->
+  <div class="glass" style="padding:24px">
+    <div class="stat-label" style="margin-bottom:16px">ASK THE ADVISOR</div>
+    <div id="chat-messages" style="min-height:120px;max-height:400px;overflow-y:auto;margin-bottom:16px;padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)">
+      <div style="font-size:13px;color:var(--text3);padding:8px">Try: "What is our refinancing risk for 2027?" or "Compare issuing in USD vs MXN"</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input id="chat-input" type="text" placeholder="Ask about refinancing, FX hedging, rate scenarios..." style="flex:1;padding:12px 16px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendQuestion()">
+      <button onclick="sendQuestion()" style="padding:12px 20px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadData() {
+  try {
+    // Portfolio health
+    const health = await fetch('/api/ai-advisor/portfolio-health').then(r => r.json());
+    document.getElementById('health-score').textContent = health.health_score;
+    document.getElementById('health-score').style.color = health.health_score > 70 ? 'var(--green)' : health.health_score > 50 ? '#fbbf24' : 'var(--red)';
+    document.getElementById('health-summary').textContent = health.summary;
+
+    const factorsEl = document.getElementById('health-factors');
+    factorsEl.innerHTML = health.factors.map(f => {
+      const color = f.score > 75 ? 'var(--green)' : f.score > 55 ? '#fbbf24' : 'var(--red)';
+      return `<div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;font-size:11px;color:var(--text2)">${f.name}</div>
+        <div style="width:60px;height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden">
+          <div style="width:${f.score}%;height:100%;background:${color};border-radius:2px"></div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:${color};width:28px;text-align:right">${f.score}</div>
+      </div>`;
+    }).join('');
+
+    // Refinancing proposals
+    const proposals = await fetch('/api/ai-advisor/refinancing-proposals').then(r => r.json());
+    document.getElementById('proposals-list').innerHTML = proposals.proposals.map(p => {
+      const savingsColor = p.estimated_annual_savings > 0 ? 'var(--green)' : 'var(--text3)';
+      return `<div style="padding:16px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.15)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(p.title)}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${p.instrument_from} → ${p.instrument_to}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:18px;font-weight:800;color:${savingsColor}">$${(p.estimated_annual_savings/1e6).toFixed(0)}M</div>
+            <div style="font-size:10px;color:var(--text3)">annual savings</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);line-height:1.5;margin:8px 0">${escapeHtml(p.description)}</p>
+        <div style="display:flex;gap:16px;font-size:11px;color:var(--text3)">
+          <span>Confidence: <strong style="color:var(--green)">${p.confidence_pct}%</strong></span>
+          <span>Timeline: ${p.execution_timeline}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Insights
+    const insights = await fetch('/api/ai-advisor/insights').then(r => r.json());
+    document.getElementById('insights-list').innerHTML = insights.insights.map(i => {
+      const colors = { critical: 'var(--red)', high: '#fbbf24', medium: 'var(--blue)', low: 'var(--text3)' };
+      const icons = { opportunity: '&#9650;', risk: '&#9888;', recommendation: '&#9670;', observation: '&#9679;' };
+      return `<div style="padding:14px;border-radius:8px;border-left:3px solid ${colors[i.priority]};background:rgba(0,0,0,0.15)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${icons[i.category]} ${escapeHtml(i.title)}</div>
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:${colors[i.priority]}22;color:${colors[i.priority]}">${i.priority}</span>
+        </div>
+        <p style="font-size:12px;color:var(--text2);line-height:1.5;margin:0">${i.detail}</p>
+        ${i.impact_usd ? `<div style="font-size:11px;color:var(--green);margin-top:6px;font-weight:600">Impact: $${(i.impact_usd/1e6).toFixed(0)}M</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.error('Failed to load AI advisor data:', e);
+  }
+}
+
+async function sendQuestion() {
+  const input = document.getElementById('chat-input');
+  const question = input.value.trim();
+  if (!question) return;
+
+  const messages = document.getElementById('chat-messages');
+  messages.innerHTML += `<div style="padding:8px 12px;margin-bottom:8px;border-radius:8px;background:rgba(96,165,250,0.1);font-size:13px;color:var(--text);text-align:right">${escapeHtml(question)}</div>`;
+  input.value = '';
+
+  try {
+    const res = await fetch(`/api/ai-advisor/ask?question=${encodeURIComponent(question)}`, {method:'POST'}).then(r=>r.json());
+    messages.innerHTML += `<div style="padding:10px 12px;margin-bottom:8px;border-radius:8px;background:rgba(255,255,255,0.04);font-size:13px;color:var(--text2);line-height:1.6">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Confidence: ${escapeHtml(String(res.confidence||'--'))}% | Sources: ${escapeHtml((res.data_sources||[]).join(', '))}</div>
+      ${escapeHtml(res.answer||'No answer available')}
+    </div>`;
+    messages.scrollTop = messages.scrollHeight;
+  } catch(e) {
+    messages.innerHTML += `<div style="padding:8px 12px;color:var(--red);font-size:12px">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+loadData();
+</script>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Quantum Simulator — Quantive{% endblock %}
+{% block content %}
+<div style="min-height:100%;margin:-24px;padding:24px">
+  <div style="margin-bottom:24px">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--blue);margin-bottom:4px">Priority 5</div>
+    <div style="font-size:28px;font-weight:800;color:#fff">Quantum Simulator</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px">GPU-accelerated simulation with realistic noise modeling and hardware comparison</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="glass" style="padding:20px">
+      <div class="section-title">Simulate</div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label style="font-size:10px;color:var(--text3)">Qubits</label><input id="sim-qubits" type="number" value="4" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"></div>
+        <div><label style="font-size:10px;color:var(--text3)">Shots</label><input id="sim-shots" type="number" value="4096" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"></div>
+        <div><label style="font-size:10px;color:var(--text3)">Backend</label><select id="sim-backend" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"><option value="ibm_heron">IBM Heron</option><option value="quantinuum_h2">Quantinuum H2</option><option value="ionq_harmony">IonQ Harmony</option><option value="google_willow">Google Willow</option><option value="simulator">Noiseless</option></select></div>
+        <div><label style="font-size:10px;color:var(--text3)">Noise</label><select id="sim-noise" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"><option value="hardware_realistic">Realistic</option><option value="depolarizing">Depolarizing</option><option value="none">None</option></select></div>
+      </div>
+      <button onclick="runSim()" class="btn btn-primary" style="margin-top:12px;padding:8px 20px;font-size:11px">Run Simulation</button>
+      <div id="sim-result" style="margin-top:12px"></div>
+    </div>
+    <div class="glass" style="padding:20px">
+      <div class="section-title">Compare Backends</div>
+      <button onclick="runCompare()" class="btn btn-secondary" style="margin-top:12px;padding:8px 16px;font-size:11px">Compare All</button>
+      <div id="compare-result" style="margin-top:12px"></div>
+    </div>
+  </div>
+  <div class="glass" style="padding:20px"><div class="section-title">Hardware Noise Profiles</div><div id="profiles-list" style="margin-top:12px">Loading...</div></div>
+</div>
+<script>
+const token=localStorage.getItem('token')||'';const hdrs=token?{'Authorization':'Bearer '+token}:{};
+async function api(p,o={}){const r=await fetch('/api/quantum-simulator'+p,{...o,headers:{...hdrs,...o.headers}});return r.json();}
+async function runSim(){const q=parseInt(document.getElementById('sim-qubits').value)||4;const s=parseInt(document.getElementById('sim-shots').value)||4096;const b=document.getElementById('sim-backend').value;const n=document.getElementById('sim-noise').value;const d=await api('/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({num_qubits:q,shots:s,backend_profile:b,noise_model:n})});let h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"><div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:6px"><div style="font-size:9px;color:var(--text3)">FIDELITY</div><div style="font-size:18px;font-weight:800;color:var(--green);margin-top:2px">'+(d.fidelity*100).toFixed(2)+'%</div></div><div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:6px"><div style="font-size:9px;color:var(--text3)">TIME</div><div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px">'+d.simulation_time_ms+'ms</div></div></div><div style="font-size:10px;color:var(--text3);margin-bottom:8px">Top outcomes:</div>';Object.entries(d.counts).slice(0,8).forEach(([k,v])=>{const p=(v/d.total_shots*100).toFixed(1);h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:monospace;font-size:11px;color:#fff;width:60px">|'+k+'></span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+p+'%;background:var(--blue);border-radius:3px"></div></div><span style="font-size:10px;color:var(--text3);width:40px;text-align:right">'+p+'%</span></div>';});document.getElementById('sim-result').innerHTML=h;}
+async function runCompare(){const q=parseInt(document.getElementById('sim-qubits').value)||4;const s=parseInt(document.getElementById('sim-shots').value)||4096;const d=await api('/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({num_qubits:q,shots:s})});let h='';d.comparisons.forEach(c=>{const cl=c.suitable?(c.rank===1?'var(--green)':'var(--blue)'):'var(--red)';h+='<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.05)"><div style="display:flex;justify-content:space-between"><span style="font-weight:600;color:#fff;font-size:11px">#'+c.rank+' '+c.name+'</span><span style="font-size:9px;color:'+cl+'">'+(c.suitable?c.recommendation:'UNSUITABLE')+'</span></div><div style="font-size:9px;color:var(--text3);margin-top:2px">F:'+(c.fidelity*100).toFixed(1)+'% &middot; $'+c.cost_usd+' &middot; '+c.type+'</div></div>';});document.getElementById('compare-result').innerHTML=h;}
+async function loadProfiles(){const d=await api('/noise-profiles');let h='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">';d.profiles.forEach(p=>{h+='<div style="background:rgba(255,255,255,0.03);padding:12px;border-radius:8px"><div style="font-weight:600;color:#fff;font-size:11px">'+p.name+'</div><div style="margin-top:6px;font-size:9px;color:var(--text3)"><div>1Q Error: '+(p.gate_error_1q*100).toFixed(2)+'%</div><div>2Q Error: '+(p.gate_error_2q*100).toFixed(2)+'%</div><div>Readout: '+(p.readout_error*100).toFixed(1)+'%</div><div>Max: '+p.max_qubits+' qubits</div></div></div>';});document.getElementById('profiles-list').innerHTML=h+'</div>';}
+loadProfiles();
+</script>
+{% endblock %}

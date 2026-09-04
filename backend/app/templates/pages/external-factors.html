@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% block title %}External Factors Intelligence — Quantive{% endblock %}
+{% block content %}
+<div style="min-height:100%;margin:-24px;padding:24px">
+
+  <!-- HEADER -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+    <div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--blue);margin-bottom:4px">External Factors Intelligence</div>
+      <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.03em">Hidden Market Drivers</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Six overlooked factors that move prices before traditional analysis catches up</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="refreshAll()" class="btn btn-secondary" style="padding:8px 16px;font-size:11px">
+        <span style="margin-right:4px">&#8635;</span> Refresh All
+      </button>
+    </div>
+  </div>
+
+  <!-- OVERALL RISK SCORE -->
+  <div id="risk-score-card" class="glass" style="padding:24px;margin-bottom:24px;display:grid;grid-template-columns:1fr 2fr;gap:24px;align-items:center">
+    <div style="text-align:center">
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px">Composite External Risk Score</div>
+      <div id="risk-score" style="font-size:64px;font-weight:900;color:var(--blue);letter-spacing:-0.04em">--</div>
+      <div id="risk-rating" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Loading...</div>
+    </div>
+    <div id="risk-breakdown" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Regulatory</div>
+        <div id="reg-count" style="font-size:22px;font-weight:800;color:#fff;margin-top:4px">--</div>
+        <div style="font-size:9px;color:var(--text3)">high-urgency items</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Supply Chain</div>
+        <div id="sc-score" style="font-size:22px;font-weight:800;color:#fff;margin-top:4px">--</div>
+        <div style="font-size:9px;color:var(--text3)">avg diversification</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Climate</div>
+        <div id="clim-count" style="font-size:22px;font-weight:800;color:#fff;margin-top:4px">--</div>
+        <div style="font-size:9px;color:var(--text3)">high-probability risks</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Insider</div>
+        <div id="insider-signal" style="font-size:18px;font-weight:800;color:#fff;margin-top:4px">--</div>
+        <div style="font-size:9px;color:var(--text3)">activity signal</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Correlation</div>
+        <div id="corr-warnings" style="font-size:22px;font-weight:800;color:#fff;margin-top:4px">--</div>
+        <div style="font-size:9px;color:var(--text3)">warning signals</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)">Research</div>
+        <div id="research-near" style="font-size:22px;font-weight:800;color:#fff;margin-top:4px">--</div>
+        <div style="font-size:9px;color:var(--text3)">near-commercial</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FACTOR GRID -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+
+    <!-- 1. Regulatory Lag -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div>
+        <div class="section-title" style="margin:0">1. Regulatory Lag Effects</div>
+      </div>
+      <div id="reg-list" style="font-size:11px;color:var(--text2)">Loading regulatory data...</div>
+    </div>
+
+    <!-- 2. Supply Chain -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></div>
+        <div class="section-title" style="margin:0">2. Supply Chain Concentration</div>
+      </div>
+      <div id="sc-list" style="font-size:11px;color:var(--text2)">Loading supply chain data...</div>
+    </div>
+
+    <!-- 3. Climate -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+        <div class="section-title" style="margin:0">3. Weather / Climate Impact</div>
+      </div>
+      <div id="clim-list" style="font-size:11px;color:var(--text2)">Loading climate data...</div>
+    </div>
+
+    <!-- 4. Insider Activity -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></div>
+        <div class="section-title" style="margin:0">4. Insider Activity Patterns</div>
+      </div>
+      <div id="insider-list" style="font-size:11px;color:var(--text2)">Loading insider data...</div>
+    </div>
+
+    <!-- 5. Correlation -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></div>
+        <div class="section-title" style="margin:0">5. Cross-Asset Correlation Shifts</div>
+      </div>
+      <div id="corr-list" style="font-size:11px;color:var(--text2)">Loading correlation data...</div>
+    </div>
+
+    <!-- 6. Research Pipeline -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></div>
+        <div class="section-title" style="margin:0">6. Research Translation Pipeline</div>
+      </div>
+      <div id="research-list" style="font-size:11px;color:var(--text2)">Loading research data...</div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- HISTORICAL TRENDS -->
+<div class="glass" style="padding:24px;margin-bottom:24px">
+  <div class="section-title" style="margin-bottom:16px">Historical Trends (12 Months)</div>
+  <div id="trends-chart" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+  <div id="trends-deltas" style="margin-top:16px"></div>
+</div>
+
+<script>
+const API = '/api/external-factors';
+const token = localStorage.getItem('token') || '';
+
+async function api(path) {
+  const resp = await fetch(API + path, {
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (!resp.ok) throw new Error(resp.status);
+  return resp.json();
+}
+
+function badge(color, text) {
+  return `<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:600;background:${color}20;color:${color};text-transform:uppercase;letter-spacing:0.05em">${text}</span>`;
+}
+
+function renderRegulatory(data) {
+  const regs = data.regulations.slice(0, 5);
+  let html = '';
+  regs.forEach(r => {
+    const urgencyColor = r.urgency === 'high' ? 'var(--red)' : r.urgency === 'medium' ? 'var(--yellow)' : 'var(--green)';
+    html += `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div style="font-weight:600;color:#fff;font-size:11px">${r.title}</div>
+        ${badge(urgencyColor, r.urgency)}
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">${r.jurisdiction} &middot; ${r.phase.replace(/_/g, ' ')} &middot; ${r.estimated_impact_window}</div>
+    </div>`;
+  });
+  document.getElementById('reg-list').innerHTML = html;
+  document.getElementById('reg-count').textContent = data.summary.high_urgency;
+}
+
+function renderSupplyChain(data) {
+  const chains = data.supply_chains;
+  let html = '';
+  chains.forEach(c => {
+    const riskColor = c.risk_rating === 'critical' ? 'var(--red)' : c.risk_rating === 'high' ? 'var(--yellow)' : 'var(--green)';
+    const topNode = c.critical_nodes[0];
+    html += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;color:#fff;font-size:11px;text-transform:capitalize">${c.sector.replace(/_/g, ' ')}</span>
+        <span style="font-size:11px;font-weight:700;color:${riskColor}">${c.diversification_score}/100</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${topNode.name}: ${topNode.share_pct}% share &middot; ${c.portfolio_relevant ? 'Portfolio-linked' : ''}</div>
+    </div>`;
+  });
+  document.getElementById('sc-list').innerHTML = html;
+  document.getElementById('sc-score').textContent = data.summary.average_diversification.toFixed(0);
+}
+
+function renderClimate(data) {
+  const regions = data.regions.filter(r => r.portfolio_relevant || r.overall_risk === 'high');
+  let html = '';
+  regions.forEach(r => {
+    r.risks.forEach(ri => {
+      if ((ri.probability_30d || ri.probability_60d || 0) > 0.15) {
+        const prob = ri.probability_30d || ri.probability_60d || 0;
+        const probColor = prob > 0.4 ? 'var(--red)' : prob > 0.25 ? 'var(--yellow)' : 'var(--green)';
+        html += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:600;color:#fff;font-size:11px">${r.region} — ${ri.type.replace(/_/g, ' ')}</span>
+            <span style="font-size:11px;font-weight:700;color:${probColor}">${(prob * 100).toFixed(0)}%</span>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${ri.description.substring(0, 80)}...</div>
+        </div>`;
+      }
+    });
+  });
+  document.getElementById('clim-list').innerHTML = html || '<div style="font-size:11px;color:var(--text3)">No high-probability climate risks detected</div>';
+  document.getElementById('clim-count').textContent = data.summary.high_probability_risks;
+}
+
+function renderInsider(data) {
+  const acts = data.activities.slice(0, 4);
+  let html = '';
+  acts.forEach(a => {
+    const actionColor = a.action === 'sold' ? 'var(--red)' : 'var(--green)';
+    const anomalyIcon = a.pattern_anomaly ? ' !' : '';
+    html += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;color:#fff;font-size:11px">${a.company}</span>
+        <span style="font-size:11px;font-weight:700;color:${actionColor}">${a.action.toUpperCase()} $${(a.total_usd / 1e6).toFixed(1)}M${anomalyIcon}</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${a.insider} &middot; ${a.pattern_note}</div>
+    </div>`;
+  });
+  const signal = data.summary.signal;
+  const signalColor = signal === 'bullish' ? 'var(--green)' : signal.includes('bearish') ? 'var(--red)' : 'var(--text3)';
+  document.getElementById('insider-list').innerHTML = html;
+  document.getElementById('insider-signal').textContent = signal.toUpperCase().replace('_', ' ');
+  document.getElementById('insider-signal').style.color = signalColor;
+}
+
+function renderCorrelation(data) {
+  const pairs = data.pairs;
+  let html = '';
+  pairs.forEach(p => {
+    const sigColor = p.signal === 'warning' ? 'var(--red)' : p.signal === 'positive' ? 'var(--green)' : 'var(--text3)';
+    const corrBar = Math.abs(p.current_corr) * 100;
+    html += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:600;color:#fff;font-size:11px">${p.pair}</span>
+        <span style="font-size:11px;font-weight:700;color:${sigColor}">${p.current_corr > 0 ? '+' : ''}${p.current_corr.toFixed(2)}</span>
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:4px;overflow:hidden">
+        <div style="height:100%;width:${corrBar}%;background:${sigColor};border-radius:2px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">${p.detail.substring(0, 80)}...</div>
+    </div>`;
+  });
+  document.getElementById('corr-list').innerHTML = html;
+  document.getElementById('corr-warnings').textContent = data.summary.warning_signals;
+}
+
+function renderResearch(data) {
+  const papers = data.pipeline.slice(0, 4);
+  let html = '';
+  papers.forEach(p => {
+    const phaseColor = p.phase === 'near_commercial' ? 'var(--green)' : p.phase === 'development' ? 'var(--yellow)' : 'var(--blue)';
+    html += `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div style="font-weight:600;color:#fff;font-size:11px;flex:1">${escapeHtml(p.title)}</div>
+        ${badge(phaseColor, p.phase.replace(/_/g, ' '))}
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,0.05);border-radius:2px;margin:4px 0;overflow:hidden">
+        <div style="height:100%;width:${p.progress_pct}%;background:${phaseColor};border-radius:2px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3)">${p.institution} &middot; Est. ${p.estimated_commercial_date} &middot; Confidence: ${(p.confidence * 100).toFixed(0)}%</div>
+    </div>`;
+  });
+  document.getElementById('research-list').innerHTML = html;
+  document.getElementById('research-near').textContent = data.summary.near_commercial;
+}
+
+async function refreshAll() {
+  try {
+    const data = await api('/dashboard');
+
+    // Risk score
+    const rs = data.overall_risk_score;
+    document.getElementById('risk-score').textContent = rs.score;
+    document.getElementById('risk-rating').textContent = rs.rating.toUpperCase();
+    const ratingColor = rs.rating === 'elevated' ? 'var(--red)' : rs.rating === 'moderate' ? 'var(--yellow)' : 'var(--green)';
+    document.getElementById('risk-score').style.color = ratingColor;
+    document.getElementById('risk-rating').style.color = ratingColor;
+
+    renderRegulatory(data.regulatory);
+    renderSupplyChain(data.supply_chain);
+    renderClimate(data.climate);
+    renderInsider(data.insider_activity);
+    renderCorrelation(data.correlation);
+    renderResearch(data.research_pipeline);
+    } catch (e) {
+      console.error('Failed to load external factors:', e);
+    }
+    // Load trends
+    loadTrends();
+  }
+
+  async function loadTrends() {
+    try {
+      const resp = await fetch(API + '/trends', { credentials: 'include' });
+      const data = await resp.json();
+      renderTrends(data);
+    } catch(e) { console.error('Trends load failed:', e); }
+  }
+
+  function renderTrends(data) {
+    const container = document.getElementById('trends-chart');
+    const deltasEl = document.getElementById('trends-deltas');
+    if (!container) return;
+    
+    const factorLabels = {
+      regulatory: 'Regulatory', supply_chain: 'Supply Chain', climate: 'Climate',
+      insider_activity: 'Insider Activity', correlation: 'Correlation', research_pipeline: 'Research'
+    };
+    const factorColors = {
+      regulatory: '#ef4444', supply_chain: '#eab308', climate: '#22c55e',
+      insider_activity: '#3b82f6', correlation: '#a855f7', research_pipeline: '#06b6d4'
+    };
+    
+    let cardsHTML = '';
+    let deltasHTML = '';
+    
+    for (const [key, values] of Object.entries(data.trends)) {
+      const color = factorColors[key] || '#fff';
+      const label = factorLabels[key] || key;
+      const d = data.deltas[key];
+      const deltaColor = d.delta > 0 ? 'var(--red)' : d.delta < 0 ? 'var(--green)' : 'var(--text3)';
+      
+      // Mini sparkline
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const range = max - min || 1;
+      const sparkW = 180;
+      const sparkH = 40;
+      const points = values.map((v, i) => {
+        const x = (i / (values.length - 1)) * sparkW;
+        const y = sparkH - ((v - min) / range) * (sparkH - 8) - 4;
+        return x + ',' + y;
+      }).join(' ');
+      
+      cardsHTML += '<div style="padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+          '<span style="font-size:0.7rem;font-weight:600;color:' + color + '">' + label + '</span>' +
+          '<span style="font-size:0.75rem;font-weight:700;color:#fff">' + d.current + '</span>' +
+        '</div>' +
+        '<svg viewBox="0 0 ' + sparkW + ' ' + sparkH + '" style="width:100%;height:' + sparkH + 'px">' +
+          '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '<circle cx="' + sparkW + '" cy="' + (sparkH - ((d.current - min) / range) * (sparkH - 8) - 4) + '" r="3" fill="' + color + '"/>' +
+        '</svg>' +
+        '<div style="display:flex;justify-content:space-between;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-top:4px">' +
+          '<span>12m ago: ' + values[0] + '</span>' +
+          '<span style="color:' + deltaColor + '">' + (d.delta > 0 ? '+' : '') + d.delta + ' vs prev month</span>' +
+        '</div>' +
+      '</div>';
+    }
+    
+    container.innerHTML = cardsHTML;
+    
+    // Delta summary
+    const upCount = Object.values(data.deltas).filter(d => d.direction === 'up').length;
+    const downCount = Object.values(data.deltas).filter(d => d.direction === 'down').length;
+    deltasHTML = '<div style="display:flex;gap:16px;font-size:0.75rem">' +
+      '<span style="color:var(--red)">' + upCount + ' factors trending up (increasing risk)</span>' +
+      '<span style="color:var(--green)">' + downCount + ' factors trending down (decreasing risk)</span>' +
+    '</div>';
+    deltasEl.innerHTML = deltasHTML;
+  }
+
+  // Load on page ready
+  refreshAll();
+</script>
+{% endblock %}

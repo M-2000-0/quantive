@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Settings — Quantive{% endblock %}
+{% block content %}
+<style>
+  .settings-section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .settings-section h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin: 0 0 16px; }
+  .settings-field { margin-bottom: 14px; }
+  .settings-field label { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+  .settings-field input, .settings-field select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.9); font-size: 0.85rem; outline: none; box-sizing: border-box; }
+  .settings-field input:focus, .settings-field select:focus { border-color: rgba(255,255,255,0.2); }
+  .btn-save { padding: 10px 20px; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); font-size: 0.8rem; cursor: pointer; font-weight: 600; }
+  .btn-save:hover { background: rgba(255,255,255,0.15); }
+  .success-msg { padding: 10px 16px; border-radius: 8px; background: rgba(34,197,94,0.15); color: #22c55e; font-size: 0.8rem; margin-top: 8px; display: none; }
+  .error-msg { padding: 10px 16px; border-radius: 8px; background: rgba(239,68,68,0.15); color: #ef4444; font-size: 0.8rem; margin-top: 8px; display: none; }
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 0.85rem; color: rgba(255,255,255,0.7); }
+  .toggle-desc { font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  .toggle-switch { width: 40px; height: 22px; border-radius: 11px; background: rgba(255,255,255,0.1); cursor: pointer; position: relative; transition: background 0.2s; }
+  .toggle-switch.on { background: #22c55e; }
+  .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: white; transition: transform 0.2s; }
+  .toggle-switch.on::after { transform: translateX(18px); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+</style>
+
+<div style="max-width:1000px;margin:0 auto;padding:32px 24px">
+  <div style="margin-bottom:32px">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px">SETTINGS</div>
+    <h1 style="font-size:28px;font-weight:700;color:rgba(255,255,255,0.9);margin:0">Settings</h1>
+  </div>
+
+  <!-- Profile -->
+  <div class="settings-section">
+    <h3>Profile</h3>
+    <div class="grid-2">
+      <div class="settings-field"><label>Full Name</label><input type="text" id="profile-name" placeholder="Your name"></div>
+      <div class="settings-field"><label>Email</label><input type="email" id="profile-email" placeholder="you@example.com"></div>
+    </div>
+    <div class="grid-2">
+      <div class="settings-field"><label>Role</label><input type="text" id="profile-role" disabled style="opacity:0.5"></div>
+      <div class="settings-field"><label>Organization</label><input type="text" id="profile-org" disabled style="opacity:0.5"></div>
+    </div>
+    <button class="btn-save" onclick="saveProfile()">Save Profile</button>
+    <div id="profile-msg" class="success-msg"></div>
+    <div id="profile-err" class="error-msg"></div>
+  </div>
+
+  <!-- Password -->
+  <div class="settings-section">
+    <h3>Change Password</h3>
+    <div class="settings-field"><label>Current Password</label><input type="password" id="pw-current" placeholder="Current password"></div>
+    <div class="grid-2">
+      <div class="settings-field"><label>New Password</label><input type="password" id="pw-new" placeholder="New password"></div>
+      <div class="settings-field"><label>Confirm New Password</label><input type="password" id="pw-confirm" placeholder="Confirm new password"></div>
+    </div>
+    <button class="btn-save" onclick="changePassword()">Update Password</button>
+    <div id="pw-msg" class="success-msg"></div>
+    <div id="pw-err" class="error-msg"></div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="settings-section">
+    <h3>Notification Preferences</h3>
+    <div id="notif-toggles"></div>
+    <button class="btn-save" onclick="saveNotifications()" style="margin-top:12px">Save Preferences</button>
+    <div id="notif-msg" class="success-msg"></div>
+  </div>
+
+  <!-- API Keys -->
+  <div class="settings-section">
+    <h3>API Keys</h3>
+    <div class="settings-field"><label>FRED API Key</label><input type="password" id="key-fred" placeholder="Optional: for live Treasury data"></div>
+    <div class="settings-field"><label>OpenAI API Key</label><input type="password" id="key-openai" placeholder="Optional: for AI-generated policy briefs"></div>
+    <div class="settings-field"><label>Anthropic API Key</label><input type="password" id="key-anthropic" placeholder="Optional: for Claude-powered analysis"></div>
+    <button class="btn-save" onclick="saveAPIKeys()">Save API Keys</button>
+    <div id="keys-msg" class="success-msg"></div>
+  </div>
+
+  <!-- System Info -->
+  <div class="settings-section">
+    <h3>System Information</h3>
+    <div id="system-info" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+  </div>
+</div>
+
+  <!-- System Info -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">SYSTEM</div>
+    <div id="system-info" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px"></div>
+  </div>
+
+  <!-- Data Sources -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">DATA SOURCES</div>
+    <div id="data-sources" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <!-- Users -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">USERS & ROLES</div>
+    <div id="users-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <!-- Security -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">SECURITY POSTURE</div>
+    <div id="security-status" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px"></div>
+  </div>
+
+  <!-- Audit Summary -->
+  <div class="glass" style="padding:24px">
+    <div class="stat-label" style="margin-bottom:16px">AUDIT TRAIL (Last 30 Days)</div>
+    <div id="audit-summary"></div>
+  </div>
+</div>
+
+<script>
+const NOTIF_PREFS = [
+  { key: 'optimization_complete', label: 'Optimization Complete', desc: 'Notify when a debt optimization run finishes' },
+  { key: 'maturity_alert', label: 'Maturity Alerts', desc: 'Alert when instruments approach maturity within 90 days' },
+  { key: 'rate_change', label: 'Rate Change Alerts', desc: 'Notify on significant yield curve movements (>25bps)' },
+  { key: 'risk_threshold', label: 'Risk Threshold Breaches', desc: 'Alert when portfolio risk scores exceed set thresholds' },
+  { key: 'market_data', label: 'Market Data Updates', desc: 'Daily summary of market conditions and data freshness' },
+  { key: 'compliance', label: 'Compliance Reminders', desc: 'Reminders for upcoming compliance deadlines' },
+];
+
+let notifState = {};
+
+// Load profile
+async function loadProfile() {
+  try {
+    const r = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + getCookie('access_token') } });
+    if (!r.ok) { window.location = '/login'; return; }
+    const user = await r.json();
+    document.getElementById('profile-name').value = user.name || '';
+    document.getElementById('profile-email').value = user.email || '';
+    document.getElementById('profile-role').value = user.role || '';
+    document.getElementById('profile-org').value = user.org_id || '';
+  } catch(e) { console.error(e); }
+}
+
+// Load notification toggles
+function loadNotifications() {
+  const saved = JSON.parse(localStorage.getItem('quantive_notif_prefs') || '{}');
+  notifState = { ...Object.fromEntries(NOTIF_PREFS.map(n => [n.key, false])), ...saved };
+  document.getElementById('notif-toggles').innerHTML = NOTIF_PREFS.map(n =>
+    '<div class="toggle-row">' +
+      '<div><div class="toggle-label">' + n.label + '</div><div class="toggle-desc">' + n.desc + '</div></div>' +
+      '<div class="toggle-switch' + (notifState[n.key] ? ' on' : '') + '" onclick="toggleNotif(\'' + n.key + '\', this)"></div>' +
+    '</div>'
+  ).join('');
+}
+
+function toggleNotif(key, el) {
+  notifState[key] = !notifState[key];
+  el.classList.toggle('on');
+}
+
+function saveNotifications() {
+  localStorage.setItem('quantive_notif_prefs', JSON.stringify(notifState));n  showMsg('notif-msg', 'Notification preferences saved');
+}
+
+// Save profile
+async function saveProfile() {
+  const name = document.getElementById('profile-name').value.trim();
+  const email = document.getElementById('profile-email').value.trim();
+  if (!name || !email) { showErr('profile-err', 'Name and email are required'); return; }
+  try {
+    const r = await fetch('/api/auth/me', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getCookie('access_token') },
+      body: JSON.stringify({ name, email })
+    });
+    if (!r.ok) { const d = await r.json(); showErr('profile-err', d.detail || 'Failed to update'); return; }
+    document.cookie = 'user_name=' + encodeURIComponent(name) + '; path=/';
+    showMsg('profile-msg', 'Profile updated successfully');
+  } catch(e) { showErr('profile-err', 'Network error'); }
+}
+
+// Change password
+async function changePassword() {
+  const current = document.getElementById('pw-current').value;
+  const newPw = document.getElementById('pw-new').value;
+  const confirm = document.getElementById('pw-confirm').value;
+  if (!current || !newPw) { showErr('pw-err', 'All fields required'); return; }
+  if (newPw !== confirm) { showErr('pw-err', 'New passwords do not match'); return; }
+  if (newPw.length < 8) { showErr('pw-err', 'Password must be at least 8 characters'); return; }
+  try {
+    const r = await fetch('/api/auth/password/change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getCookie('access_token') },
+      body: JSON.stringify({ current_password: current, new_password: newPw })
+    });
+    if (!r.ok) { const d = await r.json(); showErr('pw-err', d.detail || 'Failed to change password'); return; }
+    document.getElementById('pw-current').value = '';
+    document.getElementById('pw-new').value = '';
+    document.getElementById('pw-confirm').value = '';
+    showMsg('pw-msg', 'Password updated successfully');
+  } catch(e) { showErr('pw-err', 'Network error'); }
+}
+
+// Save API keys
+function saveAPIKeys() {
+  const fred = document.getElementById('key-fred').value;
+  const openai = document.getElementById('key-openai').value;
+  const anthropic = document.getElementById('key-anthropic').value;
+  if (fred) localStorage.setItem('quantive_fred_key', fred);
+  if (openai) localStorage.setItem('quantive_openai_key', openai);
+  if (anthropic) localStorage.setItem('quantive_anthropic_key', anthropic);
+  showMsg('keys-msg', 'API keys saved locally');
+}
+
+// Load system info
+async function loadSystem() {
+  try {
+    const r = await fetch('/api/settings/system');
+    if (!r.ok) return;
+    const sys = await r.json();
+    document.getElementById('system-info').innerHTML = [
+      sysItem('Platform', sys.platform.name, 'v' + sys.platform.version),
+      sysItem('Build', sys.platform.build, sys.platform.edition),
+      sysItem('Encryption', sys.security.encryption, 'Key rotation: ' + sys.security.key_rotation),
+      sysItem('Features', Object.values(sys.features).filter(Boolean).length + '/' + Object.keys(sys.features).length + ' enabled', '')
+    ].join('');
+  } catch(e) { document.getElementById('system-info').innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.8rem">System info unavailable</div>'; }
+}
+function sysItem(label, value, sub) {
+  return '<div style="padding:12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">' +
+    '<div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:4px">' + label + '</div>' +
+    '<div style="font-size:1rem;font-weight:700;color:rgba(255,255,255,0.9)">' + value + '</div>' +
+    (sub ? '<div style="font-size:0.7rem;color:rgba(255,255,255,0.35);margin-top:2px">' + sub + '</div>' : '') + '</div>';
+}
+
+// Helpers
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\s*' + name + '\s*=\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+function showMsg(id, text) { const el = document.getElementById(id); el.textContent = text; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3000); }
+function showErr(id, text) { const el = document.getElementById(id); el.textContent = text; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 5000); }
+function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  loadProfile();
+  loadNotifications();
+  loadSystem();
+});
+</script>
+{% endblock %}

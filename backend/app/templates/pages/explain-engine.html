@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Explain Engine - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Explainability Engine{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Decisions Explained</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Confidence</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Open Questions</div>
+    <div class="stat-value" style="color:var(--yellow);">3</div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:20px;">
+  <div class="section-title">Recent Explanations</div>
+  <table>
+    <thead><tr><th>Decision</th><th>Model</th><th>Confidence</th><th>Key Factors</th><th>Date</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Increase Treasury allocation to 32%</td><td>Black-Litterman</td><td><span class="badge badge-green">96%</span></td><td>Yield curve, inflation outlook</td><td>2026-08-28</td></tr>
+      <tr><td style="font-weight:600;">Reduce IG credit by 3%</td><td>Mean-Variance</td><td><span class="badge badge-green">91%</span></td><td>Credit spread cycle, default rates</td><td>2026-08-27</td></tr>
+      <tr><td style="font-weight:600;">Hold EUR/USD position</td><td>Macro Model</td><td><span class="badge badge-yellow">78%</span></td><td>ECB policy, USD strength</td><td>2026-08-25</td></tr>
+      <tr><td style="font-weight:600;">Add green bond exposure</td><td>ESG Scorer</td><td><span class="badge badge-green">94%</span></td><td>ESG mandate, yield pickup</td><td>2026-08-24</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="card">
+  <div class="section-title">Decision Explanation</div>
+  <div style="margin-top:12px;">
+    <div style="font-weight:600;font-size:14px;margin-bottom:8px;">Increase Treasury allocation to 32%</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7;">
+      <p style="margin-bottom:10px;">The model recommends increasing US Treasury allocation from 28.7% to 32.4% based on:</p>
+      <ul style="padding-left:18px;margin-bottom:10px;">
+        <li style="margin-bottom:4px;"><strong>Yield Curve Signal (40% weight):</strong> The inverted yield curve is normalizing, signaling potential rate declines. Historical analysis shows +2.8% return in the 6 months following normalization.</li>
+        <li style="margin-bottom:4px;"><strong>Inflation Outlook (30% weight):</strong> CPI trending toward 2.8% target, supporting duration extension. Real yields are attractive at current levels.</li>
+        <li style="margin-bottom:4px;"><strong>Flight-to-Quality Premium (20% weight):</strong> Geopolitical uncertainty supports safe-haven allocation. Correlation benefits with risk assets.</li>
+        <li><strong>Technical Momentum (10% weight):</strong> Net positioning suggesting continued demand for duration.</li>
+      </ul>
+      <p><strong>Confidence: 96%</strong> | <strong>Risk of Reversal: Low (12%)</strong></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

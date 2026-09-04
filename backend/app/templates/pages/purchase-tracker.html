@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Purchase Tracker - Quantive{% endblock %}
+{% set active_page = 'reports' %}
+{% block page_title %}Purchase Tracker{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Purchases</div>
+    <div class="stat-value">18</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Total Value</div>
+    <div class="stat-value"><span id="pt-total">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Pending Approval</div>
+    <div class="stat-value" style="color:var(--yellow);">4</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Purchase Orders</div>
+  <table>
+    <thead><tr><th>PO #</th><th>Vendor</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:12px;">PO-2026-0842</td><td style="font-weight:600;">Data Provider A</td><td<span id="pt-po1">--</span></td><td>2026-08-28</td><td><span class="badge badge-yellow">Pending</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">PO-2026-0841</td><td style="font-weight:600;">Cloud Services B</td><td<span id="pt-po2">--</span></td><td>2026-08-27</td><td><span class="badge badge-green">Approved</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">PO-2026-0840</td><td style="font-weight:600;">Audit Firm C</td><td<span id="pt-po3">--</span></td><td>2026-08-25</td><td><span class="badge badge-green">Completed</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">PO-2026-0839</td><td style="font-weight:600;">Legal Advisory D</td><td<span id="pt-po4">--</span></td><td>2026-08-22</td><td><span class="badge badge-green">Completed</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

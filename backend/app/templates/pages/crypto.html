@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Crypto Market — Quantive{% endblock %}
+{% block page_title %}Crypto Market{% endblock %}
+
+{% block content %}
+<style>
+  .stat { text-align: center; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+  .stat .num { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.03em; }
+  .stat .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .f-input { flex: 1; min-width: 160px; padding: 9px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.9); font-size: 0.8rem; outline: none; }
+  .f-input:focus { border-color: rgba(255,255,255,0.2); }
+  .f-input::placeholder { color: rgba(255,255,255,0.3); }
+  .crypto-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .crypto-table th { text-align: left; padding: 8px 10px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; user-select: none; }
+  .crypto-table th:hover { color: rgba(255,255,255,0.7); }
+  .crypto-table td { padding: 10px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); font-variant-numeric: tabular-nums; }
+  .crypto-table tr:hover { background: rgba(255,255,255,0.02); }
+  .positive { color: #22c55e; }
+  .negative { color: #ef4444; }
+  .rank { width: 30px; color: rgba(255,255,255,0.3); font-size: 0.75rem; }
+  .coin-name { display: flex; align-items: center; gap: 8px; }
+  .coin-icon { width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.5); }
+  .coin-symbol { font-size: 0.7rem; color: rgba(255,255,255,0.35); text-transform: uppercase; }
+  .search-results { position: absolute; top: 100%; left: 0; right: 0; background: #111; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; max-height: 300px; overflow-y: auto; z-index: 10; display: none; }
+  .search-results.active { display: block; }
+  .search-item { padding: 10px 14px; cursor: pointer; font-size: 0.82rem; display: flex; justify-content: space-between; }
+  .search-item:hover { background: rgba(255,255,255,0.05); }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab-btn { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem; }
+  .tab-btn.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .loading { text-align: center; padding: 40px; color: rgba(255,255,255,0.3); font-size: 0.85rem; }
+</style>
+
+<!-- Overview Stats -->
+<div id="overview" class="grid-4"></div>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('market', this)">Market</button>
+  <button class="tab-btn" onclick="showTab('trending', this)">Trending</button>
+  <button class="tab-btn" onclick="showTab('watchlist', this)">Watchlist</button>
+</div>
+
+<!-- Market Tab -->
+<div id="tab-market">
+  <div class="filter-bar">
+    <div style="position:relative;flex:1;min-width:200px">
+      <input type="text" id="search" class="f-input" placeholder="Search coins..." oninput="filterTable()" style="width:100%">
+    </div>
+  </div>
+  <div id="crypto-loading" class="loading">Loading live prices...</div>
+  <table class="crypto-table" id="crypto-table" style="display:none">
+    <thead>
+      <tr>
+        <th style="width:40px">#</th>
+        <th>Coin</th>
+        <th style="text-align:right">Price</th>
+        <th style="text-align:right">24h %</th>
+        <th style="text-align:right">7d %</th>
+        <th style="text-align:right">Market Cap</th>
+        <th style="text-align:right">Volume 24h</th>
+        <th style="text-align:right">Supply</th>
+      </tr>
+    </thead>
+    <tbody id="crypto-body"></tbody>
+  </table>
+</div>
+
+<!-- Trending Tab -->
+<div id="tab-trending" style="display:none">
+  <div id="trending-list"></div>
+</div>
+
+<!-- Watchlist Tab -->
+<div id="tab-watchlist" style="display:none">
+  <div style="padding:20px;text-align:center;color:rgba(255,255,255,0.4);font-size:0.85rem">
+    Click the star on any coin to add it to your watchlist. Your watchlist is saved locally.
+  </div>
+  <div id="watchlist-body"></div>
+</div>
+
+<script>
+const API = '/api/crypto';
+let allCoins = [];
+let watchlist = JSON.parse(localStorage.getItem('quantive_watchlist') || '[]');
+
+document.addEventListener('DOMContentLoaded', () => { loadMarket(); loadTrending(); });
+
+// ── Load Market Data ──────────────────────────────────────────────
+async function loadMarket() {
+  try {
+    // Overview
+    const overview = await fetch(API + '/overview').then(r => r.json());
+    if (overview.total_market_cap) {
+      document.getElementById('overview').innerHTML = [
+        stat(fmtBig(overview.total_market_cap), 'Total Market Cap'),
+        stat(fmtBig(overview.total_volume_24h), '24h Volume'),
+        stat(overview.btc_dominance?.toFixed(1) + '%', 'BTC Dominance'),
+        stat((overview.market_cap_change_percentage_24h >= 0 ? '+' : '') + overview.market_cap_change_percentage_24h?.toFixed(2) + '%', 'Market 24h', overview.market_cap_change_percentage_24h >= 0 ? '#22c55e' : '#ef4444'),
+      ].join('');
+    }
+
+    // Prices
+    const data = await fetch(API + '/prices?limit=100').then(r => r.json());
+    allCoins = data.prices || [];
+    document.getElementById('crypto-loading').style.display = 'none';
+    document.getElementById('crypto-table').style.display = '';
+    renderTable(allCoins);
+  } catch(e) {
+    document.getElementById('crypto-loading').textContent = 'Error loading data. Retrying...';
+    setTimeout(loadMarket, 5000);
+  }
+}
+
+function renderTable(coins) {
+  document.getElementById('crypto-body').innerHTML = coins.map(c => {
+    const pct24 = c.price_change_percentage_24h || 0;
+    const pct7d = c.price_change_percentage_7d || 0;
+    const inWatchlist = watchlist.includes(c.id);
+    return '<tr>' +
+      '<td class="rank">' + (c.market_cap_rank || '') + '</td>' +
+      '<td><div class="coin-name">' +
+        '<div class="coin-icon">' + c.symbol.slice(0,2).toUpperCase() + '</div>' +
+        '<div><div style="font-weight:600">' + c.name + '</div><div class="coin-symbol">' + c.symbol + '</div></div>' +
+      '</div></td>' +
+      '<td style="text-align:right;font-weight:600">$' + fmtPrice(c.current_price) + '</td>' +
+      '<td style="text-align:right" class="' + (pct24 >= 0 ? 'positive' : 'negative') + '">' + fmtPct(pct24) + '</td>' +
+      '<td style="text-align:right" class="' + (pct7d >= 0 ? 'positive' : 'negative') + '">' + fmtPct(pct7d) + '</td>' +
+      '<td style="text-align:right;color:rgba(255,255,255,0.5)">$' + fmtBig(c.market_cap) + '</td>' +
+      '<td style="text-align:right;color:rgba(255,255,255,0.5)">$' + fmtBig(c.total_volume) + '</td>' +
+      '<td style="text-align:right;color:rgba(255,255,255,0.5)">' + fmtBig(c.circulating_supply) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = allCoins.filter(c => c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q));
+  renderTable(filtered);
+}
+
+// ── Trending ──────────────────────────────────────────────────────
+async function loadTrending() {
+  try {
+    const data = await fetch(API + '/trending').then(r => r.json());
+    document.getElementById('trending-list').innerHTML = (data.trending || []).map((c, i) =>
+      '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.04)">' +
+        '<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:rgba(255,255,255,0.5)">' + (c.symbol || '').slice(0,2).toUpperCase() + '</div>' +
+        '<div style="flex:1"><div style="font-weight:600;font-size:0.9rem">' + c.name + '</div><div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">' + (c.symbol || '').toUpperCase() + '</div></div>' +
+        '<div style="font-size:0.7rem;color:rgba(255,255,255,0.3)">Rank #' + (c.market_cap_rank || '?') + '</div>' +
+      '</div>'
+    ).join('') || '<div class="loading">No trending data</div>';
+  } catch(e) {}
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function stat(val, label, color) {
+  return '<div class="stat"><div class="num" style="' + (color ? 'color:'+color : '') + '">' + val + '</div><div class="label">' + label + '</div></div>';
+}
+function fmtPrice(p) {
+  if (!p) return '0';
+  if (p >= 1) return p.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  if (p >= 0.01) return p.toFixed(4);
+  return p.toFixed(8);
+}
+function fmtPct(p) { return (p >= 0 ? '+' : '') + p.toFixed(2) + '%'; }
+function fmtBig(n) {
+  if (!n) return '0';
+  if (n >= 1e12) return (n/1e12).toFixed(2) + 'T';
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toFixed(0);
+}
+function showTab(name, btn) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.getElementById('tab-' + name).style.display = '';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (name === 'watchlist') renderWatchlist();
+}
+function renderWatchlist() {
+  const filtered = allCoins.filter(c => watchlist.includes(c.id));
+  if (filtered.length === 0) {
+    document.getElementById('watchlist-body').innerHTML = '<div class="loading">No coins in watchlist yet</div>';
+    return;
+  }
+  renderTable.call(null, filtered);
+  document.getElementById('watchlist-body').innerHTML = document.getElementById('crypto-body').innerHTML;
+}
+</script>
+{% endblock %}

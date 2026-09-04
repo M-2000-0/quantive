@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}National Resilience - Quantive{% endblock %}
+{% set active_page = 'risk' %}
+{% block page_title %}National Resilience{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Resilience Score</div>
+    <div class="stat-value" style="color:var(--green);">8.4 / 10</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Recovery Capacity</div>
+    <div class="stat-value" style="color:var(--green);">Strong</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Shock Absorption</div>
+    <div class="stat-value" style="color:var(--green);">High</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Diversification</div>
+    <div class="stat-value" style="color:var(--green);">Good</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Resilience Indicators</div>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px;">
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Fiscal Buffer</span><span style="font-size:13px;font-weight:600;">8.2 / 10</span></div><div class="progress"><div class="progress-fill" style="width:82%;background:var(--green);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">External Resilience</span><span style="font-size:13px;font-weight:600;">7.8 / 10</span></div><div class="progress"><div class="progress-fill" style="width:78%;background:var(--green);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Financial System Stability</span><span style="font-size:13px;font-weight:600;">8.6 / 10</span></div><div class="progress"><div class="progress-fill" style="width:86%;background:var(--green);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Institutional Capacity</span><span style="font-size:13px;font-weight:600;">8.1 / 10</span></div><div class="progress"><div class="progress-fill" style="width:81%;background:var(--green);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Adaptability</span><span style="font-size:13px;font-weight:600;">7.4 / 10</span></div><div class="progress"><div class="progress-fill" style="width:74%;background:var(--yellow);"></div></div></div>
+  </div>
+</div>
+{% endblock %}

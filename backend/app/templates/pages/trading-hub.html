@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+{% block title %}Trading Intelligence Hub — Quantive{% endblock %}
+{% block page_title %}Trading Intelligence Hub{% endblock %}
+
+{% block content %}
+<style>
+  .trading-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; }
+  .trading-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin: 0 0 12px; }
+  .price-cell { font-variant-numeric: tabular-nums; }
+  .positive { color: #22c55e; }
+  .negative { color: #ef4444; }
+  .neutral { color: rgba(255,255,255,0.5); }
+  .signal-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+  .signal-buy { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .signal-sell { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .signal-hold { background: rgba(234,179,8,0.15); color: #eab308; }
+  .signal-strong-buy { background: rgba(34,197,94,0.25); color: #22c55e; }
+  .signal-strong-sell { background: rgba(239,68,68,0.25); color: #ef4444; }
+  .sector-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05); overflow: hidden; margin-top: 4px; }
+  .sector-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; }
+  .tab-btn { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .tab-btn.active { background: rgba(99,102,241,0.2); color: #C0C0C0; }
+  .mini-chart { width: 60px; height: 24px; }
+  .stock-table { width: 100%; border-collapse: collapse; }
+  .stock-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .stock-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem; }
+  .stock-table tr:hover { background: rgba(255,255,255,0.02); }
+  .stock-symbol { font-weight: 600; color: #C0C0C0; }
+  .search-box { width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: #fff; font-size: 0.9rem; }
+  .search-box::placeholder { color: rgba(255,255,255,0.3); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .regime-badge { padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+  .regime-risk-on { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .regime-risk-off { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .regime-mixed { background: rgba(234,179,8,0.15); color: #eab308; }
+  .tech-gauge { width: 100%; height: 12px; border-radius: 6px; background: linear-gradient(to right, #ef4444, #eab308, #22c55e); position: relative; margin: 8px 0; }
+  .tech-gauge-marker { width: 4px; height: 20px; background: #fff; border-radius: 2px; position: absolute; top: -4px; transition: left 0.5s; }
+  .loading-shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; height: 20px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg> Overview</button>
+  <button class="tab-btn" onclick="showTab('stocks')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg> Stocks</button>
+  <button class="tab-btn" onclick="showTab('sectors')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sectors</button>
+  <button class="tab-btn" onclick="showTab('etfs')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ETFs</button>
+  <button class="tab-btn" onclick="showTab('dividends')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Dividends</button>
+  <button class="tab-btn" onclick="showTab('technicals')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg> Technicals</button>
+</div>
+
+<!-- ═══ OVERVIEW TAB ═══ -->
+<div id="tab-overview">
+  <!-- Market Indices -->
+  <div class="grid-2" style="margin-bottom: 16px;">
+    <div class="trading-card">
+      <h3>S&P 500 (SPY)</h3>
+      <div style="font-size: 1.8rem; font-weight: 700;" id="spy-price">—</div>
+      <div id="spy-change" class="neutral" style="font-size: 0.9rem;">—</div>
+    </div>
+    <div class="trading-card">
+      <h3>NASDAQ 100 (QQQ)</h3>
+      <div style="font-size: 1.8rem; font-weight: 700;" id="qqq-price">—</div>
+      <div id="qqq-change" class="neutral" style="font-size: 0.9rem;">—</div>
+    </div>
+  </div>
+
+  <!-- Top Stocks -->
+  <div class="trading-card" style="margin-bottom: 16px;">
+    <h3>Top Stocks by Market Cap</h3>
+    <table class="stock-table" id="top-stocks-table">
+      <thead>
+        <tr><th>Symbol</th><th>Name</th><th>Price</th><th>Change</th><th>P/E</th><th>Mkt Cap</th></tr>
+      </thead>
+      <tbody id="top-stocks-body">
+        <tr><td colspan="6"><div class="loading-shimmer"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Top Movers -->
+  <div class="grid-2">
+    <div class="trading-card">
+      <h3><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;vertical-align:middle;margin-right:4px"></span> Top Gainers</h3>
+      <div id="gainers-list"></div>
+    </div>
+    <div class="trading-card">
+      <h3><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;vertical-align:middle;margin-right:4px"></span> Top Losers</h3>
+      <div id="losers-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STOCKS TAB ═══ -->
+<div id="tab-stocks" style="display: none;">
+  <div class="trading-card" style="margin-bottom: 16px;">
+    <input type="text" class="search-box" id="stock-search" placeholder="Search stocks (e.g., AAPL, NVIDIA)..." oninput="searchStocks(this.value)">
+    <div id="search-results" style="margin-top: 8px;"></div>
+  </div>
+  <div class="trading-card">
+    <h3>Full Stock Universe</h3>
+    <table class="stock-table" id="full-stock-table">
+      <thead>
+        <tr><th>Symbol</th><th>Name</th><th>Price</th><th>Change</th><th>Volume</th><th>Mkt Cap</th></tr>
+      </thead>
+      <tbody id="full-stock-body">
+        <tr><td colspan="6"><div class="loading-shimmer"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTORS TAB ═══ -->
+<div id="tab-sectors" style="display: none;">
+  <div class="trading-card" style="margin-bottom: 16px;">
+    <h3>Market Regime</h3>
+    <div id="regime-signal" style="font-size: 1.1rem; margin: 8px 0;">—</div>
+    <div id="regime-description" style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">—</div>
+  </div>
+  <div class="trading-card">
+    <h3>Sector Rotation — Relative Strength vs S&P 500</h3>
+    <div id="sectors-list"></div>
+  </div>
+</div>
+
+<!-- ═══ ETFs TAB ═══ -->
+<div id="tab-etfs" style="display: none;">
+  <div id="etf-categories"></div>
+</div>
+
+<!-- ═══ DIVIDENDS TAB ═══ -->
+<div id="tab-dividends" style="display: none;">
+  <div class="trading-card" style="margin-bottom: 16px;">
+    <h3>High-Dividend Screener</h3>
+    <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">Showing stocks and ETFs with dividend yield above 2%</p>
+  </div>
+  <div class="trading-card">
+    <table class="stock-table">
+      <thead>
+        <tr><th>Symbol</th><th>Price</th><th>Div Yield</th><th>Change</th><th>P/E</th><th>Mkt Cap</th></tr>
+      </thead>
+      <tbody id="dividend-body">
+        <tr><td colspan="6"><div class="loading-shimmer"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ TECHNICALS TAB ═══ -->
+<div id="tab-technicals" style="display: none;">
+  <div class="trading-card" style="margin-bottom: 16px;">
+    <h3>Technical Analysis</h3>
+    <div style="display: flex; gap: 8px;">
+      <input type="text" class="search-box" id="tech-symbol" placeholder="Enter symbol (e.g., AAPL, SPY, NVDA)" style="flex: 1;">
+      <button onclick="runTechnicalAnalysis()" style="padding: 10px 20px; border-radius: 8px; border: none; background: #E0E0E0; color: #fff; cursor: pointer; font-weight: 600;">Analyze</button>
+    </div>
+  </div>
+  <div id="tech-results"></div>
+</div>
+
+<script>
+const API_BASE = '/api/trading';
+let allStocks = [];
+
+function authHeaders() {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': 'Bearer ' + token } : {};
+}
+
+function fmt(n, dec=2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function fmtCap(n) {
+  if (!n) return '—';
+  if (n >= 1e12) return '$' + (n/1e12).toFixed(1) + 'T';
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(0) + 'M';
+  return '$' + n.toLocaleString();
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  const prefix = n >= 0 ? '+' : '';
+  return prefix + n.toFixed(2) + '%';
+}
+
+function changeClass(n) {
+  if (n > 0) return 'positive';
+  if (n < 0) return 'negative';
+  return 'neutral';
+}
+
+function signalClass(action) {
+  if (action.includes('BUY')) return 'signal-buy';
+  if (action.includes('SELL')) return 'signal-sell';
+  return 'signal-hold';
+}
+
+// ── Tab switching ──
+function showTab(tab) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('tab-' + tab).style.display = 'block';
+  event.target.classList.add('active');
+}
+
+// ── Load Overview ──
+async function loadOverview() {
+  try {
+    const resp = await fetch(API_BASE + '/market-overview', { headers: authHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    // Indices
+    const idx = data.market_indices;
+    if (idx.sp500) {
+      document.getElementById('spy-price').textContent = '$' + fmt(idx.sp500.price);
+      const el = document.getElementById('spy-change');
+      el.textContent = fmtPct(idx.sp500.change_pct);
+      el.className = changeClass(idx.sp500.change_pct);
+    }
+    if (idx.nasdaq) {
+      document.getElementById('qqq-price').textContent = '$' + fmt(idx.nasdaq.price);
+      const el = document.getElementById('qqq-change');
+      el.textContent = fmtPct(idx.nasdaq.change_pct);
+      el.className = changeClass(idx.nasdaq.change_pct);
+    }
+
+    // Top stocks table
+    allStocks = data.top_stocks || [];
+    renderStockTable('top-stocks-body', allStocks.slice(0, 10));
+  } catch(e) { console.error('Overview error:', e); }
+}
+
+// ── Load Top Movers ──
+async function loadMovers() {
+  try {
+    const resp = await fetch(API_BASE + '/top-movers', { headers: authHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    renderMoverList('gainers-list', data.gainers || []);
+    renderMoverList('losers-list', data.losers || []);
+  } catch(e) { console.error('Movers error:', e); }
+}
+
+function renderMoverList(containerId, items) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(s => `
+    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+      <div><span class="stock-symbol">${escapeHtml(s.symbol)}</span> <span style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">${escapeHtml(s.name)}</span></div>
+      <div class="${changeClass(s.change_pct)} price-cell">${fmtPct(s.change_pct)}</div>
+    </div>
+  `).join('');
+}
+
+function renderStockTable(bodyId, stocks) {
+  const el = document.getElementById(bodyId);
+  el.innerHTML = stocks.map(s => `
+    <tr style="cursor: pointer;" onclick="analyzeStock('${escapeHtml(s.symbol)}')">
+      <td><span class="stock-symbol">${escapeHtml(s.symbol)}</span></td>
+      <td style="color: rgba(255,255,255,0.6);">${escapeHtml(s.name)}</td>
+      <td class="price-cell">$${fmt(s.price)}</td>
+      <td class="${changeClass(s.change_pct)} price-cell">${fmtPct(s.change_pct)}</td>
+      <td class="price-cell">${s.pe_ratio ? fmt(s.pe_ratio, 1) : '—'}</td>
+      <td class="price-cell">${fmtCap(s.market_cap)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Search ──
+async function searchStocks(query) {
+  if (!query || query.length < 1) { document.getElementById('search-results').innerHTML = ''; return; }
+  try {
+    const resp = await fetch(API_BASE + '/search?q=' + encodeURIComponent(query), { headers: authHeaders() });
+    const data = await resp.json();
+    document.getElementById('search-results').innerHTML = data.results.map(r => `
+      <div style="padding: 8px; cursor: pointer; border-radius: 6px;" class="trading-card" onclick="analyzeStock('${escapeHtml(r.symbol)}')">
+        <span class="stock-symbol">${escapeHtml(r.symbol)}</span> — ${escapeHtml(r.name)} <span style="color: rgba(255,255,255,0.3); font-size: 0.75rem;">${r.type}</span>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// ── Analyze stock ──
+function analyzeStock(symbol) {
+  document.getElementById('tab-stocks').style.display = 'none';
+  document.getElementById('tab-sectors').style.display = 'none';
+  document.getElementById('tab-etfs').style.display = 'none';
+  document.getElementById('tab-dividends').style.display = 'none';
+  document.getElementById('tab-overview').style.display = 'none';
+  document.getElementById('tab-technicals').style.display = 'block';
+  document.getElementById('tech-symbol').value = symbol;
+  runTechnicalAnalysis();
+}
+
+// ── Sectors ──
+async function loadSectors() {
+  try {
+    const resp = await fetch(API_BASE + '/sectors', { headers: authHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    const regime = data.rotation_signal;
+    if (regime) {
+      const regimeEl = document.getElementById('regime-signal');
+      regimeEl.innerHTML = `<span class="regime-badge regime-${regime.regime.toLowerCase().replace('_', '-')}">${regime.regime}</span>`;
+      document.getElementById('regime-description').textContent = regime.description;
+    }
+
+    const sectorsEl = document.getElementById('sectors-list');
+    const maxRS = Math.max(...(data.sectors || []).map(s => Math.abs(s.relative_strength)), 1);
+
+    sectorsEl.innerHTML = (data.sectors || []).map(s => {
+      const rs = s.relative_strength;
+      const barWidth = Math.min(Math.abs(rs) / maxRS * 50 + 10, 100);
+      const barColor = rs > 0 ? '#22c55e' : '#ef4444';
+      return `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <div style="width: 50px; font-weight: 600; color: #C0C0C0;">${escapeHtml(s.symbol)}</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>${escapeHtml(s.name)}</span>
+              <span class="${changeClass(s.change_pct)} price-cell">${fmtPct(s.change_pct)}</span>
+            </div>
+            <div class="sector-bar">
+              <div class="sector-bar-fill" style="width: ${barWidth}%; background: ${barColor};"></div>
+            </div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 2px;">
+              RS: ${rs > 0 ? '+' : ''}${rs.toFixed(2)} | <span class="signal-badge ${signalClass(s.signal)}">${s.signal}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch(e) { console.error('Sectors error:', e); }
+}
+
+// ── ETFs ──
+async function loadETFs() {
+  try {
+    const resp = await fetch(API_BASE + '/etf-overview', { headers: authHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    const container = document.getElementById('etf-categories');
+    const categories = data.categories || {};
+    const categoryNames = { index: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg> Index Funds', international: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> International', fixed_income: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Fixed Income', commodities: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.5" style="vertical-align:-2px"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg> Commodities', thematic: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg> Thematic' };
+
+    container.innerHTML = Object.entries(categories).map(([cat, etfs]) => `
+      <div class="trading-card" style="margin-bottom: 16px;">
+        <h3>${categoryNames[cat] || cat}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;">
+          ${etfs.map(e => `
+            <div style="padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.02); cursor: pointer;" onclick="analyzeStock('${escapeHtml(e.symbol)}')">
+              <div style="font-weight: 600; color: #C0C0C0;">${escapeHtml(e.symbol)}</div>
+              <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">${e.name}</div>
+              <div class="${changeClass(e.change_pct)} price-cell">$${fmt(e.price)} ${fmtPct(e.change_pct)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { console.error('ETFs error:', e); }
+}
+
+// ── Dividends ──
+async function loadDividends() {
+  try {
+    const resp = await fetch(API_BASE + '/dividends?min_yield=2.0', { headers: authHeaders() });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    const el = document.getElementById('dividend-body');
+    el.innerHTML = (data.stocks || []).map(s => `
+      <tr style="cursor: pointer;" onclick="analyzeStock('${escapeHtml(s.symbol)}')">
+        <td><span class="stock-symbol">${escapeHtml(s.symbol)}</span></td>
+        <td class="price-cell">$${fmt(s.price)}</td>
+        <td class="positive price-cell">${s.dividend_yield.toFixed(2)}%</td>
+        <td class="${changeClass(s.change_pct)} price-cell">${fmtPct(s.change_pct)}</td>
+        <td class="price-cell">${s.pe_ratio ? fmt(s.pe_ratio, 1) : '—'}</td>
+        <td class="price-cell">${fmtCap(s.market_cap)}</td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error('Dividends error:', e); }
+}
+
+// ── Technical Analysis ──
+async function runTechnicalAnalysis() {
+  const symbol = document.getElementById('tech-symbol').value.toUpperCase();
+  if (!symbol) return;
+
+  const container = document.getElementById('tech-results');
+  container.innerHTML = '<div class="loading-shimmer" style="height: 200px;"></div>';
+
+  try {
+    const resp = await fetch(API_BASE + '/technical-analysis/' + symbol, { headers: authHeaders() });
+    if (!resp.ok) { container.innerHTML = '<div class="trading-card">No data found for ' + symbol + '</div>'; return; }
+    const data = await resp.json();
+
+    const tech = data.technicals || {};
+    const sig = data.signal || {};
+
+    container.innerHTML = `
+      <div class="trading-card" style="margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="margin: 0; font-size: 1rem; color: #fff;">${symbol}</h3>
+            <div style="font-size: 2rem; font-weight: 700;">$${fmt(data.price)}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="signal-badge ${signalClass(sig.action || '')}" style="font-size: 1rem; padding: 8px 16px;">
+              ${sig.emoji || ''} ${sig.action || '—'}
+            </div>
+            <div style="margin-top: 4px; font-size: 0.8rem; color: rgba(255,255,255,0.5);">
+              Score: ${sig.score || 0}/100
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- RSI -->
+        <div class="trading-card">
+          <h3>RSI (14)</h3>
+          <div style="font-size: 1.5rem; font-weight: 700;">${tech.rsi ? tech.rsi.value : '—'}</div>
+          <div class="tech-gauge">
+            <div class="tech-gauge-marker" style="left: ${tech.rsi ? tech.rsi.value : 50}%;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(255,255,255,0.4);">
+            <span>0 (Oversold)</span><span>50</span><span>100 (Overbought)</span>
+          </div>
+          <div class="signal-badge ${signalClass(tech.rsi?.strength === 'buy' || tech.rsi?.strength === 'strong_buy' ? 'BUY' : tech.rsi?.strength === 'sell' || tech.rsi?.strength === 'strong_sell' ? 'SELL' : 'HOLD')}" style="margin-top: 8px;">
+            ${tech.rsi ? tech.rsi.signal : '—'}
+          </div>
+        </div>
+
+        <!-- MACD -->
+        <div class="trading-card">
+          <h3>MACD</h3>
+          <div style="font-size: 1.1rem;">
+            <span style="color: #C0C0C0;">MACD:</span> ${tech.macd ? tech.macd.macd : '—'}
+          </div>
+          <div style="font-size: 0.9rem;">
+            <span style="color: rgba(255,255,255,0.5);">Signal:</span> ${tech.macd ? tech.macd.signal_line : '—'}
+          </div>
+          <div style="font-size: 0.9rem;">
+            <span style="color: rgba(255,255,255,0.5);">Histogram:</span>
+            <span class="${changeClass(tech.macd?.histogram)}">${tech.macd ? tech.macd.histogram : '—'}</span>
+          </div>
+          <div class="signal-badge ${tech.macd?.trend === 'BULLISH' ? 'signal-buy' : tech.macd?.trend === 'BEARISH' ? 'signal-sell' : 'signal-hold'}" style="margin-top: 8px;">
+            ${tech.macd ? tech.macd.trend : '—'}
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top: 16px;">
+        <!-- Moving Averages -->
+        <div class="trading-card">
+          <h3>Moving Averages</h3>
+          ${[20, 50, 200].map(p => {
+            const sma = tech.moving_averages?.['sma_' + p];
+            const above = tech.moving_averages?.['above_sma_' + p];
+            const pct = tech.moving_averages?.['pct_from_sma_' + p];
+            return `
+              <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                <span style="color: rgba(255,255,255,0.5);">SMA ${p}</span>
+                <span class="price-cell">${sma !== null && sma !== undefined ? '$' + fmt(sma) : '—'}</span>
+                <span class="${above ? 'positive' : 'negative'}" style="font-size: 0.8rem;">${pct !== null && pct !== undefined ? fmtPct(pct) : '—'}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Bollinger Bands -->
+        <div class="trading-card">
+          <h3>Bollinger Bands (20)</h3>
+          <div style="padding: 8px 0;">
+            <div>Upper: <span class="price-cell">$${tech.bollinger_bands?.upper ?? '—'}</span></div>
+            <div>Middle: <span class="price-cell">$${tech.bollinger_bands?.middle ?? '—'}</span></div>
+            <div>Lower: <span class="price-cell">$${tech.bollinger_bands?.lower ?? '—'}</span></div>
+          </div>
+          <div style="font-size: 0.85rem; color: rgba(255,255,255,0.5);">
+            Bandwidth: ${tech.bollinger_bands?.bandwidth ?? '—'}% | Position: ${tech.bollinger_bands?.position ?? '—'}
+          </div>
+          <div class="signal-badge ${tech.bollinger_bands?.signal === 'OVERBOUGHT' ? 'signal-sell' : tech.bollinger_bands?.signal === 'OVERSOLD' ? 'signal-buy' : 'signal-hold'}" style="margin-top: 8px;">
+            ${tech.bollinger_bands?.signal ?? '—'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Support / Resistance -->
+      <div class="trading-card" style="margin-top: 16px;">
+        <h3>Support & Resistance</h3>
+        <div class="grid-3">
+          <div>
+            <div style="color: rgba(255,255,255,0.4); font-size: 0.75rem;">SUPPORT</div>
+            <div class="positive price-cell" style="font-size: 1.2rem;">$${tech.support_resistance?.support ?? '—'}</div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">${tech.support_resistance?.support_distance_pct ?? '—'}% below</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="color: rgba(255,255,255,0.4); font-size: 0.75rem;">CURRENT</div>
+            <div style="font-size: 1.5rem; font-weight: 700;">$${fmt(data.price)}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="color: rgba(255,255,255,0.4); font-size: 0.75rem;">RESISTANCE</div>
+            <div class="negative price-cell" style="font-size: 1.2rem;">$${tech.support_resistance?.resistance ?? '—'}</div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.4);">${tech.support_resistance?.resistance_distance_pct ?? '—'}% above</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signal Factors -->
+      <div class="trading-card" style="margin-top: 16px;">
+        <h3>Signal Breakdown</h3>
+        ${(sig.factors || []).map(f => `
+          <div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem;">
+            <span style="color:#C0C0C0;margin-right:6px">•</span> ${f}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch(e) {
+    container.innerHTML = '<div class="trading-card">Error loading technical data. Please try again.</div>';
+  }
+}
+
+// Enter key on search
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tech-symbol')?.addEventListener('keypress', e => { if (e.key === 'Enter') runTechnicalAnalysis(); });
+});
+
+// ── Init with retry ──
+async function initWithRetry(fn, retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try { await fn(); return; } catch(e) { if (i < retries - 1) await new Promise(r => setTimeout(r, delay)); }
+  }
+}
+// Stagger initial loads to avoid overwhelming the server
+setTimeout(() => initWithRetry(loadOverview), 500);
+setTimeout(() => initWithRetry(loadMovers), 1000);
+setTimeout(() => initWithRetry(loadSectors), 1500);
+setTimeout(() => initWithRetry(loadETFs), 2000);
+setTimeout(() => initWithRetry(loadDividends), 2500);
+</script>
+{% endblock %}

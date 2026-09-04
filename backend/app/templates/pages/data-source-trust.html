@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Data Source Trust - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Data Source Trust{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Data Sources</div>
+    <div class="stat-value">18</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Trust Score</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Verified</div>
+    <div class="stat-value" style="font-size:16px;">Real-time</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Data Source Registry</div>
+  <table>
+    <thead><tr><th>Source</th><th>Type</th><th>Trust Score</th><th>Latency</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Bloomberg Terminal</td><td>Market Data</td><td style="color:var(--green);">--%</td><td>12ms</td><td><span class="badge badge-green">Trusted</span></td></tr>
+      <tr><td style="font-weight:600;">Reuters Eikon</td><td>Market Data</td><td style="color:var(--green);">--%</td><td>18ms</td><td><span class="badge badge-green">Trusted</span></td></tr>
+      <tr><td style="font-weight:600;">Central Bank API</td><td>Official Data</td><td style="color:var(--green);">100%</td><td>42ms</td><td><span class="badge badge-green">Trusted</span></td></tr>
+      <tr><td style="font-weight:600;">SPG Global</td><td>Credit Ratings</td><td style="color:var(--green);">--%</td><td>84ms</td><td><span class="badge badge-green">Trusted</span></td></tr>
+      <tr><td style="font-weight:600;">Internal Trades</td><td>Transaction</td><td style="color:var(--green);">100%</td><td>2ms</td><td><span class="badge badge-green">Trusted</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

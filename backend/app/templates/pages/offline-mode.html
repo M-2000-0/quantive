@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Offline Mode - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Offline Mode{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Mode</div>
+    <div class="stat-value" style="color:var(--green);">Online</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Cached Data</div>
+    <div class="stat-value">2.4 GB</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Sync</div>
+    <div class="stat-value" style="font-size:16px;">5 min ago</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Offline Capabilities</div>
+  <table>
+    <thead><tr><th>Feature</th><th>Available Offline</th><th>Last Synced</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Portfolio View</td><td>Yes</td><td>5 min ago</td><td><span class="badge badge-green">Cached</span></td></tr>
+      <tr><td style="font-weight:600;">Risk Dashboard</td><td>Yes</td><td>5 min ago</td><td><span class="badge badge-green">Cached</span></td></tr>
+      <tr><td style="font-weight:600;">Optimization</td><td>Limited</td><td>1h ago</td><td><span class="badge badge-yellow">Partial</span></td></tr>
+      <tr><td style="font-weight:600;">Market Data</td><td>No</td><td>—</td><td><span class="badge badge-default">Requires Connection</span></td></tr>
+      <tr><td style="font-weight:600;">Trade Execution</td><td>No</td><td>—</td><td><span class="badge badge-default">Requires Connection</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

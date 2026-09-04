@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Audit Trail — Quantive{% endblock %}
+{% block page_title %}Immutable Audit Trail{% endblock %}
+
+{% block content %}
+<style>
+  .audit-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; margin-bottom: 12px; }
+  .chain-link { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .chain-hash { font-family: monospace; font-size: 0.65rem; color: rgba(255,255,255,0.3); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chain-seq { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; background: rgba(34,197,94,0.15); color: #22c55e; flex-shrink: 0; }
+  .verify-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
+</style>
+
+<!-- Header with chain status -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+  <div>
+    <div style="font-size:1.2rem;font-weight:800;color:#fff;margin-bottom:4px">Immutable Audit Trail</div>
+    <div style="font-size:0.8rem;color:rgba(255,255,255,0.5)">Cryptographic hash chain — every event linked to the previous. Tamper-evident.</div>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;justify-content:flex-end">
+    <div id="chain-status" class="verify-badge" style="background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5)">Verifying...</div>
+    <button onclick="verifyChain()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.8rem">Verify Chain</button>
+    <button onclick="exportChain()" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-size:0.8rem">Export Chain</button>
+  </div>
+</div>
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+  <div class="audit-card" style="text-align:center;padding:14px">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">Total Events</div>
+    <div id="total-events" style="font-size:1.4rem;font-weight:800;color:#fff;margin-top:4px">0</div>
+  </div>
+  <div class="audit-card" style="text-align:center;padding:14px">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">Chain Length</div>
+    <div id="chain-length" style="font-size:1.4rem;font-weight:800;color:#22c55e;margin-top:4px">0</div>
+  </div>
+  <div class="audit-card" style="text-align:center;padding:14px">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">First Event</div>
+    <div id="first-event" style="font-size:0.85rem;font-weight:600;color:#fff;margin-top:4px">--</div>
+  </div>
+  <div class="audit-card" style="text-align:center;padding:14px">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">Last Event</div>
+    <div id="last-event" style="font-size:0.85rem;font-weight:600;color:#fff;margin-top:4px">--</div>
+  </div>
+</div>
+
+<!-- Audit Log -->
+<div class="audit-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4)">Audit Events</div>
+    <div style="display:flex;gap:8px">
+      <select id="audit-filter" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.8);font-size:0.75rem" onchange="filterAudit()">
+        <option value="all">All Events</option>
+        <option value="portfolio">Portfolio Changes</option>
+        <option value="user">User Actions</option>
+        <option value="optimization">Optimizations</option>
+      </select>
+    </div>
+  </div>
+  <div id="audit-list"></div>
+</div>
+
+<script>
+const API = '/api/immutable-audit';
+let allEvents = [];
+
+async function loadAudit() {
+  try {
+    const [eventsRes, verifyRes] = await Promise.all([
+      fetch(API + '/events?limit=100', { credentials: 'include' }),
+      fetch(API + '/verify', { credentials: 'include' }),
+    ]);
+    const eventsData = await eventsRes.json();
+    const verifyData = await verifyRes.json();
+
+    allEvents = eventsData.events || [];
+
+    // Update stats
+    document.getElementById('total-events').textContent = verifyData.events_checked || allEvents.length;
+    document.getElementById('chain-length').textContent = verifyData.events_checked || allEvents.length;
+    document.getElementById('first-event').textContent = verifyData.first_timestamp ? new Date(verifyData.first_timestamp).toLocaleDateString() : 'None';
+    document.getElementById('last-event').textContent = verifyData.last_timestamp ? new Date(verifyData.last_timestamp).toLocaleDateString() : 'None';
+
+    // Chain status
+    const statusEl = document.getElementById('chain-status');
+    if (verifyData.valid) {
+      statusEl.className = 'verify-badge';
+      statusEl.style.background = 'rgba(34,197,94,0.15)';
+      statusEl.style.color = '#22c55e';
+      statusEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Chain Verified — ' + verifyData.events_checked + ' events intact';
+    } else {
+      statusEl.className = 'verify-badge';
+      statusEl.style.background = 'rgba(239,68,68,0.15)';
+      statusEl.style.color = '#ef4444';
+      statusEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg> Chain BROKEN at sequence ' + verifyData.broken_at;
+    }
+
+    renderEvents();
+  } catch(e) {
+    console.error('Audit load failed:', e);
+  }
+}
+
+function filterAudit() { renderEvents(); }
+
+function renderEvents() {
+  const filter = document.getElementById('audit-filter').value;
+  let events = allEvents;
+  if (filter !== 'all') {
+    events = events.filter(e => e.action && e.action.includes(filter));
+  }
+
+  const list = document.getElementById('audit-list');
+  if (events.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:rgba(255,255,255,0.3)">No audit events recorded yet. Events are created when portfolios are modified.</div>';
+    return;
+  }
+
+  list.innerHTML = events.map(e => {
+    const data = e.data || {};
+    const time = e.timestamp ? new Date(e.timestamp).toLocaleString() : '--';
+    const actionColor = e.action.includes('create') ? '#22c55e' : e.action.includes('delete') ? '#ef4444' : e.action.includes('update') ? '#eab308' : '#3b82f6';
+
+    return '<div class="chain-link">' +
+      '<div class="chain-seq">' + (e.sequence_number !== undefined ? e.sequence_number : e.id) + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:0.8rem;font-weight:600;color:' + actionColor + '">' + (e.action || 'unknown') + '</span>' +
+          '<span style="font-size:0.7rem;color:rgba(255,255,255,0.4)">' + (e.resource_type || '') + (e.resource_id ? ' #' + e.resource_id.substring(0, 8) : '') + '</span>' +
+        '</div>' +
+        '<div style="font-size:0.7rem;color:rgba(255,255,255,0.3);margin-top:2px">' +
+          (e.actor_email || e.actor_id || 'system') + ' · ' + time +
+          (e.ip_address ? ' · ' + e.ip_address : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="chain-hash" title="' + (e.event_hash || '') + '">' + (e.event_hash || '').substring(0, 16) + '...</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function verifyChain() {
+  const statusEl = document.getElementById('chain-status');
+  statusEl.style.background = 'rgba(255,255,255,0.05)';
+  statusEl.style.color = 'rgba(255,255,255,0.5)';
+  statusEl.textContent = 'Verifying...';
+
+  try {
+    const resp = await fetch(API + '/verify', { credentials: 'include' });
+    const data = await resp.json();
+    loadAudit(); // Reload with updated status
+  } catch(e) {
+    statusEl.style.color = '#ef4444';
+    statusEl.textContent = 'Verification failed';
+  }
+}
+
+async function exportChain() {
+  try {
+    const resp = await fetch(API + '/export', { credentials: 'include' });
+    const data = await resp.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'audit-trail-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Export failed: ' + e.message);
+  }
+}
+
+loadAudit();
+</script>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Simulation Engine — Quantive{% endblock %}
+{% set active_page = 'simulation' %}
+{% block page_title %}Simulation Engine{% endblock %}
+{% block content %}
+<div style="max-width:1400px;margin:0 auto">
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <div style="margin-bottom:28px">
+    <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.04em;line-height:1.1;color:var(--text)">Simulation Engine</h1>
+    <p style="font-size:13px;color:var(--text2);margin-top:6px">Real yield curves, stochastic rate models, correlated Monte Carlo — backed by Treasury.gov, ECB, IMF data</p>
+  </div>
+
+  <!-- ── Controls ──────────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:24px;padding:20px">
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div>
+        <label class="label">Country</label>
+        <select id="sim-country" class="input" style="width:160px">
+          <option value="US">United States</option>
+          <option value="DE">Germany (EUR)</option>
+          <option value="GB">United Kingdom</option>
+          <option value="NG">Nigeria</option>
+          <option value="BR">Brazil</option>
+          <option value="IN">India</option>
+          <option value="ZA">South Africa</option>
+          <option value="JP">Japan</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">Horizon</label>
+        <select id="sim-horizon" class="input" style="width:100px">
+          <option value="1">1 Year</option>
+          <option value="3">3 Years</option>
+          <option value="5" selected>5 Years</option>
+          <option value="10">10 Years</option>
+          <option value="20">20 Years</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">Rate Model</label>
+        <select id="sim-model" class="input" style="width:120px">
+          <option value="vasicek">Vasicek</option>
+          <option value="cir">CIR</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">Paths</label>
+        <select id="sim-paths" class="input" style="width:100px">
+          <option value="100">100</option>
+          <option value="500" selected>500</option>
+          <option value="1000">-</option>
+        </select>
+      </div>
+      <button onclick="runSimulation()" class="btn btn-primary" id="sim-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+        Run Simulation
+      </button>
+      <button onclick="loadMarketData()" class="btn btn-secondary">Load Market Data</button>
+    </div>
+  </div>
+
+  <!-- ── Charts Grid ──────────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <!-- Yield Curve -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:12px">Yield Curve (NSS Fitted)</div>
+      <div id="yc-chart" style="height:280px"></div>
+    </div>
+
+    <!-- Rate Fan Chart -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:12px">Interest Rate Projection (Fan Chart)</div>
+      <div id="rate-chart" style="height:280px"></div>
+    </div>
+
+    <!-- FX Projection -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:12px">FX Rate Projection</div>
+      <div id="fx-chart" style="height:280px"></div>
+    </div>
+
+    <!-- Debt-to-GDP Projection -->
+    <div class="card" style="padding:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:12px">Debt-to-GDP Projection (Fan Chart)</div>
+      <div id="debt-chart" style="height:280px"></div>
+    </div>
+  </div>
+
+  <!-- ── Status Bar ───────────────────────────────────────────── -->
+  <div id="sim-status" class="card" style="padding:16px;display:none"></div>
+
+</div>
+
+<script>
+// ── Chart Instances ──────────────────────────────────────────────
+const chartOpts = {
+  layout: { background: { color: '#000' }, textColor: '#8b8b96', fontSize: 11 },
+  grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.04)' } },
+  crosshair: { mode: 0 },
+  rightPriceScale: { borderColor: 'rgba(255,255,255,0.07)' },
+  timeScale: { borderColor: 'rgba(255,255,255,0.07)', timeVisible: false },
+};
+
+let ycChart, rateChart, fxChart, debtChart;
+let ycSeries, rateSeries, fxSeries, debtSeries;
+
+function initCharts() {
+  const containers = { yc: 'yc-chart', rate: 'rate-chart', fx: 'fx-chart', debt: 'debt-chart' };
+  for (const [key, id] of Object.entries(containers)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const chart = LightweightCharts.createChart(el, { ...chartOpts, width: el.clientWidth, height: 280 });
+    if (key === 'yc') { ycChart = chart; ycSeries = chart.addLineSeries({ color: '#38bdf8', lineWidth: 2 }); }
+    if (key === 'rate') { rateChart = chart; rateSeries = chart.addLineSeries({ color: '#4ade80', lineWidth: 2 }); }
+    if (key === 'fx') { fxChart = chart; fxSeries = chart.addLineSeries({ color: '#38bdf8', lineWidth: 2 }); }
+    if (key === 'debt') { debtChart = chart; debtSeries = chart.addLineSeries({ color: '#c084fc', lineWidth: 2 }); }
+
+    new ResizeObserver(() => chart.applyOptions({ width: el.clientWidth })).observe(el);
+  }
+}
+
+// ── Load Market Data ─────────────────────────────────────────────
+async function loadMarketData() {
+  const cc = document.getElementById('sim-country').value;
+  const status = document.getElementById('sim-status');
+  status.style.display = 'block';
+  status.innerHTML = '<span style="color:var(--text3)">Loading market data...</span>';
+
+  try {
+    const [ycData, simData] = await Promise.all([
+      fetch(`/api/sim/yield-curve-fit/${cc}`).then(r => r.json()),
+      fetch(`/api/sim/market-data/${cc}`).then(r => r.json()),
+    ]);
+
+    // Draw yield curve
+    if (ycData.fitted_points) {
+      const observed = (ycData.observed_points || []).map(p => ({ time: p.maturity_years, value: p.rate }));
+      const fitted = (ycData.fitted_points || []).map(p => ({ time: p.maturity_years, value: p.fitted_rate }));
+
+      // Add observed as area
+      const obsSeries = ycChart.addAreaSeries({
+        topColor: 'rgba(251,191,36,0.15)', bottomColor: 'rgba(251,191,36,0.0)',
+        lineColor: '#fbbf24', lineWidth: 1,
+      });
+      obsSeries.setData(observed);
+
+      // Fitted line
+      ycSeries.setData(fitted);
+      ycChart.timeScale().fitContent();
+    }
+
+    // Status
+    status.innerHTML = `
+      <div style="display:flex;gap:24px;font-size:12px">
+        <span style="color:var(--text2)">Source: <strong style="color:var(--text)">${ycData.source || simData.providers?.[0] || 'N/A'}</strong></span>
+        <span style="color:var(--text2)">Data points: <strong style="color:var(--text)">${ycData.n_observed || 0}</strong></span>
+        <span style="color:var(--text2)">NSS R²: <strong style="color:var(--green)">${ycData.goodness_of_fit || 'N/A'}</strong></span>
+        <span style="color:var(--text2)">Avg residual: <strong style="color:var(--text)">${ycData.avg_residual_bps || 'N/A'} bps</strong></span>
+      </div>
+    `;
+  } catch (e) {
+    status.innerHTML = `<span style="color:var(--red)">Error: ${escapeHtml(e.message)}</span>`;
+  }
+}
+
+// ── Run Monte Carlo ──────────────────────────────────────────────
+async function runSimulation() {
+  const btn = document.getElementById('sim-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="color:var(--text3)">Running...</span>';
+
+  const status = document.getElementById('sim-status');
+  status.style.display = 'block';
+  status.innerHTML = '<span style="color:var(--text3)">Running Monte Carlo simulation...</span>';
+
+  try {
+    const body = {
+      n_paths: parseInt(document.getElementById('sim-paths').value),
+      horizon_years: parseInt(document.getElementById('sim-horizon').value),
+      rate_model: document.getElementById('sim-model').value,
+    };
+
+    const result = await fetch('/api/sim/monte-carlo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then(r => r.json());
+
+    // Draw rate fan chart
+    if (result.rate) {
+      const { p5, p25, p50, p75, p95 } = result.rate;
+      const timeAxis = p50.map((_, i) => i);
+
+      // p5-p95 band (lightest)
+      const band95 = p5.map((v, i) => ({ time: i, value: v }));
+      const band95top = p95.map((v, i) => ({ time: i, value: v }));
+      const band95Series = rateChart.addAreaSeries({
+        topColor: 'rgba(74,222,128,0.08)', bottomColor: 'rgba(74,222,128,0.02)',
+        lineColor: 'transparent', lineWidth: 0,
+      });
+      // For simplicity, draw p95 and p5 as separate lines
+      rateChart.addLineSeries({ color: 'rgba(74,222,128,0.2)', lineWidth: 1 }).setData(p95.map((v,i) => ({time:i, value:v*100})));
+      rateChart.addLineSeries({ color: 'rgba(74,222,128,0.2)', lineWidth: 1 }).setData(p5.map((v,i) => ({time:i, value:v*100})));
+      rateChart.addLineSeries({ color: 'rgba(74,222,128,0.5)', lineWidth: 1 }).setData(p25.map((v,i) => ({time:i, value:v*100})));
+      rateChart.addLineSeries({ color: 'rgba(74,222,128,0.5)', lineWidth: 1 }).setData(p75.map((v,i) => ({time:i, value:v*100})));
+      rateSeries.setData(p50.map((v,i) => ({time:i, value:v*100})));
+      rateChart.timeScale().fitContent();
+    }
+
+    // Draw FX projection
+    if (result.fx) {
+      const { p5, mean, p95 } = result.fx;
+      fxChart.addLineSeries({ color: 'rgba(56,189,248,0.3)', lineWidth: 1 }).setData(p95.map((v,i) => ({time:i, value:v})));
+      fxChart.addLineSeries({ color: 'rgba(56,189,248,0.3)', lineWidth: 1 }).setData(p5.map((v,i) => ({time:i, value:v})));
+      fxSeries.setData(mean.map((v,i) => ({time:i, value:v})));
+      fxChart.timeScale().fitContent();
+    }
+
+    // Draw Debt-to-GDP fan chart
+    if (result.debt_to_gdp) {
+      const { p5, median, p95 } = result.debt_to_gdp;
+      debtChart.addLineSeries({ color: 'rgba(192,132,252,0.3)', lineWidth: 1 }).setData(p95.map((v,i) => ({time:i, value:v})));
+      debtChart.addLineSeries({ color: 'rgba(192,132,252,0.3)', lineWidth: 1 }).setData(p5.map((v,i) => ({time:i, value:v})));
+      debtSeries.setData(median.map((v,i) => ({time:i, value:v})));
+      debtChart.timeScale().fitContent();
+    }
+
+    status.innerHTML = `
+      <div style="display:flex;gap:24px;font-size:12px">
+        <span style="color:var(--text2)">Model: <strong style="color:var(--text)">${result.config.rate_model.toUpperCase()}</strong></span>
+        <span style="color:var(--text2)">Paths: <strong style="color:var(--text)">${result.config.n_paths.toLocaleString()}</strong></span>
+        <span style="color:var(--text2)">Horizon: <strong style="color:var(--text)">${result.config.horizon_years}yr</strong></span>
+        <span style="color:var(--text2)">Points: <strong style="color:var(--text)">${result.points_per_series}</strong></span>
+      </div>
+    `;
+  } catch (e) {
+    status.innerHTML = `<span style="color:var(--red)">Error: ${escapeHtml(e.message)}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg> Run Simulation';
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => { initCharts(); loadMarketData(); });
+</script>
+{% endblock %}

@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Scenario Comparison - Quantive{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}Scenario Comparison{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-secondary btn-sm" onclick="loadPresets()">Load Presets</button>
+{% endblock %}
+{% block content %}
+
+<div style="max-width:1100px;">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <div style="margin-bottom:24px;">
+    <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.03em;">Scenario Comparison</h1>
+    <p style="font-size:13px;color:var(--text2);margin-top:4px;">Compare debt metrics across multiple macro stress scenarios</p>
+  </div>
+
+  <!-- ── Base Parameters ──────────────────────────────────── -->
+  <div class="card" style="padding:20px;margin-bottom:16px;">
+    <div class="section-title">Base Case Parameters</div>
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:140px;">
+        <label class="label">Total Debt ($)</label>
+        <input type="number" class="input" id="base-debt" value="500000000000" step="10000000000">
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label class="label">GDP ($)</label>
+        <input type="number" class="input" id="base-gdp" value="1000000000000" step="10000000000">
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label class="label">Debt Service Ratio (%)</label>
+        <input type="number" class="input" id="base-dsr" value="15.0" step="0.5">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Scenario Builder ────────────────────────────────── -->
+  <div class="card" style="padding:20px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="section-title" style="margin-bottom:0;">Scenarios</div>
+      <button class="btn btn-sm btn-secondary" onclick="addScenario()">+ Add Scenario</button>
+    </div>
+
+    <div id="scenarios-container">
+      <!-- Scenario 1 -->
+      <div class="scenario-row" style="display:grid;grid-template-columns:1fr repeat(5,120px) 40px;gap:10px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <label class="label">Name</label>
+          <input type="text" class="input scenario-name" value="Rate Spike">
+        </div>
+        <div>
+          <label class="label">Rate (bps)</label>
+          <input type="number" class="input scenario-rate" value="200" step="25">
+        </div>
+        <div>
+          <label class="label">FX (%)</label>
+          <input type="number" class="input scenario-fx" value="-10" step="1">
+        </div>
+        <div>
+          <label class="label">GDP Growth (%)</label>
+          <input type="number" class="input scenario-gdp" value="0.5" step="0.5">
+        </div>
+        <div>
+          <label class="label">Spread (bps)</label>
+          <input type="number" class="input scenario-spread" value="150" step="25">
+        </div>
+        <div>
+          <label class="label">Equity (%)</label>
+          <input type="number" class="input scenario-equity" value="-20" step="5">
+        </div>
+        <div></div>
+      </div>
+
+      <!-- Scenario 2 -->
+      <div class="scenario-row" style="display:grid;grid-template-columns:1fr repeat(5,120px) 40px;gap:10px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <input type="text" class="input scenario-name" value="Currency Crisis">
+        </div>
+        <div>
+          <input type="number" class="input scenario-rate" value="500" step="25">
+        </div>
+        <div>
+          <input type="number" class="input scenario-fx" value="-30" step="1">
+        </div>
+        <div>
+          <input type="number" class="input scenario-gdp" value="-2.0" step="0.5">
+        </div>
+        <div>
+          <input type="number" class="input scenario-spread" value="800" step="25">
+        </div>
+        <div>
+          <input type="number" class="input scenario-equity" value="-35" step="5">
+        </div>
+        <div></div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="runComparison()">Run Comparison</button>
+    </div>
+  </div>
+
+  <!-- ── Results ────────────────────────────────────────── -->
+  <div id="results-container" style="display:none;">
+    <div class="card" style="padding:20px;margin-bottom:16px;">
+      <div class="section-title">Results</div>
+      <div style="overflow-x:auto;margin-top:12px;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border2);">
+              <th style="text-align:left;padding:8px 12px;color:var(--text2);font-weight:600;">Metric</th>
+              <th style="text-align:right;padding:8px 12px;color:var(--text2);font-weight:600;">Base Case</th>
+              <th id="result-header" style="text-align:right;padding:8px 12px;color:var(--text2);font-weight:600;"></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Recommendation ────────────────────────────────── -->
+    <div class="card" style="padding:20px;">
+      <div class="section-title">Assessment</div>
+      <p id="recommendation" style="font-size:14px;color:var(--text);margin-top:8px;line-height:1.5;"></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let scenarioCount = 2;
+
+function addScenario() {
+  scenarioCount++;
+  const container = document.getElementById('scenarios-container');
+  const row = document.createElement('div');
+  row.className = 'scenario-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr repeat(5,120px) 40px;gap:10px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border);';
+  row.innerHTML = `
+    <div><input type="text" class="input scenario-name" value="Scenario ${scenarioCount}"></div>
+    <div><input type="number" class="input scenario-rate" value="0" step="25"></div>
+    <div><input type="number" class="input scenario-fx" value="0" step="1"></div>
+    <div><input type="number" class="input scenario-gdp" value="2.5" step="0.5"></div>
+    <div><input type="number" class="input scenario-spread" value="0" step="25"></div>
+    <div><input type="number" class="input scenario-equity" value="0" step="5"></div>
+    <div><button class="btn btn-ghost btn-sm" onclick="this.closest('.scenario-row').remove()" style="color:var(--red);">&#x2715;</button></div>
+  `;
+  container.appendChild(row);
+}
+
+async function loadPresets() {
+  try {
+    const res = await fetch('/api/scenarios/presets');
+    const data = await res.json();
+    const container = document.getElementById('scenarios-container');
+    container.innerHTML = '';
+    scenarioCount = 0;
+
+    data.presets.forEach(p => {
+      scenarioCount++;
+      const row = document.createElement('div');
+      row.className = 'scenario-row';
+      row.style.cssText = 'display:grid;grid-template-columns:1fr repeat(5,120px) 40px;gap:10px;align-items:end;padding:10px 0;border-bottom:1px solid var(--border);';
+      row.innerHTML = `
+        <div><input type="text" class="input scenario-name" value="${escapeHtml(p.name)}"></div>
+        <div><input type="number" class="input scenario-rate" value="${p.rate_shock_bps}" step="25"></div>
+        <div><input type="number" class="input scenario-fx" value="${p.fx_shock_pct}" step="1"></div>
+        <div><input type="number" class="input scenario-gdp" value="${p.gdp_growth_pct}" step="0.5"></div>
+        <div><input type="number" class="input scenario-spread" value="${p.spread_bps}" step="25"></div>
+        <div><input type="number" class="input scenario-equity" value="${p.equity_shock_pct || 0}" step="5"></div>
+        <div><button class="btn btn-ghost btn-sm" onclick="this.closest('.scenario-row').remove()" style="color:var(--red);">&#x2715;</button></div>
+      `;
+      container.appendChild(row);
+    });
+  } catch(e) {
+    console.error('Failed to load presets:', e);
+  }
+}
+
+async function runComparison() {
+  const rows = document.querySelectorAll('.scenario-row');
+  const scenarios = [];
+  rows.forEach(row => {
+    scenarios.push({
+      name: row.querySelector('.scenario-name').value,
+      rate_shock_bps: parseFloat(row.querySelector('.scenario-rate').value) || 0,
+      fx_shock_pct: parseFloat(row.querySelector('.scenario-fx').value) || 0,
+      gdp_growth_pct: parseFloat(row.querySelector('.scenario-gdp').value) || 2.5,
+      spread_bps: parseFloat(row.querySelector('.scenario-spread').value) || 0,
+      equity_shock_pct: parseFloat(row.querySelector('.scenario-equity').value) || 0,
+    });
+  });
+
+  try {
+    const res = await fetch('/api/scenarios/compare', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        base_debt: parseFloat(document.getElementById('base-debt').value),
+        base_gdp: parseFloat(document.getElementById('base-gdp').value),
+        base_debt_service_ratio: parseFloat(document.getElementById('base-dsr').value),
+        scenarios: scenarios,
+      }),
+    });
+    const data = await res.json();
+    renderResults(data);
+  } catch(e) {
+    console.error('Comparison failed:', e);
+  }
+}
+
+function renderResults(data) {
+  const container = document.getElementById('results-container');
+  container.style.display = 'block';
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = '';
+
+  const metrics = [
+    {label: 'Debt-to-GDP', key: 'debt_to_gdp', format: v => v.toFixed(1) + '%', warn: v => v > 60},
+    {label: 'Debt Service Ratio', key: 'debt_service_ratio', format: v => v.toFixed(1) + '%', warn: v => v > 25},
+    {label: 'Interest Cost Change', key: 'interest_cost_change_pct', format: v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%', warn: v => v > 5},
+    {label: 'FX Impact', key: 'fx_impact', format: v => v.toFixed(2) + 'pp', warn: v => v > 3},
+    {label: 'Recession Prob.', key: 'recession_probability', format: v => (v * 100).toFixed(1) + '%', warn: v => v > 0.3},
+    {label: 'Risk Score', key: 'risk_score', format: v => v.charAt(0).toUpperCase() + v.slice(1), warn: v => v === 'high' || v === 'critical'},
+    {label: 'Compliance', key: 'status', format: v => v.charAt(0).toUpperCase() + v.slice(1), warn: v => v === 'breach'},
+  ];
+
+  metrics.forEach(m => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border)';
+
+    const baseVal = data.base_case[m.key];
+    const baseColor = m.warn(baseVal) ? 'var(--red)' : 'var(--text)';
+
+    let cells = `<td style="padding:8px 12px;color:var(--text2);">${m.label}</td>`;
+    cells += `<td style="padding:8px 12px;text-align:right;color:${baseColor};font-weight:500;">${m.format(baseVal)}</td>`;
+
+    // Add a column per scenario (simplified: show first scenario)
+    data.scenarios.forEach((s, i) => {
+      const val = s[m.key];
+      const color = m.warn(val) ? 'var(--red)' : 'var(--text)';
+      if (i === 0) {
+        cells += `<td style="padding:8px 12px;text-align:right;color:${color};font-weight:500;">${m.format(val)}</td>`;
+      }
+    });
+
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+
+  // Show all scenarios in header
+  const header = document.getElementById('result-header');
+  header.textContent = data.scenarios.map(s => s.name).join(' / ');
+
+  document.getElementById('recommendation').textContent = data.recommendation;
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Solver Tournament - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Solver Tournament{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Tournaments</div>
+    <div class="stat-value">3</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Solvers Competing</div>
+    <div class="stat-value">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Best Sharpe</div>
+    <div class="stat-value" style="color:var(--green);">--</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Current Tournament: Sovereign Core Optimization</div>
+  <table>
+    <thead><tr><th>Rank</th><th>Solver</th><th>Return</th><th>Risk</th><th>Sharpe</th><th>Score</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;color:var(--accent);">1</td><td style="font-weight:600;">Black-Litterman v3</td><td style="color:var(--green);">+7.4%</td><td>--%</td><td>--</td><td style="font-weight:700;color:var(--accent);">--</td></tr>
+      <tr><td style="font-weight:600;">2</td><td>Mean-Variance Enhanced</td><td style="color:var(--green);">+6.8%</td><td>--%</td><td>--</td><td style="font-weight:700;">--</td></tr>
+      <tr><td style="font-weight:600;">3</td><td>Risk Parity Pro</td><td style="color:var(--green);">+5.4%</td><td>--%</td><td>--</td><td style="font-weight:700;">--</td></tr>
+      <tr><td style="font-weight:600;">4</td><td>HRP Adaptive</td><td style="color:var(--green);">+5.1%</td><td>--%</td><td>--</td><td style="font-weight:700;">--</td></tr>
+      <tr><td style="font-weight:600;">5</td><td>Equal Weight Baseline</td><td style="color:var(--green);">+4.2%</td><td>--%</td><td>--</td><td style="font-weight:700;">--</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

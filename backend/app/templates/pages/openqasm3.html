@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}OpenQASM3 - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}OpenQASM3 Integration{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Quantum Circuits</div>
+    <div class="stat-value">24</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Backend</div>
+    <div class="stat-value" style="font-size:16px;">IBM Quantum</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Status</div>
+    <div class="stat-value" style="color:var(--green);">Connected</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Quantum Circuits</div>
+  <table>
+    <thead><tr><th>Circuit</th><th>Qubits</th><th>Depth</th><th>Backend</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Portfolio Optimization</td><td>16</td><td>124</td><td>ibm_brisbane</td><td><span class="badge badge-green">Ready</span></td></tr>
+      <tr><td style="font-weight:600;">Risk Simulation</td><td>32</td><td>256</td><td>ibm_osaka</td><td><span class="badge badge-yellow">Queued</span></td></tr>
+      <tr><td style="font-weight:600;">Monte Carlo QMC</td><td>8</td><td>64</td><td>ibm_kyoto</td><td><span class="badge badge-green">Ready</span></td></tr>
+      <tr><td style="font-weight:600;">Grover Search</td><td>12</td><td>96</td><td>ibm_brisbane</td><td><span class="badge badge-green">Ready</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Circuit Designer — Quantive{% endblock %}
+{% block content %}
+<div style="min-height:100%;margin:-24px;padding:24px">
+  <div style="margin-bottom:24px">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--blue);margin-bottom:4px">Priority 2</div>
+    <div style="font-size:28px;font-weight:800;color:#fff">Visual Circuit Designer</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px">Build, validate, and optimize quantum circuits with real-time feedback</div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+    <div>
+      <div class="glass" style="padding:20px;margin-bottom:16px"><div class="section-title">Circuit Templates</div><div id="templates-list" style="margin-top:12px">Loading...</div></div>
+      <div class="glass" style="padding:20px"><div class="section-title">Hardware Profiles</div><div id="hardware-list" style="margin-top:12px">Loading...</div></div>
+    </div>
+    <div>
+      <div class="glass" style="padding:20px;margin-bottom:16px"><div class="section-title">Validation</div><div id="validation-result" style="margin-top:12px;font-size:11px;color:var(--text3)">Select a template to validate</div></div>
+      <div class="glass" style="padding:20px"><div class="section-title">Cost Estimate</div><div id="cost-estimate" style="margin-top:12px;font-size:11px;color:var(--text3)">&mdash;</div></div>
+    </div>
+  </div>
+</div>
+<script>
+const token = localStorage.getItem('token') || '';
+const hdrs = token ? {'Authorization': 'Bearer ' + token} : {};
+async function api(p, o={}) { const r = await fetch('/api/circuit-designer' + p, {...o, headers:{...hdrs,...o.headers}}); return r.json(); }
+async function loadTemplates() {
+  const data = await api('/templates');
+  let h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  data.templates.forEach(t => {
+    const dc = t.difficulty==='beginner'?'var(--green)':t.difficulty==='intermediate'?'var(--yellow)':'var(--red)';
+    h += '<div onclick="selectTemplate(\''+t.id+'\')" style="background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;cursor:pointer;border:1px solid transparent" onmouseover="this.style.borderColor=\'var(--blue)\'" onmouseout="this.style.borderColor=\'transparent\'"><div style="font-weight:600;color:#fff;font-size:11px">'+t.name+'</div><div style="font-size:9px;color:var(--text3);margin-top:2px">'+t.num_qubits+' qubits &middot; <span style="color:'+dc+'">'+t.difficulty+'</span></div></div>';
+  });
+  document.getElementById('templates-list').innerHTML = h+'</div>';
+}
+async function loadHardware() {
+  const data = await api('/hardware');
+  let h = '';
+  data.profiles.forEach(p => { h += '<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><div style="font-weight:600;color:#fff;font-size:11px">'+p.name+'</div><div style="font-size:9px;color:var(--text3);margin-top:2px">'+p.max_qubits+' qubits &middot; '+p.connectivity+' &middot; $'+p.cost_per_shot+'/shot</div></div>'; });
+  document.getElementById('hardware-list').innerHTML = h;
+}
+async function selectTemplate(id) {
+  const data = await api('/templates/' + id);
+  if (data.error) return;
+  const val = await api('/validate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({circuit:{num_qubits:data.num_qubits,gates:[],target_backend:'ibm_heron',name:data.name}})});
+  document.getElementById('validation-result').innerHTML = '<div style="color:'+(val.valid?'var(--green)':'var(--red)')+';font-weight:600;font-size:12px">'+(val.valid?'VALID':'ERRORS')+'</div><div style="margin-top:8px;color:#fff;font-size:11px">Gates: '+val.circuit_stats.num_gates+' &middot; Fidelity: '+(val.cost_estimate.estimated_fidelity*100).toFixed(1)+'%</div>';
+  document.getElementById('cost-estimate').innerHTML = '<div style="color:#fff;font-size:16px;font-weight:800">$'+val.cost_estimate.cost_usd.toFixed(4)+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">'+val.cost_estimate.shots+' shots on '+val.hardware_profile+'</div>';
+}
+loadTemplates(); loadHardware();
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Stock Monitor - Quantive{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}Stock Monitor{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-secondary btn-sm">+ Add Stock</button>
+{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Watchlist Size</div>
+    <div class="stat-value"><span id="sm-count">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Gainers</div>
+    <div class="stat-value" style="color:var(--green);">28</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Losers</div>
+    <div class="stat-value" style="color:var(--red);">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Unchanged</div>
+    <div class="stat-value">2</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Watchlist</div>
+  <table>
+    <thead><tr><th>Ticker</th><th>Company</th><th>Price</th><th>Change</th><th>Volume</th><th>Market Cap</th></tr></thead>
+    <tbody>
+      <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;">Loading stock data...</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

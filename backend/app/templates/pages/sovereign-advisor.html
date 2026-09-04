@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Sovereign Advisor - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Sovereign Advisor{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Advice Given</div>
+    <div class="stat-value">847</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Accuracy Rate</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Active Recommendations</div>
+    <div class="stat-value" style="color:var(--yellow);">6</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Active Recommendations</div>
+  <table>
+    <thead><tr><th>Recommendation</th><th>Category</th><th>Confidence</th><th>Impact</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Extend duration to 7.2 years</td><td>Duration</td><td><span class="badge badge-green">94%</span></td><td style="color:var(--green);">+$420M</td><td><span class="badge badge-yellow">Pending</span></td></tr>
+      <tr><td style="font-weight:600;">Increase green bond allocation</td><td>ESG</td><td><span class="badge badge-green">88%</span></td><td style="color:var(--green);">+$180M</td><td><span class="badge badge-yellow">Pending</span></td></tr>
+      <tr><td style="font-weight:600;">Hedge EUR exposure</td><td>FX</td><td><span class="badge badge-green">92%</span></td><td style="color:var(--green);">+$320M</td><td><span class="badge badge-green">Approved</span></td></tr>
+      <tr><td style="font-weight:600;">Reduce BBB exposure by 3%</td><td>Credit</td><td><span class="badge badge-yellow">78%</span></td><td style="color:var(--green);">+$95M</td><td><span class="badge badge-default">Draft</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

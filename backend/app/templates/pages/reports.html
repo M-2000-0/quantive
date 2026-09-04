@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}Reports & Exports - Quantive{% endblock %}
+{% set active_page = 'reports' %}
+{% block page_title %}Reports & Exports{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-primary btn-sm" onclick="generateReport()">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+  Generate Report
+</button>
+{% endblock %}
+{% block content %}
+
+<!-- Stats -->
+<div class="grid grid-3" style="margin-bottom:24px;">
+  <div class="stat">
+    <div class="stat-label">Total Reports</div>
+    <div class="stat-value">847</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">This Month</div>
+    <div class="stat-value">24</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Scheduled</div>
+    <div class="stat-value">8</div>
+  </div>
+</div>
+
+<!-- Export Section -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="section-title" style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Standard Format Exports
+  </div>
+  <p style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;">
+    Export sovereign debt data in internationally recognized formats for IMF, World Bank, and regulatory submissions.
+  </p>
+
+  <!-- Country & Year Selector -->
+  <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+    <div>
+      <label style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Country</label>
+      <select id="export-country" class="input" style="width:200px;">
+        <option value="MEX">Mexico (MEX)</option>
+        <option value="BRA">Brazil (BRA)</option>
+        <option value="ARG">Argentina (ARG)</option>
+        <option value="COL">Colombia (COL)</option>
+        <option value="CHL">Chile (CHL)</option>
+        <option value="PER">Peru (PER)</option>
+        <option value="IND">India (IND)</option>
+        <option value="IDN">Indonesia (IDN)</option>
+        <option value="ZAF">South Africa (ZAF)</option>
+        <option value="TUR">Turkey (TUR)</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Fiscal Year</label>
+      <select id="export-year" class="input" style="width:120px;">
+        <option value="2026">2026</option>
+        <option value="2025" selected>2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Format</label>
+      <select id="export-file-format" class="input" style="width:120px;">
+        <option value="csv">CSV</option>
+        <option value="json">JSON</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Export Cards -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">
+
+    <!-- MTDS -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(129,140,248,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:600;font-size:15px;">IMF MTDS</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">Medium-Term Debt Strategy</div>
+        </div>
+      </div>
+      <p style="color:var(--text-secondary);font-size:12px;margin:8px 0 16px;line-height:1.5;">
+        Standard IMF template covering debt stock, service flows, maturity profiles, currency composition, and projected medium-term trajectories.
+      </p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="downloadExport('mtds')" style="flex:1;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="previewExport('mtds')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+      </div>
+    </div>
+
+    <!-- DSA -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(52,211,153,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:600;font-size:15px;">IMF DSA</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">Debt Sustainability Analysis</div>
+        </div>
+      </div>
+      <p style="color:var(--text-secondary);font-size:12px;margin:8px 0 16px;line-height:1.5;">
+        IMF/World Bank joint framework. Includes PV of debt, service ratios, threshold breaches, and overall risk rating per MAC or LIC-DSA methodology.
+      </p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="downloadExport('dsa')" style="flex:1;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="previewExport('dsa')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+      </div>
+    </div>
+
+    <!-- IDS -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(251,191,36,0.12);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:600;font-size:15px;">World Bank IDS</div>
+          <div style="font-size:11px;color:var(--text-tertiary);">International Debt Statistics</div>
+        </div>
+      </div>
+      <p style="color:var(--text-secondary);font-size:12px;margin:8px 0 16px;line-height:1.5;">
+        World Bank standardized format. Stock/flow data, creditor composition, currency breakdown, net flows and transfers.
+      </p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="downloadExport('ids')" style="flex:1;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="previewExport('ids')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Export Preview Modal -->
+<div id="preview-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:90%;max-width:900px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
+      <div id="preview-title" style="font-weight:600;font-size:15px;">Export Preview</div>
+      <button onclick="closePreview()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:18px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="preview-content" style="overflow:auto;flex:1;padding:0;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead id="preview-thead"></thead>
+        <tbody id="preview-tbody"></tbody>
+      </table>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">
+      <button id="preview-download-btn" class="btn btn-primary btn-sm">Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Reports -->
+<div class="card">
+  <div class="section-title">Recent Reports</div>
+  <table>
+    <thead><tr><th>Report</th><th>Type</th><th>Generated</th><th>Pages</th><th>Size</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Weekly Portfolio Summary</td><td>Portfolio</td><td>2026-08-28</td><td>12</td><td>2.4 MB</td><td><button class="btn btn-ghost btn-sm">Download</button></td></tr>
+      <tr><td style="font-weight:600;">Risk Report - August</td><td>Risk</td><td>2026-08-25</td><td>28</td><td>4.8 MB</td><td><button class="btn btn-ghost btn-sm">Download</button></td></tr>
+      <tr><td style="font-weight:600;">Compliance Audit Q3</td><td>Compliance</td><td>2026-08-20</td><td>42</td><td>6.2 MB</td><td><button class="btn btn-ghost btn-sm">Download</button></td></tr>
+      <tr><td style="font-weight:600;">Performance Attribution</td><td>Performance</td><td>2026-08-18</td><td>16</td><td>3.1 MB</td><td><button class="btn btn-ghost btn-sm">Download</button></td></tr>
+      <tr><td style="font-weight:600;">Minister Brief - Week 34</td><td>Briefing</td><td>2026-08-15</td><td>8</td><td>1.8 MB</td><td><button class="btn btn-ghost btn-sm">Download</button></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const EXPORT_LABELS = {
+  mtds: 'IMF Medium-Term Debt Strategy',
+  dsa: 'IMF Debt Sustainability Analysis',
+  ids: 'World Bank International Debt Statistics',
+};
+
+function getExportParams() {
+  return {
+    format: document.getElementById('export-file-format').value,
+    country_code: document.getElementById('export-country').value,
+    fiscal_year: parseInt(document.getElementById('export-year').value),
+    include_projections: true,
+    projection_years: 5,
+  };
+}
+
+async function downloadExport(type) {
+  const params = getExportParams();
+  const btn = event.target.closest('button');
+  const origText = btn.innerHTML;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10"/></svg> Generating...';
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch('/api/exports/' + type, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+
+    if (!resp.ok) throw new Error('Export failed');
+
+    if (params.format === 'csv') {
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = type.toUpperCase() + '_' + params.country_code + '_' + params.fiscal_year + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const data = await resp.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = type.toUpperCase() + '_' + params.country_code + '_' + params.fiscal_year + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  } finally {
+    btn.innerHTML = origText;
+    btn.disabled = false;
+  }
+}
+
+async function previewExport(type) {
+  const p = getExportParams();
+  p.format = 'json';
+  const content = document.getElementById('preview-content');
+
+  document.getElementById('preview-title').textContent = EXPORT_LABELS[type];
+  content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-tertiary);">Loading preview...</div>';
+  document.getElementById('preview-modal').style.display = 'flex';
+
+  try {
+    const resp = await fetch('/api/exports/' + type, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p),
+    });
+    const data = await resp.json();
+    const records = data.records || [];
+    if (records.length === 0) {
+      content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-tertiary);">No data available</div>';
+      return;
+    }
+
+    const keys = Object.keys(records[0]);
+    const ths = keys.map(k =>
+      '<th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-secondary);position:sticky;top:0;background:var(--surface);">' + k.replace(/_/g, ' ') + '</th>'
+    ).join('');
+
+    const rows = records.map(r =>
+      '<tr>' + keys.map(k => {
+        let val = r[k];
+        if (typeof val === 'number') val = val.toLocaleString(undefined, {maximumFractionDigits: 2});
+        let style = '';
+        if (k === 'pvi_status' || k === 'dsr_status' || k === 'debt_gdp_status' || k === 'overall_assessment') {
+          if (val === 'fail' || val === 'high_risk') style = 'color:#fb7185;font-weight:600;';
+          else if (val === 'borderline' || val === 'moderate_risk') style = 'color:#facc15;font-weight:600;';
+          else style = 'color:#4ade80;font-weight:600;';
+        }
+        return '<td style="padding:6px 12px;border-bottom:1px solid var(--border);font-size:12px;' + style + '">' + val + '</td>';
+      }).join('') + '</tr>'
+    ).join('');
+
+    content.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead>' + ths + '</thead><tbody>' + rows + '</tbody></table>';
+
+    document.getElementById('preview-download-btn').onclick = function() { downloadExport(type); closePreview(); };
+  } catch (e) {
+    content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-secondary);">Failed to load preview: ' + e.message + '</div>';
+  }
+}
+
+function closePreview() {
+  document.getElementById('preview-modal').style.display = 'none';
+}
+
+function generateReport() {
+  alert('Report generation queued. You will be notified when ready.');
+}
+</script>
+
+<style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Approvals — Quantive{% endblock %}
+{% block page_title %}Approval Workflow{% endblock %}
+
+{% block content %}
+<style>
+  .approval-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+  .approval-tab { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+  .approval-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .approval-tab .count { background: rgba(255,255,255,0.1); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; margin-left: 6px; }
+  .approval-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; margin-bottom: 12px; transition: border-color 0.2s; }
+  .approval-card:hover { border-color: rgba(255,255,255,0.12); }
+  .status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .status-pending { background: rgba(234,179,8,0.15); color: #eab308; }
+  .status-approved { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .status-rejected { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .status-escalated { background: rgba(168,85,247,0.15); color: #a855f7; }
+  .status-expired { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); }
+  .approval-chain { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+  .chain-step { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; }
+  .chain-dot { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; }
+  .chain-dot.done { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .chain-dot.current { background: rgba(234,179,8,0.15); color: #eab308; border: 2px solid #eab308; }
+  .chain-dot.waiting { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); }
+  .chain-line { width: 24px; height: 2px; background: rgba(255,255,255,0.1); }
+  .chain-line.done { background: #22c55e; }
+  .btn-approve { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+  .btn-approve:hover { background: rgba(34,197,94,0.25); }
+  .btn-reject { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+  .btn-reject:hover { background: rgba(239,68,68,0.25); }
+  .empty-state { text-align: center; padding: 48px 20px; color: rgba(255,255,255,0.3); }
+  .empty-state svg { margin-bottom: 12px; opacity: 0.3; }
+  .decision-log { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.04); }
+  .decision-entry { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.75rem; }
+  .decision-entry .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+  .modal-box { background: #111; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; width: 90%; max-width: 480px; padding: 24px; }
+</style>
+
+<!-- Tabs -->
+<div class="approval-tabs">
+  <button class="approval-tab active" onclick="filterApprovals('pending')">Pending <span class="count" id="pending-count">0</span></button>
+  <button class="approval-tab" onclick="filterApprovals('approved')">Approved <span class="count" id="approved-count">0</span></button>
+  <button class="approval-tab" onclick="filterApprovals('rejected')">Rejected <span class="count" id="rejected-count">0</span></button>
+  <button class="approval-tab" onclick="filterApprovals('all')">All</button>
+</div>
+
+<!-- Stats -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+  <div style="padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">Pending</div>
+    <div id="stat-pending" style="font-size:1.4rem;font-weight:800;color:#eab308;margin-top:4px">0</div>
+  </div>
+  <div style="padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">Approved</div>
+    <div id="stat-approved" style="font-size:1.4rem;font-weight:800;color:#22c55e;margin-top:4px">0</div>
+  </div>
+  <div style="padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">Rejected</div>
+    <div id="stat-rejected" style="font-size:1.4rem;font-weight:800;color:#ef4444;margin-top:4px">0</div>
+  </div>
+  <div style="padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+    <div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.35)">Thresholds</div>
+    <div style="font-size:0.75rem;color:rgba(255,255,255,0.6);margin-top:4px">4E: $1M · 6E: $50M · 8E: $500M</div>
+  </div>
+</div>
+
+<!-- Approval List -->
+<div id="approval-list"></div>
+
+<!-- Empty State -->
+<div id="empty-state" class="empty-state" style="display:none">
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <div style="font-size:0.9rem;font-weight:600;margin-bottom:4px">No approvals found</div>
+  <div style="font-size:0.8rem">Transactions below the auto-approve threshold ($100K) do not require approval.</div>
+</div>
+
+<!-- Decision Modal -->
+<div id="decision-modal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.5)" id="modal-title">Approve Transaction</div>
+      <button onclick="closeModal()" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:1.2rem">&times;</button>
+    </div>
+    <div id="modal-body"></div>
+    <div style="margin-top:12px">
+      <label style="font-size:0.7rem;color:rgba(255,255,255,0.4);display:block;margin-bottom:4px">Comment (optional)</label>
+      <textarea id="modal-comment" rows="3" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.9);font-size:0.8rem;resize:vertical;box-sizing:border-box" placeholder="Reason for your decision..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button onclick="closeModal()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.8rem">Cancel</button>
+      <button id="modal-reject-btn" onclick="submitDecision('rejected')" class="btn-reject">Reject</button>
+      <button id="modal-approve-btn" onclick="submitDecision('approved')" class="btn-approve">Approve</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let allApprovals = [];
+let currentFilter = 'pending';
+let currentRequestId = null;
+
+function authHeaders() {
+  const t = localStorage.getItem('token');
+  const h = { 'Content-Type': 'application/json' };
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
+function fmt(n) {
+  if (!n) return '--';
+  if (Math.abs(n) >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + n.toLocaleString();
+}
+
+function statusBadge(status) {
+  return '<span class="status-badge status-' + status + '">' + status + '</span>';
+}
+
+function filterApprovals(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.approval-tab').forEach(t => t.classList.remove('active'));
+  event.target.closest('.approval-tab').classList.add('active');
+  renderApprovals();
+}
+
+async function loadApprovals() {
+  try {
+    const [pendingRes, allRes] = await Promise.all([
+      fetch(API + '/approvals/?status=pending', { credentials: 'include' }),
+      fetch(API + '/approvals/?status=all', { credentials: 'include' }),
+    ]);
+    const pending = await pendingRes.json();
+    const all = await allRes.json();
+    allApprovals = all.requests || [];
+    
+    const counts = { pending: 0, approved: 0, rejected: 0 };
+    allApprovals.forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+    
+    document.getElementById('pending-count').textContent = counts.pending;
+    document.getElementById('approved-count').textContent = counts.approved;
+    document.getElementById('rejected-count').textContent = counts.rejected;
+    document.getElementById('stat-pending').textContent = counts.pending;
+    document.getElementById('stat-approved').textContent = counts.approved;
+    document.getElementById('stat-rejected').textContent = counts.rejected;
+    
+    renderApprovals();
+  } catch(e) {
+    console.error('Failed to load approvals:', e);
+    document.getElementById('approval-list').innerHTML = '<div class="empty-state"><div style="font-size:0.9rem;font-weight:600;margin-bottom:4px">Failed to load approvals</div><div style="font-size:0.8rem">Check your connection and try again.</div></div>';
+  }
+}
+
+function renderApprovals() {
+  const list = document.getElementById('approval-list');
+  const empty = document.getElementById('empty-state');
+  
+  let filtered = allApprovals;
+  if (currentFilter !== 'all') {
+    filtered = allApprovals.filter(r => r.status === currentFilter);
+  }
+  
+  if (filtered.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  
+  empty.style.display = 'none';
+  
+  list.innerHTML = filtered.map(r => {
+    const isPending = r.status === 'pending';
+    const approvals = r.current_approvals || 0;
+    const required = r.required_approvals || 1;
+    const deadline = r.deadline ? new Date(r.deadline) : null;
+    const isOverdue = deadline && deadline < new Date();
+    
+    // Build approval chain visualization
+    let chainHTML = '';
+    for (let i = 0; i < required; i++) {
+      const stepClass = i < approvals ? 'done' : (i === approvals && isPending ? 'current' : 'waiting');
+      const stepLabel = i < approvals ? '\u2713' : (i + 1);
+      chainHTML += '<div class="chain-dot ' + stepClass + '">' + stepLabel + '</div>';
+      if (i < required - 1) {
+        chainHTML += '<div class="chain-line' + (i < approvals ? ' done' : '') + '"></div>';
+      }
+    }
+    
+    const timeLeft = deadline ? getTimeLeft(deadline) : '';
+    
+    return '<div class="approval-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:start">' +
+        '<div>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+            '<span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:rgba(255,255,255,0.4)">' + (r.transaction_type || 'transaction') + '</span>' +
+            statusBadge(r.status) +
+            (isOverdue && isPending ? '<span class="status-badge status-escalated">OVERDUE</span>' : '') +
+          '</div>' +
+          '<div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px">' + fmt(r.amount) + ' ' + (r.currency || 'USD') + '</div>' +
+          '<div style="font-size:0.75rem;color:rgba(255,255,255,0.4)">ID: ' + r.id + ' \u00B7 Created by: ' + (r.created_by || 'unknown').substring(0, 8) + '...</div>' +
+        '</div>' +
+        (isPending ? '<div style="display:flex;gap:8px">' +
+          '<button class="btn-reject" onclick="openModal(' + r.id + ', \'reject\')">Reject</button>' +
+          '<button class="btn-approve" onclick="openModal(' + r.id + ', \'approve\')">Approve</button>' +
+        '</div>' : '') +
+      '</div>' +
+      '<div class="approval-chain">' +
+        '<span style="font-size:0.65rem;color:rgba(255,255,255,0.3);margin-right:4px">Chain:</span>' +
+        chainHTML +
+        '<span style="font-size:0.65rem;color:rgba(255,255,255,0.3);margin-left:8px">' + approvals + '/' + required + ' approvals</span>' +
+        (timeLeft ? '<span style="font-size:0.65rem;color:' + (isOverdue ? '#ef4444' : 'rgba(255,255,255,0.3)') + ';margin-left:auto">' + timeLeft + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function getTimeLeft(deadline) {
+  const now = new Date();
+  const diff = deadline - now;
+  if (diff < 0) return 'Expired ' + formatTimeAgo(deadline);
+  const hours = Math.floor(diff / 3600000);
+  if (hours > 24) return Math.floor(hours / 24) + 'd ' + (hours % 24) + 'h left';
+  return hours + 'h ' + Math.floor((diff % 3600000) / 60000) + 'm left';
+}
+
+function formatTimeAgo(date) {
+  const diff = new Date() - date;
+  const hours = Math.floor(diff / 3600000);
+  if (hours > 24) return Math.floor(hours / 24) + 'd ago';
+  return hours + 'h ago';
+}
+
+function openModal(requestId, action) {
+  currentRequestId = requestId;
+  const req = allApprovals.find(r => r.id === requestId);
+  if (!req) return;
+  
+  document.getElementById('modal-title').textContent = action === 'approve' ? 'Approve Transaction' : 'Reject Transaction';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="padding:12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Amount</span><span style="font-weight:700">' + fmt(req.amount) + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Type</span><span>' + (req.transaction_type || '--') + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between"><span style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Created</span><span>' + (req.created_at || '--') + '</span></div>' +
+    '</div>';
+  
+  document.getElementById('modal-approve-btn').style.display = action === 'approve' ? '' : 'none';
+  document.getElementById('modal-reject-btn').style.display = action === 'reject' ? '' : 'none';
+  document.getElementById('modal-comment').value = '';
+  document.getElementById('decision-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('decision-modal').style.display = 'none';
+  currentRequestId = null;
+}
+
+async function submitDecision(decision) {
+  if (!currentRequestId) return;
+  const comment = document.getElementById('modal-comment').value.trim();
+  
+  try {
+    const res = await fetch(API + '/approvals/' + currentRequestId + '/decide', {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders(),
+      body: JSON.stringify({ decision, comment: comment || null }),
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      closeModal();
+      loadApprovals();
+    } else {
+      alert(data.message || 'Decision failed');
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// Init
+loadApprovals();
+setInterval(loadApprovals, 30000);
+</script>
+{% endblock %}

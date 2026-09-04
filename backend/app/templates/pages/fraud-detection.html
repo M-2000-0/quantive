@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Fraud Detection - Quantive{% endblock %}
+{% set active_page = 'reports' %}
+{% block page_title %}Fraud Detection{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Transactions Monitored</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Alerts Generated</div>
+    <div class="stat-value" style="color:var(--yellow);">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Confirmed Fraud</div>
+    <div class="stat-value" style="color:var(--green);">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Model Accuracy</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Recent Alerts</div>
+  <table>
+    <thead><tr><th>Time</th><th>Type</th><th>Description</th><th>Risk Score</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>2026-08-28 11:42</td><td style="font-weight:600;">Unusual Pattern</td><td>Multiple large transfers in short succession</td><td><span class="badge badge-yellow">62/100</span></td><td><span class="badge badge-yellow">Investigating</span></td></tr>
+      <tr><td>2026-08-27 16:15</td><td style="font-weight:600;">Anomaly</td><td>Transaction amount 3x historical average</td><td><span class="badge badge-yellow">58/100</span></td><td><span class="badge badge-green">Resolved</span></td></tr>
+      <tr><td>2026-08-26 09:32</td><td style="font-weight:600;">Behavioral</td><td>Off-hours trading activity detected</td><td><span class="badge badge-blue">45/100</span></td><td><span class="badge badge-green">Resolved</span></td></tr>
+      <tr><td>2026-08-25 14:28</td><td style="font-weight:600;">Counterparty</td><td>New counterparty jurisdiction flagged</td><td><span class="badge badge-yellow">55/100</span></td><td><span class="badge badge-green">Resolved</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

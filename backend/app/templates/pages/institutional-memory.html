@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Institutional Memory - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Institutional Memory{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Memory Entries</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Retention Period</div>
+    <div class="stat-value">10 years</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Compression Ratio</div>
+    <div class="stat-value">12:1</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Memory Categories</div>
+  <table>
+    <thead><tr><th>Category</th><th>Entries</th><th>Size</th><th>Last Indexed</th><th>Searchable</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Decision Rationales</td><td>-</td><td>248 MB</td><td>5m ago</td><td><span class="badge badge-green">Yes</span></td></tr>
+      <tr><td style="font-weight:600;">Market Events</td><td>-</td><td>1.2 GB</td><td>1h ago</td><td><span class="badge badge-green">Yes</span></td></tr>
+      <tr><td style="font-weight:600;">Policy Documents</td><td>847</td><td>420 MB</td><td>1d ago</td><td><span class="badge badge-green">Yes</span></td></tr>
+      <tr><td style="font-weight:600;">Audit Logs</td><td>-</td><td>3.8 GB</td><td>Real-time</td><td><span class="badge badge-green">Yes</span></td></tr>
+      <tr><td style="font-weight:600;">Model Outputs</td><td>-</td><td>2.1 GB</td><td>Real-time</td><td><span class="badge badge-green">Yes</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

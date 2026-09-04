@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Portfolio Detail - Quantive{% endblock %}
+{% set active_page = 'portfolios' %}
+{% block page_title %}Portfolio Detail{% endblock %}
+{% block topbar_actions %}
+<button id="btn-export" class="btn btn-secondary btn-sm">Export</button>
+<a id="btn-optimize" href="/optimizations/new" class="btn btn-primary btn-sm">Optimize</a>
+{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Total Value</div>
+    <div class="stat-number" id="pd-total">—</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Coupon</div>
+    <div class="stat-number" id="pd-coupon">—</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Instruments</div>
+    <div class="stat-number" id="pd-instruments">—</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Currencies</div>
+    <div class="stat-number" id="pd-currencies">—</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Holdings</div>
+    <div id="pd-empty" style="display:none;text-align:center;padding:32px;color:var(--text3);font-size:13px">No instruments recorded.</div>
+    <table id="pd-table" style="display:none">
+      <thead><tr><th>Instrument</th><th>Type</th><th>Currency</th><th>Principal</th><th>Coupon</th><th>Maturity</th></tr></thead>
+      <tbody id="pd-holdings"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">Portfolio Detail</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px" id="pd-desc">—</div>
+      </div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px">Created</span><span style="font-size:13px;font-weight:600" id="pd-created">—</span></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px">Updated</span><span style="font-size:13px;font-weight:600" id="pd-updated">—</span></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px">Duration (avg maturity proxy)</span><span style="font-size:13px;font-weight:600">—</span></div><div class="progress"><div class="progress-fill" style="width:64%;background:var(--blue)"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px">Currency diversification</span><span style="font-size:13px;font-weight:600" id="pd-diversification">—</span></div><div class="progress"><div class="progress-fill" style="width:25%;background:var(--green)"></div></div></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function fmtUsd(v) {
+    if (v >= 1e12) return '$' + (v / 1e12).toFixed(2) + 'T';
+    if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+    return '$' + v.toFixed(0);
+  }
+  var id = {{ portfolio_id | tojson }};
+
+  async function load() {
+    let d;
+    try { d = await (await fetch('/api/ui/portfolio/' + id)).json(); } catch (e) { return; }
+    if ($('pd-total')) $('pd-total').textContent = fmtUsd(d.total_value_usd);
+    if ($('pd-coupon')) $('pd-coupon').textContent = (d.avg_coupon_pct || '—') + '%';
+    if ($('pd-instruments')) $('pd-instruments').textContent = d.instruments_count;
+    if ($('pd-currencies')) $('pd-currencies').textContent = d.currency_count;
+    if ($('pd-desc')) $('pd-desc').textContent = d.description || 'No description';
+    if ($('pd-created')) $('pd-created').textContent = d.created_at ? d.created_at.substr(0, 10) : '—';
+    if ($('pd-updated')) $('pd-updated').textContent = d.updated_at ? d.updated_at.substr(0, 10) : '—';
+    var empty = $('pd-empty'), table = $('pd-table'), tbody = $('pd-holdings');
+    if (!empty || !table || !tbody) return;
+    if (!d.instruments || !d.instruments.length) { empty.style.display = 'block'; table.style.display = 'none'; return; }
+    empty.style.display = 'none'; table.style.display = '';
+    tbody.innerHTML = d.instruments.map(function (i) {
+      return '<tr><td style="font-weight:600">' + i.name + '</td><td>' + (i.instrument_type || '—') + '</td><td>' + (i.currency || '—') + '</td>' +
+        '<td>' + fmtUsd(i.principal_outstanding) + '</td><td>' + (i.coupon_rate || '—') + '%</td><td>' + (i.maturity_date || '—') + '</td></tr>';
+    }).join('');
+  }
+  document.addEventListener('DOMContentLoaded', load);
+  var btn = $('btn-export');
+  if (btn) btn.addEventListener('click', async function () {
+    try {
+      var d = await (await fetch('/api/ui/portfolio/' + id)).json();
+      var blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = 'portfolio_' + id + '.json'; a.click();
+    } catch (e) {}
+  });
+})();
+</script>
+{% endblock %}

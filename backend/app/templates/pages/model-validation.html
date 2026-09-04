@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Model Validation - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Model Validation{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Models Validated</div>
+    <div class="stat-value">8</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Pass Rate</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Validation</div>
+    <div class="stat-value" style="font-size:16px;">2026-08-25</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Model Validation Results</div>
+  <table>
+    <thead><tr><th>Model</th><th>Accuracy</th><th>Bias</th><th>Stability</th><th>Last Validated</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Portfolio Optimizer</td><td style="color:var(--green);">--%</td><td>--</td><td>Stable</td><td>2026-08-25</td><td><span class="badge badge-green">Passed</span></td></tr>
+      <tr><td style="font-weight:600;">Risk Predictor</td><td style="color:var(--green);">--%</td><td>--</td><td>Stable</td><td>2026-08-25</td><td><span class="badge badge-green">Passed</span></td></tr>
+      <tr><td style="font-weight:600;">Fraud Detector</td><td style="color:var(--green);">--%</td><td>--</td><td>Stable</td><td>2026-08-25</td><td><span class="badge badge-green">Passed</span></td></tr>
+      <tr><td style="font-weight:600;">NLP Copilot</td><td style="color:var(--green);">--%</td><td>--</td><td>Stable</td><td>2026-08-25</td><td><span class="badge badge-green">Passed</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

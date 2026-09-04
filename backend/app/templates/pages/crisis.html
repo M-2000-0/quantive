@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Crisis Mode - Quantive{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}Crisis Mode Dashboard{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-ghost btn-sm" style="color:var(--red);">Activate Crisis Mode</button>
+{% endblock %}
+{% block content %}
+<div style="padding:24px;background:var(--red-bg);border:1px solid rgba(248,113,113,0.2);border-radius:var(--radius2);margin-bottom:20px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="width:12px;height:12px;border-radius:50%;background:var(--red);animation:pulse 2s infinite;"></div>
+    <div>
+      <div style="font-weight:700;font-size:15px;">Crisis Mode: Standby</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:2px;">All systems monitored. No active crisis detected.</div>
+    </div>
+  </div>
+</div>
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Crisis Events (YTD)</div>
+    <div class="stat-value">2</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Response Time</div>
+    <div class="stat-value">4.2 min</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Drill</div>
+    <div class="stat-value" style="font-size:16px;">2026-08-15</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Crisis Playbooks</div>
+  <table>
+    <thead><tr><th>Playbook</th><th>Trigger</th><th>Response Team</th><th>Status</th><th>Last Tested</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Default</td><td>Rating downgrade 3+ notches</td><td>Treasury + Legal</td><td><span class="badge badge-green">Ready</span></td><td>2026-07-20</td></tr>
+      <tr><td style="font-weight:600;">Market Crash</td><td>Drawdown > 15%</td><td>Risk + Trading</td><td><span class="badge badge-green">Ready</span></td><td>2026-08-01</td></tr>
+      <tr><td style="font-weight:600;">Liquidity Crisis</td><td>LCR < 80%</td><td>Treasury + Ops</td><td><span class="badge badge-yellow">Review</span></td><td>2026-06-15</td></tr>
+      <tr><td style="font-weight:600;">Cyber Attack</td><td>Detection alert</td><td>IT Security</td><td><span class="badge badge-green">Ready</span></td><td>2026-08-10</td></tr>
+    </tbody>
+  </table>
+</div>
+<style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+{% endblock %}

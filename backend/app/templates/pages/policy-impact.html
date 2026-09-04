@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Policy Impact - Quantive{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}Policy Impact Analysis{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Policies Analyzed</div>
+    <div class="stat-value">18</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Impact</div>
+    <div class="stat-value" style="color:var(--green);"><span id="pi-avg">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Pending Review</div>
+    <div class="stat-value" style="color:var(--yellow);">3</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Policy Impact Register</div>
+  <table>
+    <thead><tr><th>Policy</th><th>Category</th><th>Fiscal Impact</th><th>Risk Effect</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Tax Reform 2026</td><td>Revenue</td><td style="color:var(--green);"><span id="pi-imp1">--</span></td><td style="color:var(--green);">Positive</td><td><span class="badge badge-green">Approved</span></td></tr>
+      <tr><td style="font-weight:600;">Infrastructure Spend</td><td>Expenditure</td><td style="color:var(--red);"><span id="pi-imp2">--</span></td><td style="color:var(--yellow);">Mixed</td><td><span class="badge badge-yellow">Pending</span></td></tr>
+      <tr><td style="font-weight:600;">Rate Cut (50bps)</td><td>Monetary</td><td style="color:var(--green);"><span id="pi-imp3">--</span></td><td style="color:var(--green);">Positive</td><td><span class="badge badge-green">Implemented</span></td></tr>
+      <tr><td style="font-weight:600;">Capital Controls</td><td>FX</td><td style="color:var(--red);"><span id="pi-imp4">--</span></td><td style="color:var(--red);">Negative</td><td><span class="badge badge-red">Rejected</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

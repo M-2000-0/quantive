@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Pareto Frontier - Quantive{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}Pareto Frontier{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Frontier Points</div>
+    <div class="stat-value">24</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Efficient Portfolios</div>
+    <div class="stat-value">8</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Dominance Ratio</div>
+    <div class="stat-value">--</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Pareto Efficient Portfolios</div>
+    <table>
+      <thead><tr><th>Portfolio</th><th>Return</th><th>Risk</th><th>Sharpe</th><th>Selected</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600;">Min Variance</td><td>--%</td><td>--%</td><td>--</td><td><input type="radio" name="pareto"></td></tr>
+        <tr><td style="font-weight:600;">Max Sharpe</td><td>--%</td><td>--%</td><td>--</td><td><input type="radio" name="pareto" checked></td></tr>
+        <tr><td style="font-weight:600;">Max Return</td><td>--%</td><td>--%</td><td>--</td><td><input type="radio" name="pareto"></td></tr>
+        <tr><td style="font-weight:600;">Balanced</td><td>--%</td><td>--%</td><td>--</td><td><input type="radio" name="pareto"></td></tr>
+        <tr><td style="font-weight:600;">Risk Parity</td><td>--%</td><td>--%</td><td>--</td><td><input type="radio" name="pareto"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">Efficient Frontier Chart</div>
+    <div style="height:280px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;">
+      <div style="text-align:center;">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+        <div style="margin-top:8px;">Interactive scatter plot</div>
+        <div style="font-size:11px;color:var(--text3);">Return vs Risk frontier</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Rating Agency Analysis - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Rating Agency Analysis{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Current Rating</div>
+    <div class="stat-value" style="color:var(--green);">AA+</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Outlook</div>
+    <div class="stat-value" style="color:var(--green);">Stable</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Probability Upgrade</div>
+    <div class="stat-value">22%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Probability Downgrade</div>
+    <div class="stat-value" style="color:var(--red);">5%</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Agency Assessments</div>
+    <table>
+      <thead><tr><th>Agency</th><th>Rating</th><th>Outlook</th><th>Last Review</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600;">Moody's</td><td>Aa1</td><td><span class="badge badge-green">Stable</span></td><td>2026-06-15</td></tr>
+        <tr><td style="font-weight:600;">S&P</td><td>AA+</td><td><span class="badge badge-green">Stable</span></td><td>2026-05-20</td></tr>
+        <tr><td style="font-weight:600;">Fitch</td><td>AA+</td><td><span class="badge badge-yellow">Watch</span></td><td>2026-07-01</td></tr>
+        <tr><td style="font-weight:600;">DBRS</td><td>AA</td><td><span class="badge badge-green">Stable</span></td><td>2026-04-10</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">Rating Factors</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Institutional Strength</span><span style="font-size:13px;font-weight:600;color:var(--green);">Strong</span></div><div class="progress"><div class="progress-fill" style="width:88%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Economic Strength</span><span style="font-size:13px;font-weight:600;color:var(--green);">Strong</span></div><div class="progress"><div class="progress-fill" style="width:82%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Fiscal Strength</span><span style="font-size:13px;font-weight:600;">Moderate</span></div><div class="progress"><div class="progress-fill" style="width:65%;background:var(--yellow);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Susceptibility to Shock</span><span style="font-size:13px;font-weight:600;color:var(--green);">Low</span></div><div class="progress"><div class="progress-fill" style="width:28%;background:var(--green);"></div></div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

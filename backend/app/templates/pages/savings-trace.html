@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Savings Trace - Quantive{% endblock %}
+{% set active_page = 'market' %}
+{% block page_title %}Savings Trace{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Total Savings</div>
+    <div class="stat-value" style="color:var(--green);"><span id="st-total">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">From Optimization</div>
+    <div class="stat-value"><span id="st-opt">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">From Automation</div>
+    <div class="stat-value"><span id="st-auto">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">From Compliance</div>
+    <div class="stat-value"><span id="st-comp">--</span></div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Savings Breakdown</div>
+  <table>
+    <thead><tr><th>Source</th><th>Category</th><th>Amount</th><th>Date</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Duration optimization</td><td>Optimization</td><td style="color:var(--green);"><span id="st-row-opt1">--</span></td><td>2026-08-28</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-weight:600;">Credit spread capture</td><td>Optimization</td><td style="color:var(--green);"><span id="st-row-opt2">--</span></td><td>2026-08-25</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-weight:600;">Trade execution automation</td><td>Automation</td><td style="color:var(--green);"><span id="st-row-auto1">--</span></td><td>2026-08-20</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-weight:600;">Compliance cost reduction</td><td>Compliance</td><td style="color:var(--green);"><span id="st-row-comp1">--</span></td><td>2026-08-15</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-weight:600;">Reporting automation</td><td>Automation</td><td style="color:var(--green);"><span id="st-row-auto2">--</span></td><td>2026-08-10</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-weight:600;">FX hedging optimization</td><td>Optimization</td><td style="color:var(--green);"><span id="st-row-opt3">--</span></td><td>2026-08-05</td><td><span class="badge badge-green">Verified</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

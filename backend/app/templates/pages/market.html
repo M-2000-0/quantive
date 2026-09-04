@@ -1,0 +1,591 @@
+{% extends "base.html" %}
+{% block title %}Market Intelligence — Quantive{% endblock %}
+{% set active_page = 'market' %}
+{% block content %}
+<div class="gradient-accent" style="min-height:100%;margin:-24px;padding:24px">
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- HERO: Live Market Strip                                         -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+    <div style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite"></div>
+    <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--green)">Live Markets</span>
+    <span style="font-size:11px;color:var(--text3)" id="market-time">Loading...</span>
+    <span style="font-size:10px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:2px 6px" id="market-source-label"></span>
+    <div style="flex:1"></div>
+    <button onclick="refreshAll()" class="btn btn-ghost btn-sm" id="refresh-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 1: Sovereign Metrics + AI Command Center                   -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+
+    <!-- Sovereign Finance Metrics -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="stat-label">Sovereign Portfolio Metrics <span style="font-size:8px;text-transform:none;letter-spacing:0.05em;border:1px solid var(--border);border-radius:4px;padding:2px 5px;color:var(--text3)">Live</span></div>
+        <div style="font-size:10px;color:var(--text3)">Mexico (MEX) | FY2025</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:8px;overflow:hidden">
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">Debt-to-GDP</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.02em"><span id="sv-gdp">55.7</span><span style="font-size:12px;color:var(--text3)">%</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,8 4,7 8,5 12,6 16,4 20,3 24,2" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--green);font-weight:600">-1.2pp</span>
+          </div>
+        </div>
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">Avg Maturity</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.02em"><span id="sv-maturity">7.2</span><span style="font-size:12px;color:var(--text3)">yr</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,5 4,5 8,4 12,4 16,5 20,5 24,4" fill="none" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--text2);font-weight:600">Stable</span>
+          </div>
+        </div>
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">Interest Expense</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.02em">$<span id="sv-expense">23.5</span><span style="font-size:12px;color:var(--text3)">B</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,7 4,6 8,5 12,4 16,3 20,3 24,2" fill="none" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--red);font-weight:600">+2.1%</span>
+          </div>
+        </div>
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">Funding Gap</div>
+          <div style="font-size:28px;font-weight:800;color:var(--yellow);letter-spacing:-0.02em"><span id="sv-funding-gap">--</span><span style="font-size:12px;color:var(--text3)">B</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,8 4,6 8,5 12,4 16,3 20,2 24,1" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--yellow);font-weight:600">Watch</span>
+          </div>
+        </div>
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">Debt Service Ratio</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.02em">18.4<span style="font-size:12px;color:var(--text3)">%</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,4 4,5 8,6 12,5 16,4 20,3 24,3" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--green);font-weight:600">-0.8pp</span>
+          </div>
+        </div>
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">FX Exposure</div>
+          <div style="font-size:28px;font-weight:800;color:var(--yellow);letter-spacing:-0.02em"><span id="sv-fx">38</span><span style="font-size:12px;color:var(--text3)">%</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,6 4,5 8,4 12,3 16,2 20,2 24,1" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--yellow);font-weight:600">Above target</span>
+          </div>
+        </div>
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">Fiscal Deficit</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.02em">3.8<span style="font-size:12px;color:var(--text3)">%</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,2 4,3 8,4 12,5 16,6 20,7 24,8" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--green);font-weight:600">Improving</span>
+          </div>
+        </div>
+        <div style="background:#0a0a0a;padding:16px">
+          <div class="stat-label" style="margin-bottom:4px">Refinancing Risk</div>
+          <div style="font-size:28px;font-weight:800;color:var(--red);letter-spacing:-0.02em"><span id="sv-refi">24</span><span style="font-size:12px;color:var(--text3)">%</span></div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="24" height="10" viewBox="0 0 24 10"><polyline points="0,8 4,6 8,4 12,3 16,2 20,1 24,1" fill="none" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:10px;color:var(--red);font-weight:600">Elevated</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Command Center -->
+    <div class="ai-card" style="padding:20px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <div class="ai-pulse"></div>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#60a5fa">AI Command Center</span>
+      </div>
+      <!-- Alert -->
+      <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span id="ai-alert-title" style="font-size:12px;font-weight:700;color:#fbbf24">Refinancing Window Open</span>
+        </div>
+        <div id="ai-alert-text" style="font-size:11px;color:var(--text2);line-height:1.5">10Y yields at 4.25% vs projected 4.80% by Q2 2027. Optimal window closing in ~45 days.</div>
+      </div>
+      <!-- Savings -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:10px 12px">
+          <div class="stat-label" style="margin-bottom:4px;font-size:9px">Potential Savings</div>
+          <div style="font-size:22px;font-weight:800;color:var(--green)">$<span id="ai-savings">2.7</span><span style="font-size:10px;color:var(--text3)">B</span></div>
+          <div style="font-size:9px;color:var(--text3)">annually</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:10px 12px">
+          <div class="stat-label" style="margin-bottom:4px;font-size:9px">Confidence</div>
+          <div style="font-size:22px;font-weight:800;color:#60a5fa"><span id="ai-confidence">91</span><span style="font-size:10px;color:var(--text3)">%</span></div>
+          <div style="font-size:9px;color:var(--text3)">model certainty</div>
+        </div>
+      </div>
+      <a href="/copilot" class="btn btn-primary btn-sm" style="width:100%">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>
+        Review Proposal
+      </a>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 2: Yield Curve + Market Heatmap                            -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px">
+
+    <!-- Yield Curve -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div class="stat-label">US Treasury Yield Curve</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:2px">2Y-10Y Spread: <span id="yc-spread" style="color:var(--red);font-weight:700">-24 bps</span> <span style="color:var(--text3)">|</span> Status: <span id="yc-status" style="color:var(--red);font-weight:600">Inverted</span></div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button style="padding:3px 8px;font-size:10px;font-weight:600;border-radius:4px;background:rgba(255,255,255,0.08);color:var(--text);border:1px solid var(--border)">Current</button>
+          <button style="padding:3px 8px;font-size:10px;font-weight:600;border-radius:4px;background:transparent;color:var(--text3);border:1px solid transparent">1Y Ago</button>
+        </div>
+      </div>
+      <div style="position:relative;height:200px">
+        <svg width="100%" height="100%" viewBox="0 0 500 180" preserveAspectRatio="xMidYMid meet">
+          <!-- Grid -->
+          <line x1="40" y1="10" x2="490" y2="10" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,6"/>
+          <line x1="40" y1="50" x2="490" y2="50" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,6"/>
+          <line x1="40" y1="90" x2="490" y2="90" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,6"/>
+          <line x1="40" y1="130" x2="490" y2="130" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,6"/>
+          <line x1="40" y1="170" x2="490" y2="170" stroke="rgba(255,255,255,0.06)"/>
+          <!-- Y-axis labels -->
+          <text x="32" y="14" font-size="8" fill="var(--text3)" text-anchor="end" font-family="Inter">--%</text>
+          <text x="32" y="54" font-size="8" fill="var(--text3)" text-anchor="end" font-family="Inter">--%</text>
+          <text x="32" y="94" font-size="8" fill="var(--text3)" text-anchor="end" font-family="Inter">--%</text>
+          <text x="32" y="134" font-size="8" fill="var(--text3)" text-anchor="end" font-family="Inter">--%</text>
+          <text x="32" y="174" font-size="8" fill="var(--text3)" text-anchor="end" font-family="Inter">--%</text>
+
+          <!-- Current curve (inverted) -->
+          <defs>
+            <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(96,165,250,0.15)"/>
+              <stop offset="100%" stop-color="rgba(96,165,250,0)"/>
+            </linearGradient>
+          </defs>
+          <!-- Area -->
+          <path id="yc-area" d="M60,42 C120,48 160,52 200,56 C240,60 280,68 320,72 C360,76 400,82 440,88 L440,170 L60,170 Z" fill="url(#curveGrad)"/>
+          <!-- Curve line -->
+          <path id="yc-path" d="M60,42 C120,48 160,52 200,56 C240,60 280,68 320,72 C360,76 400,82 440,88" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Data points -->
+          <circle id="yc-p-2y" cx="200" cy="56" r="3" fill="#60a5fa"/>
+          <circle id="yc-p-5y" cx="280" cy="62" r="3" fill="#60a5fa"/>
+          <circle id="yc-p-10y" cx="320" cy="72" r="3" fill="#60a5fa"/>
+          <circle id="yc-p-30y" cx="440" cy="88" r="4" fill="#60a5fa" stroke="#000" stroke-width="1.5"/>
+          <!-- Labels -->
+          <text id="yc-l-3m" x="60" y="36" font-size="9" fill="#60a5fa" text-anchor="middle" font-weight="700" font-family="Inter">--%</text>
+          <text id="yc-l-2y" x="200" y="50" font-size="9" fill="#60a5fa" text-anchor="middle" font-weight="700" font-family="Inter">--%</text>
+          <text id="yc-l-5y" x="280" y="56" font-size="9" fill="#60a5fa" text-anchor="middle" font-weight="700" font-family="Inter">--%</text>
+          <text id="yc-l-10y" x="320" y="66" font-size="9" fill="#60a5fa" text-anchor="middle" font-weight="700" font-family="Inter">--%</text>
+          <text id="yc-l-30y" x="440" y="82" font-size="9" fill="#60a5fa" text-anchor="middle" font-weight="700" font-family="Inter">--%</text>
+          <!-- Maturity labels -->
+          <text x="60" y="180" font-size="9" fill="var(--text3)" text-anchor="middle" font-family="Inter">3M</text>
+          <text x="120" y="180" font-size="9" fill="var(--text3)" text-anchor="middle" font-family="Inter">6M</text>
+          <text x="200" y="180" font-size="9" fill="var(--text3)" text-anchor="middle" font-family="Inter">2Y</text>
+          <text x="280" y="180" font-size="9" fill="var(--text3)" text-anchor="middle" font-family="Inter">5Y</text>
+          <text x="320" y="180" font-size="9" fill="var(--text3)" text-anchor="middle" font-family="Inter">10Y</text>
+          <text x="380" y="180" font-size="9" fill="var(--text3)" text-anchor="middle" font-family="Inter">20Y</text>
+          <text x="440" y="180" font-size="9" fill="var(--text3)" text-anchor="middle" font-family="Inter">30Y</text>
+
+          <!-- Inversion zone highlight -->
+          <rect id="yc-zone" x="55" y="30" width="155" height="35" rx="4" fill="rgba(248,113,113,0.06)" stroke="rgba(248,113,113,0.15)" stroke-width="0.5" stroke-dasharray="3,3"/>
+          <text id="yc-zone-label" x="130" y="24" font-size="8" fill="rgba(248,113,113,0.6)" text-anchor="middle" font-family="Inter" font-weight="600">INVERSION ZONE</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Market Heatmap -->
+    <div class="glass" style="padding:20px">
+      <div class="stat-label" style="margin-bottom:14px">Global Markets <span style="font-size:8px;text-transform:none;letter-spacing:0.05em;border:1px solid var(--border);border-radius:4px;padding:2px 5px;color:var(--text3)">Live</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <div style="background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.15);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">US (S&P)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green)">+0.8%</div>
+        </div>
+        <div style="background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.15);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Germany (DAX)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--red)">-0.2%</div>
+        </div>
+        <div style="background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Mexico (IPC)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green)">+1.4%</div>
+        </div>
+        <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.12);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Japan (Nikkei)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--red)">-0.5%</div>
+        </div>
+        <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.1);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">China (SSE)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green)">+0.1%</div>
+        </div>
+        <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.18);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">UK (FTSE)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--red)">-0.3%</div>
+        </div>
+        <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.12);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Brazil (Bovespa)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green)">+0.6%</div>
+        </div>
+        <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.12);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">India (Nifty)</div>
+          <div style="font-size:18px;font-weight:800;color:var(--yellow)">+0.0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 3: Rates + Credit + FX                                     -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+
+    <!-- Government Bond Yields -->
+    <div class="glass" style="padding:20px">
+      <div class="stat-label" style="margin-bottom:14px">Government Bond Yields</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <!-- US -->
+        <div style="padding:10px;border-radius:8px;background:rgba(96,165,250,0.04);border:1px solid rgba(96,165,250,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:var(--text)">United States <span style="font-size:8px;font-weight:500;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--green)">Live</span></span>
+            <span id="us-10y" style="font-size:11px;font-weight:700;color:#60a5fa">--%</span>
+          </div>
+          <div id="us-yields" style="display:flex;gap:12px;font-size:10px;color:var(--text3)">
+            <span>2Y: 4.52%</span><span>5Y: 4.18%</span><span>10Y: 4.28%</span><span>30Y: 4.55%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="40" height="8" viewBox="0 0 40 8"><polyline points="0,6 8,5 16,4 24,3 32,2 40,1" fill="none" stroke="#f87171" stroke-width="1" stroke-linecap="round"/></svg>
+            <span id="us-delta" style="font-size:9px;color:var(--red);font-weight:600">+3 bps</span>
+          </div>
+        </div>
+        <!-- Germany -->
+        <div style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:var(--text)">Germany <span style="font-size:8px;font-weight:500;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--text3)">Live</span></span>
+            <span style="font-size:11px;font-weight:700;color:var(--text2)">--%</span>
+          </div>
+          <div style="display:flex;gap:12px;font-size:10px;color:var(--text3)">
+            <span>2Y: 2.84%</span><span>5Y: 2.52%</span><span>10Y: 2.41%</span><span>30Y: 2.68%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="40" height="8" viewBox="0 0 40 8"><polyline points="0,2 8,3 16,4 24,5 32,6 40,7" fill="none" stroke="#34d399" stroke-width="1" stroke-linecap="round"/></svg>
+            <span style="font-size:9px;color:var(--green);font-weight:600">-1 bps</span>
+          </div>
+        </div>
+        <!-- Mexico -->
+        <div style="padding:10px;border-radius:8px;background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:var(--text)">Mexico <span style="font-size:8px;font-weight:500;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--text3)">Live</span></span>
+            <span style="font-size:11px;font-weight:700;color:#34d399">--%</span>
+          </div>
+          <div style="display:flex;gap:12px;font-size:10px;color:var(--text3)">
+            <span>2Y: 6.80%</span><span>5Y: 6.52%</span><span>10Y: 6.45%</span><span>30Y: 6.90%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:4px">
+            <svg width="40" height="8" viewBox="0 0 40 8"><polyline points="0,4 8,3 16,2 24,1 32,1 40,2" fill="none" stroke="#34d399" stroke-width="1" stroke-linecap="round"/></svg>
+            <span style="font-size:9px;color:var(--green);font-weight:600">-5 bps</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credit Spreads -->
+    <div class="glass" style="padding:20px">
+      <div class="stat-label" style="margin-bottom:14px">Credit Spreads <span style="font-size:8px;text-transform:none;letter-spacing:0.05em;border:1px solid var(--border);border-radius:4px;padding:2px 5px;color:var(--text3)">Live</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:grid;grid-template-columns:60px 1fr 50px 50px;gap:8px;align-items:center;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:0 4px">
+          <span>Rating</span><span>Spread</span><span>Chg</span><span>Pctile</span>
+        </div>
+        <div style="display:grid;grid-template-columns:60px 1fr 50px 50px;gap:8px;align-items:center;padding:8px;border-radius:6px;background:rgba(52,211,153,0.04)">
+          <span style="font-size:12px;font-weight:700;color:var(--text)">AAA</span>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:28%;background:#34d399;border-radius:3px"></div></div>
+          <span style="font-size:11px;color:var(--green);font-weight:600">-2</span>
+          <span style="font-size:11px;color:var(--text3)">28th</span>
+        </div>
+        <div style="display:grid;grid-template-columns:60px 1fr 50px 50px;gap:8px;align-items:center;padding:8px;border-radius:6px;background:rgba(255,255,255,0.02)">
+          <span style="font-size:12px;font-weight:700;color:var(--text)">AA</span>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:45%;background:#fbbf24;border-radius:3px"></div></div>
+          <span style="font-size:11px;color:var(--red);font-weight:600">+1</span>
+          <span style="font-size:11px;color:var(--text3)">35th</span>
+        </div>
+        <div style="display:grid;grid-template-columns:60px 1fr 50px 50px;gap:8px;align-items:center;padding:8px;border-radius:6px;background:rgba(52,211,153,0.04)">
+          <span style="font-size:12px;font-weight:700;color:var(--text)">A</span>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:63%;background:#f87171;border-radius:3px"></div></div>
+          <span style="font-size:11px;color:var(--green);font-weight:600">-3</span>
+          <span style="font-size:11px;color:var(--text3)">22nd</span>
+        </div>
+        <div style="display:grid;grid-template-columns:60px 1fr 50px 50px;gap:8px;align-items:center;padding:8px;border-radius:6px;background:rgba(248,113,113,0.04)">
+          <span style="font-size:12px;font-weight:700;color:var(--text)">BBB</span>
+          <div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.06)"><div style="height:100%;width:98%;background:#f87171;border-radius:3px"></div></div>
+          <span style="font-size:11px;color:var(--red);font-weight:600">+5</span>
+          <span style="font-size:11px;color:var(--text3)">41st</span>
+        </div>
+        <div style="margin-top:4px;padding:8px;border-radius:6px;background:rgba(96,165,250,0.04);border:1px solid rgba(96,165,250,0.1)">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:2px">Mexico CDS (5Y)</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">148<span style="font-size:10px;color:var(--text3)"> bps</span></div>
+          <div style="font-size:9px;color:var(--red);font-weight:600">+5 bps today</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FX Rates -->
+    <div class="glass" style="padding:20px">
+      <div class="stat-label" style="margin-bottom:14px">FX Rates</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="padding:10px;border-radius:8px;background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:11px;color:var(--text3)">USD/MXN <span style="font-size:8px;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--green)">Live</span></div>
+              <div style="font-size:18px;font-weight:800;color:var(--text)"><span id="fx-mxn">--</span></div>
+            </div>
+            <div style="text-align:right">
+              <svg width="40" height="16" viewBox="0 0 40 16"><polyline points="0,12 8,10 16,8 24,6 32,4 40,3" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div id="fx-mxn-chg" style="font-size:10px;color:var(--green);font-weight:600">-0.32%</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:11px;color:var(--text3)">EUR/USD <span style="font-size:8px;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--green)">Live</span></div>
+              <div style="font-size:18px;font-weight:800;color:var(--text)"><span id="fx-eur">--</span></div>
+            </div>
+            <div style="text-align:right">
+              <svg width="40" height="16" viewBox="0 0 40 16"><polyline points="0,10 8,8 16,9 24,6 32,5 40,4" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div id="fx-eur-chg" style="font-size:10px;color:var(--green);font-weight:600">+0.12%</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:rgba(248,113,113,0.04);border:1px solid rgba(248,113,113,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:11px;color:var(--text3)">USD/JPY <span style="font-size:8px;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--green)">Live</span></div>
+              <div style="font-size:18px;font-weight:800;color:var(--text)"><span id="fx-jpy">149.82</span></div>
+            </div>
+            <div style="text-align:right">
+              <svg width="40" height="16" viewBox="0 0 40 16"><polyline points="0,4 8,6 16,8 24,10 32,12 40,13" fill="none" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div id="fx-jpy-chg" style="font-size:10px;color:var(--red);font-weight:600">+0.45%</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:11px;color:var(--text3)">DXY Index <span style="font-size:8px;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--green)">Live</span></div>
+              <div style="font-size:18px;font-weight:800;color:var(--text)"><span id="fx-dxy">--</span></div>
+            </div>
+            <div style="text-align:right">
+              <svg width="40" height="16" viewBox="0 0 40 16"><polyline points="0,8 8,6 16,5 24,6 32,8 40,9" fill="none" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div id="fx-dxy-chg" style="font-size:10px;color:var(--text2);font-weight:600">+0.05%</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:rgba(251,191,36,0.04);border:1px solid rgba(251,191,36,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:11px;color:var(--text3)">Gold <span style="font-size:8px;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--text3)">Live</span></div>
+              <div style="font-size:18px;font-weight:800;color:var(--text)">-</div>
+            </div>
+            <div style="text-align:right">
+              <svg width="40" height="16" viewBox="0 0 40 16"><polyline points="0,12 8,10 16,8 24,6 32,4 40,3" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <div style="font-size:10px;color:var(--yellow);font-weight:600">+1.2%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 4: Event Stream + AI Insights                              -->
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- Live Event Stream -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite"></div>
+        <div class="stat-label" style="margin:0">Market Events</div>
+      </div>
+      <div id="events-list" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.02);border-left:2px solid var(--text3)">
+          <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">Loading events…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Market Intelligence -->
+    <div class="glass" style="padding:20px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <div class="ai-pulse"></div>
+        <div class="stat-label" style="margin:0">AI Market Intelligence</div>
+      </div>
+      <div id="ai-insights-list" style="display:flex;flex-direction:column;gap:12px">
+        <div style="padding:12px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">Loading intelligence…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+
+  function rateVal(v) { return v < 1 ? v * 100 : v; }
+  function yOf(rate, lo, hi) {
+    var y = 174 - (rate - lo) / (hi - lo || 1) * 160;
+    return Math.max(12, Math.min(172, y));
+  }
+  var X = { 'two_year': 200, 'five_year': 280, 'ten_year': 320, 'thirty_year': 440 };
+
+  function drawYieldCurve(yc) {
+    if (!yc) return;
+    var pts = [];
+    var keys = ['two_year', 'five_year', 'ten_year', 'thirty_year'];
+    keys.forEach(function (k) {
+      if (yc[k] !== undefined) pts.push({ x: X[k], y: yOf(rateVal(yc[k]), 3.0, 6.0) });
+    });
+    pts.sort(function (a, b) { return a.x - b.x; });
+    if (pts.length < 2) return;
+
+    var d = 'M' + pts[0].x + ',' + pts[0].y;
+    for (var i = 1; i < pts.length; i++) d += ' L' + pts[i].x + ',' + pts[i].y;
+    var area = d + ' L' + pts[pts.length - 1].x + ',170 L' + pts[0].x + ',170 Z';
+
+    if ($('yc-path')) $('yc-path').setAttribute('d', d);
+    if ($('yc-area')) $('yc-area').setAttribute('d', area);
+
+    var keyLabels = [['two_year', 'yc-l-2y'], ['five_year', 'yc-l-5y'], ['ten_year', 'yc-l-10y'], ['thirty_year', 'yc-l-30y']];
+    keyLabels.forEach(function (pair) {
+      if (yc[pair[0]] !== undefined && $(pair[1])) $(pair[1]).textContent = rateVal(yc[pair[0]]).toFixed(2) + '%';
+    });
+
+    var y2 = yc['two_year'], y10 = yc['ten_year'];
+    if (y2 !== undefined && y10 !== undefined && $('yc-spread')) {
+      var spBps = Math.round((rateVal(y10) - rateVal(y2)) * 100);
+      var inv = spBps < 0;
+      $('yc-spread').textContent = (inv ? '' : '+') + spBps + ' bps';
+      $('yc-spread').style.color = inv ? 'var(--red)' : (spBps < 25 ? 'var(--yellow)' : 'var(--green)');
+      if ($('yc-status')) {
+        $('yc-status').textContent = inv ? 'Inverted' : (spBps < 25 ? 'Flat' : 'Normal');
+        $('yc-status').style.color = $('yc-spread').style.color;
+      }
+      if ($('yc-zone')) $('yc-zone').style.display = inv ? '' : 'none';
+      if ($('yc-zone-label')) $('yc-zone-label').style.display = inv ? '' : 'none';
+    }
+  }
+
+  function renderEvents(events) {
+    var box = $('events-list');
+    if (!box) return;
+    if (!events || !events.length) {
+      box.innerHTML = '<div style="display:flex;gap:10px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.02);border-left:2px solid var(--text3)"><div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">No recent events</div></div></div>';
+      return;
+    }
+    var color = { positive: '#34d399', negative: '#f87171', neutral: '#60a5fa' };
+    var bgc = { positive: 'rgba(52,211,153,0.04)', negative: 'rgba(248,113,113,0.04)', neutral: 'rgba(96,165,250,0.04)' };
+    box.innerHTML = events.slice(0, 6).map(function (ev) {
+      var a = (ev.impact || 'neutral').toLowerCase();
+      var c = color[a] || '#fbbf24';
+      var bg = bgc[a] || 'rgba(251,191,36,0.04)';
+      return '<div style="display:flex;gap:10px;padding:8px;border-radius:6px;background:' + bg + ';border-left:2px solid ' + c + '">' +
+        '<div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">' + ev.event + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (ev.impact ? 'Impact: ' + ev.impact + ' · ' : '') + (ev.description || '') + '</div></div>' +
+        '<span style="font-size:10px;color:var(--text3);white-space:nowrap">' + ev.time + '</span></div>';
+    }).join('');
+  }
+
+  function renderInsights(list) {
+    var box = $('ai-insights-list');
+    if (!box) return;
+    if (!list || !list.length) { box.innerHTML = ''; return; }
+    var meta = {
+      opportunity: { label: 'Opportunity', color: '#34d399', bg: 'rgba(52,211,153,0.04)', bd: 'rgba(52,211,153,0.1)' },
+      risk: { label: 'Risk', color: '#fbbf24', bg: 'rgba(251,191,36,0.04)', bd: 'rgba(251,191,36,0.1)' },
+      recommendation: { label: 'Recommendation', color: '#60a5fa', bg: 'rgba(96,165,250,0.04)', bd: 'rgba(96,165,250,0.1)' },
+      observation: { label: 'Insight', color: '#a78bfa', bg: 'rgba(167,139,250,0.04)', bd: 'rgba(167,139,250,0.1)' }
+    };
+    box.innerHTML = list.slice(0, 3).map(function (ins) {
+      var m = meta[ins.category] || meta.observation;
+      return '<div style="padding:12px;border-radius:8px;background:' + m.bg + ';border:1px solid ' + m.bd + '">' +
+        '<span style="font-size:10px;font-weight:600;color:' + m.color + ';text-transform:uppercase;letter-spacing:0.05em">' + m.label + '</span>' +
+        '<div style="font-size:12px;font-weight:600;color:var(--text);margin:4px 0">' + ins.title + '</div>' +
+        '<div style="font-size:11px;color:var(--text2);line-height:1.5">' + ins.detail + '</div></div>';
+    }).join('');
+  }
+
+  async function loadSnapshot() {
+    var btn = $('refresh-btn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+    try {
+      var snap = await (await fetch('/api/realtime/market-snapshot')).json();
+
+      if ($('market-source-label')) $('market-source-label').textContent = 'Data engine: live · refreshed ' + (snap.timestamp ? new Date(snap.timestamp).toISOString().replace('T', ' ').substr(0, 19) + ' UTC' : 'just now');
+      if (typeof updateMarketTime === 'function' && !snap.timestamp) updateMarketTime();
+
+      var sp = snap.sovereign_portfolio, eco = snap.economic;
+      if (snap.yield_curve) drawYieldCurve(snap.yield_curve);
+
+      var yc = snap.yield_curve || {};
+      if ($('us-yields') && snap.yield_curve) {
+        var parts = [];
+        [{ k: 'two_year', lbl: '2Y' }, { k: 'five_year', lbl: '5Y' }, { k: 'ten_year', lbl: '10Y' }, { k: 'thirty_year', lbl: '30Y' }].forEach(function (p) {
+          if (yc[p.k] !== undefined) parts.push('<span>' + p.lbl + ': ' + rateVal(yc[p.k]).toFixed(2) + '%</span>');
+        });
+        if (parts.length) $('us-yields').innerHTML = parts.join(' ');
+      }
+      if ($('us-10y') && yc['ten_year'] !== undefined) $('us-10y').textContent = rateVal(yc['ten_year']).toFixed(2) + '%';
+
+      if (sp) {
+        if ($('sv-gdp') && eco) $('sv-gdp').textContent = eco.debt_to_gdp;
+        if ($('sv-maturity')) $('sv-maturity').textContent = sp.avg_maturity_years;
+        if ($('sv-expense') && sp.annual_debt_service !== undefined) $('sv-expense').textContent = (sp.annual_debt_service / 1000).toFixed(1);
+        if ($('sv-fx')) $('sv-fx').textContent = sp.fx_exposure_pct;
+        if ($('sv-refi')) $('sv-refi').textContent = sp.refinancing_risk_pct;
+      }
+
+      var fx = snap.fx_rates || {};
+      if ($('fx-mxn') && fx.usd_mxn !== undefined) $('fx-mxn').textContent = fx.usd_mxn;
+      if ($('fx-eur') && fx.eur_usd !== undefined) $('fx-eur').textContent = fx.eur_usd;
+      if ($('fx-jpy') && fx.usd_jpy !== undefined) $('fx-jpy').textContent = fx.usd_jpy;
+      if ($('fx-dxy') && fx.dxy_approx !== undefined) $('fx-dxy').textContent = fx.dxy_approx;
+
+      renderEvents(snap.market_events);
+    } catch (e) {}
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+
+  async function loadAI() {
+    try {
+      var ai = await (await fetch('/api/ai-advisor/summary')).json();
+      var top = (ai.refinancing_proposals || [])[0];
+      var total = (ai.refinancing_proposals || []).reduce(function (s, p) { return s + (p.estimated_annual_savings || 0); }, 0);
+      function fmt(d) { return d >= 1e9 ? (d / 1e9).toFixed(1) : (d / 1e6).toFixed(0); }
+      if ($('ai-alert-title')) $('ai-alert-title').textContent = top ? top.title : 'Refinancing Window Open';
+      if ($('ai-alert-text')) $('ai-alert-text').textContent = ai.summary;
+      if ($('ai-savings')) $('ai-savings').textContent = fmt(total);
+      if ($('ai-confidence')) $('ai-confidence').textContent = top ? top.confidence_pct : '—';
+    } catch (e) {}
+    try {
+      var ins = await (await fetch('/api/ai-advisor/insights')).json();
+      renderInsights(Array.isArray(ins) ? ins : (ins.insights || []));
+    } catch (e) {}
+  }
+
+  function refreshAll() {
+    return Promise.all([loadSnapshot(), loadAI()]);
+  }
+  window.refreshAll = refreshAll;
+  document.addEventListener('DOMContentLoaded', refreshAll);
+})();
+</script>
+{% endblock %}

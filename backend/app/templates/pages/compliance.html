@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Compliance Center — Quantive
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Compliance Score</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Rules Active</div>
+    <div class="stat-value">142</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Breaches (YTD)</div>
+    <div class="stat-value" style="color:var(--green);">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Audit Status</div>
+    <div class="stat-value" style="color:var(--green);">Passed</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Compliance by Category</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Investment Policy</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Risk Limits</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Regulatory Reporting</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">ESG Mandate</span><span style="font-size:13px;font-weight:600;color:var(--yellow);">92%</span></div><div class="progress"><div class="progress-fill" style="width:92%;background:var(--yellow);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">AML/KYC</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Recent Compliance Events</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px;">Daily position limit check passed</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px;">KYC verification complete for new counterparty</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--yellow-bg);font-size:13px;">ESG scoring methodology update required</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px;">Monthly regulatory report submitted</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;padding:32px 24px">
+  <div style="margin-bottom:32px">
+    <div class="stat-label" style="margin-bottom:8px">COMPLIANCE CENTER</div>
+    <h1 style="font-size:28px;font-weight:700;color:var(--text);margin:0">Fiscal Rules & Governance</h1>
+  </div>
+
+  <!-- Fiscal Rules -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">FISCAL RULES COMPLIANCE</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div style="padding:16px;border-radius:8px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.05)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div><span style="font-size:12px;font-weight:600;color:var(--green)">COMPLIANT</span></div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Debt-to-GDP Ceiling</div>
+        <div style="font-size:24px;font-weight:800;color:var(--text)">55.7<span style="font-size:14px;color:var(--text3)">%</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Limit: 60% | Buffer: 4.3pp</div>
+      </div>
+      <div style="padding:16px;border-radius:8px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.05)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div><span style="font-size:12px;font-weight:600;color:var(--green)">COMPLIANT</span></div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Debt Service Ceiling</div>
+        <div style="font-size:24px;font-weight:800;color:var(--text)">18.4<span style="font-size:14px;color:var(--text3)">%</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Limit: 25% | Buffer: 6.6pp</div>
+      </div>
+      <div style="padding:16px;border-radius:8px;border:1px solid rgba(248,113,113,0.3);background:rgba(248,113,113,0.05)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div><span style="font-size:12px;font-weight:600;color:var(--red)">BREACH</span></div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:4px">FX Exposure</div>
+        <div style="font-size:24px;font-weight:800;color:var(--red)">38<span style="font-size:14px;color:var(--text3)">%</span></div>
+        <div style="font-size:11px;color:var(--red);margin-top:4px">Limit: 35% | Over by 3pp</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subnational Monitoring -->
+  <div class="glass" style="padding:24px;margin-bottom:24px">
+    <div class="stat-label" style="margin-bottom:16px">SUBNATIONAL MONITORING</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+      <div style="padding:16px;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Estado de Mexico</div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:11px">
+          <span>DTG: <strong style="color:var(--green)">42%</strong></span>
+          <span>Debt Service: <strong style="color:var(--green)">14%</strong></span>
+          <span>Status: <strong style="color:var(--green)">Compliant</strong></span>
+        </div>
+      </div>
+      <div style="padding:16px;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Jalisco</div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:11px">
+          <span>DTG: <strong style="color:#fbbf24">54%</strong></span>
+          <span>Debt Service: <strong style="color:var(--green)">18%</strong></span>
+          <span>Status: <strong style="color:#fbbf24">Warning</strong></span>
+        </div>
+      </div>
+      <div style="padding:16px;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Nuevo Leon</div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:11px">
+          <span>DTG: <strong style="color:var(--green)">38%</strong></span>
+          <span>Debt Service: <strong style="color:var(--green)">12%</strong></span>
+          <span>Status: <strong style="color:var(--green)">Compliant</strong></span>
+        </div>
+      </div>
+      <div style="padding:16px;border-radius:8px;border:1px solid rgba(248,113,113,0.3)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Guerrero</div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:11px">
+          <span>DTG: <strong style="color:var(--red)">68%</strong></span>
+          <span>Debt Service: <strong style="color:var(--red)">32%</strong></span>
+          <span>Status: <strong style="color:var(--red)">Breach</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Access -->
+  <div class="glass" style="padding:24px">
+    <div class="stat-label" style="margin-bottom:16px">RBAC PERMISSIONS</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px;color:var(--text3)">Permission</th>
+          <th style="text-align:center;padding:8px;color:var(--text3)">Admin</th>
+          <th style="text-align:center;padding:8px;color:var(--text3)">Treasury</th>
+          <th style="text-align:center;padding:8px;color:var(--text3)">Analyst</th>
+          <th style="text-align:center;padding:8px;color:var(--text3)">Auditor</th>
+          <th style="text-align:center;padding:8px;color:var(--text3)">Minister</th>
+        </tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px;color:var(--text2)">Portfolio Read</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td></tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px;color:var(--text2)">Optimization Execute</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td></tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px;color:var(--text2)">Simulation Run</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td></tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px;color:var(--text2)">Report Export</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td></tr>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04)"><td style="padding:8px;color:var(--text2)">Approval</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td></tr>
+          <tr><td style="padding:8px;color:var(--text2)">System Admin</td><td style="text-align:center;padding:8px;color:var(--green)">&#10003;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td><td style="text-align:center;padding:8px;color:var(--red)">&#10007;</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Compliance Score</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Rules Active</div>
+    <div class="stat-value">142</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Breaches (YTD)</div>
+    <div class="stat-value" style="color:var(--green);">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Audit Status</div>
+    <div class="stat-value" style="color:var(--green);">Passed</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Compliance by Category</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Investment Policy</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Risk Limits</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Regulatory Reporting</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">ESG Mandate</span><span style="font-size:13px;font-weight:600;color:var(--yellow);">92%</span></div><div class="progress"><div class="progress-fill" style="width:92%;background:var(--yellow);"></div></div></div>
+      <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">AML/KYC</span><span style="font-size:13px;font-weight:600;color:var(--green);">100%</span></div><div class="progress"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Recent Compliance Events</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px;">Daily position limit check passed</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px;">KYC verification complete for new counterparty</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--yellow-bg);font-size:13px;">ESG scoring methodology update required</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px;">Monthly regulatory report submitted</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

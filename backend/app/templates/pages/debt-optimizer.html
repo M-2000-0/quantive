@@ -1,0 +1,646 @@
+{% extends "base.html" %}
+{% block title %}Quantum Debt Optimizer — Quantive{% endblock %}
+{% block page_title %}Quantum Debt Optimizer{% endblock %}
+
+{% block content %}
+<style>
+  .qd-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; }
+  .qd-card h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin: 0 0 12px; }
+  .positive { color: #22c55e; }
+  .negative { color: #ef4444; }
+  .neutral { color: rgba(255,255,255,0.5); }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; }
+  .tab-btn { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .tab-btn.active { background: rgba(99,102,241,0.2); color: #C0C0C0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  .alloc-table { width: 100%; border-collapse: collapse; }
+  .alloc-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .alloc-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .alloc-table tr:hover { background: rgba(255,255,255,0.02); }
+  .signal-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+  .signal-fixed { background: rgba(99,102,241,0.15); color: #C0C0C0; }
+  .signal-floating { background: rgba(234,179,8,0.15); color: #eab308; }
+  .signal-inflation { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .score-circle { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; }
+  .stress-card { padding: 12px; border-radius: 8px; border-left: 3px solid; margin-bottom: 8px; background: rgba(0,0,0,0.15); }
+  .stress-mild { border-color: #22c55e; }
+  .stress-moderate { border-color: #eab308; }
+  .stress-severe { border-color: #f97316; }
+  .stress-critical { border-color: #ef4444; }
+  .rec-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem; color: rgba(255,255,255,0.7); line-height: 1.5; }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-num { display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: rgba(99,102,241,0.2); color: #C0C0C0; text-align: center; line-height: 20px; font-size: 0.7rem; font-weight: 700; margin-right: 8px; }
+  .btn-optimize { background: linear-gradient(135deg, #E0E0E0, #999999); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: opacity 0.2s; }
+  .btn-optimize:hover { opacity: 0.85; }
+  .loading-shimmer { background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; height: 20px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .progress-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.05); overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+</style>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('optimize', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg> Optimize
+  </button>
+  <button class="tab-btn" onclick="showTab('stress', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Stress Tests
+  </button>
+  <button class="tab-btn" onclick="showTab('briefing', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> AI Briefing
+  </button>
+  <button class="tab-btn" onclick="showTab('confidence', this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Confidence
+  </button>
+</div>
+
+<!-- ═══ OPTIMIZE TAB ═══ -->
+<div id="tab-optimize">
+  <!-- Score + Actions -->
+  <div class="grid-2" style="margin-bottom: 16px;">
+    <div class="qd-card" style="display:flex;align-items:center;gap:20px">
+      <div id="opt-score" class="score-circle" style="border: 4px solid #E0E0E0;">
+        <div>
+          <div id="opt-score-val" style="font-size:1.5rem;font-weight:800">--</div>
+          <div style="font-size:0.6rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Score</div>
+        </div>
+      </div>
+      <div>
+        <div id="opt-status" style="font-size:1.1rem;font-weight:700;margin-bottom:4px">Ready to Optimize</div>
+        <div id="opt-summary" style="font-size:0.8rem;color:rgba(255,255,255,0.5)">Click to run quantum solver + Monte Carlo</div>
+      </div>
+    </div>
+    <div class="qd-card" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Total Debt</div>
+        <div id="kpi-total" style="font-size:1.8rem;font-weight:800">--</div>
+      </div>
+      <button class="btn-optimize" onclick="runOptimization()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run Optimizer</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid-3" style="margin-bottom: 16px;">
+    <div class="qd-card">
+      <h3>Annual Interest</h3>
+      <div id="kpi-interest" style="font-size:1.6rem;font-weight:800">--</div>
+      <div id="kpi-interest-sub" style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:4px"></div>
+      <div class="progress-bar"><div id="kpi-interest-bar" class="progress-fill" style="width:0%;background:#E0E0E0"></div></div>
+    </div>
+    <div class="qd-card">
+      <h3>Value at Risk (95%)</h3>
+      <div id="kpi-var" style="font-size:1.6rem;font-weight:800">--</div>
+      <div id="kpi-var-sub" style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:4px"></div>
+      <div class="progress-bar"><div id="kpi-var-bar" class="progress-fill" style="width:0%;background:#22c55e"></div></div>
+    </div>
+    <div class="qd-card">
+      <h3>Avg Maturity</h3>
+      <div id="kpi-maturity" style="font-size:1.6rem;font-weight:800">--</div>
+      <div id="kpi-maturity-sub" style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:4px"></div>
+      <div class="progress-bar"><div id="kpi-maturity-bar" class="progress-fill" style="width:0%;background:#eab308"></div></div>
+    </div>
+  </div>
+
+  <!-- Allocation + Charts -->
+  <div class="grid-2">
+    <div class="qd-card">
+      <h3>Optimized Issuance Plan</h3>
+      <table class="alloc-table">
+        <thead><tr><th>Maturity</th><th>Type</th><th>Amount</th><th>Weight</th></tr></thead>
+        <tbody id="alloc-tbody"><tr><td colspan="4"><div class="loading-shimmer"></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="qd-card">
+      <h3>Allocation by Maturity</h3>
+      <canvas id="chart-allocation" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Portfolio Value Paths -->
+  <div class="qd-card" style="margin-top:16px">
+    <h3>Portfolio Value Paths (1000 Monte Carlo Simulations)</h3>
+    <canvas id="chart-paths" height="180"></canvas>
+  </div>
+
+  <!-- Yield Curve Chart -->
+  <div class="qd-card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="margin:0">Current Yield Curve</h3>
+      <div id="yc-source-label" style="font-size:0.7rem;color:rgba(255,255,255,0.3)"></div>
+    </div>
+    <canvas id="chart-yield-curve" height="160"></canvas>
+  </div>
+</div>
+
+<!-- ═══ STRESS TEST TAB ═══ -->
+<div id="tab-stress" style="display:none">
+  <div class="grid-2" style="margin-bottom: 16px;">
+    <div class="qd-card">
+      <h3>Risk Distribution</h3>
+      <canvas id="chart-risk" height="220"></canvas>
+    </div>
+    <div class="qd-card">
+      <h3>Yield Curve Volatility</h3>
+      <canvas id="chart-yield" height="220"></canvas>
+    </div>
+  </div>
+  <div class="qd-card">
+    <h3>Stress Test Scenarios</h3>
+    <div id="stress-list"></div>
+  </div>
+</div>
+
+<!-- ═══ AI BRIEFING TAB ═══ -->
+<div id="tab-briefing" style="display:none">
+  <div class="qd-card" style="margin-bottom: 16px;">
+    <h3>Executive Summary</h3>
+    <div id="brief-executive" style="font-size:0.9rem;color:rgba(255,255,255,0.75);line-height:1.7"></div>
+  </div>
+  <div class="grid-2">
+    <div class="qd-card">
+      <h3>Key Recommendations</h3>
+      <div id="brief-recommendations"></div>
+    </div>
+    <div class="qd-card">
+      <h3>Issuance Strategy</h3>
+      <div id="brief-strategy" style="font-size:0.85rem;color:rgba(255,255,255,0.7);line-height:1.7"></div>
+    </div>
+  </div>
+  <div class="grid-2" style="margin-top:16px">
+    <div class="qd-card">
+      <h3>Risk Assessment</h3>
+      <div id="brief-risk" style="font-size:0.85rem;color:rgba(255,255,255,0.7);line-height:1.7"></div>
+    </div>
+    <div class="qd-card">
+      <h3>Cost Savings Analysis</h3>
+      <div id="brief-savings" style="font-size:0.85rem;color:rgba(255,255,255,0.7);line-height:1.7"></div>
+    </div>
+  </div>
+  <div class="qd-card" style="margin-top:16px">
+    <h3>Stress Test Interpretation</h3>
+    <div id="brief-stress" style="font-size:0.85rem;color:rgba(255,255,255,0.7);line-height:1.7"></div>
+  </div>
+  <div class="qd-card" style="margin-top:16px">
+    <h3>Caveats</h3>
+    <div id="brief-caveats" style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.6"></div>
+  </div>
+
+  <!-- LLM API Key Input -->
+  <div class="qd-card" style="margin-top:16px">
+    <h3>LLM Configuration</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="llm-provider" style="padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.8);font-size:0.8rem">
+        <option value="template">Template (no API key needed)</option>
+        <option value="openai">OpenAI GPT-4o</option>
+        <option value="anthropic">Anthropic Claude</option>
+        <option value="ollama">Ollama (local)</option>
+      </select>
+      <input type="password" id="llm-api-key" placeholder="API key (optional for local models)" style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.8);font-size:0.8rem">
+      <button onclick="saveLLMConfig()" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:0.8rem;cursor:pointer">Save</button>
+    </div>
+    <div id="llm-status" style="font-size:0.7rem;color:rgba(255,255,255,0.3);margin-top:6px"></div>
+  </div>
+
+  <!-- Export -->
+  <div style="margin-top:16px;display:flex;gap:8px">
+    <button onclick="exportPDF()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Export Policy Brief (PDF)
+    </button>
+    <button onclick="exportJSON()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export Data (JSON)
+    </button>
+  </div>
+</div>
+
+<!-- ═══ CONFIDENCE INTERVALS TAB ═══ -->
+<div id="tab-confidence" style="display:none">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <!-- Current Portfolio CI -->
+    <div style="padding:20px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">Current Portfolio</div>
+      <div id="ci-current"></div>
+    </div>
+    <!-- Optimized Portfolio CI -->
+    <div style="padding:20px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">Optimized Portfolio</div>
+      <div id="ci-optimized"></div>
+    </div>
+  </div>
+  <!-- Yield Volatility -->
+  <div style="padding:20px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);margin-bottom:16px">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">Yield Curve Volatility (Annualized)</div>
+    <div id="ci-volatility"></div>
+  </div>
+  <!-- Disclaimer -->
+  <div style="padding:12px;border-radius:8px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.15);font-size:0.75rem;color:rgba(255,255,255,0.5)">
+    <strong style="color:#eab308">Disclaimer:</strong> <span id="ci-disclaimer">Confidence intervals are derived from Monte Carlo simulations. Actual outcomes may differ.</span>
+  </div>
+</div>
+
+<script src="/static/js/chart.min.js"></script>
+<script>
+const API = '/api/optimize-debt';
+let charts = {};
+let cachedData = null;
+
+function showTab(name, btn) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.getElementById('tab-' + name).style.display = '';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Re-render charts if switching to a tab with canvases
+  if (cachedData && name === 'optimize') { try { renderAllocationChart(cachedData.optimization); renderPathsChart(cachedData.monte_carlo); } catch(e){} }
+  if (cachedData && name === 'stress') { try { renderRiskChart(cachedData.monte_carlo); renderYieldChart(cachedData.covariance); } catch(e){} }
+}
+
+async function runOptimization() {
+  const status = document.getElementById('opt-status');
+  const summary = document.getElementById('opt-summary');
+  status.textContent = 'Running quantum solver...';
+  summary.textContent = 'QUBO formulation → QAOA circuit → Monte Carlo (1000 sims) → AI brief';
+
+  try {
+    const resp = await fetch(API + '/quick', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ total_debt_billion: 50, current_avg_coupon_pct: 5.2, current_avg_maturity_years: 6.5, current_floating_pct: 25, use_live_data: true })
+    });
+    if (!resp.ok) throw new Error('API error: ' + resp.status);
+    cachedData = await resp.json();
+    renderResults(cachedData);
+    status.innerHTML = '<span class="positive"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:middle"><path d="M20 6L9 17l-5-5"/></svg> Optimization Complete</span>';
+    const ds = cachedData.data_source || {};
+    const dsLabel = ds.live_data ? (ds.yield_curve_source || 'Live Data') + (ds.yield_curve_date ? ' (' + ds.yield_curve_date + ')' : '') : 'Demo Mode (hardcoded rates)';
+    summary.textContent = 'Solved in ' + cachedData.metadata.solve_time_seconds + 's | ' + cachedData.optimization.solver.status + ' | ' + dsLabel;
+  } catch(e) {
+    status.innerHTML = '<span class="negative"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:middle"><path d="M18 6L6 18M6 6l12 12"/></svg> Failed</span>';
+    summary.textContent = e.message;
+  }
+}
+
+function renderResults(data) {
+  const opt = data.optimization;
+  const mc = data.monte_carlo;
+  const cos = data.cost_of_service;
+  const brief = data.policy_brief;
+  const cov = data.covariance;
+
+  // Score
+  const scoreEl = document.getElementById('opt-score');
+  const scoreVal = document.getElementById('opt-score-val');
+  const solverOk = opt.solver.status === 'converged';
+  scoreVal.textContent = solverOk ? '92' : '65';
+  scoreEl.style.borderColor = solverOk ? '#22c55e' : '#eab308';
+
+  // KPIs
+  setText('kpi-total', fmtB(50e9));
+  setText('kpi-interest', fmtB(cos.total_annual_interest));
+  setText('kpi-interest-sub', cos.weighted_avg_coupon_pct.toFixed(2) + '% weighted coupon');
+  setWidth('kpi-interest-bar', Math.min(cos.weighted_avg_coupon_pct * 10, 100));
+  setText('kpi-var', fmtB(Math.abs(mc.optimized.var_95)));
+  const varDollar = mc.comparison.var_dollar_improvement || 0;
+  if (varDollar > 0) {
+    setText('kpi-var-sub', fmtB(varDollar) + ' better worst-case than current');
+  } else {
+    setText('kpi-var-sub', mc.optimized.var_95 < 0 ? 'Net gain in worst case' : '95th percentile loss');
+  }
+  setWidth('kpi-var-bar', Math.min(Math.abs(mc.optimized.var_95) / 1e9 * 20, 100));
+  setText('kpi-maturity', (opt.portfolio_metrics.weighted_avg_maturity_years || 0).toFixed(1) + 'Y');
+  setText('kpi-maturity-sub', 'Target: 6.5Y');
+  setWidth('kpi-maturity-bar', Math.min((opt.portfolio_metrics.weighted_avg_maturity_years || 0) / 30 * 100, 100));
+
+  // Live yield curve rates from data source
+  const ds = data.data_source || {};
+  if (ds.yield_curve && Object.keys(ds.yield_curve).length > 0) {
+    const ycHtml = Object.entries(ds.yield_curve)
+      .filter(([k]) => ['3M','6M','1Y','2Y','5Y','7Y','10Y','20Y','30Y'].includes(k))
+      .map(([k,v]) => '<span style="display:inline-block;margin:2px 6px;padding:3px 8px;background:rgba(99,102,241,0.15);border-radius:6px;font-size:0.7rem"><strong>' + k + '</strong> ' + v.toFixed(2) + '%</span>')
+      .join('');
+    const srcLabel = ds.live_data ? (ds.yield_curve_source || 'Live') + ' ' + (ds.yield_curve_date || '') : 'Fallback rates';
+    let ycCard = document.getElementById('yc-live-card');
+    if (ycCard) ycCard.remove();
+    document.querySelector('.grid-2').insertAdjacentHTML('afterend', '<div id="yc-live-card" class="qd-card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-size:0.75rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">Live Yield Curve Rates</div><div style="font-size:0.7rem;color:rgba(255,255,255,0.3)">' + srcLabel + '</div></div><div id="yc-rates" style="display:flex;flex-wrap:wrap;gap:2px">' + ycHtml + '</div></div>');
+  }
+
+  // Allocation table
+  document.getElementById('alloc-tbody').innerHTML = (opt.allocations || []).map(a =>
+    '<tr><td style="font-weight:600">' + (a.maturity_label || '--') + '</td><td><span class="signal-badge signal-' + a.rate_type + '">' + a.rate_type + '</span></td><td>' + fmtB(a.amount) + '</td><td>' + a.weight_pct + '%</td></tr>'
+  ).join('');
+
+  // Charts
+  try {
+    renderAllocationChart(opt);
+    renderRiskChart(mc);
+    renderYieldChart(cov);
+    renderPathsChart(mc);
+  } catch(e) { console.warn('Chart error:', e); }
+
+  // Stress test cards
+  const severityMap = { rate_100bps_down: 'mild', rate_200bps_up: 'moderate', rate_300bps_up: 'severe', yield_steepening: 'moderate', inflation_spike: 'severe', fx_devaluation: 'severe', liquidity_crisis: 'critical', recession: 'moderate' };
+  document.getElementById('stress-list').innerHTML = Object.entries(mc.stress_scenarios || {}).map(([name, s]) => {
+    const sev = severityMap[name] || 'moderate';
+    const loss = s.expected_loss || 0;
+    return '<div class="stress-card stress-' + sev + '"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:600;font-size:0.9rem">' + name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) + '</div><div style="font-size:0.75rem;color:rgba(255,255,255,0.5);margin-top:2px">VaR: ' + fmtB(Math.abs(s.var_95)) + ' | P(loss>10%): ' + s.prob_loss_10pct + '%</div></div><div style="text-align:right"><div style="font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.4)">' + sev + '</div><div style="font-size:0.85rem;font-weight:600;color:' + (sev === 'critical' ? '#ef4444' : sev === 'severe' ? '#f97316' : '#eab308') + '">' + fmtB(Math.abs(loss)) + '</div></div></div></div>';
+  }).join('');
+
+  // AI Briefing
+  setText('brief-executive', brief.executive_summary);
+  document.getElementById('brief-recommendations').innerHTML = (brief.key_recommendations || []).map((r, i) =>
+    '<div class="rec-item"><span class="rec-num">' + (i+1) + '</span>' + r + '</div>'
+  ).join('');
+  setText('brief-strategy', brief.issuance_strategy);
+  setText('brief-risk', brief.risk_assessment);
+  setText('brief-savings', brief.cost_savings_analysis);
+  setText('brief-stress', brief.stress_test_interpretation);
+  setText('brief-caveats', (brief.caveats || []).join(' • '));
+
+  // Confidence Intervals
+  renderConfidenceIntervals(data);
+}
+
+function renderConfidenceIntervals(data) {
+  const ci = data.confidence_intervals;
+  if (!ci) return;
+
+  const fmtM = (v) => v ? '$' + (v/1e6).toFixed(1) + 'M' : '--';
+  const fmtPct = (v) => v ? (v * 100).toFixed(2) + '%' : '--';
+
+  // Current portfolio
+  const cur = ci.current;
+  document.getElementById('ci-current').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      ciItem('Mean Annual Interest', fmtM(cur.mean_annual_interest)) +
+      ciItem('Standard Deviation', fmtM(cur.std_dev)) +
+      ciItem('95% CI Lower', fmtM(cur.ci_95_lower)) +
+      ciItem('95% CI Upper', fmtM(cur.ci_95_upper)) +
+      ciItem('VaR 95%', fmtM(cur.var_95)) +
+      ciItem('VaR 99%', fmtM(cur.var_99)) +
+    '</div>' +
+    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04)">' +
+      '<div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Percentile Distribution</div>' +
+      renderPercentileBar(cur.percentiles) +
+    '</div>';
+
+  // Optimized portfolio
+  const opt = ci.optimized;
+  document.getElementById('ci-optimized').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      ciItem('Mean Annual Interest', fmtM(opt.mean_annual_interest)) +
+      ciItem('Standard Deviation', fmtM(opt.std_dev)) +
+      ciItem('95% CI Lower', fmtM(opt.ci_95_lower)) +
+      ciItem('95% CI Upper', fmtM(opt.ci_95_upper)) +
+      ciItem('VaR 95%', fmtM(opt.var_95)) +
+      ciItem('VaR 99%', fmtM(opt.var_99)) +
+    '</div>' +
+    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04)">' +
+      '<div style="font-size:0.65rem;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Percentile Distribution</div>' +
+      renderPercentileBar(opt.percentiles) +
+    '</div>';
+
+  // Yield volatility
+  const vol = ci.yield_volatility || {};
+  document.getElementById('ci-volatility').innerHTML =
+    '<div style="display:flex;gap:16px;flex-wrap:wrap">' +
+      Object.entries(vol).map(([maturity, v]) =>
+        '<div style="text-align:center;min-width:80px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.03)">' +
+          '<div style="font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:4px">' + maturity + '</div>' +
+          '<div style="font-size:1rem;font-weight:700;color:#fff">' + fmtPct(v) + '</div>' +
+        '</div>'
+      ).join('') +
+    '</div>';
+
+  // Disclaimer
+  setText('ci-disclaimer', ci.disclaimer || 'Confidence intervals derived from Monte Carlo simulations.');
+}
+
+function ciItem(label, value) {
+  return '<div style="padding:8px;border-radius:6px;background:rgba(255,255,255,0.03)">' +
+    '<div style="font-size:0.6rem;text-transform:uppercase;color:rgba(255,255,255,0.3)">' + label + '</div>' +
+    '<div style="font-size:0.9rem;font-weight:700;color:#fff;margin-top:2px">' + value + '</div></div>';
+}
+
+function renderPercentileBar(percentiles) {
+  if (!percentiles) return '<div style="font-size:0.7rem;color:rgba(255,255,255,0.3)">No percentile data</div>';
+  const pcts = Object.entries(percentiles).sort((a,b) => parseFloat(a[0]) - parseFloat(b[0]));
+  if (pcts.length === 0) return '';
+  const vals = pcts.map(p => p[1]);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  return '<div style="position:relative;height:32px;border-radius:6px;background:rgba(255,255,255,0.03);overflow:hidden;margin-top:4px">' +
+    '<div style="position:absolute;left:0;right:0;top:50%;height:4px;background:rgba(255,255,255,0.08);transform:translateY(-50%)"></div>' +
+    pcts.map(([pct, val]) => {
+      const left = ((val - min) / range * 80 + 10);
+      return '<div style="position:absolute;left:' + left + '%;top:4px;font-size:0.55rem;color:rgba(255,255,255,0.5);transform:translateX(-50%)">' +
+        '<div style="width:2px;height:16px;background:#C0C0C0;margin:0 auto"></div>' +
+        '<div>' + pct + '</div></div>';
+    }).join('') +
+  '</div>';
+}
+
+function renderAllocationChart(opt) {
+  const ctx = document.getElementById('chart-allocation').getContext('2d');
+  if (charts.allocation) charts.allocation.destroy();
+  const allocs = opt.allocations || [];
+  charts.allocation = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: allocs.map(a => a.maturity_label),
+      datasets: [{
+        label: 'Weight %',
+        data: allocs.map(a => a.weight_pct),
+        backgroundColor: allocs.map(a => a.rate_type === 'fixed' ? '#E0E0E0' : a.rate_type === 'floating' ? '#eab308' : '#22c55e'),
+        borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.4)', callback: v => v + '%' } }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } } } }
+  });
+}
+
+function renderRiskChart(mc) {
+  const ctx = document.getElementById('chart-risk').getContext('2d');
+  if (charts.risk) charts.risk.destroy();
+  charts.risk = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['VaR 95%', 'CVaR 95%', 'Expected Loss', 'Max Loss'],
+      datasets: [
+        { label: 'Current', data: [mc.current.var_95, mc.current.cvar_95, mc.current.expected_loss, mc.current.max_loss], backgroundColor: 'rgba(239,68,68,0.6)', borderRadius: 6 },
+        { label: 'Optimized', data: [mc.optimized.var_95, mc.optimized.cvar_95, mc.optimized.expected_loss, mc.optimized.max_loss], backgroundColor: 'rgba(34,197,94,0.6)', borderRadius: 6 },
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } } } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.4)', callback: v => fmtB(v) } }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } } } }
+  });
+}
+
+function renderYieldChart(cov) {
+  const ctx = document.getElementById('chart-yield').getContext('2d');
+  if (charts.yield) charts.yield.destroy();
+  const labels = ['3M', '2Y', '5Y', '10Y', '30Y'];
+  const vol = cov.volatility || {};
+  charts.yield = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Annualized Volatility %',
+        data: labels.map(l => (vol[l] || 0) * 100),
+        borderColor: '#C0C0C0', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#C0C0C0',
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } } } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.4)' } }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } } } }
+  });
+}
+
+function renderPathsChart(mc) {
+  const ctx = document.getElementById('chart-paths').getContext('2d');
+  if (charts.paths) charts.paths.destroy();
+  const T = mc.optimized.mean_path ? mc.optimized.mean_path.length : 60;
+  charts.paths = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array.from({length: T}, (_, i) => i + 'M'),
+      datasets: [
+        { label: 'Best', data: mc.optimized.best_path || [], borderColor: '#22c55e', borderWidth: 1, pointRadius: 0, tension: 0.3 },
+        { label: 'Mean', data: mc.optimized.mean_path || [], borderColor: '#C0C0C0', borderWidth: 2, pointRadius: 0, tension: 0.3 },
+        { label: 'Worst', data: mc.optimized.worst_path || [], borderColor: '#ef4444', borderWidth: 1, pointRadius: 0, tension: 0.3 },
+        { label: 'Current', data: mc.current.mean_path || [], borderColor: 'rgba(255,255,255,0.3)', borderWidth: 1, borderDash: [5,5], pointRadius: 0, tension: 0.3 },
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } } } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.4)', callback: v => fmtB(v) } }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.4)', maxTicksLimit: 12 } } } }
+  });
+}
+
+function fmtB(v) {
+  if (v == null || isNaN(v)) return '--';
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (abs >= 1e9) return sign + '$' + (abs/1e9).toFixed(2) + 'B';
+  if (abs >= 1e6) return sign + '$' + (abs/1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return sign + '$' + (abs/1e3).toFixed(0) + 'K';
+  return sign + '$' + abs.toFixed(0);
+}
+function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text || ''; }
+function setWidth(id, pct) { const el = document.getElementById(id); if (el) el.style.width = Math.min(pct, 100) + '%'; }
+
+// Yield Curve Chart
+function renderYieldCurveChart(data) {
+  const ds = data.data_source || {};
+  const yc = ds.yield_curve || {};
+  const maturities = ['3M','6M','1Y','2Y','5Y','7Y','10Y','20Y','30Y'];
+  const rates = maturities.map(m => yc[m] || null).filter(r => r !== null);
+  const labels = maturities.filter((m, i) => yc[m] !== undefined);
+  if (rates.length === 0) return;
+  const ctx = document.getElementById('chart-yield-curve');
+  if (!ctx) return;
+  if (charts.yieldCurve) charts.yieldCurve.destroy();
+  const srcLabel = ds.live_data ? (ds.yield_curve_source || 'Live') + ' ' + (ds.yield_curve_date || '') : 'No live data';
+  const srcEl = document.getElementById('yc-source-label');
+  if (srcEl) srcEl.textContent = srcLabel;
+  charts.yieldCurve = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Yield %',
+        data: rates,
+        borderColor: '#C0C0C0',
+        backgroundColor: 'rgba(192,192,192,0.1)',
+        fill: true, tension: 0.3, pointRadius: 5,
+        pointBackgroundColor: '#C0C0C0', borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.4)', callback: v => v.toFixed(1) + '%' } },
+        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+      }
+    }
+  });
+}
+
+// PDF Export
+function exportPDF() {
+  if (!cachedData) { alert('Run the optimizer first.'); return; }
+  const brief = cachedData.policy_brief || {};
+  const ds = cachedData.data_source || {};
+  const opt = cachedData.optimization || {};
+  const mc = cachedData.monte_carlo || {};
+  const cos = cachedData.cost_of_service || {};
+  const win = window.open('', '_blank');
+  win.document.write('<!DOCTYPE html><html><head><title>Quantive Policy Brief</title>' +
+    '<style>body{font-family:Inter,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#222;line-height:1.6}' +
+    'h1{font-size:24px;border-bottom:2px solid #333;padding-bottom:8px}' +
+    'h2{font-size:18px;margin-top:24px;color:#444}' +
+    '.meta{font-size:12px;color:#888;margin-bottom:24px}' +
+    '.kpi{display:inline-block;padding:8px 16px;margin:4px;border-radius:6px;background:#f5f5f5;font-size:13px}' +
+    '.kpi strong{font-size:16px;display:block}' +
+    'table{width:100%;border-collapse:collapse;margin:12px 0}' +
+    'th,td{text-align:left;padding:8px;border-bottom:1px solid #ddd;font-size:13px}' +
+    'th{background:#f5f5f5;font-weight:600}' +
+    '.rec{padding:8px 0;border-bottom:1px solid #eee}' +
+    '.disclaimer{margin-top:32px;padding:12px;background:#fff3cd;border-radius:6px;font-size:11px;color:#666}' +
+    '@media print{body{margin:0}h1{font-size:20px}}</style></head><body>');
+  win.document.write('<h1>Quantive - Sovereign Debt Optimization Briefing</h1>');
+  win.document.write('<div class="meta">Generated: ' + new Date().toLocaleString() + ' | Source: ' + (ds.yield_curve_source || 'N/A') + ' | Data date: ' + (ds.yield_curve_date || 'N/A') + '</div>');
+  win.document.write('<div class="kpi"><strong>' + fmtB(50e9) + '</strong>Total Debt</div>');
+  win.document.write('<div class="kpi"><strong>' + fmtB(cos.total_annual_interest) + '</strong>Annual Interest</div>');
+  win.document.write('<div class="kpi"><strong>' + fmtB(Math.abs(mc.optimized.var_95)) + '</strong>VaR (95%)</div>');
+  win.document.write('<h2>Executive Summary</h2><p>' + (brief.executive_summary || '') + '</p>');
+  win.document.write('<h2>Key Recommendations</h2>');
+  (brief.key_recommendations || []).forEach((r, i) => { win.document.write('<div class="rec"><strong>' + (i+1) + '.</strong> ' + r + '</div>'); });
+  win.document.write('<h2>Issuance Strategy</h2><p>' + (brief.issuance_strategy || '') + '</p>');
+  win.document.write('<h2>Risk Assessment</h2><p>' + (brief.risk_assessment || '') + '</p>');
+  win.document.write('<h2>Cost Savings Analysis</h2><p>' + (brief.cost_savings_analysis || '') + '</p>');
+  win.document.write('<h2>Stress Test Interpretation</h2><p>' + (brief.stress_test_interpretation || '') + '</p>');
+  win.document.write('<h2>Optimized Allocation</h2><table><thead><tr><th>Maturity</th><th>Type</th><th>Amount</th><th>Weight</th></tr></thead><tbody>');
+  (opt.allocations || []).forEach(a => { win.document.write('<tr><td>' + (a.maturity_label || '') + '</td><td>' + a.rate_type + '</td><td>' + fmtB(a.amount) + '</td><td>' + a.weight_pct + '%</td></tr>'); });
+  win.document.write('</tbody></table>');
+  win.document.write('<h2>Caveats</h2><p>' + (brief.caveats || []).join(' | ') + '</p>');
+  win.document.write('<div class="disclaimer">AUTOMATED ANALYTICAL OUTPUT: FOR DECISION-SUPPORT PURPOSES ONLY. DOES NOT CONSTITUTE FINANCIAL, LEGAL, OR BINDING SOVEREIGN ISSUANCE ADVICE.</div>');
+  win.document.write('</body></html>');
+  win.document.close();
+  setTimeout(() => { win.print(); }, 500);
+}
+
+// JSON Export
+function exportJSON() {
+  if (!cachedData) { alert('Run the optimizer first.'); return; }
+  const blob = new Blob([JSON.stringify(cachedData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'quantive-optimization-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// LLM Config
+function saveLLMConfig() {
+  const provider = document.getElementById('llm-provider').value;
+  const apiKey = document.getElementById('llm-api-key').value;
+  localStorage.setItem('quantive_llm_provider', provider);
+  if (apiKey) localStorage.setItem('quantive_llm_api_key', apiKey);
+  document.getElementById('llm-status').textContent = 'Saved: ' + provider + (apiKey ? ' (key stored locally)' : ' (no key)');
+}
+function loadLLMConfig() {
+  const provider = localStorage.getItem('quantive_llm_provider');
+  if (provider) document.getElementById('llm-provider').value = provider;
+}
+
+document.addEventListener('DOMContentLoaded', () => { runOptimization(); loadLLMConfig(); });
+
+// Extend renderResults to also render yield curve chart
+const _origRender = renderResults;
+renderResults = function(data) {
+  _origRender(data);
+  renderYieldCurveChart(data);
+};
+</script>
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Minister Brief - Quantive
+
+  <!-- Minister Dashboard Content (merged from minister-dashboard) -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Key Highlights</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Portfolio outperformed benchmark by 160bps this month</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Risk metrics within all policy limits</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--yellow-bg);font-size:13px">2 optimization recommendations pending approval</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Green bond proceeds deployed to renewable energy</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Pending Actions</div>
+    <table>
+      <thead><tr><th>Action</th><th>Priority</th><th>Deadline</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600">Approve rebalance</td><td><span class="badge badge-red">High</span></td><td>Today</td></tr>
+        <tr><td style="font-weight:600">Review green bond</td><td><span class="badge badge-yellow">Medium</span></td><td>Tomorrow</td></tr>
+        <tr><td style="font-weight:600">Sign-off on audit</td><td><span class="badge badge-blue">Low</span></td><td>This week</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+
+  <!-- Minister Handover Content (merged from minister-handover) -->
+  <div class="card" style="padding:28px;margin-bottom:20px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Ministerial Handover</div>
+      <h2 style="font-size:20px;font-weight:700;margin-top:4px">Transition Briefing Pack</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="section-title">Contents</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">1. Portfolio Summary</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">2. Risk Assessment</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">3. Pending Decisions</span><span class="badge badge-yellow" style="margin-left:auto">5 items</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">4. Active Constraints</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">5. Contact Directory</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Key Metrics at Handover</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Portfolio Value</span><span style="font-size:13px;font-weight:600"><span id="mp-total-debt">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">YTD Return</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-ytd-return">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Risk Score</span><span style="font-size:13px;font-weight:600"><span id="mp-risk-level">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Compliance</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-compliance">--</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Minister Brief
+
+  <!-- Minister Dashboard Content (merged from minister-dashboard) -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Key Highlights</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Portfolio outperformed benchmark by 160bps this month</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Risk metrics within all policy limits</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--yellow-bg);font-size:13px">2 optimization recommendations pending approval</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Green bond proceeds deployed to renewable energy</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Pending Actions</div>
+    <table>
+      <thead><tr><th>Action</th><th>Priority</th><th>Deadline</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600">Approve rebalance</td><td><span class="badge badge-red">High</span></td><td>Today</td></tr>
+        <tr><td style="font-weight:600">Review green bond</td><td><span class="badge badge-yellow">Medium</span></td><td>Tomorrow</td></tr>
+        <tr><td style="font-weight:600">Sign-off on audit</td><td><span class="badge badge-blue">Low</span></td><td>This week</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+
+  <!-- Minister Handover Content (merged from minister-handover) -->
+  <div class="card" style="padding:28px;margin-bottom:20px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Ministerial Handover</div>
+      <h2 style="font-size:20px;font-weight:700;margin-top:4px">Transition Briefing Pack</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="section-title">Contents</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">1. Portfolio Summary</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">2. Risk Assessment</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">3. Pending Decisions</span><span class="badge badge-yellow" style="margin-left:auto">5 items</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">4. Active Constraints</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">5. Contact Directory</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Key Metrics at Handover</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Portfolio Value</span><span style="font-size:13px;font-weight:600"><span id="mp-total-debt">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">YTD Return</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-ytd-return">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Risk Score</span><span style="font-size:13px;font-weight:600"><span id="mp-risk-level">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Compliance</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-compliance">--</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-secondary btn-sm">Export PDF</button>
+<button class="btn btn-primary btn-sm">Send to Minister</button>
+
+
+  <!-- Minister Dashboard Content (merged from minister-dashboard) -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Key Highlights</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Portfolio outperformed benchmark by 160bps this month</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Risk metrics within all policy limits</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--yellow-bg);font-size:13px">2 optimization recommendations pending approval</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Green bond proceeds deployed to renewable energy</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Pending Actions</div>
+    <table>
+      <thead><tr><th>Action</th><th>Priority</th><th>Deadline</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600">Approve rebalance</td><td><span class="badge badge-red">High</span></td><td>Today</td></tr>
+        <tr><td style="font-weight:600">Review green bond</td><td><span class="badge badge-yellow">Medium</span></td><td>Tomorrow</td></tr>
+        <tr><td style="font-weight:600">Sign-off on audit</td><td><span class="badge badge-blue">Low</span></td><td>This week</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+
+  <!-- Minister Handover Content (merged from minister-handover) -->
+  <div class="card" style="padding:28px;margin-bottom:20px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Ministerial Handover</div>
+      <h2 style="font-size:20px;font-weight:700;margin-top:4px">Transition Briefing Pack</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="section-title">Contents</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">1. Portfolio Summary</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">2. Risk Assessment</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">3. Pending Decisions</span><span class="badge badge-yellow" style="margin-left:auto">5 items</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">4. Active Constraints</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">5. Contact Directory</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Key Metrics at Handover</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Portfolio Value</span><span style="font-size:13px;font-weight:600"><span id="mp-total-debt">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">YTD Return</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-ytd-return">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Risk Score</span><span style="font-size:13px;font-weight:600"><span id="mp-risk-level">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Compliance</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-compliance">--</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+{% block content %}
+<div class="card" style="padding:28px;margin-bottom:20px;">
+  <div style="text-align:center;margin-bottom:20px;">
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;">Confidential</div>
+    <h2 style="font-size:20px;font-weight:700;margin-top:4px;">Minister's Weekly Brief</h2>
+    <div style="font-size:13px;color:var(--text2);margin-top:2px;">Week of August 25–29, 2026</div>
+  </div>
+  <div class="grid grid-4" style="margin-bottom:20px;">
+    <div class="stat">
+      <div class="stat-label">Portfolio Value</div>
+      <div class="stat-value"><span id="mp-total-debt">--</span></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Weekly Return</div>
+      <div class="stat-value" style="color:var(--green);">+0.42%</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Risk Level</div>
+      <div class="stat-value" style="color:var(--yellow);">Medium</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Compliance</div>
+      <div class="stat-value" style="color:var(--green);">100%</div>
+    </div>
+  </div>
+  <div class="section-title">Key Highlights</div>
+  <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-top:8px;">
+    <p style="margin-bottom:8px;"><span style="color:#C0C0C0;margin-right:6px">•</span> Portfolio generated +$202M in weekly returns, outperforming benchmark by 12bps</p>
+    <p style="margin-bottom:8px;"><span style="color:#C0C0C0;margin-right:6px">•</span> Risk metrics within all policy limits. VaR at 2.8%, well below 5% threshold</p>
+    <p style="margin-bottom:8px;"><span style="color:#C0C0C0;margin-right:6px">•</span> Green bond issuance of $3B approved, proceeds to fund renewable energy projects</p>
+    <p style="margin-bottom:8px;"><span style="color:#C0C0C0;margin-right:6px">•</span> Credit quality maintained at AA+ weighted average across all portfolios</p>
+    <p><span style="color:#C0C0C0;margin-right:6px">•</span> 2 optimization recommendations pending ministerial approval</p>
+  </div>
+</div>
+
+
+  <!-- Minister Dashboard Content (merged from minister-dashboard) -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Key Highlights</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Portfolio outperformed benchmark by 160bps this month</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Risk metrics within all policy limits</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--yellow-bg);font-size:13px">2 optimization recommendations pending approval</div>
+      <div style="padding:10px;border-radius:var(--radius);background:var(--green-bg);font-size:13px">Green bond proceeds deployed to renewable energy</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">Pending Actions</div>
+    <table>
+      <thead><tr><th>Action</th><th>Priority</th><th>Deadline</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600">Approve rebalance</td><td><span class="badge badge-red">High</span></td><td>Today</td></tr>
+        <tr><td style="font-weight:600">Review green bond</td><td><span class="badge badge-yellow">Medium</span></td><td>Tomorrow</td></tr>
+        <tr><td style="font-weight:600">Sign-off on audit</td><td><span class="badge badge-blue">Low</span></td><td>This week</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+
+  <!-- Minister Handover Content (merged from minister-handover) -->
+  <div class="card" style="padding:28px;margin-bottom:20px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Ministerial Handover</div>
+      <h2 style="font-size:20px;font-weight:700;margin-top:4px">Transition Briefing Pack</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="section-title">Contents</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">1. Portfolio Summary</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">2. Risk Assessment</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">3. Pending Decisions</span><span class="badge badge-yellow" style="margin-left:auto">5 items</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">4. Active Constraints</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--radius);background:var(--surface-2)"><span style="font-size:13px">5. Contact Directory</span><span class="badge badge-green" style="margin-left:auto">Ready</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Key Metrics at Handover</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Portfolio Value</span><span style="font-size:13px;font-weight:600"><span id="mp-total-debt">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">YTD Return</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-ytd-return">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Risk Score</span><span style="font-size:13px;font-weight:600"><span id="mp-risk-level">--</span></span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text2)">Compliance</span><span style="font-size:13px;font-weight:600;color:var(--green)"><span id="mp-compliance">--</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

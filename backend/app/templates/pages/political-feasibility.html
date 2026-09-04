@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Political Feasibility - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Political Feasibility{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Feasibility Score</div>
+    <div class="stat-value" style="color:var(--green);">82 / 100</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Stakeholder Support</div>
+    <div class="stat-value" style="color:var(--green);">High</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Risk Level</div>
+    <div class="stat-value" style="color:var(--yellow);">Medium</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Feasibility Assessment</div>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px;">
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Parliamentary Support</span><span style="font-size:13px;font-weight:600;">85%</span></div><div class="progress"><div class="progress-fill" style="width:85%;background:var(--green);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Public Opinion</span><span style="font-size:13px;font-weight:600;">72%</span></div><div class="progress"><div class="progress-fill" style="width:72%;background:var(--yellow);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Media Sentiment</span><span style="font-size:13px;font-weight:600;">68%</span></div><div class="progress"><div class="progress-fill" style="width:68%;background:var(--yellow);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Stakeholder Alignment</span><span style="font-size:13px;font-weight:600;">88%</span></div><div class="progress"><div class="progress-fill" style="width:88%;background:var(--green);"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;">Implementation Readiness</span><span style="font-size:13px;font-weight:600;">78%</span></div><div class="progress"><div class="progress-fill" style="width:78%;background:var(--green);"></div></div></div>
+  </div>
+</div>
+{% endblock %}

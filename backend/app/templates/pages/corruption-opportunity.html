@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Corruption Opportunity - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Corruption Opportunity Assessment{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Opportunity Score</div>
+    <div class="stat-value" style="color:var(--green);">Low</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Controls in Place</div>
+    <div class="stat-value">24</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Gaps Identified</div>
+    <div class="stat-value" style="color:var(--green);">0</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Opportunity Assessment Matrix</div>
+  <table>
+    <thead><tr><th>Process</th><th>Opportunity</th><th>Controls</th><th>Residual Risk</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Trade Execution</td><td><span class="badge badge-green">Low</span></td><td>Pre-trade checks, dual approval</td><td><span class="badge badge-green">Minimal</span></td></tr>
+      <tr><td style="font-weight:600;">Counterparty Selection</td><td><span class="badge badge-green">Low</span></td><td>Due diligence, rotation policy</td><td><span class="badge badge-green">Minimal</span></td></tr>
+      <tr><td style="font-weight:600;">Fee Negotiation</td><td><span class="badge badge-green">Low</span></td><td>Benchmark pricing, audit trail</td><td><span class="badge badge-green">Minimal</span></td></tr>
+      <tr><td style="font-weight:600;">Data Access</td><td><span class="badge badge-green">Low</span></td><td>Role-based access, logging</td><td><span class="badge badge-green">Minimal</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

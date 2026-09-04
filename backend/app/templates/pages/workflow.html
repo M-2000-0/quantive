@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Workflow - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Workflow Approval{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Workflows</div>
+    <div class="stat-value">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Pending Actions</div>
+    <div class="stat-value" style="color:var(--yellow);">5</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Completed (30d)</div>
+    <div class="stat-value" style="color:var(--green);">48</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Workflow Queue</div>
+  <table>
+    <thead><tr><th>Workflow</th><th>Type</th><th>Step</th><th>Assigned To</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Rebalance Authorization</td><td>Trade</td><td>2 of 3</td><td>A. Patel</td><td><span class="badge badge-yellow">Awaiting</span></td></tr>
+      <tr><td style="font-weight:600;">New Issuance Approval</td><td>Issuance</td><td>1 of 2</td><td>M. Chen</td><td><span class="badge badge-yellow">Awaiting</span></td></tr>
+      <tr><td style="font-weight:600;">Counterparty Onboarding</td><td>Operational</td><td>3 of 3</td><td>S. Lee</td><td><span class="badge badge-green">Final</span></td></tr>
+      <tr><td style="font-weight:600;">Policy Exception Request</td><td>Compliance</td><td>1 of 3</td><td>R. Garcia</td><td><span class="badge badge-yellow">Awaiting</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

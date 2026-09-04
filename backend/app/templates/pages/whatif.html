@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}What-If Analysis - Quantive{% endblock %}
+{% set active_page = 'whatif' %}
+{% block page_title %}What-If Analysis{% endblock %}
+{% block content %}
+<div class="grid grid-2" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Scenarios Run</div>
+    <div class="stat-value">156</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Analysis</div>
+    <div class="stat-value" style="font-size:16px;">2 hours ago</div>
+  </div>
+</div>
+<div class="card" style="padding:28px;">
+  <div class="section-title">Scenario Parameters</div>
+  <form style="display:flex;flex-direction:column;gap:16px;margin-top:12px;">
+    <div class="grid grid-3">
+      <div>
+        <label class="label">Rate Change (bps)</label>
+        <input type="number" class="input" value="100" step="25">
+      </div>
+      <div>
+        <label class="label">Spread Widening (bps)</label>
+        <input type="number" class="input" value="50" step="10">
+      </div>
+      <div>
+        <label class="label">FX Move (%)</label>
+        <input type="number" class="input" value="-5" step="0.5">
+      </div>
+    </div>
+    <div class="grid grid-3">
+      <div>
+        <label class="label">Equity Shock (%)</label>
+        <input type="number" class="input" value="-20" step="1">
+      </div>
+      <div>
+        <label class="label">Commodity Move (%)</label>
+        <input type="number" class="input" value="15" step="1">
+      </div>
+      <div>
+        <label class="label">Horizon (days)</label>
+        <input type="number" class="input" value="30">
+      </div>
+    </div>
+    <div>
+      <label class="label">Custom Shock Description</label>
+      <textarea class="input" rows="3" placeholder="Describe a custom scenario..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="reset" class="btn btn-secondary">Reset</button>
+      <button type="submit" class="btn btn-primary">Run Scenario</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

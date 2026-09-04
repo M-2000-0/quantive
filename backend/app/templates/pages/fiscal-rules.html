@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Fiscal Rules - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Fiscal Rules{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Rules</div>
+    <div class="stat-value">18</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Compliance Rate</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Review</div>
+    <div class="stat-value" style="font-size:16px;">2026-08-20</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Fiscal Rules Register</div>
+  <table>
+    <thead><tr><th>Rule</th><th>Threshold</th><th>Current</th><th>Headroom</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Debt/GDP Ratio</td><td>≤ 70%</td><td>--%</td><td style="color:var(--green);">--%</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">Fiscal Deficit</td><td>≤ 3.0%</td><td>--%</td><td style="color:var(--green);">--%</td><td><span class="badge badge-yellow">Near Limit</span></td></tr>
+      <tr><td style="font-weight:600;">Interest/Revenue Ratio</td><td>≤ 20%</td><td>--%</td><td style="color:var(--green);">--%</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">Primary Balance</td><td>≥ 0%</td><td>+0.4%</td><td style="color:var(--green);">--%</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">External Debt/Exports</td><td>≤ 150%</td><td>--%</td><td style="color:var(--green);">--%</td><td><span class="badge badge-green">Compliant</span></td></tr>
+      <tr><td style="font-weight:600;">Reserve Coverage</td><td>≥ 6 months</td><td>8.2 months</td><td style="color:var(--green);">2.2 mo</td><td><span class="badge badge-green">Compliant</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

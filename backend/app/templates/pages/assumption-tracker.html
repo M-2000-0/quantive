@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Assumption Tracker - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Assumption Tracker{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-primary btn-sm">+ Add Assumption</button>
+{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Active Assumptions</div>
+    <div class="stat-value">24</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Validated</div>
+    <div class="stat-value" style="color:var(--green);">18</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Breached</div>
+    <div class="stat-value" style="color:var(--red);">2</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Assumption Register</div>
+  <table>
+    <thead><tr><th>Assumption</th><th>Category</th><th>Value</th><th>Status</th><th>Last Validated</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">US 10Y yield range 4.0-4.5%</td><td>Market</td><td>--%</td><td><span class="badge badge-green">Valid</span></td><td>Today</td></tr>
+      <tr><td style="font-weight:600;">EUR/USD range 1.05-1.12</td><td>FX</td><td>--</td><td><span class="badge badge-green">Valid</span></td><td>Today</td></tr>
+      <tr><td style="font-weight:600;">Credit spreads stable</td><td>Credit</td><td>+5bps</td><td><span class="badge badge-yellow">Stressed</span></td><td>2026-08-28</td></tr>
+      <tr><td style="font-weight:600;">GDP growth 3.0-3.5%</td><td>Macro</td><td>--%</td><td><span class="badge badge-green">Valid</span></td><td>2026-08-15</td></tr>
+      <tr><td style="font-weight:600;">Inflation declining to 2.8%</td><td>Macro</td><td>--%</td><td><span class="badge badge-red">Breached</span></td><td>2026-08-20</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

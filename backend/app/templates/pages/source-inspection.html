@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Source Inspection - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Source Inspection{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Code Repositories</div>
+    <div class="stat-value">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Audit</div>
+    <div class="stat-value" style="font-size:16px;">2026-08-25</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Vulnerabilities</div>
+    <div class="stat-value" style="color:var(--green);">0</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Repository Status</div>
+  <table>
+    <thead><tr><th>Repository</th><th>Language</th><th>Dependencies</th><th>License</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">quantive-core</td><td>Python</td><td>142</td><td>Proprietary</td><td><span class="badge badge-green">Clean</span></td></tr>
+      <tr><td style="font-weight:600;">quantive-api</td><td>Python</td><td>84</td><td>Proprietary</td><td><span class="badge badge-green">Clean</span></td></tr>
+      <tr><td style="font-weight:600;">quantive-web</td><td>TypeScript</td><td>218</td><td>Proprietary</td><td><span class="badge badge-green">Clean</span></td></tr>
+      <tr><td style="font-weight:600;">quantive-solver</td><td>Rust</td><td>36</td><td>Proprietary</td><td><span class="badge badge-green">Clean</span></td></tr>
+      <tr><td style="font-weight:600;">quantive-audit</td><td>Go</td><td>28</td><td>Proprietary</td><td><span class="badge badge-green">Clean</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

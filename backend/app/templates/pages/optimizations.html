@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Optimization Engine — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;padding:32px 24px">
+  <div style="margin-bottom:32px">
+    <div class="stat-label" style="margin-bottom:8px">OPTIMIZATION ENGINE</div>
+    <h1 style="font-size:28px;font-weight:700;color:var(--text);margin:0">Constrained Portfolio Optimization</h1>
+    <p style="font-size:13px;color:var(--text3);margin-top:6px">Minimize cost, reduce risk, or balance objectives subject to MTDS constraints</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <!-- Optimization Form -->
+    <div class="glass" style="padding:24px">
+      <div class="stat-label" style="margin-bottom:16px">OPTIMIZATION PARAMETERS</div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Objective</label>
+        <select id="opt-objective" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+          <option value="minimize_cost">Minimize Cost</option>
+          <option value="minimize_risk">Minimize Risk</option>
+          <option value="maximize_duration">Maximize Duration</option>
+          <option value="balance">Balanced (Multi-Objective)</option>
+        </select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Max FX Exposure (%)</label>
+          <input id="opt-fx" type="number" value="35" min="10" max="50" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Max Refinancing Risk (%)</label>
+          <input id="opt-refi" type="number" value="20" min="5" max="40" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Min Avg Maturity (yr)</label>
+          <input id="opt-mat-min" type="number" value="6" min="3" max="15" step="0.5" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Max Avg Maturity (yr)</label>
+          <input id="opt-mat-max" type="number" value="10" min="5" max="20" step="0.5" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Target Debt-to-GDP (%)</label>
+        <input id="opt-dtg" type="number" value="55" min="30" max="80" step="0.5" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input id="opt-domestic" type="checkbox"> Prefer Domestic Issuance
+        </label>
+        <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input id="opt-green" type="checkbox"> Prefer Green Bonds
+        </label>
+      </div>
+
+      <button onclick="runOptimization()" style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Run Optimization</button>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="glass" style="padding:24px">
+      <div class="stat-label" style="margin-bottom:16px">OPTIMIZATION RESULTS</div>
+      <div id="opt-results" style="color:var(--text3);font-size:12px">Configure parameters and click Run Optimization</div>
+    </div>
+  </div>
+
+  <!-- Restructuring Simulator -->
+  <div class="glass" style="padding:24px;margin-top:24px">
+    <div class="stat-label" style="margin-bottom:16px">DEBT RESTRUCTURING SIMULATOR</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:12px;align-items:end">
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Haircut (%)</label>
+        <input id="restr-haircut" type="number" value="0" min="0" max="100" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Maturity Extension (yr)</label>
+        <input id="restr-maturity" type="number" value="0" min="0" max="20" step="0.5" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Coupon Reduction (%)</label>
+        <input id="restr-coupon" type="number" value="0" min="0" max="5" step="0.125" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Instrument</label>
+        <select id="restr-instrument" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px">
+          <option value="MX-2027-USD">MX 6.875% 2027 USD</option>
+          <option value="MX-2035-USD">MX 7.625% 2035 USD</option>
+          <option value="MX-2040-EUR">MX 5.250% 2040 EUR</option>
+        </select>
+      </div>
+      <button onclick="runRestructuring()" style="padding:10px 16px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Simulate</button>
+    </div>
+    <div id="restr-results" style="margin-top:16px"></div>
+  </div>
+
+  <!-- Savings Trace -->
+  <div class="glass" style="padding:24px;margin-top:24px">
+    <div class="stat-label" style="margin-bottom:16px">SAVINGS PROJECTION (10-YEAR)</div>
+    <div id="savings-trace" style="display:grid;grid-template-columns:repeat(11,1fr);gap:4px;height:160px;align-items:end">
+    </div>
+    <button onclick="loadSavingsTrace()" style="margin-top:12px;padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer">Load Savings Projection</button>
+  </div>
+</div>
+
+<script>
+async function runOptimization() {
+  const el = document.getElementById('opt-results');
+  el.innerHTML = '<div style="color:var(--blue);font-size:12px">Running optimization...</div>';
+
+  try {
+    const res = await fetch('/api/optimizer/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        objective: document.getElementById('opt-objective').value,
+        max_fx_exposure_pct: parseFloat(document.getElementById('opt-fx').value),
+        max_refinancing_risk_pct: parseFloat(document.getElementById('opt-refi').value),
+        min_avg_maturity_years: parseFloat(document.getElementById('opt-mat-min').value),
+        max_avg_maturity_years: parseFloat(document.getElementById('opt-mat-max').value),
+        target_debt_to_gdp: parseFloat(document.getElementById('opt-dtg').value),
+        prefer_domestic: document.getElementById('opt-domestic').checked,
+        prefer_green: document.getElementById('opt-green').checked,
+      })
+    }).then(r=>r.json());
+
+    const s = res.savings;
+    el.innerHTML = `
+      <div style="margin-bottom:16px">
+        <div style="font-size:16px;font-weight:700;color:var(--green)">$${s.annual_coupon_savings_usd_m.toFixed(0)}M</div>
+        <div style="font-size:11px;color:var(--text3)">Annual Savings</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="padding:10px;border-radius:6px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">FX Exposure</div>
+          <div style="font-size:14px;font-weight:700;color:${res.optimized_state.fx_exposure_pct <= parseFloat(document.getElementById('opt-fx').value) ? 'var(--green)' : 'var(--red)'}">${res.optimized_state.fx_exposure_pct}%</div>
+        </div>
+        <div style="padding:10px;border-radius:6px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">Refinancing Risk</div>
+          <div style="font-size:14px;font-weight:700;color:${res.optimized_state.refinancing_risk_pct <= parseFloat(document.getElementById('opt-refi').value) ? 'var(--green)' : 'var(--red)'}">${res.optimized_state.refinancing_risk_pct}%</div>
+        </div>
+        <div style="padding:10px;border-radius:6px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">Avg Maturity</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${res.optimized_state.avg_maturity_years}Y</div>
+        </div>
+        <div style="padding:10px;border-radius:6px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">Avg Coupon</div>
+          <div style="font-size:14px;font-weight:700;color:var(--green)">${res.optimized_state.avg_coupon_pct}%</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div class="stat-label" style="margin-bottom:8px">RECOMMENDED ACTIONS</div>
+        ${res.actions.map(a => `<div style="padding:10px;border-left:3px solid ${a.priority==='critical'?'var(--red)':a.priority==='high'?'#fbbf24':'var(--blue)'};background:rgba(0,0,0,0.15);margin-bottom:8px;border-radius:0 6px 6px 0">
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${a.action}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${a.detail}</div>
+          <div style="font-size:10px;color:var(--green);margin-top:4px">${a.impact}</div>
+        </div>`).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--text3)">${res.convergence}</div>
+    `;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function runRestructuring() {
+  const el = document.getElementById('restr-results');
+  el.innerHTML = '<div style="color:var(--blue);font-size:12px">Simulating...</div>';
+
+  try {
+    const res = await fetch('/api/optimizer/restructure', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        instrument_id: document.getElementById('restr-instrument').value,
+        haircut_pct: parseFloat(document.getElementById('restr-haircut').value),
+        maturity_extension_years: parseFloat(document.getElementById('restr-maturity').value),
+        coupon_reduction_pct: parseFloat(document.getElementById('restr-coupon').value),
+      })
+    }).then(r=>r.json());
+
+    const npv = res.npv_analysis;
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">NPV Relief</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green)">$${npv.npv_relief_usd_m.toFixed(0)}M</div>
+          <div style="font-size:10px;color:var(--text3)">${npv.npv_relief_pct}% of notional</div>
+        </div>
+        <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">New Coupon</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${res.restructuring.new_coupon_pct.toFixed(3)}%</div>
+        </div>
+        <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">New Maturity</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${res.restructuring.new_maturity_years.toFixed(1)}Y</div>
+        </div>
+        <div style="padding:12px;border-radius:8px;background:rgba(0,0,0,0.2)">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase">Annual Savings</div>
+          <div style="font-size:18px;font-weight:800;color:var(--green)">$${npv.debtor_savings_annual_usd_m.toFixed(0)}M</div>
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function loadSavingsTrace() {
+  try {
+    const res = await fetch('/api/optimizer/savings-trace').then(r=>r.json());
+    const maxSaving = Math.max(...res.trace.map(t => t.cumulative_savings_usd_m));
+    const el = document.getElementById('savings-trace');
+    el.innerHTML = res.trace.map(t => {
+      const h = (t.cumulative_savings_usd_m / maxSaving * 140);
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="font-size:9px;color:var(--green);font-weight:600">$${(t.cumulative_savings_usd_m/1000).toFixed(1)}B</div>
+        <div style="width:100%;height:${h}px;background:linear-gradient(180deg,var(--green),rgba(52,211,153,0.3));border-radius:4px 4px 0 0"></div>
+        <div style="font-size:9px;color:var(--text3)">${t.year}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+</script>
+{% endblock %}

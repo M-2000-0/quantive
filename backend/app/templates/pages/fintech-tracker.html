@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% block title %}FinTech Tracker — Quantive{% endblock %}
+{% block page_title %}FinTech Competitive Intelligence{% endblock %}
+
+{% block content %}
+<style>
+  .ft-stat { text-align: center; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); }
+  .ft-stat .num { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.03em; }
+  .ft-stat .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  @media (max-width: 1100px) { .grid-5, .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 700px) { .grid-5, .grid-4, .grid-3 { grid-template-columns: 1fr; } }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .f-input { flex: 1; min-width: 160px; padding: 9px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.9); font-size: 0.8rem; outline: none; }
+  .f-input:focus { border-color: rgba(255,255,255,0.2); }
+  .f-input::placeholder { color: rgba(255,255,255,0.3); }
+  select.f-input { appearance: none; cursor: pointer; padding-right: 28px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+  .threat-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .threat-critical { background: rgba(239,68,68,0.2); color: #ef4444; }
+  .threat-high { background: rgba(249,115,22,0.2); color: #f97316; }
+  .threat-medium { background: rgba(234,179,8,0.2); color: #eab308; }
+  .threat-low { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .stage-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.6rem; font-weight: 600; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+  .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; }
+  .card:hover { border-color: rgba(255,255,255,0.12); }
+  .card h4 { font-size: 0.9rem; font-weight: 700; margin: 0 0 2px; }
+  .card .co { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+  .card .desc { font-size: 0.78rem; color: rgba(255,255,255,0.55); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+  .card .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 0.68rem; color: rgba(255,255,255,0.35); }
+  .card .row span { white-space: nowrap; }
+  .overlap-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); margin-top: 6px; }
+  .overlap-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .matrix-table th { text-align: left; padding: 8px 10px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .matrix-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .matrix-table tr:hover { background: rgba(255,255,255,0.02); }
+  .pagination { display: flex; justify-content: center; gap: 4px; margin-top: 16px; }
+  .page-btn { padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.75rem; }
+  .page-btn:hover { background: rgba(255,255,255,0.05); }
+  .page-btn.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .results-info { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-bottom: 10px; }
+  .compare-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 20px; background: rgba(17,17,17,0.95); border-top: 1px solid rgba(255,255,255,0.1); z-index: 100; justify-content: space-between; align-items: center; }
+  .compare-bar.visible { display: flex; }
+  .compare-items { display: flex; gap: 8px; }
+  .compare-chip { padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.08); font-size: 0.75rem; display: flex; align-items: center; gap: 6px; }
+  .compare-chip .rm { cursor: pointer; color: rgba(255,255,255,0.4); }
+  .compare-chip .rm:hover { color: #ef4444; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.active { display: flex; }
+  .modal-content { background: #111; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 24px; max-width: 800px; width: 92%; max-height: 85vh; overflow-y: auto; }
+  .modal-content h3 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .detail-field .fl { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.35); margin-bottom: 2px; }
+  .detail-field .fv { font-size: 0.82rem; color: rgba(255,255,255,0.8); line-height: 1.45; }
+  .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+</style>
+
+<!-- Stats -->
+<div id="stats-row" class="grid-5"></div>
+
+<!-- Threat Matrix -->
+<div class="card" style="margin-bottom:16px">
+  <h3 style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.4);margin:0 0 10px">Threat Matrix by Category</h3>
+  <div style="overflow-x:auto"><table class="matrix-table" id="matrix-table"><thead><tr><th>Category</th><th>Total</th><th style="color:#ef4444">Critical</th><th style="color:#f97316">High</th><th style="color:#eab308">Medium</th><th style="color:#22c55e">Low</th><th>Avg Threat</th><th>Avg Overlap</th></tr></thead><tbody id="matrix-body"></tbody></table></div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+  <input type="text" id="search" class="f-input" placeholder="Search company, product, description..." oninput="debounce()">
+  <select id="f-cat" class="f-input" style="max-width:180px" onchange="load()"><option value="">All Categories</option></select>
+  <select id="f-threat" class="f-input" style="max-width:140px" onchange="load()">
+    <option value="">All Threats</option>
+    <option value="critical">Critical</option>
+    <option value="high">High</option>
+    <option value="medium">Medium</option>
+    <option value="low">Low</option>
+  </select>
+  <select id="f-stage" class="f-input" style="max-width:140px" onchange="load()"><option value="">All Stages</option></select>
+  <select id="f-sort" class="f-input" style="max-width:160px" onchange="load()">
+    <option value="threat_score">Sort: Threat Score</option>
+    <option value="feature_overlap_pct">Sort: Feature Overlap</option>
+    <option value="market_size_billion">Sort: Market Size</option>
+    <option value="company_name">Sort: Company Name</option>
+  </select>
+  <button onclick="clearAll()" class="f-input" style="max-width:60px;cursor:pointer">Clear</button>
+</div>
+
+<!-- Results -->
+<div class="results-info" id="results-info"></div>
+<div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px"></div>
+<div class="pagination" id="pagination"></div>
+
+<!-- Compare Bar -->
+<div id="compare-bar" class="compare-bar">
+  <div class="compare-items" id="compare-items"></div>
+  <button onclick="runCompare()" style="padding:8px 16px;border-radius:7px;border:none;background:rgba(255,255,255,0.1);color:#fff;font-size:0.8rem;cursor:pointer">Compare (<span id="compare-count">0</span>)</button>
+</div>
+
+<!-- Detail Modal -->
+<div id="modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content" id="modal-body"></div>
+</div>
+
+<script>
+const API = '/api/fintech-tracker';
+let page = 1, timer = null, comparing = new Set();
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await Promise.all([loadOverview(), loadCategories(), loadStages()]);
+  load();
+});
+
+// ── Load overview stats + matrix ──────────────────────────────────
+async function loadOverview() {
+  try {
+    const r = await fetch(API + '/overview');
+    const d = await r.json();
+    const td = d.threat_distribution;
+    document.getElementById('stats-row').innerHTML = [
+      s('num', d.total_competitors, 'Competitors'),
+      s('num', d.total_categories, 'Categories'),
+      s('num', td.critical || 0, 'Critical Threats', '#ef4444'),
+      s('num', d.avg_threat_score.toFixed(1), 'Avg Threat Score'),
+      s('num', Object.values(td).reduce((a,b) => a+b, 0), 'Total Tracked'),
+    ].join('');
+
+    // Matrix
+    const mb = document.getElementById('matrix-body');
+    mb.innerHTML = d.categories.map(c => {
+      const lvl = c.critical > 0 ? 'critical' : c.high > 0 ? 'high' : c.medium > 0 ? 'medium' : 'low';
+      return '<tr><td style="font-weight:600">' + esc(c.category) + '</td><td>' + c.total + '</td>' +
+        '<td style="color:#ef4444">' + c.critical + '</td><td style="color:#f97316">' + c.high + '</td>' +
+        '<td style="color:#eab308">' + c.medium + '</td><td style="color:#22c55e">' + c.low + '</td>' +
+        '<td><span class="threat-badge threat-' + lvl + '">' + c.avg_threat_score + '</span></td>' +
+        '<td>' + c.avg_feature_overlap + '%</td></tr>';
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+function s(cls, val, label, color) {
+  return '<div class="ft-stat"><div class="' + cls + '" style="' + (color ? 'color:'+color : '') + '">' + val + '</div><div class="label">' + label + '</div></div>';
+}
+
+// ── Load filter options ───────────────────────────────────────────
+async function loadCategories() {
+  const r = await fetch(API + '/categories');
+  const d = await r.json();
+  const sel = document.getElementById('f-cat');
+  d.forEach(c => { const o = document.createElement('option'); o.value = c.category; o.textContent = c.category.replace(/_/g,' ') + ' (' + c.count + ')'; sel.appendChild(o); });
+}
+async function loadStages() {
+  const stages = ['concept','prototype','seed_round','series_a','series_b','series_c','growth','public','acquired','shelved'];
+  const sel = document.getElementById('f-stage');
+  stages.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s.replace(/_/g,' '); sel.appendChild(o); });
+}
+
+// ── Search / Load ─────────────────────────────────────────────────
+function debounce() { clearTimeout(timer); timer = setTimeout(() => { page = 1; load(); }, 300); }
+
+async function load() {
+  const params = new URLSearchParams({ page, page_size: 50 });
+  const q = document.getElementById('search').value.trim();
+  const cat = document.getElementById('f-cat').value;
+  const threat = document.getElementById('f-threat').value;
+  const stage = document.getElementById('f-stage').value;
+  const sort = document.getElementById('f-sort').value;
+  if (q) params.set('q', q);
+  if (cat) params.set('category', cat);
+  if (threat) params.set('threat_level', threat);
+  if (stage) params.set('stage', stage);
+  params.set('sort_by', sort);
+  params.set('sort_dir', 'desc');
+
+  const r = await fetch(API + '/search?' + params.toString());
+  const d = await r.json();
+  renderGrid(d);
+  renderPag(d);
+}
+
+function renderGrid(d) {
+  const g = document.getElementById('grid');
+  const info = document.getElementById('results-info');
+  info.textContent = 'Showing ' + ((d.page-1)*d.page_size+1) + '-' + Math.min(d.page*d.page_size, d.total) + ' of ' + d.total + ' competitors';
+  if (!d.items.length) { g.innerHTML = '<div style="padding:40px;text-align:center;color:rgba(255,255,255,0.3)">No results</div>'; return; }
+  g.innerHTML = d.items.map(i => {
+    const overlap = i.feature_overlap_pct || 0;
+    const oColor = overlap > 70 ? '#ef4444' : overlap > 40 ? '#eab308' : '#22c55e';
+    const checked = comparing.has(i.id);
+    return '<div class="card" style="cursor:pointer" onclick="showDetail(\'' + i.id + '\')">' +
+      '<div style="display:flex;justify-content:space-between;align-items:start;gap:6px">' +
+        '<div><h4>' + esc(i.product_name) + '</h4><div class="co">' + esc(i.company_name) + (i.hq_location ? ' · ' + esc(i.hq_location) : '') + '</div></div>' +
+        '<div style="display:flex;gap:4px;align-items:center">' +
+          '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onclick="event.stopPropagation();toggleCompare(\'' + i.id + '\',\'' + esc(i.product_name) + '\')" style="cursor:pointer">' +
+          '<span class="threat-badge threat-' + i.threat_level + '">' + i.threat_level + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="desc">' + esc(i.description) + '</div>' +
+      '<div class="row">' +
+        '<span>' + esc(i.category.replace(/_/g,' ')) + '</span>' +
+        '<span class="stage-badge">' + i.stage.replace(/_/g,' ') + '</span>' +
+        (i.threat_score != null ? '<span>Threat: ' + i.threat_score.toFixed(0) + '/100</span>' : '') +
+        (i.market_size_billion ? '<span>$' + i.market_size_billion + 'B</span>' : '') +
+        (i.api_available ? '<span style="color:#22c55e">API</span>' : '') +
+        (i.open_source ? '<span style="color:#eab308">OSS</span>' : '') +
+      '</div>' +
+      '<div class="overlap-bar"><div class="overlap-fill" style="width:' + overlap + '%;background:' + oColor + '"></div></div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderPag(d) {
+  const p = document.getElementById('pagination');
+  if (d.total_pages <= 1) { p.innerHTML = ''; return; }
+  let h = '<button class="page-btn" onclick="goPage('+(d.page-1)+')" '+(d.page<=1?'disabled':'')+'>Prev</button>';
+  const s = Math.max(1, d.page-3), e = Math.min(d.total_pages, d.page+3);
+  if (s > 1) h += '<button class="page-btn" onclick="goPage(1)">1</button>';
+  if (s > 2) h += '<span style="padding:5px;color:rgba(255,255,255,0.3)">...</span>';
+  for (let i = s; i <= e; i++) h += '<button class="page-btn'+(i===d.page?' active':'')+'" onclick="goPage('+i+')">'+i+'</button>';
+  if (e < d.total_pages) h += '<span style="padding:5px;color:rgba(255,255,255,0.3)">...</span><button class="page-btn" onclick="goPage('+d.total_pages+')">'+d.total_pages+'</button>';
+  h += '<button class="page-btn" onclick="goPage('+(d.page+1)+')" '+(d.page>=d.total_pages?'disabled':'')+'>Next</button>';
+  p.innerHTML = h;
+}
+function goPage(p) { page = p; load(); window.scrollTo(0, 0); }
+
+// ── Compare ───────────────────────────────────────────────────────
+function toggleCompare(id, name) {
+  if (comparing.has(id)) { comparing.delete(id); }
+  else if (comparing.size < 5) { comparing.add(id); }
+  updateCompareBar();
+}
+function updateCompareBar() {
+  const bar = document.getElementById('compare-bar');
+  const items = document.getElementById('compare-items');
+  document.getElementById('compare-count').textContent = comparing.size;
+  if (comparing.size > 0) {
+    bar.classList.add('visible');
+    items.innerHTML = Array.from(comparing).map(id =>
+      '<div class="compare-chip">' + id.slice(0,8) + ' <span class="rm" onclick="toggleCompare(\'' + id + '\')">&times;</span></div>'
+    ).join('');
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+async function runCompare() {
+  if (comparing.size < 2) return alert('Select at least 2 competitors to compare');
+  const r = await fetch(API + '/compare?ids=' + Array.from(comparing).join(','));
+  const items = await r.json();
+  let html = '<button onclick="closeModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.2rem;cursor:pointer">&times;</button>';
+  html += '<h3>Competitor Comparison (' + items.length + ')</h3>';
+  html += '<div style="overflow-x:auto"><table class="matrix-table"><thead><tr><th>Metric</th>';
+  items.forEach(i => { html += '<th>' + esc(i.product_name) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  const fields = [
+    ['Company', i => esc(i.company_name)],
+    ['Category', i => esc(i.category.replace(/_/g,' '))],
+    ['Stage', i => i.stage.replace(/_/g,' ')],
+    ['Threat Level', i => '<span class="threat-badge threat-' + i.threat_level + '">' + i.threat_level + '</span>'],
+    ['Threat Score', i => i.threat_score != null ? i.threat_score.toFixed(0) + '/100' : '--'],
+    ['Feature Overlap', i => i.feature_overlap_pct != null ? i.feature_overlap_pct.toFixed(0) + '%' : '--'],
+    ['Market Size', i => i.market_size_billion ? '$' + i.market_size_billion + 'B' : '--'],
+    ['API Available', i => i.api_available ? 'Yes' : 'No'],
+    ['Open Source', i => i.open_source ? 'Yes' : 'No'],
+    ['Quantive Advantage', i => esc(i.quantive_advantage || '--')],
+    ['Competitor Advantage', i => esc(i.competitor_advantage || '--')],
+  ];
+  fields.forEach(([label, fn]) => {
+    html += '<tr><td style="font-weight:600;color:rgba(255,255,255,0.6)">' + label + '</td>';
+    items.forEach(i => { html += '<td>' + fn(i) + '</td>'; });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').classList.add('active');
+}
+
+// ── Detail Modal ──────────────────────────────────────────────────
+async function showDetail(id) {
+  const r = await fetch(API + '/launches/' + id);
+  const i = await r.json();
+  let h = '<button onclick="closeModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.2rem;cursor:pointer">&times;</button>';
+  h += '<h3>' + esc(i.product_name) + '</h3>';
+  h += '<div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-bottom:16px">' + esc(i.company_name) + (i.hq_location ? ' · ' + esc(i.hq_location) : '') + '</div>';
+
+  h += '<div class="section-label">Overview</div>';
+  h += '<div class="detail-grid">';
+  h += df('Description', i.description);
+  h += df('Category', i.category.replace(/_/g,' '));
+  h += df('Subcategory', i.subcategory.replace(/_/g,' '));
+  h += df('Target Users', i.target_users || '--');
+  h += df('Pricing Model', i.pricing_model || '--');
+  h += df('Stage', i.stage.replace(/_/g,' '));
+  h += df('Announced', i.announced_date || '--');
+  h += df('Launch Date', i.launch_date || '--');
+  h += df('Tech Stack', i.tech_stack || '--');
+  h += df('Blockchain', i.blockchain || '--');
+  h += '</div>';
+
+  h += '<div class="section-label">Company Info</div>';
+  h += '<div class="detail-grid">';
+  h += df('Founded', i.founded_year || '--');
+  h += df('Employees', i.employee_count || '--');
+  h += df('Total Funding', i.total_funding || '--');
+  h += df('Valuation', i.valuation || '--');
+  h += df('API', i.api_available ? 'Available' : 'No');
+  h += df('Open Source', i.open_source ? 'Yes' : 'No');
+  h += '</div>';
+
+  h += '<div class="section-label">Competitive Intelligence</div>';
+  h += '<div style="display:flex;gap:10px;margin-bottom:12px">';
+  h += '<span class="threat-badge threat-' + i.threat_level + '">' + i.threat_level + ' threat</span>';
+  if (i.threat_score != null) h += '<span style="font-size:0.8rem;color:rgba(255,255,255,0.6)">Score: ' + i.threat_score.toFixed(0) + '/100</span>';
+  if (i.feature_overlap_pct != null) h += '<span style="font-size:0.8rem;color:rgba(255,255,255,0.6)">Overlap: ' + i.feature_overlap_pct.toFixed(0) + '%</span>';
+  h += '</div>';
+  h += '<div class="detail-grid">';
+  h += df('Quantive Advantage', i.quantive_advantage || '--');
+  h += df('Competitor Advantage', i.competitor_advantage || '--');
+  h += df('Market Size', i.market_size_billion ? '$' + i.market_size_billion + 'B' : '--');
+  h += '</div>';
+  if (i.comparison_notes) h += '<div style="margin-top:10px;font-size:0.8rem;color:rgba(255,255,255,0.5);line-height:1.5"><strong style="color:rgba(255,255,255,0.6)">Notes:</strong> ' + esc(i.comparison_notes) + '</div>';
+
+  document.getElementById('modal-body').innerHTML = h;
+  document.getElementById('modal').classList.add('active');
+}
+function df(label, val) { return '<div class="detail-field"><div class="fl">' + label + '</div><div class="fv">' + val + '</div></div>'; }
+function closeModal() { document.getElementById('modal').classList.remove('active'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Helpers ───────────────────────────────────────────────────────
+function clearAll() {
+  document.getElementById('search').value = '';
+  document.getElementById('f-cat').value = '';
+  document.getElementById('f-threat').value = '';
+  document.getElementById('f-stage').value = '';
+  document.getElementById('f-sort').value = 'threat_score';
+  page = 1; load();
+}
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+{% endblock %}

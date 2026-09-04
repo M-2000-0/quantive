@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Optimization Results - Quantive{% endblock %}
+{% set active_page = 'optimize' %}
+{% block page_title %}Optimization Results{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-secondary btn-sm">Export PDF</button>
+<button class="btn btn-primary btn-sm">Apply to Portfolio</button>
+{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Expected Return</div>
+    <div class="stat-value" style="color:var(--green);">+7.4%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Portfolio Volatility</div>
+    <div class="stat-value">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Sharpe Ratio</div>
+    <div class="stat-value">--</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Improvement</div>
+    <div class="stat-value" style="color:var(--green);">+1.8%</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Current vs Optimized Allocation</div>
+    <table>
+      <thead><tr><th>Asset</th><th>Current</th><th>Optimized</th><th>Change</th></tr></thead>
+      <tbody>
+        <tr><td>US Treasury 10Y</td><td>--%</td><td>--%</td><td style="color:var(--red);">-4.3%</td></tr>
+        <tr><td>German Bund 5Y</td><td>--%</td><td>--%</td><td style="color:var(--green);">+2.5%</td></tr>
+        <tr><td>UK Gilt 7Y</td><td>--%</td><td>--%</td><td style="color:var(--red);">-1.4%</td></tr>
+        <tr><td>Corporate IG Bond</td><td>--%</td><td>--%</td><td style="color:var(--green);">+3.6%</td></tr>
+        <tr><td>Green Bond</td><td>--%</td><td>--%</td><td style="color:var(--red);">-0.4%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">Efficient Frontier</div>
+    <div style="height:240px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;">
+      <div style="text-align:center;">
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+        <div style="margin-top:8px;">Efficient frontier chart</div>
+        <div style="font-size:11px;color:var(--text3);">Interactive chart loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

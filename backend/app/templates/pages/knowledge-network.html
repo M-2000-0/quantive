@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Network - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}Knowledge Network{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Network Nodes</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Connections</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Cluster Density</div>
+    <div class="stat-value">--</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Network Clusters</div>
+  <table>
+    <thead><tr><th>Cluster</th><th>Nodes</th><th>Centrality</th><th>Key Entities</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Sovereign Debt</td><td>-</td><td>--</td><td>UST, Bunds, Gilts</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">Credit Markets</td><td>840</td><td>--</td><td>IG, HY, CDS</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">FX Markets</td><td>620</td><td>--</td><td>EUR, GBP, JPY</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">Risk Indicators</td><td>480</td><td>--</td><td>VIX, spreads, yields</td><td><span class="badge badge-green">Active</span></td></tr>
+      <tr><td style="font-weight:600;">Policy Signals</td><td>312</td><td>--</td><td>ECB, Fed, BoJ</td><td><span class="badge badge-yellow">Updating</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

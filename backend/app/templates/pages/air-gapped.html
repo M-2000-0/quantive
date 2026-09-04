@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Air-Gapped Deployment - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Air-Gapped Deployment{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Deployment Mode</div>
+    <div class="stat-value" style="color:var(--green);">Air-Gapped</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Sync</div>
+    <div class="stat-value" style="font-size:16px;">2026-08-28 08:00</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Data Integrity</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Air-Gap Status</div>
+  <table>
+    <thead><tr><th>Component</th><th>Network</th><th>Last Verified</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Primary System</td><td>Isolated</td><td>Real-time</td><td><span class="badge badge-green">Operational</span></td></tr>
+      <tr><td style="font-weight:600;">Backup System</td><td>Isolated</td><td>Real-time</td><td><span class="badge badge-green">Operational</span></td></tr>
+      <tr><td style="font-weight:600;">Data Import</td><td>USB/Manual</td><td>2026-08-28</td><td><span class="badge badge-green">Available</span></td></tr>
+      <tr><td style="font-weight:600;">Data Export</td><td>USB/Manual</td><td>2026-08-28</td><td><span class="badge badge-green">Available</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

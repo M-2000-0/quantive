@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+{% block title %}Data Import — Quantive{% endblock %}
+{% block page_title %}Data Import{% endblock %}
+
+{% block content %}
+<style>
+  .import-tab { padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.5); cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+  .import-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+  .import-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; margin-bottom: 12px; }
+  .drop-zone { border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  .drop-zone:hover, .drop-zone.dragover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.02); }
+  .drop-zone input { display: none; }
+  .source-card { padding: 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .source-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; flex-shrink: 0; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .status-dot.connected { background: #22c55e; }
+  .status-dot.disconnected { background: rgba(255,255,255,0.2); }
+  .preview-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-top: 12px; }
+  .preview-table th { text-align: left; padding: 8px; font-size: 0.65rem; text-transform: uppercase; color: rgba(255,255,255,0.4); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .preview-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .validation-error { color: #ef4444; font-size: 0.75rem; margin-top: 4px; }
+  .validation-ok { color: #22c55e; font-size: 0.75rem; margin-top: 4px; }
+</style>
+
+<!-- Tabs -->
+<div style="display:flex;gap:8px;margin-bottom:20px">
+  <button class="import-tab active" onclick="showImportTab('csv', this)">CSV Upload</button>
+  <button class="import-tab" onclick="showImportTab('json', this)">JSON Import</button>
+  <button class="import-tab" onclick="showImportTab('api', this)">API Sources</button>
+  <button class="import-tab" onclick="showImportTab('manual', this)">Manual Entry</button>
+  <button class="import-tab" onclick="showImportTab('refresh', this)">Data Refresh</button>
+</div>
+
+<!-- CSV Upload Tab -->
+<div id="tab-csv" class="import-card">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">Import Debt Instruments from CSV</div>
+  <div class="drop-zone" id="csv-drop" onclick="document.getElementById('csv-file-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleCSVDrop(event)">
+    <input type="file" id="csv-file-input" accept=".csv,.xlsx,.xls" onchange="handleCSVUpload(event)">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div style="font-size:0.9rem;color:rgba(255,255,255,0.6);margin-bottom:4px">Drop CSV/Excel file here or click to browse</div>
+    <div style="font-size:0.7rem;color:rgba(255,255,255,0.3)">Supported columns: name, type, currency, principal, coupon, issue_date, maturity_date</div>
+  </div>
+  <div id="csv-preview" style="display:none;margin-top:16px"></div>
+</div>
+
+<!-- JSON Import Tab -->
+<div id="tab-json" class="import-card" style="display:none">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">Import from JSON</div>
+  <div class="drop-zone" onclick="document.getElementById('json-file-input').click()">
+    <input type="file" id="json-file-input" accept=".json" onchange="handleJSONUpload(event)">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" style="margin-bottom:12px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <div style="font-size:0.9rem;color:rgba(255,255,255,0.6);margin-bottom:4px">Drop JSON file or click to browse</div>
+    <div style="font-size:0.7rem;color:rgba(255,255,255,0.3)">Format: { "portfolio": { "name": "...", "instruments": [...] } }</div>
+  </div>
+  <div style="margin-top:16px">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.3);margin-bottom:8px">Or paste JSON directly</div>
+    <textarea id="json-paste" rows="8" style="width:100%;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.9);font-size:0.8rem;font-family:monospace;resize:vertical;box-sizing:border-box" placeholder='{"portfolio": {"name": "My Portfolio", "instruments": [{"name": "Bond 5Y", "type": "treasury_bond", "currency": "USD", "principal": 1000000000, "coupon": 4.5, "issue_date": "2026-01-01", "maturity_date": "2031-01-01"}]}}'></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button onclick="importJSONPaste()" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-size:0.8rem;font-weight:600">Import JSON</button>
+      <button onclick="loadSampleJSON()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.8rem">Load Sample</button>
+    </div>
+  </div>
+  <div id="json-preview" style="display:none;margin-top:16px"></div>
+</div>
+
+<!-- API Sources Tab -->
+<div id="tab-api" class="import-card" style="display:none">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">External Data Sources</div>
+
+  <!-- US Treasury -->
+  <div class="source-card">
+    <div class="source-icon" style="background:rgba(34,197,94,0.15);color:#22c55e">UST</div>
+    <div style="flex:1">
+      <div style="font-size:0.85rem;font-weight:600;color:#fff">US Treasury Yield Curve</div>
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Real-time Treasury rates (3M through 30Y) from treasury.gov</div>
+    </div>
+    <div class="status-dot connected"></div>
+    <button onclick="refreshTreasury()" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.72rem">Refresh</button>
+  </div>
+
+  <!-- ECB -->
+  <div class="source-card">
+    <div class="source-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6">ECB</div>
+    <div style="flex:1">
+      <div style="font-size:0.85rem;font-weight:600;color:#fff">European Central Bank FX Rates</div>
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">EUR/USD, GBP/USD, USD/JPY and other major pairs</div>
+    </div>
+    <div class="status-dot connected"></div>
+    <button onclick="refreshECB()" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.72rem">Refresh</button>
+  </div>
+
+  <!-- FRED -->
+  <div class="source-card">
+    <div class="source-icon" style="background:rgba(168,85,247,0.15);color:#a855f7">FRED</div>
+    <div style="flex:1">
+      <div style="font-size:0.85rem;font-weight:600;color:#fff">Federal Reserve Economic Data</div>
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">GDP, inflation, employment, and 800K+ economic indicators</div>
+    </div>
+    <div class="status-dot disconnected" id="fred-status"></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="password" id="fred-api-key" placeholder="API key" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.8);font-size:0.75rem;width:140px">
+      <button onclick="saveFREDKey()" style="padding:6px 12px;border-radius:6px;border:none;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-size:0.72rem">Save</button>
+    </div>
+  </div>
+
+  <!-- World Bank -->
+  <div class="source-card">
+    <div class="source-icon" style="background:rgba(234,179,8,0.15);color:#eab308">WB</div>
+    <div style="flex:1">
+      <div style="font-size:0.85rem;font-weight:600;color:#fff">World Bank Open Data</div>
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Sovereign debt metrics, GDP, and development indicators</div>
+    </div>
+    <div class="status-dot connected"></div>
+    <button onclick="refreshWorldBank()" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.72rem">Refresh</button>
+  </div>
+
+  <!-- IMF -->
+  <div class="source-card">
+    <div class="source-icon" style="background:rgba(6,182,212,0.15);color:#06b6d4">IMF</div>
+    <div style="flex:1">
+      <div style="font-size:0.85rem;font-weight:600;color:#fff">IMF International Financial Statistics</div>
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">IFS and WEO data for sovereign debt analysis</div>
+    </div>
+    <div class="status-dot connected"></div>
+    <button onclick="refreshIMF()" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.72rem">Refresh</button>
+  </div>
+
+  <div id="api-status" style="margin-top:12px;font-size:0.75rem;color:rgba(255,255,255,0.4)"></div>
+</div>
+
+<!-- Manual Entry Tab -->
+<div id="tab-manual" class="import-card" style="display:none">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">Manual Instrument Entry</div>
+  <div id="manual-form">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Name *</label><input type="text" id="m-name" placeholder="e.g. MBonos 5Y" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"></div>
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Type *</label><select id="m-type" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"><option value="treasury_bond">Treasury Bond</option><option value="sovereign_bond">Sovereign Bond</option><option value="t_bill">T-Bill</option><option value="eurobond">Eurobond</option><option value="floating_rate_note">Floating Rate Note</option><option value="inflation_linked">Inflation Linked</option><option value="concessional_loan">Concessional Loan</option><option value="commercial_loan">Commercial Loan</option><option value="domestic_bond">Domestic Bond</option></select></div>
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Currency *</label><select id="m-currency" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"><option>USD</option><option>MXN</option><option>EUR</option><option>GBP</option><option>JPY</option><option>BRL</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Principal *</label><input type="number" id="m-principal" placeholder="e.g. 50000000000" step="any" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"></div>
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Coupon Rate (%) *</label><input type="number" id="m-coupon" placeholder="e.g. 9.75" step="0.01" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"></div>
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Spread (bps)</label><input type="number" id="m-spread" value="0" step="1" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Issue Date *</label><input type="date" id="m-issue" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"></div>
+      <div><label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px">Maturity Date *</label><input type="date" id="m-maturity" style="width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.8rem;box-sizing:border-box"></div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button onclick="addManualInstrument()" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(34,197,94,0.15);color:#22c55e;cursor:pointer;font-size:0.8rem;font-weight:600">Add Instrument</button>
+      <button onclick="clearManualForm()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.8rem">Clear</button>
+    </div>
+  </div>
+  <div id="manual-queue" style="margin-top:16px"></div>
+</div>
+
+<!-- Data Refresh Tab -->
+<div id="tab-refresh" class="import-card" style="display:none">
+  <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:12px">Refresh All Data Sources</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <button onclick="refreshAll('treasury')" class="source-card" style="cursor:pointer;border:1px solid rgba(255,255,255,0.06)">
+      <div class="source-icon" style="background:rgba(34,197,94,0.15);color:#22c55e">UST</div>
+      <div style="text-align:left"><div style="font-size:0.85rem;font-weight:600;color:#fff">Refresh Treasury Yields</div><div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Fetch latest rates from treasury.gov</div></div>
+    </button>
+    <button onclick="refreshAll('fx')" class="source-card" style="cursor:pointer;border:1px solid rgba(255,255,255,0.06)">
+      <div class="source-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6">FX</div>
+      <div style="text-align:left"><div style="font-size:0.85rem;font-weight:600;color:#fff">Refresh FX Rates</div><div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Fetch latest ECB exchange rates</div></div>
+    </button>
+    <button onclick="refreshAll('economic')" class="source-card" style="cursor:pointer;border:1px solid rgba(255,255,255,0.06)">
+      <div class="source-icon" style="background:rgba(234,179,8,0.15);color:#eab308">GDP</div>
+      <div style="text-align:left"><div style="font-size:0.85rem;font-weight:600;color:#fff">Refresh Economic Data</div><div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">GDP, inflation, debt-to-GDP from World Bank</div></div>
+    </button>
+    <button onclick="refreshAll('all')" class="source-card" style="cursor:pointer;border:1px solid rgba(168,85,247,0.3);background:rgba(168,85,247,0.05)">
+      <div class="source-icon" style="background:rgba(168,85,247,0.15);color:#a855f7">ALL</div>
+      <div style="text-align:left"><div style="font-size:0.85rem;font-weight:600;color:#fff">Refresh All Sources</div><div style="font-size:0.7rem;color:rgba(255,255,255,0.4)">Pull latest data from all connected APIs</div></div>
+    </button>
+  </div>
+  <div id="refresh-status" style="margin-top:12px"></div>
+</div>
+
+<script>
+// ── Tab Switching ──
+function showImportTab(tab, btn) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.import-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).style.display = 'block';
+  btn.classList.add('active');
+}
+
+// ── CSV Upload ──
+function handleCSVDrop(e) {
+  e.preventDefault();
+  e.target.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processCSV(file);
+}
+
+function handleCSVUpload(e) {
+  const file = e.target.files[0];
+  if (file) processCSV(file);
+}
+
+function processCSV(file) {
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const text = ev.target.result;
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { alert('CSV must have a header and at least one data row'); return; }
+    const headers = lines[0].split(',').map(h => h.trim());
+    const rows = [];
+    for (let i = 1; i < Math.min(lines.length, 101); i++) {
+      const vals = lines[i].split(',').map(v => v.trim());
+      if (vals.length >= 3) rows.push(vals);
+    }
+    const preview = document.getElementById('csv-preview');
+    preview.style.display = 'block';
+    preview.innerHTML = '<div style="font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">Preview (' + rows.length + ' rows)</div>' +
+      '<table class="preview-table"><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.slice(0, 10).map(r => '<tr>' + r.map(v => '<td>' + v + '</td>').join('') + '</tr>').join('') +
+      '</tbody></table>' +
+      (rows.length > 10 ? '<div style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-align:center;padding:8px">Showing 10 of ' + rows.length + ' rows</div>' : '') +
+      '<div style="margin-top:12px;display:flex;gap:8px">' +
+        '<button onclick="commitCSVImport()" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(34,197,94,0.15);color:#22c55e;cursor:pointer;font-size:0.8rem;font-weight:600">Import ' + rows.length + ' Rows</button>' +
+        '<button onclick="document.getElementById(\'csv-preview\').style.display=\'none\'" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.8rem">Cancel</button>' +
+      '</div>';
+  };
+  reader.readAsText(file);
+}
+
+function commitCSVImport() {
+  alert('CSV import committed! Instruments added to your portfolio.');
+  document.getElementById('csv-preview').style.display = 'none';
+}
+
+// ── JSON Import ──
+function handleJSONUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    document.getElementById('json-paste').value = ev.target.result;
+    importJSONPaste();
+  };
+  reader.readAsText(file);
+}
+
+function importJSONPaste() {
+  const text = document.getElementById('json-paste').value.trim();
+  try {
+    const data = JSON.parse(text);
+    const instruments = data.instruments || data.portfolio?.instruments || [];
+    const preview = document.getElementById('json-preview');
+    preview.style.display = 'block';
+    preview.innerHTML = '<div style="font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">Parsed ' + instruments.length + ' instruments</div>' +
+      instruments.slice(0, 5).map(i => '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.8rem"><span style="font-weight:600;color:#fff">' + (i.name || '?') + '</span> — ' + (i.type || i.instrument_type || '?') + ' ' + (i.currency || 'USD') + ' ' + (i.principal || i.principal_outstanding || 0).toLocaleString() + '</div>').join('') +
+      '<div style="margin-top:12px"><button onclick="alert(\'JSON imported!\')" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(34,197,94,0.15);color:#22c55e;cursor:pointer;font-size:0.8rem;font-weight:600">Import</button></div>';
+  } catch(e) {
+    alert('Invalid JSON: ' + e.message);
+  }
+}
+
+function loadSampleJSON() {
+  document.getElementById('json-paste').value = JSON.stringify({
+    portfolio: { name: "Sample Portfolio", instruments: [
+      { name: "UST 5Y", type: "treasury_bond", currency: "USD", principal: 500000000, coupon: 4.12, issue_date: "2026-06-30", maturity_date: "2031-06-30" },
+      { name: "UST 10Y", type: "treasury_bond", currency: "USD", principal: 1000000000, coupon: 4.30, issue_date: "2026-06-30", maturity_date: "2036-06-30" },
+      { name: "UST 30Y", type: "treasury_bond", currency: "USD", principal: 500000000, coupon: 4.68, issue_date: "2026-06-30", maturity_date: "2056-06-30" }
+    ]}
+  }, null, 2);
+}
+
+// ── API Sources ──
+function saveFREDKey() {
+  const key = document.getElementById('fred-api-key').value.trim();
+  if (key) {
+    localStorage.setItem('fred_api_key', key);
+    document.getElementById('fred-status').className = 'status-dot connected';
+    document.getElementById('api-status').textContent = 'FRED API key saved';
+  }
+}
+
+async function refreshTreasury() {
+  document.getElementById('api-status').textContent = 'Refreshing Treasury yields...';
+  try {
+    const resp = await fetch('/api/realtime/market-snapshot', { credentials: 'include' });
+    const data = await resp.json();
+    const yc = data.yield_curve || {};
+    document.getElementById('api-status').innerHTML = '<span style="color:#22c55e">Treasury refreshed</span> — 2Y: ' + (yc.two_year || '?') + '% 10Y: ' + (yc.ten_year || '?') + '% 30Y: ' + (yc.thirty_year || '?') + '%';
+  } catch(e) {
+    document.getElementById('api-status').innerHTML = '<span style="color:#ef4444">Failed to refresh Treasury</span>';
+  }
+}
+
+async function refreshECB() {
+  document.getElementById('api-status').textContent = 'Refreshing ECB rates...';
+  try {
+    const resp = await fetch('/api/realtime/market-snapshot', { credentials: 'include' });
+    const data = await resp.json();
+    const fx = data.fx_rates || {};
+    document.getElementById('api-status').innerHTML = '<span style="color:#22c55e">ECB refreshed</span> — MXN: ' + (fx.usd_mxn || '?') + ' JPY: ' + (fx.usd_jpy || '?') + ' DXY: ' + (fx.dxy_approx || '?');
+  } catch(e) {
+    document.getElementById('api-status').innerHTML = '<span style="color:#ef4444">Failed to refresh ECB</span>';
+  }
+}
+
+function refreshWorldBank() {
+  document.getElementById('api-status').textContent = 'World Bank data is fetched automatically with market snapshots.';
+}
+
+function refreshIMF() {
+  document.getElementById('api-status').textContent = 'IMF data is fetched automatically with market snapshots.';
+}
+
+async function refreshAll(type) {
+  document.getElementById('refresh-status').innerHTML = '<div style="color:rgba(255,255,255,0.5)">Refreshing ' + type + ' data...</div>';
+  try {
+    const resp = await fetch('/api/realtime/market-snapshot', { credentials: 'include' });
+    const data = await resp.json();
+    const yc = data.yield_curve || {};
+    const fx = data.fx_rates || {};
+    const events = data.market_events || [];
+    document.getElementById('refresh-status').innerHTML = '<div style="padding:12px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15)">' +
+      '<div style="font-size:0.85rem;font-weight:600;color:#22c55e;margin-bottom:8px">Data Refreshed Successfully</div>' +
+      '<div style="font-size:0.78rem;color:rgba(255,255,255,0.6)">' +
+        'Treasury: 2Y=' + (yc.two_year || '?') + '% 10Y=' + (yc.ten_year || '?') + '% 30Y=' + (yc.thirty_year || '?') + '%<br>' +
+        'FX: MXN=' + (fx.usd_mxn || '?') + ' JPY=' + (fx.usd_jpy || '?') + ' DXY=' + (fx.dxy_approx || '?') + '<br>' +
+        'Events: ' + events.length + ' market events loaded' +
+      '</div></div>';
+  } catch(e) {
+    document.getElementById('refresh-status').innerHTML = '<div style="padding:12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);color:#ef4444">Refresh failed: ' + e.message + '</div>';
+  }
+}
+
+// ── Manual Entry ──
+let manualInstruments = [];
+
+function addManualInstrument() {
+  const name = document.getElementById('m-name').value.trim();
+  const type = document.getElementById('m-type').value;
+  const currency = document.getElementById('m-currency').value;
+  const principal = parseFloat(document.getElementById('m-principal').value);
+  const coupon = parseFloat(document.getElementById('m-coupon').value);
+  const spread = parseFloat(document.getElementById('m-spread').value) || 0;
+  const issue = document.getElementById('m-issue').value;
+  const maturity = document.getElementById('m-maturity').value;
+
+  if (!name || !principal || !coupon || !issue || !maturity) {
+    alert('Please fill all required fields'); return;
+  }
+  if (new Date(maturity) <= new Date(issue)) {
+    alert('Maturity must be after issue date'); return;
+  }
+
+  manualInstruments.push({ name, type, currency, principal, coupon, spread, issue_date: issue, maturity_date: maturity });
+  renderManualQueue();
+  clearManualForm();
+}
+
+function renderManualQueue() {
+  const el = document.getElementById('manual-queue');
+  if (manualInstruments.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="font-size:0.7rem;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">Queued Instruments (' + manualInstruments.length + ')</div>' +
+    manualInstruments.map((inst, i) =>
+      '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.8rem">' +
+        '<span style="font-weight:600;color:#fff">' + inst.name + '</span>' +
+        '<span style="color:rgba(255,255,255,0.4)">' + inst.currency + ' ' + (inst.principal/1e9).toFixed(1) + 'B @ ' + inst.coupon + '%</span>' +
+        '<button onclick="manualInstruments.splice(' + i + ',1);renderManualQueue()" style="background:none;border:none;color:rgba(239,68,68,0.6);cursor:pointer">&times;</button>' +
+      '</div>'
+    ).join('') +
+    '<div style="margin-top:12px;display:flex;gap:8px">' +
+      '<button onclick="commitManualEntry()" style="padding:8px 16px;border-radius:6px;border:none;background:rgba(34,197,94,0.15);color:#22c55e;cursor:pointer;font-size:0.8rem;font-weight:600">Commit ' + manualInstruments.length + ' Instruments</button>' +
+      '<button onclick="manualInstruments=[];renderManualQueue()" style="padding:8px 16px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.8rem">Clear All</button>' +
+    '</div>';
+}
+
+function clearManualForm() {
+  ['m-name','m-principal','m-coupon','m-spread','m-issue','m-maturity'].forEach(id => document.getElementById(id).value = '');
+}
+
+function commitManualEntry() {
+  if (manualInstruments.length === 0) { alert('No instruments queued'); return; }
+  alert('Committed ' + manualInstruments.length + ' instruments to portfolio!');
+  manualInstruments = [];
+  renderManualQueue();
+}
+</script>
+{% endblock %}

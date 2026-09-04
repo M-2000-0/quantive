@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Red Team Exercises - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Red Team Exercises{% endblock %}
+{% block topbar_actions %}
+<button class="btn btn-primary btn-sm">+ New Exercise</button>
+{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Exercises Completed</div>
+    <div class="stat-value">12</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Vulnerabilities Found</div>
+    <div class="stat-value" style="color:var(--yellow);">8</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Remediated</div>
+    <div class="stat-value" style="color:var(--green);">7</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Exercise History</div>
+  <table>
+    <thead><tr><th>Date</th><th>Scope</th><th>Team</th><th>Findings</th><th>Severity</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>2026-08-20</td><td style="font-weight:600;">Full Platform</td><td>Internal</td><td>3</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-green">Remediated</span></td></tr>
+      <tr><td>2026-07-15</td><td style="font-weight:600;">API Security</td><td>External</td><td>2</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-green">Remediated</span></td></tr>
+      <tr><td>2026-06-10</td><td style="font-weight:600;">Data Access</td><td>Internal</td><td>1</td><td><span class="badge badge-red">High</span></td><td><span class="badge badge-green">Remediated</span></td></tr>
+      <tr><td>2026-05-05</td><td style="font-weight:600;">Social Engineering</td><td>External</td><td>2</td><td><span class="badge badge-yellow">Medium</span></td><td><span class="badge badge-yellow">In Progress</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

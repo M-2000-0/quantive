@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}ROI Engine - Quantive{% endblock %}
+{% set active_page = 'copilot' %}
+{% block page_title %}ROI Engine{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Platform ROI</div>
+    <div class="stat-value" style="color:var(--green);">340%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Cost Savings</div>
+    <div class="stat-value"><span id="roi-cost">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Alpha Generated</div>
+    <div class="stat-value" style="color:var(--green);"><span id="roi-alpha">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Time Saved</div>
+    <div class="stat-value">2,400 hrs</div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:20px;">
+  <div class="section-title">ROI Breakdown</div>
+  <table>
+    <thead><tr><th>Category</th><th>Before</th><th>After</th><th>Improvement</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Portfolio Return</td><td>--%</td><td>--%</td><td style="color:var(--green);">+1.6%</td><td style="color:var(--green);"+<span id="roi-val1">--</span></td></tr>
+      <tr><td style="font-weight:600;">Risk Reduction</td><td>8.4% vol</td><td>4.2% vol</td><td style="color:var(--green);">-4.2%</td><td style="color:var(--green);"+<span id="roi-val2">--</span></td></tr>
+      <tr><td style="font-weight:600;">Operational Efficiency</td><td>Manual</td><td>Automated</td><td style="color:var(--green);">80% faster</td><td style="color:var(--green);"<span id="roi-val3">--</span></td></tr>
+      <tr><td style="font-weight:600;">Compliance Cost</td><td<span id="roi-before-compliance">--</span></td><td<span id="roi-after-compliance">--</span></td><td style="color:var(--green);">-57%</td><td style="color:var(--green);"<span id="roi-val4">--</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

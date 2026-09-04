@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Executions - Quantive{% endblock %}
+{% set active_page = 'reports' %}
+{% block page_title %}Execution Log{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Total Executions</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Success Rate</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Execution Time</div>
+    <div class="stat-value">240ms</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Recent Executions</div>
+  <table>
+    <thead><tr><th>Time</th><th>Action</th><th>Portfolio</th><th>Value</th><th>Status</th><th>Duration</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:12px;">14:32:18</td><td style="font-weight:600;">Rebalance</td><td>Sovereign Core</td><td>$420M</td><td><span class="badge badge-green">Success</span></td><td>245ms</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">14:32:15</td><td style="font-weight:600;">Optimization</td><td>Sovereign Core</td><td>—</td><td><span class="badge badge-green">Success</span></td><td>1,240ms</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">09:15:42</td><td style="font-weight:600;">Risk Check</td><td>All Portfolios</td><td>—</td><td><span class="badge badge-green">Success</span></td><td>890ms</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">09:00:01</td><td style="font-weight:600;">Market Data Sync</td><td>—</td><td>—</td><td><span class="badge badge-green">Success</span></td><td>3,420ms</td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">08:45:22</td><td style="font-weight:600;">Compliance Scan</td><td>All Portfolios</td><td>—</td><td><span class="badge badge-yellow">Warning</span></td><td>2,100ms</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

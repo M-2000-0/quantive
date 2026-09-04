@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Consolidated Debt - Quantive{% endblock %}
+{% set active_page = 'risk' %}
+{% block page_title %}Consolidated Debt View{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Total Debt</div>
+    <div class="stat-value"><span id="cd-total">--</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Coupon</div>
+    <div class="stat-value">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Maturity</div>
+    <div class="stat-value" id="cd-avg-maturity">--</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Refinancing (12m)</div>
+    <div class="stat-value" style="color:var(--yellow);"><span id="cd-refi">--</span></div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Debt Portfolio</div>
+  <table>
+    <thead><tr><th>Instrument</th><th>Coupon</th><th>Maturity</th><th>Outstanding</th><th>Rating</th><th>YTW</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">Treasury 3.5% 2028</td><td>--%</td><td>2028-03-15</td><td><span id="cd-inst1">--</span></td><td><span class="badge badge-green">AAA</span></td><td>--%</td></tr>
+      <tr><td style="font-weight:600;">Sovereign 4.2% 2030</td><td>--%</td><td>2030-06-01</td><td><span id="cd-inst2">--</span></td><td><span class="badge badge-green">AAA</span></td><td>--%</td></tr>
+      <tr><td style="font-weight:600;">Green Bond 2.8% 2029</td><td>--%</td><td>2029-09-15</td><td><span id="cd-inst3">--</span></td><td><span class="badge badge-green">AA+</span></td><td>--%</td></tr>
+      <tr><td style="font-weight:600;">Eurobond 5.1% 2035</td><td>--%</td><td>2035-12-01</td><td><span id="cd-inst4">--</span></td><td><span class="badge badge-green">AA</span></td><td>--%</td></tr>
+      <tr><td style="font-weight:600;">Domestic 6.2% 2027</td><td>--%</td><td>2027-08-15</td><td><span id="cd-inst5">--</span></td><td><span class="badge badge-green">AA+</span></td><td>--%</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

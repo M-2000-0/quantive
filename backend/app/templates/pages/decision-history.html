@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Decision History - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Decision History{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:20px;">
+  <div style="display:flex;gap:12px;margin-bottom:16px;">
+    <input type="text" class="input" placeholder="Search decisions..." style="flex:1;">
+    <select class="input" style="width:180px;"><option>All Types</option><option>Trade</option><option>Risk</option><option>Issuance</option><option>Policy</option></select>
+    <select class="input" style="width:140px;"><option>All Time</option><option>Today</option><option>This Week</option><option>This Month</option></select>
+  </div>
+  <table>
+    <thead><tr><th>Date</th><th>Decision</th><th>Type</th><th>Author</th><th>Outcome</th></tr></thead>
+    <tbody>
+      <tr><td>2026-08-28</td><td style="font-weight:600;">Rebalance Sovereign Core</td><td>Trade</td><td>J. Smith</td><td><span class="badge badge-green">Executed</span></td></tr>
+      <tr><td>2026-08-27</td><td style="font-weight:600;">Issue $3B Green Bond</td><td>Issuance</td><td>M. Chen</td><td><span class="badge badge-green">Approved</span></td></tr>
+      <tr><td>2026-08-25</td><td style="font-weight:600;">Extend Duration +0.5Y</td><td>Risk</td><td>A. Patel</td><td><span class="badge badge-green">Applied</span></td></tr>
+      <tr><td>2026-08-24</td><td style="font-weight:600;">Add Counterparty Bank C</td><td>Operational</td><td>S. Lee</td><td><span class="badge badge-green">Completed</span></td></tr>
+      <tr><td>2026-08-22</td><td style="font-weight:600;">Capital Controls Proposal</td><td>Policy</td><td>R. Garcia</td><td><span class="badge badge-red">Rejected</span></td></tr>
+      <tr><td>2026-08-20</td><td style="font-weight:600;">Risk Parity Rebalance</td><td>Trade</td><td>J. Smith</td><td><span class="badge badge-green">Executed</span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Immutable Audit Trail - Quantive{% endblock %}
+{% set active_page = 'compliance' %}
+{% block page_title %}Immutable Audit Trail{% endblock %}
+{% block content %}
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Audit Events</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Chain Integrity</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Verification</div>
+    <div class="stat-value" style="font-size:16px;">5 min ago</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Audit Log</div>
+  <table>
+    <thead><tr><th>Timestamp</th><th>Event</th><th>User</th><th>Hash</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:12px;">2026-08-28 14:32:18</td><td style="font-weight:600;">Portfolio rebalance approved</td><td>J. Smith</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x7a3f...e21</td><td><span class="badge badge-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-2px"><polyline points="20,6 9,17 4,12"/></svg></span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">2026-08-28 14:32:17</td><td style="font-weight:600;">Trade executed: Buy $420M UST</td><td>System</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x8b2c...d56</td><td><span class="badge badge-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-2px"><polyline points="20,6 9,17 4,12"/></svg></span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">2026-08-28 14:32:16</td><td style="font-weight:600;">Optimization applied: Black-Litterman</td><td>System</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x3e9d...f12</td><td><span class="badge badge-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-2px"><polyline points="20,6 9,17 4,12"/></svg></span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">2026-08-28 09:15:42</td><td style="font-weight:600;">Risk limit override approved</td><td>A. Patel</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x5c1a...b88</td><td><span class="badge badge-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-2px"><polyline points="20,6 9,17 4,12"/></svg></span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">2026-08-27 16:48:03</td><td style="font-weight:600;">New counterparty onboarded</td><td>S. Lee</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x1f4b...c34</td><td><span class="badge badge-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="vertical-align:-2px"><polyline points="20,6 9,17 4,12"/></svg></span></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

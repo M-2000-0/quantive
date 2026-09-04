@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Legal - Quantive
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Evidence Items</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Chain of Custody</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Verification Status</div>
+    <div class="stat-value" style="color:var(--green);">All Verified</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Evidence Registry</div>
+  <table>
+    <thead><tr><th>ID</th><th>Description</th><th>Hash</th><th>Collected</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2847</td><td style="font-weight:600;">Rebalance authorization log</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x7a3f...e21</td><td>2026-08-28</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2846</td><td style="font-weight:600;">Trade execution record</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x2b8c...f44</td><td>2026-08-28</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2845</td><td style="font-weight:600;">Risk limit override approval</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x9d1e...a87</td><td>2026-08-27</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2844</td><td style="font-weight:600;">Compliance scan results</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x4f2a...c93</td><td>2026-08-27</td><td><span class="badge badge-green">Verified</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Legal
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Evidence Items</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Chain of Custody</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Verification Status</div>
+    <div class="stat-value" style="color:var(--green);">All Verified</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Evidence Registry</div>
+  <table>
+    <thead><tr><th>ID</th><th>Description</th><th>Hash</th><th>Collected</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2847</td><td style="font-weight:600;">Rebalance authorization log</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x7a3f...e21</td><td>2026-08-28</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2846</td><td style="font-weight:600;">Trade execution record</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x2b8c...f44</td><td>2026-08-28</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2845</td><td style="font-weight:600;">Risk limit override approval</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x9d1e...a87</td><td>2026-08-27</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2844</td><td style="font-weight:600;">Compliance scan results</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x4f2a...c93</td><td>2026-08-27</td><td><span class="badge badge-green">Verified</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block content %}
+<div style="max-width:720px;">
+  <div class="card" style="padding:28px;margin-bottom:20px;">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">Terms of Service</h2>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      <p style="margin-bottom:12px;"><strong>1. Acceptance of Terms</strong><br>By accessing or using the Quantive platform ("Service"), you agree to be bound by these Terms of Service.</p>
+      <p style="margin-bottom:12px;"><strong>2. Description of Service</strong><br>Quantive provides sovereign financial optimization, risk management, and decision support tools for government and institutional finance operations.</p>
+      <p style="margin-bottom:12px;"><strong>3. Data Security</strong><br>All data is encrypted at rest and in transit. The platform operates on a local-first architecture with zero-knowledge proofs for audit trails.</p>
+      <p><strong>4. Compliance</strong><br>The Service is designed to comply with international financial regulations and sovereign debt management best practices.</p>
+    </div>
+  </div>
+  <div class="card" style="padding:28px;">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">Privacy Policy</h2>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      <p style="margin-bottom:12px;"><strong>Data Collection</strong><br>We collect only the information necessary to provide the Service. Financial data is processed locally and never shared with third parties.</p>
+      <p style="margin-bottom:12px;"><strong>Data Protection</strong><br>We employ AES-256 encryption, SOC 2 Type II compliance, and regular security audits to protect your data.</p>
+      <p><strong>Contact</strong><br>For privacy-related inquiries, contact privacy@quantive.ai</p>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Evidence Items</div>
+    <div class="stat-value">-</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Chain of Custody</div>
+    <div class="stat-value" style="color:var(--green);">100%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Verification Status</div>
+    <div class="stat-value" style="color:var(--green);">All Verified</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Evidence Registry</div>
+  <table>
+    <thead><tr><th>ID</th><th>Description</th><th>Hash</th><th>Collected</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2847</td><td style="font-weight:600;">Rebalance authorization log</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x7a3f...e21</td><td>2026-08-28</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2846</td><td style="font-weight:600;">Trade execution record</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x2b8c...f44</td><td>2026-08-28</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2845</td><td style="font-weight:600;">Risk limit override approval</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x9d1e...a87</td><td>2026-08-27</td><td><span class="badge badge-green">Verified</span></td></tr>
+      <tr><td style="font-family:var(--mono);font-size:12px;">#E2844</td><td style="font-weight:600;">Compliance scan results</td><td style="font-family:var(--mono);font-size:11px;color:var(--text3);">0x4f2a...c93</td><td>2026-08-27</td><td><span class="badge badge-green">Verified</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

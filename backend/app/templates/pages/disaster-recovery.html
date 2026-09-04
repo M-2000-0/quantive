@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Disaster Recovery - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}Disaster Recovery{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">DR Status</div>
+    <div class="stat-value" style="color:var(--green);">Ready</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">RPO Target</div>
+    <div class="stat-value">15 min</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">RTO Target</div>
+    <div class="stat-value">1 hour</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Drill</div>
+    <div class="stat-value" style="font-size:16px;">2026-08-15</div>
+  </div>
+</div>
+<div class="grid grid-2">
+  <div class="card">
+    <div class="section-title">Backup Status</div>
+    <table>
+      <thead><tr><th>System</th><th>Backup</th><th>RPO</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600;">Primary Database</td><td>Real-time</td><td>0 min</td><td><span class="badge badge-green">Synced</span></td></tr>
+        <tr><td style="font-weight:600;">Application Server</td><td>Hourly</td><td>60 min</td><td><span class="badge badge-green">Current</span></td></tr>
+        <tr><td style="font-weight:600;">File Storage</td><td>Daily</td><td>24 hrs</td><td><span class="badge badge-green">Current</span></td></tr>
+        <tr><td style="font-weight:600;">Configuration</td><td>Real-time</td><td>0 min</td><td><span class="badge badge-green">Synced</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">DR Test History</div>
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Duration</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>2026-08-15</td><td style="font-weight:600;">Full Failover</td><td>42 min</td><td><span class="badge badge-green">Pass</span></td></tr>
+        <tr><td>2026-07-15</td><td style="font-weight:600;">Partial Failover</td><td>28 min</td><td><span class="badge badge-green">Pass</span></td></tr>
+        <tr><td>2026-06-15</td><td style="font-weight:600;">Backup Restore</td><td>18 min</td><td><span class="badge badge-green">Pass</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

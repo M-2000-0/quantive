@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}System Status - Quantive{% endblock %}
+{% set active_page = 'settings' %}
+{% block page_title %}System Status{% endblock %}
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:20px;">
+  <div class="stat">
+    <div class="stat-label">Uptime (30d)</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Avg Response</div>
+    <div class="stat-value">42ms</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Error Rate</div>
+    <div class="stat-value" style="color:var(--green);">--%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Last Incident</div>
+    <div class="stat-value" style="font-size:16px;">45d ago</div>
+  </div>
+</div>
+<div class="card">
+  <div class="section-title">Service Health</div>
+  <table>
+    <thead><tr><th>Service</th><th>Status</th><th>Uptime</th><th>Response</th><th>Last Check</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:600;">API Gateway</td><td><span class="badge badge-green">Operational</span></td><td>--%</td><td>18ms</td><td>30s ago</td></tr>
+      <tr><td style="font-weight:600;">Portfolio Engine</td><td><span class="badge badge-green">Operational</span></td><td>--%</td><td>42ms</td><td>30s ago</td></tr>
+      <tr><td style="font-weight:600;">Risk Engine</td><td><span class="badge badge-green">Operational</span></td><td>--%</td><td>38ms</td><td>30s ago</td></tr>
+      <tr><td style="font-weight:600;">Market Data Feed</td><td><span class="badge badge-green">Operational</span></td><td>--%</td><td>24ms</td><td>30s ago</td></tr>
+      <tr><td style="font-weight:600;">Optimization Solver</td><td><span class="badge badge-green">Operational</span></td><td>--%</td><td>1.2s</td><td>30s ago</td></tr>
+      <tr><td style="font-weight:600;">Reporting Service</td><td><span class="badge badge-green">Operational</span></td><td>--%</td><td>84ms</td><td>30s ago</td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

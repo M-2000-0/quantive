@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Error Correction — Quantive{% endblock %}
+{% block content %}
+<div style="min-height:100%;margin:-24px;padding:24px">
+  <div style="margin-bottom:24px">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--blue);margin-bottom:4px">Priority 4</div>
+    <div style="font-size:28px;font-weight:800;color:#fff">Error Correction Layer</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px">Production-grade QEC abstraction &mdash; configure, evaluate, deploy</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="glass" style="padding:20px">
+      <div class="section-title">Configure QEC</div>
+      <div style="margin-top:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label style="font-size:10px;color:var(--text3)">Logical Qubits</label><input id="qec-qubits" type="number" value="4" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"></div>
+          <div><label style="font-size:10px;color:var(--text3)">Target Error Rate</label><select id="qec-target" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"><option value="0.000001">1e-6</option><option value="0.0000001">1e-7</option><option value="0.000000001">1e-9</option></select></div>
+        </div>
+        <button onclick="configureQEC()" class="btn btn-primary" style="margin-top:12px;padding:8px 20px;font-size:11px">Auto-Configure</button>
+      </div>
+      <div id="qec-result" style="margin-top:12px"></div>
+    </div>
+    <div class="glass" style="padding:20px">
+      <div class="section-title">Reliability Score</div>
+      <div style="margin-top:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label style="font-size:10px;color:var(--text3)">Qubits</label><input id="rel-qubits" type="number" value="4" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"></div>
+          <div><label style="font-size:10px;color:var(--text3)">Depth</label><input id="rel-depth" type="number" value="50" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px"></div>
+        </div>
+        <button onclick="computeReliability()" class="btn btn-primary" style="margin-top:12px;padding:8px 20px;font-size:11px">Compute Reliability</button>
+      </div>
+      <div id="rel-result" style="margin-top:12px"></div>
+    </div>
+  </div>
+  <div class="glass" style="padding:20px"><div class="section-title">QEC Methods Comparison</div><div id="methods-list" style="margin-top:12px">Loading...</div></div>
+</div>
+<script>
+const token=localStorage.getItem('token')||'';const hdrs=token?{'Authorization':'Bearer '+token}:{};
+async function api(p,o={}){const r=await fetch('/api/error-correction'+p,{...o,headers:{...hdrs,...o.headers}});return r.json();}
+async function configureQEC(){const q=parseInt(document.getElementById('qec-qubits').value)||4;const t=parseFloat(document.getElementById('qec-target').value)||1e-6;const d=await api('/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({num_logical_qubits:q,target_logical_error_rate:t})});document.getElementById('qec-result').innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:6px"><div style="font-size:9px;color:var(--text3)">METHOD</div><div style="font-size:14px;font-weight:800;color:var(--blue);margin-top:2px">'+(d.method_info&&d.method_info.name||d.selected_method)+'</div></div><div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:6px"><div style="font-size:9px;color:var(--text3)">PHYSICAL QUBITS</div><div style="font-size:14px;font-weight:800;color:#fff;margin-top:2px">'+d.physical_qubits_needed+'</div></div><div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:6px"><div style="font-size:9px;color:var(--text3)">CODE DISTANCE</div><div style="font-size:14px;font-weight:800;color:#fff;margin-top:2px">'+d.tuning.code_distance+'</div></div><div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:6px"><div style="font-size:9px;color:var(--text3)">TARGET MET</div><div style="font-size:14px;font-weight:800;color:'+(d.satisfies_target?'var(--green)':'var(--red)')+';margin-top:2px">'+(d.satisfies_target?'YES':'NO')+'</div></div></div>';}
+async function computeReliability(){const q=parseInt(document.getElementById('rel-qubits').value)||4;const d=parseInt(document.getElementById('rel-depth').value)||50;const r=await api('/reliability',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({num_qubits:q,circuit_depth:d,qec_enabled:true})});const c=r.rating==='production_ready'?'var(--green)':r.rating==='usable'?'var(--yellow)':'var(--red)';document.getElementById('rel-result').innerHTML='<div style="text-align:center"><div style="font-size:48px;font-weight:900;color:'+c+'">'+r.reliability_score+'%</div><div style="font-size:11px;color:var(--text3);text-transform:uppercase">'+r.rating.replace(/_/g,' ')+'</div><div style="margin-top:8px;font-size:10px;color:var(--text3)">Without QEC: '+r.without_qec.fidelity.toFixed(4)+' &rarr; With QEC: '+r.with_qec.fidelity.toFixed(4)+' (+'+r.improvement_pct+'%)</div></div>';}
+async function loadMethods(){const d=await api('/methods');let h='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';d.methods.forEach(m=>{const sc=m.status==='production_ready'?'var(--green)':'var(--yellow)';h+='<div style="background:rgba(255,255,255,0.03);padding:16px;border-radius:8px"><div style="font-weight:700;color:#fff;font-size:13px">'+m.name+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+m.description.substring(0,80)+'...</div><div style="margin-top:8px;display:flex;gap:4px"><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:'+sc+'20;color:'+sc+'">'+m.status+'</span><span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.05);color:var(--text3)">Threshold: '+(m.threshold_error_rate*100)+'%</span></div></div>';});document.getElementById('methods-list').innerHTML=h+'</div>';}
+loadMethods();
+</script>
+{% endblock %}
