@@ -129,6 +129,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start market stream: %s", e)
 
+    # Start weekly digest email scheduler (Mondays 08:00 UTC)
+    try:
+        from app.services.weekly_digest_scheduler import start_weekly_digest_scheduler
+        await start_weekly_digest_scheduler()
+        print("[OK] Weekly digest scheduler started")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not start weekly digest scheduler: %s", e)
+
     yield
     print("[OK] Quantive shutting down gracefully")
 

@@ -38,6 +38,7 @@ class NotificationSettings(BaseModel):
     sms_alerts: bool = False
     bubble_alerts: bool = True
     price_thresholds: bool = True
+    weekly_digest: bool = False
     phone_number: Optional[str] = None
 
 
@@ -107,6 +108,7 @@ def update_notification_settings(data: NotificationSettings, request: Request, d
         "sms_alerts": data.sms_alerts,
         "bubble_alerts": data.bubble_alerts,
         "price_thresholds": data.price_thresholds,
+        "weekly_digest": data.weekly_digest,
         "phone_number": data.phone_number,
     }
     ok = _save_settings(db, user, settings)
