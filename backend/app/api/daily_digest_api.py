@@ -1,12 +1,16 @@
 """Daily Morning Digest API.
 
 Endpoints:
-  GET  /api/v1/digest          — Today's briefing (auto-generated, cached per day)
-  POST /api/v1/digest/refresh  — Force regeneration
+  GET  /api/v1/digest             — Today's briefing (auto-generated, cached per day)
+  GET  /api/v1/digest/portfolio   — Per-user holdings moves + instrument alert status
+  POST /api/v1/digest/refresh     — Force regeneration
 """
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
+
+from app.database import get_db
 
 logger = logging.getLogger("quantive.digest_api")
 
@@ -23,6 +27,33 @@ def get_digest():
         **digest,
         "cached": True,
     }
+
+
+@router.get("/portfolio")
+def get_portfolio_digest(request: Request, db: Session = Depends(get_db)):
+    """Per-user portfolio sections: holdings moves + instrument alert status.
+
+    Computed fresh per request (cheap joins against the live asset stores);
+    the shared digest is cached daily but these sections are personal.
+    Unauthenticated callers get empty sections rather than an error.
+    """
+    from app.services.portfolio_digest import build_portfolio_digest
+
+    try:
+        from app.api.market_monitor_api import _get_user
+        user = _get_user(request, db)
+    except Exception:
+        user = None
+
+    if not user:
+        return {
+            "holdings": None,
+            "alerts": None,
+            "has_data": False,
+            "note": "Sign in to see your holdings and instrument alerts in the digest.",
+        }
+
+    return build_portfolio_digest(db, str(user.id))
 
 
 @router.post("/refresh")

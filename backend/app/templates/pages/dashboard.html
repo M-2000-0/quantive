@@ -126,6 +126,16 @@
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px">News Sentiment</div>
         <div id="digest-sentiment" style="font-size:12px;color:var(--text2)">Loading…</div>
       </div>
+      <!-- Your Holdings -->
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px">Your Holdings</div>
+        <div id="digest-holdings" style="font-size:12px;color:var(--text2)">Loading…</div>
+      </div>
+      <!-- Your Alerts -->
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px">Your Alerts</div>
+        <div id="digest-alerts" style="font-size:12px;color:var(--text2)">Loading…</div>
+      </div>
     </div>
 
     <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-size:9px;color:var(--text3)">
@@ -829,6 +839,8 @@
       } else {
         sentEl.innerHTML = '<span style="color:var(--text3)">Unavailable</span>';
       }
+
+      loadPortfolioDigest();
     } catch (e) {
       console.warn('Digest load failed:', e);
     }
@@ -836,6 +848,63 @@
 
   async function refreshDigest() {
     await loadDigest(true);
+  }
+
+  async function loadPortfolioDigest() {
+    // Per-user sections — fetched separately because they're personal, not cached
+    try {
+      const res = await fetch('/api/v1/digest/portfolio', {credentials: 'include'});
+      const p = await res.json();
+      const holdEl = document.getElementById('digest-holdings');
+      const alertEl = document.getElementById('digest-alerts');
+
+      // Holdings moves
+      if (p.holdings && p.holdings.holdings && p.holdings.holdings.length) {
+        const avg = p.holdings.portfolio_avg_change;
+        const mkt = p.holdings.market_avg_change;
+        let head = '';
+        if (avg != null) {
+          const vsMkt = (mkt != null) ? ` vs market ${(mkt >= 0 ? '+' : '')}${mkt.toFixed(2)}%` : '';
+          head = `<div style="margin-bottom:4px">Portfolio <strong style="color:${avg >= 0 ? 'var(--green,#34d399)' : 'var(--red,#f87171)'}">${avg >= 0 ? '+' : ''}${avg.toFixed(2)}%</strong><span style="font-size:10px;color:var(--text3)">${vsMkt}</span></div>`;
+        }
+        const rows = p.holdings.holdings.slice(0, 4).map(h => {
+          const chg = h.change_pct;
+          if (chg == null) return `<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="font-weight:600;color:#fff">${h.symbol}</span><span style="color:var(--text3)">—</span></div>`;
+          const color = chg >= 0 ? 'var(--green,#34d399)' : 'var(--red,#f87171)';
+          const mark = h.standout ? ' <span style="font-size:9px;color:#fbbf24" title="Standout move vs tracked market">*</span>' : '';
+          return `<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="font-weight:600;color:#fff">${h.symbol}${mark}</span><span style="color:${color}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</span></div>`;
+        }).join('');
+        const more = p.holdings.total > 4 ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">+${p.holdings.total - 4} more · ${p.holdings.standout_count || 0} standout</div>` : (p.holdings.standout_count ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">${p.holdings.standout_count} standout move${p.holdings.standout_count > 1 ? 's' : ''} today</div>` : '');
+        holdEl.innerHTML = head + rows + more;
+      } else {
+        holdEl.innerHTML = '<span style="color:var(--text3)">No holdings tracked — add instruments to your watchlist</span>';
+      }
+
+      // Instrument alerts
+      if (p.alerts && p.alerts.alerts && p.alerts.alerts.length) {
+        const statusStyle = {
+          triggered: ['TRIGGERED', 'var(--red,#f87171)'],
+          warning_zone: ['NEAR THRESHOLD', '#fbbf24'],
+          armed: ['ARMED', 'var(--text3)'],
+          no_data: ['NO DATA', 'var(--text3)'],
+        };
+        const rows = p.alerts.alerts.slice(0, 4).map(a => {
+          const [label, color] = statusStyle[a.status] || ['ARMED', 'var(--text3)'];
+          const price = a.current_price != null ? `$${a.current_price >= 1000 ? a.current_price.toFixed(0) : a.current_price.toFixed(2)}` : '—';
+          return `<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="font-weight:600;color:#fff">${a.symbol} <span style="font-weight:400;color:var(--text3)">${price}</span></span><span style="font-size:10px;font-weight:600;color:${color}">${label}</span></div>`;
+        }).join('');
+        const summary = p.alerts.triggered_count ? `<div style="font-size:10px;color:var(--red,#f87171);margin-top:4px">${p.alerts.triggered_count} triggered${p.alerts.warning_count ? ` · ${p.alerts.warning_count} near threshold` : ''}</div>` : (p.alerts.warning_count ? `<div style="font-size:10px;color:#fbbf24;margin-top:4px">${p.alerts.warning_count} near threshold</div>` : '');
+        alertEl.innerHTML = rows + summary;
+      } else {
+        alertEl.innerHTML = '<span style="color:var(--text3)">No active alerts</span>';
+      }
+    } catch (e) {
+      console.warn('Portfolio digest load failed:', e);
+      const holdEl = document.getElementById('digest-holdings');
+      const alertEl = document.getElementById('digest-alerts');
+      if (holdEl) holdEl.innerHTML = '<span style="color:var(--text3)">Unavailable</span>';
+      if (alertEl) alertEl.innerHTML = '<span style="color:var(--text3)">Unavailable</span>';
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function() {

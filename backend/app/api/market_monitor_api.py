@@ -374,6 +374,7 @@ def create_alert(
             is_active=True,
             delivery_channels=data.delivery_channels,
             repeat=data.repeat,
+            metadata_json={"symbol": data.symbol.upper()},
         ))
         db.commit()
         alert["persisted"] = True
