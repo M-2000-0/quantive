@@ -95,6 +95,44 @@
     </div>
   </div>
 
+  <!-- MORNING DIGEST CARD -->
+  <div id="digest-card" class="glass" style="padding:20px 24px;margin-bottom:24px;display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="4"/></svg>
+        <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text2);font-weight:600">Morning Digest</span>
+        <span id="digest-date" style="font-size:10px;color:var(--text3)"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="digest-regime-badge" style="display:none;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:600"></span>
+        <button onclick="refreshDigest()" title="Refresh briefing" style="background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:var(--text3);cursor:pointer;padding:4px 8px;font-size:10px">Refresh</button>
+      </div>
+    </div>
+    <div id="digest-headline" style="font-size:15px;font-weight:600;color:#fff;line-height:1.5;margin-bottom:14px"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+      <!-- Top movers -->
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px">Top Movers</div>
+        <div id="digest-movers" style="font-size:12px;color:var(--text2)">Loading…</div>
+      </div>
+      <!-- Bubble alerts -->
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px">Bubble Alerts</div>
+        <div id="digest-bubble" style="font-size:12px;color:var(--text2)">Loading…</div>
+      </div>
+      <!-- Sentiment -->
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px">News Sentiment</div>
+        <div id="digest-sentiment" style="font-size:12px;color:var(--text2)">Loading…</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);font-size:9px;color:var(--text3)">
+      Automated analytical output for decision-support purposes only. Not financial advice.
+    </div>
+  </div>
+
   <!-- CHART + AI INSIGHTS -->
   <div style="display:grid;grid-template-columns:3fr 1fr;gap:16px;margin-bottom:24px">
     <div class="glass" style="padding:24px">
@@ -718,8 +756,91 @@
     }
   }
 
+  // ── Morning Digest ──────────────────────────────────────
+  async function loadDigest(force) {
+    try {
+      const res = await fetch('/api/v1/digest' + (force ? '/refresh' : ''), {method: force ? 'POST' : 'GET', credentials: 'include'});
+      const d = await res.json();
+      const card = document.getElementById('digest-card');
+      if (!card) return;
+      card.style.display = 'block';
+
+      document.getElementById('digest-date').textContent = d.date || '';
+      document.getElementById('digest-headline').textContent = d.headline || 'Briefing unavailable.';
+
+      // Volatility regime badge
+      const badge = document.getElementById('digest-regime-badge');
+      if (d.volatility && d.volatility.regime && d.volatility.regime !== 'unknown') {
+        badge.style.display = 'inline-block';
+        badge.textContent = d.volatility.regime.toUpperCase() + ' VOL';
+        badge.style.background = (d.volatility.color || '#9ca3af') + '22';
+        badge.style.color = d.volatility.color || '#9ca3af';
+        badge.title = d.volatility.description || '';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      // Movers
+      const moversEl = document.getElementById('digest-movers');
+      if (d.movers) {
+        const row = function(m) {
+          const chg = m.change_pct != null ? m.change_pct : 0;
+          const color = chg >= 0 ? 'var(--green, #34d399)' : 'var(--red, #f87171)';
+          return `<div style="display:flex;justify-content:space-between;padding:2px 0">
+            <span style="font-weight:600;color:#fff">${m.symbol}</span>
+            <span style="color:${color}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</span>
+          </div>`;
+        };
+        const g = (d.movers.gainers || []).slice(0, 3);
+        const l = (d.movers.losers || []).slice(0, 3);
+        moversEl.innerHTML = g.map(row).join('') + (g.length && l.length ? '<div style="border-top:1px solid rgba(255,255,255,0.05);margin:4px 0"></div>' : '') + l.map(row).join('');
+      } else {
+        moversEl.innerHTML = '<span style="color:var(--text3)">Unavailable</span>';
+      }
+
+      // Bubble alerts
+      const bubbleEl = document.getElementById('digest-bubble');
+      if (d.bubble) {
+        const f = d.bubble.flagged || [];
+        if (f.length) {
+          bubbleEl.innerHTML = f.map(b => {
+            const color = b.level === 'EXTREME' ? '#ef4444' : '#fbbf24';
+            return `<div style="display:flex;justify-content:space-between;padding:2px 0">
+              <span style="font-weight:600;color:#fff">${b.symbol}</span>
+              <span style="color:${color}">${b.score}/100</span>
+            </div>`;
+          }).join('') + (d.bubble.total_scanned ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">${d.bubble.total_scanned} assets scanned</div>` : '');
+        } else {
+          bubbleEl.innerHTML = `<span style="color:var(--green,#34d399)">No high-risk flags</span><div style="font-size:10px;color:var(--text3);margin-top:4px">${d.bubble.total_scanned || 0} assets scanned</div>`;
+        }
+      } else {
+        bubbleEl.innerHTML = '<span style="color:var(--text3)">Unavailable</span>';
+      }
+
+      // Sentiment
+      const sentEl = document.getElementById('digest-sentiment');
+      if (d.sentiment) {
+        const pos = (d.sentiment.most_positive || []).slice(0, 2);
+        const neg = (d.sentiment.most_negative || []).slice(0, 2);
+        let rows = '';
+        for (const s of pos) rows += `<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="font-weight:600;color:#fff">${s.symbol}</span><span style="color:var(--green,#34d399)">+${(s.mean * 100).toFixed(0)}</span></div>`;
+        for (const s of neg) rows += `<div style="display:flex;justify-content:space-between;padding:2px 0"><span style="font-weight:600;color:#fff">${s.symbol}</span><span style="color:var(--red,#f87171)">${(s.mean * 100).toFixed(0)}</span></div>`;
+        sentEl.innerHTML = rows || '<span style="color:var(--text3)">No strong signals</span>';
+      } else {
+        sentEl.innerHTML = '<span style="color:var(--text3)">Unavailable</span>';
+      }
+    } catch (e) {
+      console.warn('Digest load failed:', e);
+    }
+  }
+
+  async function refreshDigest() {
+    await loadDigest(true);
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
+    loadDigest(false);
     loadComparison();
     loadAlertCount();
     checkAlertsBackground();
