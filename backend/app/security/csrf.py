@@ -70,10 +70,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         exempt = any(path.startswith(p) for p in CSRF_EXEMPT_PATHS)
         if exempt:
             return await call_next(request)
-        # DEBUG: print non-exempt paths
-        import sys
-        print(f'[CSRF] Non-exempt: {request.method} {path}', file=sys.stderr)
-        
         # Skip CSRF for non-state-changing methods
         if request.method not in CSRF_METHODS:
             response = await call_next(request)

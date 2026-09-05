@@ -46,6 +46,19 @@ from app.api.trading_intelligence import _fetch_yahoo_quote, _calculate_rsi, _fe
 
 router = APIRouter(prefix="/api/alerts", tags=["price-alerts"])
 
+
+def _get_user_by_id(user_id: str) -> Optional[User]:
+    """Look up a user by id for notification delivery."""
+    try:
+        from app.database import SessionLocal
+        db = SessionLocal()
+        try:
+            return db.query(User).filter(User.id == user_id).first()
+        finally:
+            db.close()
+    except Exception:
+        return None
+
 # In-memory alert storage (production: use DB)
 _alerts: dict[str, list[dict]] = {}
 _alert_history: list[dict] = []
@@ -294,7 +307,33 @@ async def _background_check_loop():
                         alert["triggered"] = True
                         alert["triggered_at"] = datetime.now(timezone.utc).isoformat()
                         _alert_history.append({**alert, "checked_at": datetime.now(timezone.utc).isoformat()})
-                        # Push via WebSocket
+
+                        # Multi-channel delivery (WebSocket + email + SMS)
+                        try:
+                            from app.services.notification_dispatcher import (
+                                send_price_alert,
+                                should_notify,
+                            )
+                            user = _get_user_by_id(user_id)
+                            email_on = alert.get("notify_email", True)
+                            sms_on = alert.get("notify_sms", False)
+                            if user and should_notify(user_id, f"price:{symbol}:{alert_type}"):
+                                await send_price_alert(
+                                    user_id=user_id,
+                                    user_email=user.email if email_on else "",
+                                    symbol=symbol,
+                                    alert_type=alert_type,
+                                    message=alert.get("message") or f"Alert triggered for {symbol}",
+                                    current_price=alert.get("current_price"),
+                                    threshold=threshold,
+                                    user_phone=(getattr(user, "phone", None) or getattr(user, "phone_number", None)) if sms_on else None,
+                                    notify_email=email_on,
+                                    notify_sms=sms_on,
+                                )
+                        except Exception as e:
+                            logger.debug("Notification dispatch failed: %s", e)
+
+                        # Push via WebSocket (legacy direct push, kept as fallback)
                         try:
                             from app.websocket import get_ws_manager
                             manager = get_ws_manager()

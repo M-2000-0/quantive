@@ -361,6 +361,103 @@ function formatMcap(n) {
 }
 
 // Auto-load on page load
-document.addEventListener('DOMContentLoaded', loadData);
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  initPriceStream();
+});
+
+// ── Live WebSocket price stream ──────────────────────────────
+let priceWs = null;
+let priceWsRetry = 0;
+
+function initPriceStream() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  try {
+    priceWs = new WebSocket(`${proto}//${location.host}/api/v1/ws/market`);
+  } catch (e) { return; }
+
+  priceWs.onopen = () => {
+    priceWsRetry = 0;
+    setStreamStatus('live');
+    // Keepalive ping every 25s
+    priceWs._ping = setInterval(() => { try { priceWs.send('ping'); } catch(e){} }, 25000);
+  };
+
+  priceWs.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type !== 'price_update' && msg.type !== 'market_price_update') return;
+      applyPriceUpdates(msg.updates || []);
+    } catch (e) {}
+  };
+
+  priceWs.onclose = () => {
+    setStreamStatus('off');
+    clearInterval(priceWs._ping);
+    // Exponential backoff reconnect (max ~2 min)
+    if (priceWsRetry < 6) {
+      const delay = Math.min(30000, 2000 * Math.pow(2, priceWsRetry++));
+      setTimeout(initPriceStream, delay);
+    }
+  };
+
+  priceWs.onerror = () => { try { priceWs.close(); } catch(e){} };
+}
+
+function setStreamStatus(state) {
+  let el = document.getElementById('streamStatus');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'streamStatus';
+    el.style.cssText = 'position:fixed;bottom:16px;right:16px;padding:6px 12px;border-radius:20px;font-size:0.7rem;font-weight:600;z-index:999;letter-spacing:0.5px;';
+    document.body.appendChild(el);
+  }
+  if (state === 'live') {
+    el.textContent = 'LIVE · STREAMING';
+    el.style.background = 'rgba(16,185,129,0.15)';
+    el.style.color = '#10b981';
+    el.style.border = '1px solid rgba(16,185,129,0.3)';
+  } else {
+    el.textContent = 'STREAM OFFLINE';
+    el.style.background = 'rgba(148,163,184,0.1)';
+    el.style.color = '#64748b';
+    el.style.border = '1px solid rgba(148,163,184,0.2)';
+  }
+}
+
+function applyPriceUpdates(updates) {
+  if (!updates.length) return;
+  const bySym = {};
+  for (const u of updates) bySym[u.symbol] = u;
+  let changed = false;
+  let up = 0, down = 0;
+  for (const a of allAssets) {
+    const u = bySym[a.symbol];
+    if (!u) continue;
+    if (u.price != null) a.current_price = u.price;
+    if (u.change_pct != null) a.day_change_pct = u.change_pct;
+    a._live = true;
+    changed = true;
+    if ((u.change_pct || 0) > 0) up++; else if ((u.change_pct || 0) < 0) down++;
+  }
+  if (changed) {
+    renderAssets();
+    flashLiveIndicator(up, down);
+  }
+}
+
+function flashLiveIndicator(up, down) {
+  let el = document.getElementById('liveFlash');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'liveFlash';
+    el.style.cssText = 'position:fixed;bottom:16px;left:16px;padding:6px 12px;border-radius:8px;font-size:0.7rem;font-weight:600;z-index:999;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#818cf8;transition:opacity 0.5s;opacity:0;';
+    document.body.appendChild(el);
+  }
+  el.textContent = `Live update: ${up} up · ${down} down`;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
 </script>
 {% endblock %}

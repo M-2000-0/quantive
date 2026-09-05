@@ -103,6 +103,8 @@ from app.api import (
     pdf_export_api,
     market_monitor_api,
     global_market_api,
+    portfolio_optimization_api,
+    notification_api,
 )
 from app.database import get_db
 from app.security.threats import router as threats_router
@@ -219,6 +221,8 @@ router.include_router(pdf_export_api.router)
 router.include_router(market_monitor_api.router)
 router.include_router(global_market_api.router)
 router.include_router(global_market_api.bubble_router)
+router.include_router(portfolio_optimization_api.router)
+router.include_router(notification_api.router)
 
 
 @router.get("/api/health")

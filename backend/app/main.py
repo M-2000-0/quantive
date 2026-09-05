@@ -94,6 +94,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start alert checker: %s", e)
 
+    # Start live market price WebSocket stream
+    try:
+        from app.services.market_price_stream import start_market_stream
+        await start_market_stream()
+        print("[OK] Market price WebSocket stream started")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not start market stream: %s", e)
+
     yield
     print("[OK] Quantive shutting down gracefully")
 
@@ -1189,6 +1197,15 @@ async def bubble_detector_page(request: Request):
     return templates.TemplateResponse("pages/bubble-detector.html", {
         "request": request,
         "active_page": "bubble-detector",
+        **page_ctx(),
+    })
+
+
+@app.get("/portfolio-optimizer", response_class=HTMLResponse)
+async def portfolio_optimizer_page(request: Request):
+    return templates.TemplateResponse("pages/portfolio-optimizer.html", {
+        "request": request,
+        "active_page": "portfolio-optimizer",
         **page_ctx(),
     })
 

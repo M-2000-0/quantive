@@ -11,6 +11,7 @@ Endpoints:
   GET  /api/v1/bubble-detector/portfolio    — Scan full portfolio
 """
 from datetime import datetime, timezone
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
@@ -201,7 +202,89 @@ def scan_assets(data: ScanRequest, request: Request):
         return {"error": "No assets found. Run ingestion first.", "total": 0}
 
     scan = scan_portfolio_for_bubbles(assets)
+
+    # Notify subscribed users about high/critical bubble risks (background-safe)
+    if request.method == "POST":
+        try:
+            import asyncio
+
+            flagged = [
+                a for a in (scan.get("results") or [])
+                if (a.get("risk_level") or "").lower() in ("high", "critical")
+                and (a.get("risk_score") or 0) >= 70
+            ]
+            if flagged:
+                _dispatch_bubble_notifications(flagged)
+        except Exception:
+            pass
+
     return scan
+
+
+def _dispatch_bubble_notifications(flagged: list[dict]):
+    """Fire-and-forget bubble notifications to users with alerts enabled."""
+    try:
+        import asyncio
+
+        from app.services.notification_dispatcher import send_bubble_alert, should_notify
+
+        async def _run():
+            from app.database import SessionLocal
+            from app.models import User, UserAlert
+
+            db = SessionLocal()
+            try:
+                # Users who opted into bubble/market alert emails via delivery channels
+                subs = (
+                    db.query(User, UserAlert)
+                    .join(UserAlert, UserAlert.user_id == User.id)
+                    .filter(UserAlert.is_active == True)  # noqa: E712
+                    .all()
+                )
+                notified_users = set()
+                for user, alert in subs:
+                    if user.id in notified_users:
+                        continue
+                    channels = (alert.delivery_channels or ["in_app"]) if isinstance(alert.delivery_channels, list) else ["in_app"]
+                    # Only dispatch to users who opted into email/SMS anywhere in their alerts
+                    wants_email = "email" in channels
+                    wants_sms = "sms" in channels
+                    notified_users.add(user.id)
+                    for f in flagged[:5]:  # Cap at 5 assets per notification wave
+                        if not should_notify(user.id, f"bubble:{f.get('symbol')}"):
+                            continue
+                        try:
+                            await send_bubble_alert(
+                                user_id=user.id,
+                                user_email=user.email if wants_email else "",
+                                symbol=f.get("symbol", ""),
+                                asset_name=f.get("name") or f.get("symbol", ""),
+                                risk_score=int(f.get("risk_score") or 0),
+                                risk_level=f.get("risk_level", "high"),
+                                patterns=f.get("patterns") or [],
+                                indicators=f.get("indicators") or [],
+                                user_phone=getattr(user, "phone", None),
+                                notify_email=wants_email,
+                                notify_sms=wants_sms,
+                            )
+                        except Exception:
+                            pass
+            finally:
+                db.close()
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_run())
+        except RuntimeError:
+            # No running loop (e.g. sync context) — run a fresh loop in a thread
+            import threading
+
+            def _bg():
+                asyncio.run(_run())
+
+            threading.Thread(target=_bg, daemon=True).start()
+    except Exception as e:
+        logging.getLogger("quantive.notifications").debug("Bubble dispatch error: %s", e)
 
 
 @bubble_router.post("/single")
