@@ -134,6 +134,90 @@ def _collect_market_context() -> dict:
         return {}
 
 
+def _collect_sentiment_shifts(limit: int = 6) -> dict:
+    """Tickers whose news sentiment changed most this week vs last week.
+
+    Compares mean sentiment of articles from the trailing 7 days against the
+    prior 7 days. Returns biggest improvers and decliners.
+    """
+    try:
+        from datetime import datetime as _dt, timedelta as _td
+
+        from app.database import SessionLocal
+        from app.models.news import NewsArticle
+        from app.services.sentiment_analyzer import aggregate_sentiment
+        from sqlalchemy import desc as desc_pub
+
+        now = _dt.now(timezone.utc)
+        this_start = (now - _td(days=7)).isoformat()
+        prev_start = (now - _td(days=14)).isoformat()
+
+        db = SessionLocal()
+        try:
+            rows = (
+                db.query(
+                    NewsArticle.tickers_json,
+                    NewsArticle.sentiment_score,
+                    NewsArticle.published_at,
+                )
+                .filter(NewsArticle.sentiment_score.isnot(None))
+                .filter(NewsArticle.published_at >= prev_start)
+                .order_by(desc_pub(NewsArticle.published_at))
+                .limit(3000)
+                .all()
+            )
+        finally:
+            db.close()
+
+        this_week: dict[str, list[float]] = {}
+        prev_week: dict[str, list[float]] = {}
+        for tickers, score, published in rows:
+            if not tickers or score is None:
+                continue
+            pub = str(published or "")
+            in_this = pub >= this_start
+            for t in tickers[:3]:
+                t = (t or "").upper()
+                if not t or len(t) > 6:
+                    continue
+                if in_this:
+                    this_week.setdefault(t, []).append(float(score))
+                else:
+                    prev_week.setdefault(t, []).append(float(score))
+
+        shifts = []
+        for t, scores in this_week.items():
+            if len(scores) < 2:
+                continue
+            now_agg = aggregate_sentiment(scores)
+            prev_agg = aggregate_sentiment(prev_week.get(t, []))
+            if now_agg["mean"] is None:
+                continue
+            prev_mean = prev_agg.get("mean") if prev_agg.get("count", 0) >= 2 else None
+            delta = (
+                round(now_agg["mean"] - prev_mean, 3)
+                if prev_mean is not None
+                else None
+            )
+            shifts.append({
+                "symbol": t,
+                "this_mean": now_agg["mean"],
+                "this_label": now_agg["label"],
+                "this_count": now_agg["count"],
+                "prev_mean": prev_mean,
+                "delta": delta,
+            })
+
+        # Most significant absolute shifts first; new coverage counts as a shift
+        shifts.sort(key=lambda s: abs(s["delta"] if s["delta"] is not None else 0.5), reverse=True)
+        improvers = [s for s in shifts if (s["delta"] or 0) > 0.1][:limit]
+        decliners = [s for s in shifts if (s["delta"] or 0) < -0.1][:limit]
+        return {"improvers": improvers, "decliners": decliners, "has_data": bool(shifts)}
+    except Exception as e:
+        logger.warning("sentiment shift collection failed: %s", e)
+        return {"improvers": [], "decliners": [], "has_data": False}
+
+
 # ── HTML Rendering ──────────────────────────────────────────────────
 
 def _render_html(data: dict) -> tuple[str, str]:
@@ -227,6 +311,39 @@ def _render_html(data: dict) -> tuple[str, str]:
     else:
         bubble_html = "<p style='color:#10b981;font-size:13px;'>No high bubble-risk flags this week.</p>"
 
+    # Sentiment shifts section
+    sent = data.get("sentiment", {}) or {}
+    improvers = sent.get("improvers") or []
+    decliners = sent.get("decliners") or []
+    if improvers or decliners:
+        def _sent_row(s, arrow, color):
+            delta = s.get("delta")
+            delta_txt = f"{delta:+.2f}" if delta is not None else "new"
+            prev_txt = f"{s['prev_mean']:+.2f}" if s.get("prev_mean") is not None else "\u2014"
+            return f"""<tr>
+              <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;font-weight:600;">{s['symbol']}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;color:#475569;">{prev_txt} \u2192 <strong>{s['this_mean']:+.2f}</strong></td>
+              <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;color:{color};font-weight:700;">{arrow} {delta_txt}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:12px;">{s['this_count']} articles</td>
+            </tr>"""
+
+        shift_rows = "".join(_sent_row(s, "\u2197", "#10b981") for s in improvers[:4]) + "".join(
+            _sent_row(s, "\u2198", "#ef4444") for s in decliners[:4]
+        )
+        sentiment_html = f"""
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;">
+          <tr style="background:#f8fafc;">
+            <th align="left" style="padding:8px;font-size:11px;color:#64748b;text-transform:uppercase;">Ticker</th>
+            <th align="left" style="padding:8px;font-size:11px;color:#64748b;text-transform:uppercase;">Last Week \u2192 This Week</th>
+            <th align="left" style="padding:8px;font-size:11px;color:#64748b;text-transform:uppercase;">Shift</th>
+            <th align="left" style="padding:8px;font-size:11px;color:#64748b;text-transform:uppercase;">Coverage</th>
+          </tr>
+          {shift_rows}
+        </table>
+        <p style="font-size:11px;color:#94a3b8;margin:6px 0 0 0;">News sentiment scores from \u22121.0 (very negative) to +1.0 (very positive).</p>"""
+    else:
+        sentiment_html = "<p style='color:#64748b;font-size:13px;'>No significant sentiment shifts detected this week.</p>"
+
     # Market context
     ctx = data.get("context", {})
     ctx_line = ""
@@ -259,6 +376,9 @@ def _render_html(data: dict) -> tuple[str, str]:
         <h2 style="font-size:14px;color:#0f172a;margin:22px 0 10px 0;">Bubble Risk Flags</h2>
         {bubble_html}
 
+        <h2 style="font-size:14px;color:#0f172a;margin:22px 0 10px 0;">News Sentiment Shifts</h2>
+        {sentiment_html}
+
         <div style="margin-top:22px;padding-top:14px;border-top:1px solid #e2e8f0;">
           <p style="font-size:11px;color:#94a3b8;margin:0;">
             Automated analytical output for decision-support purposes only. Does not constitute
@@ -281,6 +401,7 @@ def _collect_all() -> dict:
         "track_record": _collect_track_record(),
         "discovery": _collect_discovery_signals(),
         "bubble": _collect_bubble_flags(),
+        "sentiment": _collect_sentiment_shifts(),
         "context": _collect_market_context(),
     }
 
@@ -289,11 +410,15 @@ def build_digest() -> dict:
     """Collect data and render the digest without sending. For preview/testing."""
     data = _collect_all()
     subject, body_html = _render_html(data)
+    sent = data.get("sentiment") or {}
+    n_improve = len(sent.get("improvers") or [])
+    n_decline = len(sent.get("decliners") or [])
     body_text = (
         f"Quantive Weekly Digest {data['week']} — "
         f"Track record: {data['track_record'].get('hit_rate', '—')}% hit rate "
         f"({data['track_record'].get('wins', 0)}W/{data['track_record'].get('losses', 0)}L). "
-        f"Top signals: {len(data['discovery'])}. Bubble flags: {len(data['bubble'])}."
+        f"Top signals: {len(data['discovery'])}. Bubble flags: {len(data['bubble'])}. "
+        f"Sentiment improving: {n_improve}, declining: {n_decline}."
     )
     return {"data": data, "subject": subject, "body_html": body_html, "body_text": body_text}
 
