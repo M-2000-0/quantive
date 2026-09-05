@@ -65,6 +65,7 @@
     <button class="mm-tab" onclick="showTab('watchlist', this)">Watchlist</button>
     <button class="mm-tab" onclick="showTab('trackrecord', this)">Track Record</button>
     <button class="mm-tab" onclick="showTab('sentiment', this)">News Sentiment</button>
+    <button class="mm-tab" onclick="showTab('divergence', this)">Divergence</button>
   </div>
 
   <!-- Assets Tab -->
@@ -172,6 +173,23 @@
         <button class="mm-btn" onclick="loadSentiment()">Refresh Sentiment</button>
       </div>
       <div id="sentimentContent" class="mm-empty">Loading sentiment...</div>
+    </div>
+  </div>
+
+  <!-- Sentiment-Price Divergence Tab -->
+  <div id="tab-divergence" style="display:none;">
+    <div class="mm-card">
+      <div class="mm-section-title">Sentiment-Price Divergence</div>
+      <div style="font-size:0.75rem;color:#9ca3af;margin-bottom:14px;">
+        Assets where news tone and price action disagree over a 3-day window.
+        <span style="color:#ef4444;">Bearish divergence</span> — euphoric coverage while price falls (hype without delivery).
+        <span style="color:#10b981;">Bullish divergence</span> — negative coverage while price rises (market ignoring bad news).
+        Aligned assets are healthy and not shown.
+      </div>
+      <div style="margin-bottom:12px;">
+        <button class="mm-btn" onclick="loadDivergence()">Refresh Divergence</button>
+      </div>
+      <div id="divergenceContent" class="mm-empty">Loading divergence flags...</div>
     </div>
   </div>
 </div>
@@ -469,6 +487,50 @@ async function loadSentiment() {
   }
 }
 
+// ── Sentiment-Price Divergence ───────────────────────────
+async function loadDivergence() {
+  const el = document.getElementById('divergenceContent');
+  try {
+    const res = await fetch('/api/v1/market-monitor/sentiment/divergence', {credentials:'include'});
+    const d = await res.json();
+    if (!d.divergences || !d.divergences.length) {
+      el.innerHTML = '<div class="mm-empty">No divergences detected — news tone and price action are aligned across covered assets. Requires assets with at least 3 recent articles.</div>';
+      return;
+    }
+
+    const typeColor = {bearish_divergence:'#ef4444', bullish_divergence:'#10b981'};
+    let rows = '';
+    for (const f of d.divergences) {
+      const c = typeColor[f.divergence_type] || '#9ca3af';
+      const strengthBar = Math.min(100, f.strength);
+      rows += `<tr>
+        <td style="font-weight:600;">${f.symbol}</td>
+        <td style="color:#9ca3af;font-size:0.75rem;">${(f.name || '').substring(0, 20)}</td>
+        <td><span style="padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;background:${c}22;color:${c};">${f.label.toUpperCase()}</span></td>
+        <td style="font-weight:600;color:${f.news_sentiment >= 0 ? '#10b981' : '#ef4444'};">${f.news_sentiment >= 0 ? '+' : ''}${f.news_sentiment.toFixed(2)}</td>
+        <td style="font-weight:600;color:${f.price_change_pct >= 0 ? '#10b981' : '#ef4444'};">${f.price_change_pct >= 0 ? '+' : ''}${f.price_change_pct.toFixed(2)}%</td>
+        <td style="min-width:110px;">
+          <div style="height:6px;background:#1f2937;border-radius:3px;">
+            <div style="width:${strengthBar}%;height:6px;background:${c};border-radius:3px;"></div>
+          </div>
+        </td>
+        <td style="font-weight:600;color:${c};">${f.strength}</td>
+        <td style="color:#64748b;">${f.article_count}</td>
+      </tr>`;
+    }
+    el.innerHTML = `
+      <div style="display:flex;gap:16px;margin-bottom:12px;font-size:0.75rem;color:#9ca3af;">
+        <span><strong style="color:#ef4444;">${d.bearish_count || 0}</strong> bearish (hype &gt; delivery)</span>
+        <span><strong style="color:#10b981;">${d.bullish_count || 0}</strong> bullish (bad news ignored)</span>
+      </div>
+      <table class="mm-table"><thead><tr><th>Symbol</th><th>Name</th><th>Type</th><th>News Tone</th><th>3-Day Price</th><th>Strength</th><th>Score</th><th>Articles</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div style="font-size:0.7rem;color:#64748b;margin-top:10px;">Strength combines how extreme the tone and the price move are (0-100). Divergences often precede reversals when strength is high.</div>`;
+  } catch (e) {
+    el.innerHTML = '<div class="mm-empty">Could not load divergence data.</div>';
+  }
+}
+
 function showTab(tab, btn) {
   document.querySelectorAll('.mm-container > [id^="tab-"]').forEach(t => t.style.display = 'none');
   document.getElementById('tab-' + tab).style.display = 'block';
@@ -476,6 +538,7 @@ function showTab(tab, btn) {
   btn.classList.add('active');
   if (tab === 'trackrecord') loadTrackRecord();
   if (tab === 'sentiment') loadSentiment();
+  if (tab === 'divergence') loadDivergence();
   if (tab === 'discovery') loadTVL();
 }
 

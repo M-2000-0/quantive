@@ -108,6 +108,50 @@ def get_all_sentiment(
     }
 
 
+@router.get("/divergence")
+def get_sentiment_divergence(
+    db: Session = Depends(get_db),
+    days: int = 3,
+):
+    """Assets where news tone and price action disagree.
+
+    Bearish divergence: positive coverage while price falls (hype without
+    delivery). Bullish divergence: negative coverage while price rises
+    (market ignoring bad news). Alignment is not flagged.
+    """
+    from app.services.sentiment_divergence import compute_divergences
+
+    try:
+        from app.api.market_monitor_api import _asset_store
+        assets = list(_asset_store.values())
+    except Exception:
+        assets = []
+
+    if not assets:
+        return {
+            "divergences": [],
+            "total": 0,
+            "note": "No tracked assets. Run market data ingestion first.",
+        }
+
+    by_ticker = _recent_scores_by_ticker(db, days=days)
+    from app.services.sentiment_analyzer import aggregate_sentiment
+
+    sentiment_by_symbol = {
+        sym: aggregate_sentiment(scores) for sym, scores in by_ticker.items()
+    }
+
+    flags = compute_divergences(assets, sentiment_by_symbol)
+
+    return {
+        "divergences": flags,
+        "total": len(flags),
+        "bearish_count": sum(1 for f in flags if f["divergence_type"] == "bearish_divergence"),
+        "bullish_count": sum(1 for f in flags if f["divergence_type"] == "bullish_divergence"),
+        "window_days": days,
+    }
+
+
 @router.get("/{symbol}")
 def get_symbol_sentiment(symbol: str, db: Session = Depends(get_db), days: int = 7):
     """Sentiment detail for a single asset, including recent headline evidence."""
