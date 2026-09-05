@@ -154,8 +154,17 @@ def run_ingestion(
                     "last_updated": datetime.now(timezone.utc).isoformat(),
                 }
                 results["crypto"] += 1
+
         except Exception as e:
             results["errors"].append(f"Crypto: {str(e)[:50]}")
+
+        # Enrich crypto assets with DeFi Llama TVL metrics (growth, category, chains)
+        try:
+            from app.services.defi_tvl import enrich_crypto_assets
+            enriched = enrich_crypto_assets(_asset_store)
+            results["tvl_enriched"] = enriched
+        except Exception as e:
+            results["errors"].append(f"TVL enrich: {str(e)[:50]}")
 
     # Fetch FX
     if not asset_class or asset_class == "fx":
@@ -277,6 +286,36 @@ def get_market_pulse(request: Request):
         "top_gainers": sorted(assets, key=lambda x: x.get("day_change_pct", 0), reverse=True)[:3],
         "top_losers": sorted(assets, key=lambda x: x.get("day_change_pct", 0))[:3],
         "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.get("/defi-tvl")
+def get_defi_tvl(
+    request: Request,
+    limit: int = 15,
+    min_tvl: float = 50e6,
+    category: Optional[str] = None,
+):
+    """Top DeFi protocols by 7-day TVL growth (from DeFi Llama).
+
+    Surfaces where capital is flowing now — the input to crypto discovery's
+    protocol-growth signal.
+    """
+    from app.services.defi_tvl import get_top_tvl_movers, _get_protocol_data
+
+    movers = get_top_tvl_movers(limit=limit, min_tvl=min_tvl, category=category)
+    data = _get_protocol_data()
+    total_protocols = len(data)
+    total_tvl = sum(p["tvl"] for p in data.values())
+
+    return {
+        "movers": movers,
+        "total": len(movers),
+        "stats": {
+            "protocols_tracked": total_protocols,
+            "total_tvl_usd": round(total_tvl, 0),
+            "source": "DeFi Llama",
+        },
     }
 
 
@@ -430,6 +469,24 @@ def _run_discovery_scoring():
                 (15 if asset.get("market_cap", 0) > 10_000_000_000 else 0) +
                 (10 if asset.get("ath", 0) > 0 and asset["current_price"] > asset["ath"] * 0.7 else 0)
             ))
+
+            # DeFi protocol growth scoring (0-20 pts) — real TVL trends from DeFi Llama
+            tvl_score = 0
+            try:
+                from app.services.defi_tvl import get_tvl_growth_score
+                growth = get_tvl_growth_score(symbol.split(":")[-1])
+                if growth.get("has_data"):
+                    tvl_score = growth["score"]
+                    asset["tvl"] = growth.get("tvl")
+                    asset["tvl_change_7d"] = growth.get("tvl_change_7d")
+                    asset["tvl_category"] = growth.get("category")
+                    asset["tvl_chains"] = growth.get("chains", [])
+            except Exception:
+                pass
+
+            score = min(100, score + tvl_score)
+            asset["tvl_growth_score"] = tvl_score
+
             asset["discovery_score"] = score
             asset["classification"] = (
                 "emerging_token" if score >= 70 else

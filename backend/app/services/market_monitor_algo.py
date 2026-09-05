@@ -271,11 +271,37 @@ def score_crypto_discovery(
         signals["macd_bullish"] = {"score": 10, "detail": "MACD bullish crossover"}
         total_score += 10
 
-    # 7. TVL growth (0-10 points, DeFi only)
-    tvl = market_data.get("tvl")
-    if tvl and tvl > 1e8:  # >$100M TVL
-        signals["defi_tvl"] = {"score": 5, "detail": f"TVL: ${tvl/1e6:.0f}M"}
-        total_score += 5
+    # 7. TVL growth via DeFi Llama (0-20 points, DeFi protocols only)
+    # Real protocol-growth scoring: 7d/1d/1m TVL trends, not just TVL size.
+    tvl_score = 0
+    try:
+        from app.services.defi_tvl import get_tvl_growth_score
+        sym = market_data.get("symbol") or market_data.get("name") or ""
+        growth = get_tvl_growth_score(sym)
+        if growth.get("has_data"):
+            tvl_score = growth["score"]
+            if growth.get("signals"):
+                signals["defi_tvl_growth"] = {
+                    "score": tvl_score,
+                    "detail": ", ".join(growth["signals"][:3]),
+                    "tvl": growth.get("tvl"),
+                    "tvl_change_7d": growth.get("tvl_change_7d"),
+                    "category": growth.get("category"),
+                    "chains": growth.get("chains", []),
+                    "mcap_tvl_ratio": growth.get("mcap_tvl_ratio"),
+                }
+                total_score += tvl_score
+        else:
+            # Protocol not on DeFi Llama — fall back to static TVL-size signal
+            tvl = market_data.get("tvl")
+            if tvl and tvl > 1e8:  # >$100M TVL
+                signals["defi_tvl"] = {"score": 5, "detail": f"TVL: ${tvl/1e6:.0f}M"}
+                total_score += 5
+    except Exception:
+        tvl = market_data.get("tvl")
+        if tvl and tvl > 1e8:
+            signals["defi_tvl"] = {"score": 5, "detail": f"TVL: ${tvl/1e6:.0f}M"}
+            total_score += 5
 
     return {
         "score": min(100, total_score),

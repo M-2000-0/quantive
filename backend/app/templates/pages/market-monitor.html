@@ -88,6 +88,15 @@
       <div class="mm-section-title">Discovery Scores</div>
       <div id="discoveryContent" class="mm-empty">Run "Fetch Live Prices" to generate discovery scores</div>
     </div>
+
+    <div class="mm-card" style="margin-top:16px;">
+      <div class="mm-section-title">DeFi Capital Flows — TVL Growth Leaders</div>
+      <div style="font-size:0.75rem;color:#9ca3af;margin-bottom:12px;">
+        Where capital is locked right now (7-day TVL growth, from DeFi Llama).
+        Protocol growth feeds directly into crypto discovery scores (up to +20 points).
+      </div>
+      <div id="tvlContent" class="mm-empty">Loading TVL data...</div>
+    </div>
   </div>
 
   <!-- Insights Tab -->
@@ -328,6 +337,40 @@ async function loadDiscovery() {
   } catch(e) {}
 }
 
+async function loadTVL() {
+  const el = document.getElementById('tvlContent');
+  try {
+    const res = await fetch('/api/v1/market-monitor/defi-tvl?limit=12', {credentials:'include'});
+    const d = await res.json();
+    if (!d.movers || !d.movers.length) {
+      el.innerHTML = '<div class="mm-empty">No TVL growth data available right now.</div>';
+      return;
+    }
+    const s = d.stats || {};
+    let rows = '';
+    for (const m of d.movers) {
+      const tvlB = m.tvl >= 1e9 ? '$' + (m.tvl/1e9).toFixed(2) + 'B' : '$' + (m.tvl/1e6).toFixed(0) + 'M';
+      const chains = (m.chains || []).slice(0, 3).join(', ');
+      rows += `<tr>
+        <td style="font-weight:600;">${m.symbol}</td>
+        <td style="color:#9ca3af;font-size:0.8rem;">${(m.protocol_name || '').substring(0, 24)}</td>
+        <td style="text-transform:capitalize;">${m.category || '\u2014'}</td>
+        <td>${tvlB}</td>
+        <td style="color:#10b981;font-weight:600;">+${m.tvl_change_7d.toFixed(1)}%</td>
+        <td style="color:#9ca3af;font-size:0.75rem;">${chains}</td>
+      </tr>`;
+    }
+    el.innerHTML = `
+      <table class="mm-table"><thead><tr><th>Symbol</th><th>Protocol</th><th>Category</th><th>TVL</th><th>7d Growth</th><th>Chains</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div style="font-size:0.7rem;color:#64748b;margin-top:8px;">
+        ${s.protocols_tracked || 0} protocols tracked · $${((s.total_tvl_usd || 0)/1e9).toFixed(0)}B total value locked · Source: DeFi Llama
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<div class="mm-empty">Could not load TVL data.</div>';
+  }
+}
+
 async function loadWatchlist() {
   try {
     const res = await fetch('/api/v1/market-monitor/watchlist', {credentials:'include'});
@@ -423,6 +466,7 @@ function showTab(tab, btn) {
   btn.classList.add('active');
   if (tab === 'trackrecord') loadTrackRecord();
   if (tab === 'sentiment') loadSentiment();
+  if (tab === 'discovery') loadTVL();
 }
 
 // ── Track Record ─────────────────────────────────────────
