@@ -36,8 +36,21 @@ def get_track_record_summary(signal_type: str | None = None):
     except Exception as e:
         logger.debug("Background evaluation failed: %s", e)
 
-    from app.services.signal_outcome_tracker import get_track_record
-    return get_track_record(signal_type)
+    from app.services.signal_outcome_tracker import get_track_record, get_calibration
+    record = get_track_record(signal_type)
+    record["calibration"] = get_calibration(signal_type)
+    return record
+
+
+@router.get("/calibration")
+def get_calibration_view(signal_type: str | None = None):
+    """Hit rate bucketed by signal strength (score at record time).
+
+    Shows which confidence levels are actually reliable, with per-bucket
+    sample-size confidence flags.
+    """
+    from app.services.signal_outcome_tracker import get_calibration
+    return get_calibration(signal_type)
 
 
 @router.get("/recent")

@@ -344,3 +344,109 @@ def get_pending_count() -> int:
         return 0
     finally:
         db.close()
+
+
+# ── Strength Calibration ────────────────────────────────────────────
+
+# Score buckets: which confidence levels are actually reliable?
+CALIBRATION_BUCKETS = [
+    ("0-39", 0, 39),
+    ("40-49", 40, 49),
+    ("50-59", 50, 59),
+    ("60-69", 60, 69),
+    ("70-79", 70, 79),
+    ("80-100", 80, 100),
+]
+
+
+def get_calibration(signal_type: str | None = None) -> dict:
+    """Hit rate bucketed by signal strength (score at record time).
+
+    Answers: 'does a higher score actually mean a higher hit rate?'
+    Buckets with few resolved signals are flagged low-confidence so users
+    don't over-trust a 100% hit rate from a single signal.
+    """
+    db = _get_db()
+    try:
+        from app.models.signal_outcome import SignalOutcome
+
+        q = db.query(SignalOutcome).filter(
+            SignalOutcome.outcome_status.in_(["win", "loss", "flat", "expired"])
+        )
+        if signal_type:
+            q = q.filter(SignalOutcome.signal_type == signal_type)
+
+        rows = q.all()
+
+        buckets = []
+        for label, lo, hi in CALIBRATION_BUCKETS:
+            in_bucket = [
+                r for r in rows
+                if r.strength is not None and lo <= r.strength <= hi
+            ]
+            wins = sum(1 for r in in_bucket if r.outcome_status == "win")
+            losses = sum(1 for r in in_bucket if r.outcome_status == "loss")
+            flat = sum(1 for r in in_bucket if r.outcome_status == "flat")
+            expired = sum(1 for r in in_bucket if r.outcome_status == "expired")
+            resolved = wins + losses
+            hit_rate = round(wins / resolved * 100, 1) if resolved else None
+
+            # Reliability flag: buckets need a minimum sample before they mean anything
+            if resolved >= 20:
+                confidence = "high"
+            elif resolved >= 8:
+                confidence = "medium"
+            elif resolved >= 1:
+                confidence = "low"
+            else:
+                confidence = "none"
+
+            # Direction split within the bucket
+            b_wins = sum(1 for r in in_bucket if r.outcome_status == "win" and r.direction == "bullish")
+            b_losses = sum(1 for r in in_bucket if r.outcome_status == "loss" and r.direction == "bullish")
+
+            buckets.append({
+                "bucket": label,
+                "total": len(in_bucket),
+                "wins": wins,
+                "losses": losses,
+                "flat": flat,
+                "expired": expired,
+                "resolved": resolved,
+                "hit_rate": hit_rate,
+                "confidence": confidence,
+                "bullish": {
+                    "wins": b_wins,
+                    "losses": b_losses,
+                    "hit_rate": round(b_wins / (b_wins + b_losses) * 100, 1) if (b_wins + b_losses) else None,
+                },
+            })
+
+        # Overall trend check: is the highest bucket better than the lowest?
+        # (only meaningful when both have enough resolved samples)
+        trend = None
+        resolved_by_bucket = [b["resolved"] for b in buckets]
+        if resolved_by_bucket[0] >= 5 and resolved_by_bucket[-1] >= 5:
+            low_hr, high_hr = buckets[0]["hit_rate"], buckets[-1]["hit_rate"]
+            if low_hr is not None and high_hr is not None:
+                trend = (
+                    "calibrated" if high_hr >= low_hr
+                    else "inverted"
+                )
+
+        return {
+            "has_data": any(b["total"] > 0 for b in buckets),
+            "signal_type": signal_type,
+            "buckets": buckets,
+            "trend": trend,
+            "note": (
+                "Hit rate by signal score at record time. Buckets with few "
+                "resolved signals are flagged low-confidence. Past calibration "
+                "does not guarantee future results."
+            ),
+        }
+    except Exception as e:
+        logger.warning("get_calibration failed: %s", e)
+        return {"has_data": False, "error": str(e)}
+    finally:
+        db.close()

@@ -140,6 +140,16 @@
       </div>
       <div id="trStats" class="mm-empty">Loading track record...</div>
       <div id="trByType" style="margin-top:16px;"></div>
+
+      <div style="margin-top:20px;">
+        <div class="mm-section-title" style="font-size:0.8rem;">Score Calibration</div>
+        <div style="font-size:0.75rem;color:#9ca3af;margin-bottom:10px;">
+          Hit rate bucketed by signal score at record time. This shows which
+          confidence levels are actually reliable — and which buckets are too
+          small a sample to trust.
+        </div>
+        <div id="trCalibration" class="mm-empty">No calibration data yet.</div>
+      </div>
       <div style="margin-top:20px;">
         <div class="mm-section-title" style="font-size:0.8rem;">Recent Outcomes</div>
         <div id="trRecent" class="mm-empty">No evaluated signals yet. Records mature after their evaluation window (5–20 days).</div>
@@ -478,6 +488,7 @@ async function loadTrackRecord() {
       document.getElementById('trStats').innerHTML =
         '<div class="mm-empty">' + (d.message || 'No evaluated signals yet.') + '</div>';
       document.getElementById('trByType').innerHTML = '';
+      document.getElementById('trCalibration').innerHTML = '<div class="mm-empty">No calibration data yet.</div>';
       document.getElementById('trRecent').innerHTML =
         '<div class="mm-empty">No evaluated signals yet. Records mature after their evaluation window (5\u201320 days).</div>';
       return;
@@ -550,9 +561,58 @@ async function loadTrackRecord() {
         <table class="mm-table"><thead><tr><th>Symbol</th><th>Type</th><th>Call</th><th>Actual Move</th><th>Result</th></tr></thead>
         <tbody>${recentRows}</tbody></table>`;
     }
+
+    // Calibration
+    renderCalibration(d.calibration);
   } catch (e) {
     document.getElementById('trStats').innerHTML = '<div class="mm-empty">Could not load track record.</div>';
   }
+}
+
+function renderCalibration(cal) {
+  const el = document.getElementById('trCalibration');
+  if (!cal || !cal.has_data) {
+    el.innerHTML = '<div class="mm-empty">No calibration data yet. Buckets fill as signals resolve.</div>';
+    return;
+  }
+
+  const confColor = {high: '#10b981', medium: '#f59e0b', low: '#64748b', none: '#475569'};
+  let rows = '';
+  for (const b of (cal.buckets || [])) {
+    if (b.total === 0) continue;
+    const hr = b.hit_rate;
+    const hrColor = hr == null ? '#9ca3af' : hr >= 60 ? '#10b981' : hr >= 45 ? '#f59e0b' : '#ef4444';
+    // Bar width relative to 100%
+    const barW = hr != null ? Math.max(2, hr) : 0;
+    rows += `<tr>
+      <td style="font-weight:600;">${b.bucket}</td>
+      <td>${b.total}</td>
+      <td style="color:#10b981;">${b.wins}</td>
+      <td style="color:#ef4444;">${b.losses}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:6px;background:#1f2937;border-radius:3px;min-width:60px;">
+            <div style="width:${barW}%;height:6px;background:${hrColor};border-radius:3px;"></div>
+          </div>
+          <span style="font-weight:600;color:${hrColor};min-width:44px;text-align:right;">${hr != null ? hr.toFixed(0) + '%' : '\u2014'}</span>
+        </div>
+      </td>
+      <td><span style="padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:600;background:${confColor[b.confidence]}22;color:${confColor[b.confidence]};">${b.confidence.toUpperCase()}</span></td>
+    </tr>`;
+  }
+
+  let trendNote = '';
+  if (cal.trend === 'calibrated') {
+    trendNote = '<span style="color:#10b981;">\u2713 Scores are calibrated \u2014 higher scores have hit more often.</span>';
+  } else if (cal.trend === 'inverted') {
+    trendNote = '<span style="color:#f59e0b;">\u26a0 Inverted \u2014 low scores are currently outperforming high scores. Treat high scores with caution.</span>';
+  }
+
+  el.innerHTML = `
+    <table class="mm-table"><thead><tr><th>Score Bucket</th><th>Signals</th><th>Wins</th><th>Losses</th><th>Hit Rate</th><th>Sample Confidence</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    ${trendNote ? `<div style="font-size:0.75rem;margin-top:8px;">${trendNote}</div>` : ''}
+    <div style="font-size:0.7rem;color:#64748b;margin-top:6px;">${cal.note || ''}</div>`;
 }
 
 function formatNum(n) {
