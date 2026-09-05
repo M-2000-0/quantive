@@ -64,6 +64,7 @@
     <button class="mm-tab" onclick="showTab('alerts', this)">Alerts</button>
     <button class="mm-tab" onclick="showTab('watchlist', this)">Watchlist</button>
     <button class="mm-tab" onclick="showTab('trackrecord', this)">Track Record</button>
+    <button class="mm-tab" onclick="showTab('sentiment', this)">News Sentiment</button>
   </div>
 
   <!-- Assets Tab -->
@@ -134,6 +135,24 @@
         <div class="mm-section-title" style="font-size:0.8rem;">Recent Outcomes</div>
         <div id="trRecent" class="mm-empty">No evaluated signals yet. Records mature after their evaluation window (5–20 days).</div>
       </div>
+    </div>
+  </div>
+
+  <!-- News Sentiment Tab -->
+  <div id="tab-sentiment" style="display:none;">
+    <div class="mm-card">
+      <div class="mm-section-title">News Sentiment by Asset</div>
+      <div style="font-size:0.75rem;color:#9ca3af;margin-bottom:14px;">
+        Average tone of financial news headlines over the last 3 days.
+        <span style="color:#10b981;">Positive</span> ·
+        <span style="color:#f59e0b;">Mixed</span> ·
+        <span style="color:#ef4444;">Negative</span> —
+        score from −1.0 (very negative) to +1.0 (very positive).
+      </div>
+      <div style="margin-bottom:12px;">
+        <button class="mm-btn" onclick="loadSentiment()">Refresh Sentiment</button>
+      </div>
+      <div id="sentimentContent" class="mm-empty">Loading sentiment...</div>
     </div>
   </div>
 </div>
@@ -351,12 +370,59 @@ async function removeWatchlist(symbol) {
   loadWatchlist();
 }
 
+// ── News Sentiment ───────────────────────────────────────
+async function loadSentiment() {
+  const el = document.getElementById('sentimentContent');
+  try {
+    const res = await fetch('/api/v1/market-monitor/sentiment', {credentials:'include'});
+    const d = await res.json();
+    if (!d.sentiment || !d.sentiment.length) {
+      el.innerHTML = '<div class="mm-empty">No recent news coverage matched to tracked assets. Run news ingestion, then refresh.</div>';
+      return;
+    }
+
+    const labelColor = {positive:'#10b981', mixed:'#f59e0b', negative:'#ef4444', no_coverage:'#9ca3af'};
+    let rows = '';
+    for (const s of d.sentiment.slice(0, 40)) {
+      const m = s.mean != null ? s.mean : 0;
+      const color = labelColor[s.label] || '#9ca3af';
+      // Bar visualization: -1..1 range
+      const pct = Math.min(50, Math.abs(m) * 50);
+      const barLeft = m >= 0 ? '50%' : (50 - pct) + '%';
+      const barW = Math.max(2, pct);
+      const barColor = m >= 0 ? '#10b981' : '#ef4444';
+      rows += `<tr>
+        <td style="font-weight:600;">${s.symbol}</td>
+        <td style="color:#9ca3af;font-size:0.75rem;">${(s.name || '').substring(0, 22)}</td>
+        <td>
+          <div style="position:relative;height:8px;background:#1f2937;border-radius:4px;min-width:100px;">
+            <div style="position:absolute;left:50%;top:-2px;width:1px;height:12px;background:#475569;"></div>
+            <div style="position:absolute;left:${barLeft};top:1px;width:${barW}%;height:6px;background:${barColor};border-radius:3px;"></div>
+          </div>
+        </td>
+        <td style="font-weight:600;color:${color};">${m >= 0 ? '+' : ''}${m.toFixed(2)}</td>
+        <td><span style="padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;background:${color}22;color:${color};">${s.label.toUpperCase()}</span></td>
+        <td style="color:#9ca3af;">${s.count}</td>
+        <td style="color:#10b981;font-size:0.75rem;">${s.positive > 0 ? '+' + s.positive : ''}</td>
+        <td style="color:#ef4444;font-size:0.75rem;">${s.negative > 0 ? '\u2212' + s.negative : ''}</td>
+      </tr>`;
+    }
+    el.innerHTML = `
+      <table class="mm-table"><thead><tr><th>Symbol</th><th>Name</th><th>Tone</th><th>Score</th><th>Label</th><th>Articles</th><th>Pos</th><th>Neg</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div style="font-size:0.7rem;color:#64748b;margin-top:10px;">${d.coverage_note || ''}</div>`;
+  } catch (e) {
+    el.innerHTML = '<div class="mm-empty">Could not load sentiment data.</div>';
+  }
+}
+
 function showTab(tab, btn) {
   document.querySelectorAll('.mm-container > [id^="tab-"]').forEach(t => t.style.display = 'none');
   document.getElementById('tab-' + tab).style.display = 'block';
   document.querySelectorAll('.mm-tabs > .mm-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   if (tab === 'trackrecord') loadTrackRecord();
+  if (tab === 'sentiment') loadSentiment();
 }
 
 // ── Track Record ─────────────────────────────────────────

@@ -58,6 +58,13 @@ def ingest_articles(
             category = classify_article(raw)
             published = _parse_date(raw.published_at)
 
+            # Finance-tuned sentiment scoring on the headline + summary
+            try:
+                from app.services.sentiment_analyzer import score_headline
+                sentiment = score_headline(raw.title, raw.summary)
+            except Exception:
+                sentiment = None
+
             article = NewsArticle(
                 source_id=source.id,
                 title=raw.title[:500],
@@ -67,6 +74,7 @@ def ingest_articles(
                 author=raw.author[:255] if raw.author else None,
                 published_at=published,
                 tickers_json=raw.tickers if raw.tickers else None,
+                sentiment_score=sentiment,
                 category=category,
                 ingestion_hash=raw.ingestion_hash,
             )
@@ -80,6 +88,32 @@ def ingest_articles(
     source.fetch_error = None
     db.commit()
     return stats
+
+
+def backfill_sentiment(db: Session, limit: int = 500) -> int:
+    """Score sentiment for existing articles missing a sentiment_score.
+
+    Idempotent — only touches rows where sentiment_score IS NULL.
+    """
+    from app.services.sentiment_analyzer import score_headline
+
+    missing = (
+        db.query(NewsArticle)
+        .filter(NewsArticle.sentiment_score.is_(None))
+        .limit(limit)
+        .all()
+    )
+    n = 0
+    for art in missing:
+        try:
+            art.sentiment_score = score_headline(art.title, art.summary or "")
+            n += 1
+        except Exception:
+            continue
+    if n:
+        db.commit()
+        logger.info("Backfilled sentiment for %d articles", n)
+    return n
 
 
 def fetch_from_source(source: NewsSource) -> list[RawNewsArticle]:

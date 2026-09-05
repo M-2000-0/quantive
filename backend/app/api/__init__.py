@@ -106,6 +106,7 @@ from app.api import (
     portfolio_optimization_api,
     notification_api,
     track_record_api,
+    sentiment_api,
 )
 from app.database import get_db
 from app.security.threats import router as threats_router
@@ -225,6 +226,7 @@ router.include_router(global_market_api.bubble_router)
 router.include_router(portfolio_optimization_api.router)
 router.include_router(notification_api.router)
 router.include_router(track_record_api.router)
+router.include_router(sentiment_api.router)
 
 
 @router.get("/api/health")

@@ -221,37 +221,58 @@ class YahooRSSProvider(NewsProvider):
     ) -> list[RawNewsArticle]:
         articles: list[RawNewsArticle] = []
 
+        # Yahoo RSS accepts ONE symbol per request — multi-symbol URLs return
+        # zero items. Fetch each symbol separately, deduping by URL.
         symbols = tickers or ["^GSPC"]
-        url = self.FEEDS.get(category, self.FEEDS["general"]) % "+".join(symbols[:5])
+        feed_template = self.FEEDS.get(category, self.FEEDS["general"])
 
-        try:
-            resp = requests.get(url, timeout=30, headers={"User-Agent": "Quantive/1.0"})
-            resp.raise_for_status()
-            root = ET.fromstring(resp.content)
+        ns = {"media": "http://search.yahoo.com/mrss/"}
+        seen_urls: set[str] = set()
 
-            ns = {"media": "http://search.yahoo.com/mrss/"}
-            for item in root.findall(".//item")[:limit]:
-                title = item.findtext("title", "")
-                link = item.findtext("link", "")
-                desc = item.findtext("description", "")
-                pub_date = item.findtext("pubDate", "")
-                media_thumb = item.find("media:thumbnail", ns)
-                image_url = media_thumb.get("url", "") if media_thumb is not None else ""
+        for sym in symbols[:5]:
+            if len(articles) >= limit:
+                break
+            url = feed_template % sym
+            try:
+                resp = requests.get(url, timeout=15, headers={"User-Agent": "Quantive/1.0"})
+                resp.raise_for_status()
+                root = ET.fromstring(resp.content)
 
-                articles.append(RawNewsArticle(
-                    title=title,
-                    summary=desc,
-                    content="",
-                    url=link,
-                    author="Yahoo Finance",
-                    published_at=pub_date,
-                    source_name="Yahoo Finance",
-                    tickers=extract_tickers(f"{title} {desc}"),
-                    category=category,
-                    image_url=image_url,
-                ))
-        except Exception as e:
-            logger.warning(f"[YahooRSS] Error: {e}")
+                for item in root.findall(".//item"):
+                    if len(articles) >= limit:
+                        break
+                    title = item.findtext("title", "")
+                    link = item.findtext("link", "")
+                    if not title or (link and link in seen_urls):
+                        continue
+                    if link:
+                        seen_urls.add(link)
+                    desc = item.findtext("description", "")
+                    pub_date = item.findtext("pubDate", "")
+                    media_thumb = item.find("media:thumbnail", ns)
+                    image_url = media_thumb.get("url", "") if media_thumb is not None else ""
+
+                    # Tag articles with the queried symbol first so sentiment
+                    # attribution works even if extract_tickers misses it
+                    auto_tickers = extract_tickers(f"{title} {desc}")
+                    tagged = ([sym] if sym not in ("^GSPC",) else []) + [
+                        t for t in auto_tickers if t != sym
+                    ]
+
+                    articles.append(RawNewsArticle(
+                        title=title,
+                        summary=desc,
+                        content="",
+                        url=link,
+                        author="Yahoo Finance",
+                        published_at=pub_date,
+                        source_name="Yahoo Finance",
+                        tickers=tagged[:5],
+                        category=category,
+                        image_url=image_url,
+                    ))
+            except Exception as e:
+                logger.warning(f"[YahooRSS] Error fetching {sym}: {e}")
 
         return articles
 
