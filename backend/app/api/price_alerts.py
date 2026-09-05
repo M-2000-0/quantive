@@ -71,6 +71,8 @@ class AlertCreate(BaseModel):
     threshold: Optional[float] = None  # price target or RSI level
     message: str = ""
     active: bool = True
+    notify_email: bool = True
+    notify_sms: bool = False
 
 
 class AlertResponse(BaseModel):
@@ -120,6 +122,8 @@ def create_alert(data: AlertCreate, user=Depends(get_optional_user)):
         "threshold": data.threshold,
         "message": data.message or _default_message(data),
         "active": data.active,
+        "notify_email": data.notify_email,
+        "notify_sms": data.notify_sms,
         "triggered": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -139,6 +143,8 @@ def update_alert(alert_id: str, data: AlertCreate, user=Depends(get_optional_use
             alert["threshold"] = data.threshold
             alert["message"] = data.message or _default_message(data)
             alert["active"] = data.active
+            alert["notify_email"] = data.notify_email
+            alert["notify_sms"] = data.notify_sms
             return alert
     raise HTTPException(status_code=404, detail="Alert not found")
 

@@ -210,7 +210,7 @@ def scan_assets(data: ScanRequest, request: Request):
         flagged = [
             a for a in (scan.get("results") or [])
             if (a.get("risk_level") or "").lower() in ("high", "critical")
-            and (a.get("bubble_score") or 0) >= 70
+            and (a.get("bubble_score") or 0) >= 50
         ]
         if flagged:
             record_batch([
@@ -239,9 +239,9 @@ def scan_assets(data: ScanRequest, request: Request):
             import asyncio
 
             flagged = [
-                a for a in (scan.get("results") or [])
-                if (a.get("risk_level") or "").lower() in ("high", "critical")
-                and (a.get("risk_score") or 0) >= 70
+                a for a in (scan.get("scan_results") or [])
+                if (a.get("risk_level") or "").upper() in ("HIGH", "EXTREME")
+                and (a.get("bubble_score") or 0) >= 50
             ]
             if flagged:
                 _dispatch_bubble_notifications(flagged)
@@ -260,11 +260,13 @@ def _dispatch_bubble_notifications(flagged: list[dict]):
 
         async def _run():
             from app.database import SessionLocal
-            from app.models import User, UserAlert
+            from app.models import User
+            from app.models.market_monitor import UserAlert
 
             db = SessionLocal()
             try:
-                # Users who opted into bubble/market alert emails via delivery channels
+                # Users who opted into bubble/market alert emails via delivery
+                # channels OR their notification settings
                 subs = (
                     db.query(User, UserAlert)
                     .join(UserAlert, UserAlert.user_id == User.id)
@@ -276,10 +278,26 @@ def _dispatch_bubble_notifications(flagged: list[dict]):
                     if user.id in notified_users:
                         continue
                     channels = (alert.delivery_channels or ["in_app"]) if isinstance(alert.delivery_channels, list) else ["in_app"]
-                    # Only dispatch to users who opted into email/SMS anywhere in their alerts
-                    wants_email = "email" in channels
-                    wants_sms = "sms" in channels
+
+                    # Also honor the user-level notification settings
+                    # (email_alerts / sms_alerts / bubble_alerts toggles)
+                    settings = {}
+                    try:
+                        from app.models.user_profile import UserProfile
+                        prof = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+                        if prof and isinstance(prof.compliance_constraints, dict):
+                            settings = prof.compliance_constraints.get("notification_settings") or {}
+                    except Exception:
+                        settings = {}
+
+                    bubble_enabled = settings.get("bubble_alerts", True)
+                    wants_email = ("email" in channels or settings.get("email_alerts", True)) and bubble_enabled
+                    wants_sms = ("sms" in channels or settings.get("sms_alerts", False)) and bubble_enabled
+
                     notified_users.add(user.id)
+                    if not (wants_email or wants_sms):
+                        continue
+
                     for f in flagged[:5]:  # Cap at 5 assets per notification wave
                         if not should_notify(user.id, f"bubble:{f.get('symbol')}"):
                             continue
@@ -289,11 +307,14 @@ def _dispatch_bubble_notifications(flagged: list[dict]):
                                 user_email=user.email if wants_email else "",
                                 symbol=f.get("symbol", ""),
                                 asset_name=f.get("name") or f.get("symbol", ""),
-                                risk_score=int(f.get("risk_score") or 0),
-                                risk_level=f.get("risk_level", "high"),
-                                patterns=f.get("patterns") or [],
+                                risk_score=int(f.get("bubble_score") or 0),
+                                risk_level=(f.get("risk_level") or "HIGH").lower(),
+                                patterns=[
+                                    (p.get("name") if isinstance(p, dict) else str(p))
+                                    for p in (f.get("pattern_details") or f.get("patterns") or [])[:3]
+                                ],
                                 indicators=f.get("indicators") or [],
-                                user_phone=getattr(user, "phone", None),
+                                user_phone=settings.get("phone_number") or getattr(user, "phone", None),
                                 notify_email=wants_email,
                                 notify_sms=wants_sms,
                             )

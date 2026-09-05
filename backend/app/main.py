@@ -94,6 +94,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not create signal_outcomes table: %s", e)
 
+    # Ensure market-monitor tables exist (alerts, history, assets, signals)
+    try:
+        from app.database import Base
+        from app.models import market_monitor as _mm
+        for _t in (_mm.MarketAsset, _mm.PriceHistory, _mm.MarketSignal,
+                   _mm.InsightRecord, _mm.UserAlert, _mm.AlertHistory):
+            _t.__table__.create(engine, checkfirst=True)
+        print("[OK] Market monitor tables ready")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create market monitor tables: %s", e)
+
     # Start background alert checker
     try:
         from app.api.price_alerts import start_alert_checker
@@ -101,6 +112,14 @@ async def lifespan(app: FastAPI):
         print("[OK] Background alert checker started")
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start alert checker: %s", e)
+
+    # Start market-monitor alert checker (email/SMS dispatch)
+    try:
+        from app.api.market_monitor_api import start_mm_alert_checker
+        start_mm_alert_checker()
+        print("[OK] Market-monitor alert checker started")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not start MM alert checker: %s", e)
 
     # Start live market price WebSocket stream
     try:

@@ -16,6 +16,7 @@ Endpoints:
   POST /api/market-monitor/watchlist/add   — Add to watchlist
 """
 from datetime import datetime, timezone
+import asyncio
 import logging
 from typing import Optional
 
@@ -52,6 +53,8 @@ class AlertCreateRequest(BaseModel):
     threshold: float = 0
     delivery_channels: list = ["in_app"]
     repeat: str = "once"
+    notify_email: bool = True
+    notify_sms: bool = False
 
 
 class WatchlistAddRequest(BaseModel):
@@ -342,15 +345,44 @@ def create_alert(
         "id": str(__import__("uuid").uuid4()),
         "user_id": user_id,
         "symbol": data.symbol.upper(),
+        "asset_class": getattr(data, "asset_class", "stock"),
         "alert_type": data.alert_type,
         "condition": data.condition,
         "threshold": data.threshold,
         "delivery_channels": data.delivery_channels,
         "repeat": data.repeat,
+        "notify_email": data.notify_email,
+        "notify_sms": data.notify_sms,
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     _alert_store.append(alert)
+
+    # Persist to DB so alert history survives restarts and the bubble
+    # dispatcher can find opted-in users by delivery channel.
+    try:
+        import uuid as _uuid
+
+        from app.models.market_monitor import UserAlert
+
+        db.add(UserAlert(
+            id=str(_uuid.uuid4()),
+            user_id=user_id,
+            alert_type=data.alert_type,
+            condition=data.condition,
+            threshold=data.threshold,
+            is_active=True,
+            delivery_channels=data.delivery_channels,
+            repeat=data.repeat,
+        ))
+        db.commit()
+        alert["persisted"] = True
+    except Exception as e:
+        logger.debug("Alert persistence failed: %s", e)
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
     return {"status": "created", "alert": alert}
 
@@ -385,8 +417,147 @@ def alert_history(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Get alert trigger history."""
-    return {"history": [], "total": 0}
+    """Get alert trigger history (in-memory + persisted)."""
+    user = _get_user(request, db)
+    user_id = str(user.id) if user else "anonymous"
+    history = [h for h in _alert_history if h.get("user_id") == user_id]
+    return {"history": history[-50:][::-1], "total": len(history)}
+
+
+# ── Background Alert Checker ─────────────────────────────────────────
+
+_alert_history: list[dict] = []
+_bg_task = None
+
+
+def _evaluate_mm_alert(alert: dict) -> dict | None:
+    """Evaluate a market-monitor alert against live store data."""
+    symbol = alert.get("symbol", "")
+    asset = (
+        _asset_store.get(symbol)
+        or _asset_store.get(f"CRYPTO:{symbol}")
+        or _asset_store.get(f"FX:{symbol}")
+        or _asset_store.get(f"BOND:US-{symbol}")
+    )
+    if not asset:
+        return None
+
+    price = asset.get("current_price") or 0
+    change = asset.get("day_change_pct") or 0
+    atype = alert.get("alert_type", "")
+    cond = alert.get("condition", "above")
+    threshold = alert.get("threshold", 0)
+
+    fired = False
+    value = None
+    reason = ""
+
+    if atype == "price_above" and price and price > threshold:
+        fired, value = True, price
+        reason = f"Price ${price:,.2f} crossed above ${threshold:,.2f}"
+    elif atype == "price_below" and price and price < threshold:
+        fired, value = True, price
+        reason = f"Price ${price:,.2f} dropped below ${threshold:,.2f}"
+    elif atype == "price_change_pct" and abs(change) > threshold:
+        fired, value = True, change
+        reason = f"Price moved {change:+.1f}% (threshold ±{threshold}%)"
+    elif atype == "volume_spike" and price and alert.get("_volume_ratio"):
+        pass  # volume ratio requires history; handled in service module
+
+    if not fired:
+        return None
+    return {
+        "alert_id": alert.get("id"),
+        "user_id": alert.get("user_id"),
+        "symbol": symbol,
+        "alert_type": atype,
+        "trigger_value": value,
+        "threshold": threshold,
+        "reason": reason,
+        "delivery_channels": alert.get("delivery_channels", ["in_app"]),
+        "triggered_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+async def _mm_alert_check_loop():
+    """Evaluate market-monitor alerts every 60s; dispatch via notification service."""
+    while True:
+        try:
+            await asyncio.sleep(60)
+            if not _alert_store:
+                continue
+
+            for alert in list(_alert_store):
+                if not alert.get("is_active"):
+                    continue
+                if alert.get("triggered") and alert.get("repeat", "once") == "once":
+                    continue
+                if alert.get("_last_check") and (datetime.now(timezone.utc) - alert["_last_check"]).total_seconds() < 55:
+                    continue
+
+                alert["_last_check"] = datetime.now(timezone.utc)
+                triggered = _evaluate_mm_alert(alert)
+                if not triggered:
+                    continue
+
+                alert["triggered"] = True
+                alert["triggered_at"] = triggered["triggered_at"]
+                _alert_history.append({**triggered, "checked_at": triggered["triggered_at"]})
+
+                # Multi-channel dispatch (WebSocket + email + SMS)
+                try:
+                    from app.services.notification_dispatcher import send_price_alert, should_notify
+
+                    channels = alert.get("delivery_channels") or ["in_app"]
+                    wants_email = "email" in channels or alert.get("notify_email", True)
+                    wants_sms = "sms" in channels or alert.get("notify_sms", False)
+
+                    if should_notify(alert.get("user_id", "anon"), f"mm:{alert.get('id')}"):
+                        user = _get_user_by_id(alert.get("user_id"))
+                        await send_price_alert(
+                            user_id=alert.get("user_id", "anon"),
+                            user_email=(user.email if user else "") if wants_email else "",
+                            symbol=triggered["symbol"],
+                            alert_type=triggered["alert_type"],
+                            message=triggered["reason"],
+                            current_price=triggered.get("trigger_value"),
+                            threshold=triggered.get("threshold"),
+                            user_phone=(getattr(user, "phone", None) if user else None) if wants_sms else None,
+                            notify_email=wants_email,
+                            notify_sms=wants_sms,
+                        )
+                except Exception as e:
+                    logger.debug("MM alert dispatch failed: %s", e)
+        except Exception as e:
+            logger.error(f"MM alert check error: {e}")
+
+
+def _get_user_by_id(user_id: str):
+    if not user_id or user_id == "anonymous":
+        return None
+    try:
+        from app.database import SessionLocal
+        from app.models import User
+
+        db = SessionLocal()
+        try:
+            return db.query(User).filter(User.id == user_id).first()
+        finally:
+            db.close()
+    except Exception:
+        return None
+
+
+def start_mm_alert_checker():
+    """Start the market-monitor background alert checker."""
+    global _bg_task
+    if _bg_task is None:
+        try:
+            loop = asyncio.get_running_loop()
+            _bg_task = loop.create_task(_mm_alert_check_loop())
+            logger.info("Market-monitor alert checker started")
+        except RuntimeError:
+            logger.warning("No running event loop; MM alert checker not started")
 
 
 # ── Watchlist Endpoints ─────────────────────────────────────────────

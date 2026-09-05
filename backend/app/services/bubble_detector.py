@@ -110,8 +110,10 @@ def calculate_bubble_risk_score(
     if price_history and len(price_history) >= 7:
         recent_returns = []
         for i in range(1, min(len(price_history), 8)):
-            prev = price_history[-(i+1)].get("close", 0)
-            curr = price_history[-i].get("close", 0)
+            # Accept both dict entries ({"close": x}) and plain numbers
+            entry_prev, entry_curr = price_history[-(i+1)], price_history[-i]
+            prev = entry_prev.get("close", 0) if isinstance(entry_prev, dict) else float(entry_prev or 0)
+            curr = entry_curr.get("close", 0) if isinstance(entry_curr, dict) else float(entry_curr or 0)
             if prev > 0:
                 recent_returns.append((curr - prev) / prev)
         
