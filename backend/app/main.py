@@ -137,6 +137,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start weekly digest scheduler: %s", e)
 
+    # Start hourly news ingestion scheduler (keeps sentiment fresh)
+    try:
+        from app.services.news_scheduler import start_news_ingestion_scheduler
+        await start_news_ingestion_scheduler()
+        print("[OK] Hourly news ingestion scheduler started")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not start news scheduler: %s", e)
+
     yield
     print("[OK] Quantive shutting down gracefully")
 
