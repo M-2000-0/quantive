@@ -203,6 +203,36 @@ def scan_assets(data: ScanRequest, request: Request):
 
     scan = scan_portfolio_for_bubbles(assets)
 
+    # Record high/critical bubble flags in the outcome tracker (bearish claims)
+    try:
+        from app.services.signal_outcome_tracker import record_batch
+
+        flagged = [
+            a for a in (scan.get("results") or [])
+            if (a.get("risk_level") or "").lower() in ("high", "critical")
+            and (a.get("bubble_score") or 0) >= 70
+        ]
+        if flagged:
+            record_batch([
+                {
+                    "signal_type": "bubble_flag",
+                    "symbol": f.get("symbol", ""),
+                    "direction": "bearish",
+                    "claim": (
+                        f"{f.get('symbol')} flagged {f.get('risk_level')} bubble risk "
+                        f"({f.get('bubble_score')}/100) — expects meaningful decline within 20 days"
+                    ),
+                    "strength": int(f.get("bubble_score") or 0),
+                    "asset_class": f.get("asset_class", "stock"),
+                    "recorded_price": f.get("current_price") or f.get("price"),
+                    "metadata": {"patterns": f.get("patterns_detected", [])[:3]},
+                }
+                for f in flagged
+                if f.get("symbol")
+            ])
+    except Exception:
+        pass
+
     # Notify subscribed users about high/critical bubble risks (background-safe)
     if request.method == "POST":
         try:

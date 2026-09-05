@@ -16,6 +16,7 @@ Endpoints:
   POST /api/market-monitor/watchlist/add   — Add to watchlist
 """
 from datetime import datetime, timezone
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -24,6 +25,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
+
+logger = logging.getLogger("quantive.market_monitor")
 
 router = APIRouter(prefix="/market-monitor", tags=["market-monitor"])
 
@@ -443,6 +446,7 @@ def _run_discovery_scoring():
     # Generate signals
     global _signal_cache
     _signal_cache = []
+    _outcome_signals = []
     for symbol, asset in _asset_store.items():
         change = asset.get("day_change_pct", 0)
         if abs(change) > 5:
@@ -453,3 +457,45 @@ def _run_discovery_scoring():
                 "strength": min(100, int(abs(change) * 10)),
                 "detail": f"{'+' if change > 0 else ''}{change:.1f}% today",
             })
+            _outcome_signals.append({
+                "signal_type": "strong_move",
+                "symbol": asset.get("symbol", symbol),
+                "direction": "bullish" if change > 0 else "bearish",
+                "claim": f"{asset.get('symbol', symbol)} moved {'+' if change > 0 else ''}{change:.1f}% today — momentum continues over 5 days",
+                "strength": min(100, int(abs(change) * 10)),
+                "asset_class": asset.get("asset_class", "stock"),
+                "recorded_price": asset.get("current_price"),
+                "metadata": {"detail": f"{change:+.1f}% today"},
+            })
+
+    # Record discovery classifications as evaluable signals
+    for symbol, asset in _asset_store.items():
+        classification = asset.get("classification")
+        score = asset.get("discovery_score", 0)
+        if not classification or classification in ("quiet", "monitor"):
+            continue
+        is_crypto = asset.get("asset_class") == "crypto"
+        stype = "discovery_crypto" if is_crypto else "discovery_stock"
+        claim = (
+            f"{asset.get('symbol', symbol)} flagged '{classification}' (score {score}/100) — "
+            f"expects meaningful upward movement within 5 days"
+        )
+        _outcome_signals.append({
+            "signal_type": stype,
+            "symbol": asset.get("symbol", symbol),
+            "direction": "bullish",
+            "claim": claim,
+            "strength": score,
+            "asset_class": asset.get("asset_class", "stock"),
+            "recorded_price": asset.get("current_price"),
+            "metadata": {"classification": classification, "score": score},
+        })
+
+    # Persist to the outcome tracker (dedupes per day internally)
+    try:
+        from app.services.signal_outcome_tracker import record_batch
+        _recorded = record_batch(_outcome_signals)
+        if _recorded:
+            logger.info("Signal tracker: recorded %d new signals", _recorded)
+    except Exception as e:
+        logger.debug("Signal tracker recording failed: %s", e)

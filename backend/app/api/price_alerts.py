@@ -308,6 +308,29 @@ async def _background_check_loop():
                         alert["triggered_at"] = datetime.now(timezone.utc).isoformat()
                         _alert_history.append({**alert, "checked_at": datetime.now(timezone.utc).isoformat()})
 
+                        # Record in the outcome tracker for the public track record
+                        try:
+                            from app.services.signal_outcome_tracker import record_signal
+                            direction = (
+                                "bullish"
+                                if alert_type in ("price_above", "rsi_oversold")
+                                else "bearish"
+                            )
+                            rec_price = alert.get("current_price")
+                            if rec_price:
+                                record_signal(
+                                    signal_type="price_alert",
+                                    symbol=symbol,
+                                    direction=direction,
+                                    claim=(alert.get("message") or f"{symbol} {alert_type.replace('_', ' ')} alert"),
+                                    strength=80,
+                                    asset_class="stock",
+                                    recorded_price=float(rec_price),
+                                    metadata={"alert_type": alert_type, "threshold": threshold},
+                                )
+                        except Exception as e:
+                            logger.debug("Outcome recording failed: %s", e)
+
                         # Multi-channel delivery (WebSocket + email + SMS)
                         try:
                             from app.services.notification_dispatcher import (

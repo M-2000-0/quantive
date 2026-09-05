@@ -86,6 +86,14 @@ async def lifespan(app: FastAPI):
         logging.getLogger("uvicorn.error").exception("Database connection failed at startup: %s", e)
         raise
 
+    # Ensure signal-outcome tracking table exists (additive, non-destructive)
+    try:
+        from app.models.signal_outcome import SignalOutcome
+        SignalOutcome.__table__.create(engine, checkfirst=True)
+        print("[OK] Signal outcome table ready")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create signal_outcomes table: %s", e)
+
     # Start background alert checker
     try:
         from app.api.price_alerts import start_alert_checker

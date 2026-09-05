@@ -63,6 +63,7 @@
     <button class="mm-tab" onclick="showTab('insights', this)">Insights</button>
     <button class="mm-tab" onclick="showTab('alerts', this)">Alerts</button>
     <button class="mm-tab" onclick="showTab('watchlist', this)">Watchlist</button>
+    <button class="mm-tab" onclick="showTab('trackrecord', this)">Track Record</button>
   </div>
 
   <!-- Assets Tab -->
@@ -116,6 +117,23 @@
         <button class="mm-btn" onclick="addToWatchlist()" style="margin-left: 8px;">Add</button>
       </div>
       <div id="watchlistContent" class="mm-empty">Your watchlist is empty.</div>
+    </div>
+  </div>
+
+  <!-- Track Record Tab -->
+  <div id="tab-trackrecord" style="display:none;">
+    <div class="mm-card">
+      <div class="mm-section-title">Signal Track Record</div>
+      <div style="font-size:0.75rem;color:#9ca3af;margin-bottom:16px;">
+        Every discovery score, signal, and alert is recorded and evaluated after its
+        horizon. This is the system's honest hit/miss history — wins and losses shown equally.
+      </div>
+      <div id="trStats" class="mm-empty">Loading track record...</div>
+      <div id="trByType" style="margin-top:16px;"></div>
+      <div style="margin-top:20px;">
+        <div class="mm-section-title" style="font-size:0.8rem;">Recent Outcomes</div>
+        <div id="trRecent" class="mm-empty">No evaluated signals yet. Records mature after their evaluation window (5–20 days).</div>
+      </div>
     </div>
   </div>
 </div>
@@ -336,8 +354,95 @@ async function removeWatchlist(symbol) {
 function showTab(tab, btn) {
   document.querySelectorAll('.mm-container > [id^="tab-"]').forEach(t => t.style.display = 'none');
   document.getElementById('tab-' + tab).style.display = 'block';
-  document.querySelectorAll('.mm-tabs .mm-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.mm-tabs > .mm-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
+  if (tab === 'trackrecord') loadTrackRecord();
+}
+
+// ── Track Record ─────────────────────────────────────────
+async function loadTrackRecord() {
+  try {
+    const res = await fetch('/api/v1/track-record', {credentials:'include'});
+    const d = await res.json();
+    if (!d.has_data) {
+      document.getElementById('trStats').innerHTML =
+        '<div class="mm-empty">' + (d.message || 'No evaluated signals yet.') + '</div>';
+      document.getElementById('trByType').innerHTML = '';
+      document.getElementById('trRecent').innerHTML =
+        '<div class="mm-empty">No evaluated signals yet. Records mature after their evaluation window (5\u201320 days).</div>';
+      return;
+    }
+
+    const hitRate = d.hit_rate != null ? d.hit_rate + '%' : '\u2014';
+    const hrColor = d.hit_rate >= 60 ? '#10b981' : d.hit_rate >= 45 ? '#f59e0b' : '#ef4444';
+    document.getElementById('trStats').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;">
+        <div style="text-align:center;padding:14px;background:#111827;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;color:${hrColor};">${hitRate}</div>
+          <div style="font-size:0.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;">Hit Rate</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#111827;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;color:#10b981;">${d.wins}</div>
+          <div style="font-size:0.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;">Wins</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#111827;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;color:#ef4444;">${d.losses}</div>
+          <div style="font-size:0.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;">Losses</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#111827;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;color:#9ca3af;">${d.flat}</div>
+          <div style="font-size:0.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;">Flat</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:#111827;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;color:#e2e8f0;">${d.total_signals}</div>
+          <div style="font-size:0.65rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;">Total Signals</div>
+        </div>
+      </div>`;
+
+    const typeNames = {
+      discovery_stock: 'Stock Discovery',
+      discovery_crypto: 'Crypto Discovery',
+      strong_move: 'Strong Moves',
+      price_alert: 'Price Alerts',
+      bubble_flag: 'Bubble Flags'
+    };
+    let typeRows = '';
+    for (const [t, s] of Object.entries(d.by_type || {})) {
+      const trColor = s.hit_rate == null ? '#9ca3af' : s.hit_rate >= 60 ? '#10b981' : s.hit_rate >= 45 ? '#f59e0b' : '#ef4444';
+      typeRows += `<tr>
+        <td>${typeNames[t] || t}</td>
+        <td>${s.total}</td>
+        <td style="color:#10b981;">${s.wins}</td>
+        <td style="color:#ef4444;">${s.losses}</td>
+        <td style="font-weight:600;color:${trColor};">${s.hit_rate != null ? s.hit_rate + '%' : '\u2014'}</td>
+      </tr>`;
+    }
+    if (typeRows) {
+      document.getElementById('trByType').innerHTML = `
+        <table class="mm-table"><thead><tr><th>Signal Type</th><th>Total</th><th>Wins</th><th>Losses</th><th>Hit Rate</th></tr></thead>
+        <tbody>${typeRows}</tbody></table>`;
+    }
+
+    let recentRows = '';
+    for (const r of (d.recent || []).slice(0, 10)) {
+      const isWin = r.outcome_status === 'win';
+      const chg = r.price_change_pct != null ? (r.price_change_pct >= 0 ? '+' : '') + r.price_change_pct.toFixed(2) + '%' : '\u2014';
+      recentRows += `<tr>
+        <td style="font-weight:600;">${r.symbol}</td>
+        <td style="color:#9ca3af;font-size:0.75rem;">${typeNames[r.signal_type] || r.signal_type}</td>
+        <td style="color:${r.direction === 'bullish' ? '#10b981' : '#ef4444'};">${r.direction}</td>
+        <td>${chg}</td>
+        <td><span style="padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;${isWin ? 'background:rgba(16,185,129,0.15);color:#10b981;' : r.outcome_status === 'loss' ? 'background:rgba(239,68,68,0.15);color:#ef4444;' : 'background:rgba(148,163,184,0.15);color:#9ca3af;'}">${r.outcome_status.toUpperCase()}</span></td>
+      </tr>`;
+    }
+    if (recentRows) {
+      document.getElementById('trRecent').innerHTML = `
+        <table class="mm-table"><thead><tr><th>Symbol</th><th>Type</th><th>Call</th><th>Actual Move</th><th>Result</th></tr></thead>
+        <tbody>${recentRows}</tbody></table>`;
+    }
+  } catch (e) {
+    document.getElementById('trStats').innerHTML = '<div class="mm-empty">Could not load track record.</div>';
+  }
 }
 
 function formatNum(n) {
