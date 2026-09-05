@@ -90,6 +90,7 @@ def calculate_bubble_risk_score(
     earnings: Optional[float] = None,
     insider_selling_pct: float = 0,
     short_interest_pct: float = 0,
+    news_sentiment: Optional[dict] = None,
 ) -> dict:
     """
     Calculate a comprehensive bubble risk score for an asset.
@@ -404,6 +405,46 @@ def calculate_bubble_risk_score(
             "detail": "Small company — higher risk and volatility than large caps",
         })
     
+    # ── 13. News Sentiment Euphoria ──────────────────────────────────
+    # Euphoric media coverage is a classic late-stage bubble signature:
+    # uniformly glowing headlines with no skepticism. Neutral or negative
+    # coverage contributes nothing. Requires >=3 articles to score.
+    if news_sentiment:
+        s_mean = news_sentiment.get("mean")
+        s_count = news_sentiment.get("count", 0)
+        s_pos = news_sentiment.get("positive", 0)
+        if s_mean is not None and s_count >= 3 and s_mean > 0.15:
+            euphoria_pts = 0
+            euphoria_detail = ""
+            if s_mean > 0.55 and s_pos / s_count >= 0.8:
+                euphoria_pts = 12
+                euphoria_detail = (
+                    f"{s_count} articles almost uniformly euphoric "
+                    f"({s_pos}/{s_count} positive, avg +{s_mean:.2f}) — "
+                    "one-sided coverage is a classic top signature"
+                )
+                patterns_detected.append("meme_bubble")
+            elif s_mean > 0.4 and s_pos / s_count >= 0.7:
+                euphoria_pts = 8
+                euphoria_detail = (
+                    f"Strongly positive coverage ({s_pos}/{s_count} positive, "
+                    f"avg +{s_mean:.2f}) — hype is running ahead of skepticism"
+                )
+            elif s_mean > 0.25:
+                euphoria_pts = 4
+                euphoria_detail = (
+                    f"Positive news tone (avg +{s_mean:.2f} across {s_count} "
+                    "articles) — check whether fundamentals justify the narrative"
+                )
+            if euphoria_pts:
+                score += euphoria_pts
+                indicators.append({
+                    "name": "News Sentiment Euphoria",
+                    "value": f"avg +{s_mean:.2f} ({s_pos}/{s_count} positive)",
+                    "impact": f"+{euphoria_pts} risk points",
+                    "detail": euphoria_detail,
+                })
+
     # ── Cap at 100 ───────────────────────────────────────────────────
     score = min(100, score)
     
@@ -474,6 +515,58 @@ def calculate_bubble_risk_score(
     }
 
 
+def get_sentiment_for_symbols(symbols: list) -> dict[str, dict]:
+    """Fetch recent news-sentiment aggregates for a batch of symbols.
+
+    Returns {SYMBOL: {"mean": float, "count": int, "positive": int, ...}}.
+    Symbols without recent coverage are simply absent. Never raises.
+    """
+    try:
+        from datetime import datetime, timedelta, timezone
+
+        from sqlalchemy import desc
+
+        from app.database import SessionLocal
+        from app.models.news import NewsArticle
+
+        wanted = {str(s or "").upper() for s in symbols} - {""}
+        if not wanted:
+            return {}
+
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+        db = SessionLocal()
+        try:
+            rows = (
+                db.query(NewsArticle.tickers_json, NewsArticle.sentiment_score, NewsArticle.published_at)
+                .filter(NewsArticle.sentiment_score.isnot(None))
+                .order_by(desc(NewsArticle.published_at))
+                .limit(2000)
+                .all()
+            )
+        finally:
+            db.close()
+
+        by_symbol: dict[str, list[float]] = {}
+        for tickers, score, published in rows:
+            if not tickers or score is None:
+                continue
+            try:
+                if published and str(published) < cutoff:
+                    continue
+            except Exception:
+                continue
+            for t in tickers[:5]:
+                t = (t or "").upper()
+                if t in wanted:
+                    by_symbol.setdefault(t, []).append(float(score))
+
+        from app.services.sentiment_analyzer import aggregate_sentiment
+
+        return {sym: aggregate_sentiment(scores) for sym, scores in by_symbol.items()}
+    except Exception:
+        return {}
+
+
 def scan_portfolio_for_bubbles(assets: list) -> dict:
     """
     Scan a portfolio or asset list for bubble risks.
@@ -484,6 +577,10 @@ def scan_portfolio_for_bubbles(assets: list) -> dict:
     Returns:
         dict with overall_risk, highest_risk assets, pattern summary
     """
+    # One batched sentiment lookup for all scanned symbols
+    symbols = [a.get("symbol") for a in assets if a.get("symbol")]
+    sentiment_by_symbol = get_sentiment_for_symbols(symbols)
+
     results = []
     
     for asset in assets:
@@ -500,6 +597,7 @@ def scan_portfolio_for_bubbles(assets: list) -> dict:
             avg_volume=asset.get("avg_volume", 0),
             price_history=asset.get("price_history"),
             day_change_pct=asset.get("day_change_pct", 0),
+            news_sentiment=sentiment_by_symbol.get(str(asset.get("symbol", "")).upper()),
         )
         results.append(risk)
     

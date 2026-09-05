@@ -341,8 +341,9 @@ def _dispatch_bubble_notifications(flagged: list[dict]):
 @bubble_router.post("/single")
 def scan_single(data: SingleScanRequest, request: Request):
     """Scan a single asset for bubble risk."""
-    from app.services.bubble_detector import calculate_bubble_risk_score
+    from app.services.bubble_detector import calculate_bubble_risk_score, get_sentiment_for_symbols
 
+    sentiment = (get_sentiment_for_symbols([data.symbol]) or {}).get(data.symbol.upper())
     result = calculate_bubble_risk_score(
         symbol=data.symbol,
         asset_class=data.asset_class,
@@ -354,6 +355,7 @@ def scan_single(data: SingleScanRequest, request: Request):
         low_52w=data.low_52w,
         ath=data.ath,
         day_change_pct=data.day_change_pct,
+        news_sentiment=sentiment,
     )
     return result
 
