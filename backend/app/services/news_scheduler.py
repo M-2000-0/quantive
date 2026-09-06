@@ -16,6 +16,8 @@ Design:
   run takes longer than the interval.
 - Backoff: if a cycle errors, wait 5 minutes before retrying rather than
   hammering upstream feeds.
+- After each cycle the morning digest is regenerated (refresh_digest_data)
+  so the dashboard briefing stays current all day, not just at first access.
 """
 import asyncio
 import logging
@@ -53,7 +55,7 @@ async def _run_cycle() -> dict:
         # Score any articles that landed without a sentiment score
         scored = backfill_sentiment(db, limit=500)
 
-        return {
+        stats = {
             "at": datetime.now(timezone.utc).isoformat(),
             "sources": len(results),
             "new_articles": new_total,
@@ -62,6 +64,20 @@ async def _run_cycle() -> dict:
         }
     finally:
         db.close()
+
+    # Regenerate the morning digest from the refreshed data so the briefing
+    # tracks the trading day (fresh movers, pulse, sentiment, bubble flags)
+    # instead of freezing at the first access each morning.
+    try:
+        from app.services.daily_digest import refresh_digest_data
+
+        digest = refresh_digest_data()
+        stats["digest_refreshed_at"] = digest.get("generated_at")
+        stats["digest_refresh_count"] = digest.get("refresh_count")
+    except Exception as e:
+        logger.warning("digest refresh after ingest failed: %s", e)
+
+    return stats
 
 
 async def _hourly_loop():
@@ -99,6 +115,8 @@ async def _attempt_cycle():
                         f" (errors: {stats.get('errors')})" if stats.get("errors") else "")
         else:
             logger.info("News ingest: no new articles (%s sources checked)", stats.get("sources", 0))
+        if stats.get("digest_refreshed_at"):
+            logger.info("Digest refreshed (update #%s)", stats.get("digest_refresh_count"))
     except asyncio.TimeoutError:
         logger.error("News ingestion cycle timed out after 480s; will retry next tick")
     except asyncio.CancelledError:

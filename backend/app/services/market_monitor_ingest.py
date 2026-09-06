@@ -12,16 +12,41 @@ All fetching is async and resilient with retry logic and rate limiting.
 import json
 import time
 import math
+import ssl
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+
+# Windows/CPython pathology: ssl.create_default_context() re-scans the ENTIRE
+# Windows certificate store on every call (_load_windows_store_certs), which
+# can take 10-40s per outbound request and is NOT covered by the socket
+# timeout. Build one context per process and reuse it everywhere so the scan
+# happens exactly once.
+_SSL_CTX: Optional[ssl.SSLContext] = None
+
+
+def _ssl_context() -> Optional[ssl.SSLContext]:
+    global _SSL_CTX
+    if _SSL_CTX is None:
+        try:
+            ctx = ssl.create_default_context()
+            # Force the (expensive, one-time) cert-store load now and reuse.
+            ctx.load_default_certs()
+            _SSL_CTX = ctx
+        except Exception:
+            _SSL_CTX = None  # fall back to urlopen's default handling
+    return _SSL_CTX
 
 
 def _fetch_json(url: str, timeout: int = 10) -> Optional[dict]:
     """Fetch JSON from URL with error handling."""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Quantive/1.0"})
+        ctx = _ssl_context()
+        if ctx is not None:
+            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+                return json.loads(resp.read().decode("utf-8"))
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
@@ -136,8 +161,13 @@ def fetch_ecb_fx() -> dict:
     url = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Quantive/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            xml_text = resp.read().decode("utf-8")
+        ctx = _ssl_context()
+        if ctx is not None:
+            with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+                xml_text = resp.read().decode("utf-8")
+        else:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                xml_text = resp.read().decode("utf-8")
 
         rates = {}
         import re

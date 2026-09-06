@@ -8,12 +8,14 @@ Sections:
   5. News Sentiment    — strongest news tone among tracked assets (if available)
 
 The digest is generated once per day (cached in memory + persisted as JSON in
-.freebuff/ or data dir) and refreshed on demand. Generation is fully
+.freebuff/ or data dir) and refreshed on demand or hourly by the scheduler.
+Generation is fully
 fire-safe: a failing section degrades to null instead of breaking the card.
 """
 import json
 import logging
 import os
+import time
 from datetime import datetime, timezone
 
 logger = logging.getLogger("quantive.daily_digest")
@@ -244,25 +246,49 @@ def generate_digest(force: bool = False) -> dict:
     # If stores are cold, warm them via the ingestion logic. The API endpoint
     # requires a Request/DB, so extract the store-filling loop directly by
     # reusing its internals through a lightweight shim.
+    # Time-budgeted: a cold full ingestion touches 200+ upstream endpoints and
+    # can run for many minutes; the digest must never block that long. The
+    # warm-up runs in a daemon thread and is abandoned at the budget — it keeps
+    # filling the shared store in the background, so a later refresh picks up
+    # whatever landed.
     if len(assets) < 20:
-        try:
-            from app.api.market_monitor_api import run_ingestion
+        _WARMUP_BUDGET_S = float(os.environ.get("DIGEST_WARMUP_BUDGET_S", "60"))
+        import threading
 
-            class _ShimRequest:
-                pass
+        _warm_error: list = []
 
+        def _warm():
             try:
-                run_ingestion(request=_ShimRequest(), asset_class=None, db=None)
-            except TypeError:
-                # Different signature — try positional-free variant
-                run_ingestion(_ShimRequest(), None, None)
-            assets = _get_asset_stores()
-        except Exception as e:
-            logger.warning("digest store warm-up failed: %s", e)
+                from app.api.market_monitor_api import run_ingestion
+
+                class _ShimRequest:
+                    pass
+
+                try:
+                    run_ingestion(request=_ShimRequest(), asset_class=None, db=None)
+                except TypeError:
+                    # Different signature — try positional-free variant
+                    run_ingestion(_ShimRequest(), None, None)
+            except Exception as e:  # pragma: no cover - defensive
+                _warm_error.append(e)
+
+        _t = threading.Thread(target=_warm, name="digest-warmup", daemon=True)
+        _t.start()
+        _t.join(timeout=max(1.0, _WARMUP_BUDGET_S))
+        if _t.is_alive():
+            logger.warning(
+                "digest store warm-up still running after %.0fs budget; "
+                "generating from available data (warm-up continues in background)",
+                _WARMUP_BUDGET_S,
+            )
+        if _warm_error:
+            logger.warning("digest store warm-up failed: %s", _warm_error[0])
+        assets = _get_asset_stores()
 
     digest = {
         "date": today,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "refresh_count": 0,
         "headline": None,
         "pulse": _section_pulse(assets, inputs["yields"]),
         "movers": _section_movers(assets),
@@ -298,3 +324,23 @@ def get_digest_if_stale() -> tuple[dict, bool]:
     if _digest_cache and _digest_date == today:
         return _digest_cache, False
     return generate_digest(), True
+
+
+def refresh_digest_data() -> dict:
+    """Regenerate today's digest from current live stores, keeping caches
+    coherent. Used by the hourly scheduler so the briefing tracks the
+    trading day instead of freezing at the first access each morning.
+
+    Keeps the original date; bumps generated_at and refresh_count.
+    """
+    global _digest_cache, _digest_date
+    prior_count = int((_digest_cache or {}).get("refresh_count") or 0)
+    fresh = generate_digest(force=True)
+    fresh["date"] = _today()
+    # generate_digest resets the count; accumulate across the day instead
+    fresh["refresh_count"] = prior_count + 1
+    fresh["generated_at"] = datetime.now(timezone.utc).isoformat()
+    _digest_cache = fresh
+    _digest_date = fresh["date"]
+    _persist(fresh)
+    return fresh
