@@ -50,6 +50,12 @@
 </div>
 
 <script>
+/* CLIENT-SIDE: this page contains no secret key material (no sk_/pk_
+   literals). Checkout sessions are created SERVER-SIDE via
+   POST /api/billing/checkout (secret-key authorized); the browser only
+   receives a one-time checkout_url to redirect to. If Stripe.js elements
+   are added later, initialize them with the PUBLISHABLE key
+   (pk_test_YOUR_PUBLISHABLE_KEY) — never with a secret key. */
 (function () {
   var msg = function (t) { document.getElementById('bill-msg').textContent = t || ''; };
 

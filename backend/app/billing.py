@@ -201,8 +201,13 @@ def get_usage(org_id: str, resource: Optional[str] = None, since_hours: int = 24
     }
 
 
-# ── Stripe Integration ─────────────────────────────────────────────────
+# ── Stripe Integration (SERVER-SIDE ONLY) ──────────────────────────────
 
+# SERVER-SIDE SECRET: STRIPE_API_KEY must be a secret key (sk_test_... or
+# sk_live_...) loaded from the environment — never a pk_ publishable key,
+# never hardcoded, and never sent to the browser. Server endpoints like
+# checkout session creation require full secret-key authorization.
+# Publishable keys (pk_...) belong exclusively in client-side code.
 STRIPE_API_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_BASE_URL = "https://api.stripe.com/v1"
