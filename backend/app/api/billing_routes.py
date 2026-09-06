@@ -1,5 +1,9 @@
 """Billing and subscription API endpoints."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+import json
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -12,7 +16,9 @@ from app.billing import (
     create_subscription,
     get_subscription,
     get_usage,
+    handle_stripe_event,
     record_usage,
+    verify_stripe_webhook,
 )
 from app.database import get_db
 from app.models import User
@@ -119,3 +125,33 @@ def my_limits(
 ):
     """Check current limits against usage."""
     return check_limit(user.org_id, resource)
+
+
+logger = logging.getLogger("quantive.billing.webhook")
+
+
+@router.post("/webhook", include_in_schema=False)
+async def stripe_webhook(request: Request):
+    """Receive Stripe webhook events.
+
+    Signature-verified (Stripe-Signature header); the raw request body is
+    required for HMAC computation, so the body must be read before any JSON
+    parsing. Unverified signatures are rejected with 400.
+    """
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature", "")
+
+    if not verify_stripe_webhook(payload, signature):
+        logger.warning("Stripe webhook signature verification failed")
+        return JSONResponse(status_code=400, content={"error": "Invalid signature"})
+
+    try:
+        event = json.loads(payload.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JSONResponse(status_code=400, content={"error": "Invalid payload"})
+
+    event_type = event.get("type", "")
+    result = handle_stripe_event(event_type, event.get("data", {}))
+
+    # Always 200 so Stripe retries don't hammer us for handled no-ops.
+    return {"received": True, "handled": result is not None, "action": (result or {}).get("action")}

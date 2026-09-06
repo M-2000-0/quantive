@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import secrets
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -280,22 +281,45 @@ async def create_customer_portal(
 
 
 def verify_stripe_webhook(payload: bytes, signature: str) -> bool:
-    """Verify a Stripe webhook signature."""
+    """Verify a Stripe webhook signature.
+
+    Stripe's ``Stripe-Signature`` header is comma-separated:
+    ``t=<unix_ts>,v1=<hex_sig>[,v1=<hex_sig2>...]``. Compare our HMAC against
+    any v1 signature and reject replays older than Stripe's recommended
+    5-minute tolerance.
+    """
     if not STRIPE_WEBHOOK_SECRET:
         return True  # In dev, accept all webhooks
 
-    elements = dict(item.split("=", 1) for item in signature.split(" "))
-    timestamp = elements.get("t", "")
-    expected_sig = elements.get("v1", "")
+    elements: dict = {}
+    v1_sigs: list = []
+    for part in signature.replace(" ", "").split(","):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        if key == "v1":
+            v1_sigs.append(value)
+        else:
+            elements[key] = value
 
-    signed_payload = f"{timestamp}.{payload.decode('utf-8')}"
-    computed = hmac.new(
+    timestamp = elements.get("t", "")
+    if not timestamp or not v1_sigs:
+        return False
+
+    try:
+        if abs(time.time() - int(timestamp)) > 300:
+            return False  # replay outside tolerance
+    except ValueError:
+        return False
+
+    signed_payload = f"{timestamp}.".encode("utf-8") + payload
+    expected = hmac.new(
         STRIPE_WEBHOOK_SECRET.encode("utf-8"),
-        signed_payload.encode("utf-8"),
+        signed_payload,
         hashlib.sha256,
     ).hexdigest()
 
-    return hmac.compare_digest(computed, expected_sig)
+    return any(hmac.compare_digest(expected, sig) for sig in v1_sigs)
 
 
 def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:

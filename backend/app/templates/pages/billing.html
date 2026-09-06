@@ -6,39 +6,156 @@
 <div class="grid grid-3" style="margin-bottom:20px;">
   <div class="stat">
     <div class="stat-label">Current Plan</div>
-    <div class="stat-value" style="color:var(--accent);">Professional</div>
+    <div class="stat-value" style="color:var(--accent);" id="bill-plan">…</div>
   </div>
   <div class="stat">
     <div class="stat-label">Monthly Cost</div>
-    <div class="stat-value">$8,400</div>
+    <div class="stat-value" id="bill-cost">—</div>
   </div>
   <div class="stat">
     <div class="stat-label">Next Billing</div>
-    <div class="stat-value" style="font-size:16px;">2026-09-01</div>
+    <div class="stat-value" style="font-size:16px;" id="bill-renew">—</div>
   </div>
 </div>
+
+<div class="card" style="margin-bottom:20px;">
+  <div class="section-title">Plan</div>
+  <div id="bill-features" style="font-size:13px;color:var(--text2);line-height:1.9;margin-top:10px;"></div>
+  <div style="display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap;">
+    <button class="btn btn-primary btn-sm" id="btn-upgrade">Upgrade to Pro</button>
+    <button class="btn btn-ghost btn-sm" id="btn-cycle-monthly">Monthly</button>
+    <button class="btn btn-ghost btn-sm" id="btn-cycle-yearly">Yearly</button>
+    <button class="btn btn-ghost btn-sm" id="btn-portal" style="margin-left:auto;">Manage in Stripe</button>
+    <span id="bill-msg" style="font-size:12px;color:var(--text2);"></span>
+  </div>
+  <div id="bill-mode" style="font-size:11px;color:var(--text3);margin-top:10px;"></div>
+</div>
+
 <div class="grid grid-2">
   <div class="card">
     <div class="section-title">Payment Method</div>
     <div style="display:flex;align-items:center;gap:12px;margin-top:12px;padding:14px;border-radius:var(--radius);background:var(--surface-2);">
       <div style="font-size:24px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
       <div>
-        <div style="font-weight:600;font-size:13px;">Visa ending in 4242</div>
-        <div style="font-size:12px;color:var(--text2);">Expires 12/2028</div>
+        <div style="font-weight:600;font-size:13px;" id="pm-label">No payment method on file</div>
+        <div style="font-size:12px;color:var(--text2);" id="pm-sub">Added at checkout</div>
       </div>
-      <button class="btn btn-ghost btn-sm" style="margin-left:auto;">Update</button>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;" id="btn-portal-2">Manage</button>
     </div>
   </div>
   <div class="card">
-    <div class="section-title">Billing History</div>
-    <table>
-      <thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr><td>2026-08-01</td><td>$8,400</td><td><span class="badge badge-green">Paid</span></td></tr>
-        <tr><td>2026-07-01</td><td>$8,400</td><td><span class="badge badge-green">Paid</span></td></tr>
-        <tr><td>2026-06-01</td><td>$8,400</td><td><span class="badge badge-green">Paid</span></td></tr>
-      </tbody>
-    </table>
+    <div class="section-title">Usage Limits</div>
+    <div id="bill-limits" style="font-size:13px;color:var(--text2);line-height:2;margin-top:10px;">Loading…</div>
   </div>
 </div>
+
+<script>
+(function () {
+  var msg = function (t) { document.getElementById('bill-msg').textContent = t || ''; };
+
+  function money(n) {
+    if (n === null || n === undefined) return '—';
+    return n === 0 ? '$0' : '$' + Number(n).toLocaleString();
+  }
+
+  function tierName(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Free'; }
+
+  function renderPlans(plans) {
+    var pro = (plans || []).filter(function (p) { return p.tier === 'pro'; })[0];
+    if (pro) {
+      document.getElementById('btn-upgrade').textContent =
+        'Upgrade to ' + pro.name + ' (' + money(pro.price_monthly) + '/mo)';
+    }
+  }
+
+  function render(data, plans) {
+    var sub = data.subscription;
+    var tier = data.tier || 'free';
+    document.getElementById('bill-plan').textContent = tierName(tier);
+    var plan = (plans || []).filter(function (p) { return p.tier === tier; })[0];
+    document.getElementById('bill-cost').textContent = sub ? money(plan && plan.price_monthly) : '$0';
+    document.getElementById('bill-renew').textContent =
+      (sub && sub.current_period_end) ? String(sub.current_period_end).slice(0, 10) : '—';
+
+    var feats = document.getElementById('bill-features');
+    feats.innerHTML = '';
+    ((plan && plan.features) || []).forEach(function (f) {
+      var li = document.createElement('div');
+      li.textContent = '✓ ' + f;
+      feats.appendChild(li);
+    });
+
+    if (sub && sub.status && sub.status !== 'active') {
+      msg('Subscription status: ' + sub.status);
+    }
+  }
+
+  function renderLimits() {
+    fetch('/api/billing/limits?resource=optimizations_per_day', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var lim = d.limit === -1 ? 'Unlimited' : d.current + ' / ' + d.limit;
+        document.getElementById('bill-limits').textContent =
+          'Optimizations today: ' + lim + ' · Plan: ' + d.plan;
+      })
+      .catch(function () {});
+  }
+
+  function checkout(cycle) {
+    msg('Starting checkout…');
+    fetch('/api/billing/checkout?tier=pro&billing_cycle=' + (cycle || 'monthly'), {
+      method: 'POST', credentials: 'same-origin',
+    })
+      .then(function (r) {
+        if (r.status === 401) { location.href = '/login?next=/billing'; throw new Error('auth'); }
+        return r.json().then(function (j) { return { j: j }; });
+      })
+      .then(function (res) {
+        if (res.j.checkout_url) {
+          document.getElementById('bill-mode').textContent = 'Checkout mode: ' + (res.j.mode || 'stripe');
+          if (res.j.mode === 'development') {
+            msg('Dev mode: Pro activated locally (no STRIPE_SECRET_KEY set).');
+            setTimeout(function () { location.reload(); }, 1200);
+          } else {
+            location.href = res.j.checkout_url;
+          }
+        } else {
+          msg(res.j.detail || 'Checkout unavailable.');
+        }
+      })
+      .catch(function (e) { if (e.message !== 'auth') msg('Checkout failed.'); });
+  }
+
+  function portal() {
+    msg('Opening portal…');
+    fetch('/api/billing/portal', { method: 'POST', credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (res.ok && res.j.url) { location.href = res.j.url; }
+        else { msg(res.j.detail || 'No billing portal yet — upgrade first.'); }
+      })
+      .catch(function () { msg('Portal failed.'); });
+  }
+
+  document.getElementById('btn-upgrade').addEventListener('click', function () { checkout('monthly'); });
+  document.getElementById('btn-cycle-monthly').addEventListener('click', function () { checkout('monthly'); });
+  document.getElementById('btn-cycle-yearly').addEventListener('click', function () { checkout('yearly'); });
+  document.getElementById('btn-portal').addEventListener('click', portal);
+  document.getElementById('btn-portal-2').addEventListener('click', portal);
+
+  Promise.all([
+    fetch('/api/billing/subscription', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }),
+    fetch('/api/billing/plans', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }),
+  ]).then(function (results) {
+    var sub = results[0] || { subscription: null, tier: 'free' };
+    var plans = (results[1] && results[1].plans) || [];
+    render(sub, plans);
+    renderPlans(plans);
+    renderLimits();
+  }).catch(function () {
+    msg('Could not load billing data.');
+  });
+})();
+</script>
 {% endblock %}
