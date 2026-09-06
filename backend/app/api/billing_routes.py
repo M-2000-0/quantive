@@ -5,10 +5,13 @@ import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.billing import (
+    STRIPE_API_KEY,
+    STRIPE_BASE_URL,
+    STRIPE_WEBHOOK_SECRET,
     PlanTier,
     PLAN_DETAILS,
     check_limit,
@@ -22,8 +25,8 @@ from app.billing import (
     verify_stripe_webhook,
 )
 from app.database import get_db
-from app.models import User
-from app.security import get_current_user
+from app.models import User, UserRole
+from app.security import get_current_user, require_role
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
@@ -139,6 +142,90 @@ def my_limits(
 
 
 logger = logging.getLogger("quantive.billing.webhook")
+
+
+class SimulateRequest(BaseModel):
+    session_id: str = Field(..., min_length=3, max_length=255)
+
+
+@router.get("/mode")
+def billing_mode(user: User = Depends(get_current_user)):
+    """Which billing mode the server is operating in (for UI hints)."""
+    return {
+        "stripe_configured": bool(STRIPE_API_KEY),
+        "webhook_secret_set": bool(STRIPE_WEBHOOK_SECRET),
+        # Fulfillment simulation is only permitted while no real webhook
+        # secret exists (local/test). Once Stripe signs our webhooks, the
+        # simulator hard-locks.
+        "simulate_allowed": not STRIPE_WEBHOOK_SECRET,
+    }
+
+
+@router.post("/webhook/simulate")
+async def simulate_checkout_completed(
+    data: SimulateRequest,
+    user: User = Depends(require_role(UserRole.ADMIN)),
+):
+    """Admin-only, test-mode-only fulfillment simulator.
+
+    Fetches the REAL Checkout Session from Stripe (no invented data) and
+    replays it through the exact handle_stripe_event path a genuine
+    checkout.session.completed webhook would take. This completes the loop
+    locally, where Stripe cannot reach us (no public webhook host).
+
+    Hard-locked once STRIPE_WEBHOOK_SECRET is configured — production
+    fulfillment may only come from signature-verified real webhooks.
+    """
+    if STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=403,
+            detail="Simulator disabled: a webhook secret is configured; fulfillment must come from real Stripe webhooks.",
+        )
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=400, detail="Simulator requires STRIPE_SECRET_KEY (dev mode fulfills directly at checkout).")
+
+    import httpx
+
+    # Accept both cs_test_... (checkout session) and pi_... (payment intent,
+    # how one-time payments report success).
+    if data.session_id.startswith("pi_"):
+        path = f"payment_intents/{data.session_id}"
+        event_type = "payment_intent.succeeded"
+        paid_statuses = {"succeeded"}
+        status_key = "status"
+        hint = "Confirm the PaymentIntent with a test payment method, then simulate again."
+    else:
+        path = f"checkout/sessions/{data.session_id}"
+        event_type = "checkout.session.completed"
+        paid_statuses = {"paid", "no_payment_required"}
+        status_key = "payment_status"
+        hint = "Complete the payment with test card 4242 4242 4242 4242, then simulate again."
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{STRIPE_BASE_URL}/{path}",
+            auth=(STRIPE_API_KEY, ""),
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=404, detail=f"Object not found at Stripe: {data.session_id}")
+        obj = resp.json()
+
+    if obj.get(status_key) not in paid_statuses:
+        return {
+            "simulated": False,
+            "reason": "object not paid",
+            "status": obj.get(status_key),
+            "note": hint,
+        }
+
+    # Checkout sessions store metadata at top level; PaymentIntents under
+    # metadata. The handler reads obj['metadata'] either way.
+    if "metadata" not in obj or not obj.get("metadata"):
+        obj["metadata"] = {}
+
+    result = handle_stripe_event(event_type, {"object": obj})
+    return {"simulated": True, "handled": result is not None, "result": result}
 
 
 @router.post("/webhook", include_in_schema=False)

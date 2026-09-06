@@ -779,7 +779,8 @@
       document.getElementById('digest-date').textContent = d.date || '';
       const updEl = document.getElementById('digest-updated');
       if (d.generated_at) {
-        const t = new Date(d.generated_at + (d.generated_at.endsWith('Z') ? '' : 'Z'));
+        const iso = d.generated_at.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(d.generated_at) ? d.generated_at : d.generated_at + 'Z';
+        const t = new Date(iso);
         const minsAgo = Math.round((Date.now() - t.getTime()) / 60000);
         const label = minsAgo < 1 ? 'just now' : minsAgo < 60 ? minsAgo + 'm ago' : Math.round(minsAgo / 60) + 'h ago';
         const count = d.refresh_count ? ` · update #${d.refresh_count}` : '';

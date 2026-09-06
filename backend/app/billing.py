@@ -364,10 +364,23 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
         return {"action": "subscription_created", "subscription_id": sub.id}
 
     elif event_type == "payment_intent.succeeded":
-        # One-time payments (and subscription invoices surface here too).
-        # Fulfillment itself is idempotent via checkout.session.completed;
-        # this is the audit/log trail for the money actually moving.
+        # One-time payments arrive here (subscription mode fulfills via
+        # checkout.session.completed instead). Fulfill from the PaymentIntent
+        # metadata when it carries our checkout metadata — same fulfillment
+        # path as a subscription, just from a one-time charge.
         logger.info(f"Payment succeeded: {obj.get('id')} amount={obj.get('amount_received')}")
+        meta = obj.get("metadata") or {}
+        org_id = meta.get("org_id", "") or org_id
+        if org_id and meta.get("tier"):
+            sub = create_subscription(
+                org_id=org_id,
+                user_id=meta.get("user_id", ""),
+                tier=PlanTier(meta.get("tier", "pro")),
+                stripe_customer_id=(meta.get("customer") or obj.get("customer") or ""),
+                stripe_subscription_id=obj.get("id"),
+            )
+            logger.info(f"One-time payment fulfilled: {sub.id} for org {org_id}")
+            return {"action": "payment_fulfilled", "subscription_id": sub.id}
         return {"action": "payment_succeeded", "payment_intent": obj.get("id")}
 
     elif event_type == "payment_intent.payment_failed":
