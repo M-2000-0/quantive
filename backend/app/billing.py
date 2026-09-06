@@ -235,20 +235,35 @@ async def create_checkout_session(
     plan = PLAN_DETAILS[tier]
     price_id = plan.get(f"stripe_price_{billing_cycle}", "")
 
+    data = {
+        "mode": "subscription",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "metadata[org_id]": org_id,
+        "metadata[user_id]": user_id,
+        "metadata[tier]": tier.value,
+        "line_items[0][quantity]": 1,
+    }
+    if price_id:
+        # Preferred path: a pre-created recurring Price from the dashboard.
+        data["line_items[0][price]"] = price_id
+    else:
+        # Zero-config fallback (mirrors inline price_data): works with only a
+        # secret key — no pre-created Price required. Recurring because
+        # mode=subscription; amounts are dollars in PLAN_DETAILS, cents here.
+        amount_key = "price_yearly" if billing_cycle == "yearly" else "price_monthly"
+        data["line_items[0][price_data][currency]"] = "usd"
+        data["line_items[0][price_data][unit_amount]"] = int(plan[amount_key] * 100)
+        data["line_items[0][price_data][recurring][interval]"] = (
+            "year" if billing_cycle == "yearly" else "month"
+        )
+        data["line_items[0][price_data][product_data][name]"] = f"Quantive {plan['name']}"
+
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{STRIPE_BASE_URL}/checkout/sessions",
             auth=(STRIPE_API_KEY, ""),
-            data={
-                "mode": "subscription",
-                "success_url": success_url,
-                "cancel_url": cancel_url,
-                "metadata[org_id]": org_id,
-                "metadata[user_id]": user_id,
-                "metadata[tier]": tier.value,
-                "line_items[0][price]": price_id,
-                "line_items[0][quantity]": 1,
-            },
+            data=data,
             timeout=30,
         )
         resp.raise_for_status()
@@ -333,6 +348,11 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
     org_id = obj.get("metadata", {}).get("org_id", "")
 
     if event_type == "checkout.session.completed":
+        if not org_id:
+            # Idempotency guard: without org metadata there is nothing to
+            # fulfill — likely a checkout created outside this system.
+            logger.warning("checkout.session.completed without org metadata; skipping")
+            return None
         sub = create_subscription(
             org_id=org_id,
             user_id=obj.get("metadata", {}).get("user_id", ""),
@@ -342,6 +362,18 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
         )
         logger.info(f"Subscription created: {sub.id} for org {org_id}")
         return {"action": "subscription_created", "subscription_id": sub.id}
+
+    elif event_type == "payment_intent.succeeded":
+        # One-time payments (and subscription invoices surface here too).
+        # Fulfillment itself is idempotent via checkout.session.completed;
+        # this is the audit/log trail for the money actually moving.
+        logger.info(f"Payment succeeded: {obj.get('id')} amount={obj.get('amount_received')}")
+        return {"action": "payment_succeeded", "payment_intent": obj.get("id")}
+
+    elif event_type == "payment_intent.payment_failed":
+        failure_reason = (obj.get("last_payment_error") or {}).get("message", "unknown")
+        logger.warning(f"Payment failed: {obj.get('id')} reason={failure_reason}")
+        return {"action": "payment_failed", "payment_intent": obj.get("id"), "reason": failure_reason}
 
     elif event_type == "customer.subscription.updated":
         # Update subscription status
@@ -368,6 +400,7 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
                 logger.warning(f"Payment failed for org {org_id}")
                 return {"action": "payment_failed", "org_id": org_id}
 
+    logger.info(f"Unhandled Stripe event type: {event_type}")
     return None
 
 

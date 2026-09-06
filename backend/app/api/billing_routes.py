@@ -1,6 +1,7 @@
 """Billing and subscription API endpoints."""
 import json
 import logging
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -73,6 +74,7 @@ def get_my_subscription(
 
 @router.post("/checkout")
 async def create_checkout(
+    request: Request,
     tier: str = Query(..., description="Plan tier: pro, enterprise"),
     billing_cycle: str = Query("monthly", description="monthly or yearly"),
     user: User = Depends(get_current_user),
@@ -86,11 +88,20 @@ async def create_checkout(
     if plan_tier == PlanTier.FREE:
         raise HTTPException(status_code=422, detail="Free tier does not require checkout")
 
+    # Success/cancel URLs: env override first, else derive from the request
+    # so localhost/staging/production all return to the right place without
+    # hardcoding an environment-specific URL in code.
+    base_url = os.environ.get("STRIPE_SUCCESS_BASE_URL", "").rstrip("/") or str(request.base_url).rstrip("/")
+    success_url = f"{base_url}/billing?checkout=success"
+    cancel_url = f"{base_url}/billing?checkout=cancelled"
+
     session = await create_checkout_session(
         org_id=user.org_id,
         user_id=user.id,
         tier=plan_tier,
         billing_cycle=billing_cycle,
+        success_url=success_url,
+        cancel_url=cancel_url,
     )
     return session
 

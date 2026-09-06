@@ -50,6 +50,25 @@
 </div>
 
 <script>
+(function () {
+  // Checkout return messaging — the real state comes from the webhook +
+  // subscription fetch below; this guides the user right after redirect.
+  (function () {
+    var params = new URLSearchParams(location.search);
+    var state = params.get('checkout');
+    var el = document.getElementById('bill-msg');
+    if (el && state === 'success') {
+      el.textContent = 'Payment received — activating your plan…';
+    } else if (el && state === 'cancelled') {
+      el.textContent = 'Checkout cancelled — no charge was made.';
+    }
+    if (state) {
+      params.delete('checkout');
+      history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : ''));
+    }
+  })();
+})();
+
 /* CLIENT-SIDE: this page contains no secret key material (no sk_/pk_
    literals). Checkout sessions are created SERVER-SIDE via
    POST /api/billing/checkout (secret-key authorized); the browser only
