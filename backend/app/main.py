@@ -354,7 +354,13 @@ async def register_page(request: Request):
 
 
 @app.post("/register", response_class=HTMLResponse)
-async def register_post(request: Request, name: str = Form(...), email: str = Form(...), password: str = Form(...), org_name: str = Form("")):
+async def register_post(request: Request, first_name: str = Form(""), last_name: str = Form(""), email: str = Form(...), password: str = Form(...), organization: str = Form("")):
+    name = f"{first_name.strip()} {last_name.strip()}".strip()
+    org_name = organization.strip()
+    if not name:
+        return templates.TemplateResponse("pages/register.html", {
+            "request": request, "error": "Please enter your name.", **page_ctx()
+        })
     from app.security import hash_password, create_access_token, create_refresh_token, log_audit_event
     from app.database import SessionLocal
     from app.models import User, Organization

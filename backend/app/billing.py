@@ -14,7 +14,7 @@ import os
 import secrets
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Optional
 
@@ -163,6 +163,8 @@ def create_subscription(
 ) -> Subscription:
     """Create a new subscription."""
     sub_id = secrets.token_urlsafe(16)
+    now = datetime.now(timezone.utc)
+    period_days = 365 if billing_cycle == "yearly" else 31
     sub = Subscription(
         id=sub_id,
         org_id=org_id,
@@ -171,9 +173,26 @@ def create_subscription(
         billing_cycle=billing_cycle,
         stripe_customer_id=stripe_customer_id,
         stripe_subscription_id=stripe_subscription_id,
+        current_period_start=now.isoformat(),
+        current_period_end=(now + timedelta(days=period_days)).isoformat(),
     )
     _subscriptions[sub_id] = sub
     return sub
+
+
+def find_subscription_by_stripe_ref(ref: Optional[str]) -> Optional[Subscription]:
+    """Find an existing subscription by its Stripe object reference.
+
+    Used for webhook idempotency: Stripe retries webhook deliveries, and
+    duplicate `payment_intent.succeeded` / `checkout.session.completed`
+    events must not create duplicate subscriptions.
+    """
+    if not ref:
+        return None
+    for sub in _subscriptions.values():
+        if sub.stripe_subscription_id == ref:
+            return sub
+    return None
 
 
 def record_usage(org_id: str, resource: str, quantity: int = 1) -> UsageRecord:
@@ -242,6 +261,7 @@ async def create_checkout_session(
         "metadata[org_id]": org_id,
         "metadata[user_id]": user_id,
         "metadata[tier]": tier.value,
+        "metadata[billing_cycle]": billing_cycle,
         "line_items[0][quantity]": 1,
     }
     if price_id:
@@ -357,6 +377,7 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
             org_id=org_id,
             user_id=obj.get("metadata", {}).get("user_id", ""),
             tier=PlanTier(obj.get("metadata", {}).get("tier", "pro")),
+            billing_cycle=obj.get("metadata", {}).get("billing_cycle", "monthly"),
             stripe_customer_id=obj.get("customer"),
             stripe_subscription_id=obj.get("subscription"),
         )
@@ -372,10 +393,16 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
         meta = obj.get("metadata") or {}
         org_id = meta.get("org_id", "") or org_id
         if org_id and meta.get("tier"):
+            # Idempotency: a retried webhook must not double-fulfill.
+            existing = find_subscription_by_stripe_ref(obj.get("id"))
+            if existing:
+                logger.info(f"Duplicate fulfillment ignored for {obj.get('id')}")
+                return {"action": "already_fulfilled", "subscription_id": existing.id}
             sub = create_subscription(
                 org_id=org_id,
                 user_id=meta.get("user_id", ""),
                 tier=PlanTier(meta.get("tier", "pro")),
+                billing_cycle=meta.get("billing_cycle", "monthly"),
                 stripe_customer_id=(meta.get("customer") or obj.get("customer") or ""),
                 stripe_subscription_id=obj.get("id"),
             )

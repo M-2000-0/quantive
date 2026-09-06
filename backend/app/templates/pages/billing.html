@@ -94,12 +94,21 @@
     }
   }
 
+  function cyclePrice(plan, cycle) {
+    if (!plan) return null;
+    return cycle === 'yearly' ? plan.price_yearly : plan.price_monthly;
+  }
+
   function render(data, plans) {
     var sub = data.subscription;
     var tier = data.tier || 'free';
     document.getElementById('bill-plan').textContent = tierName(tier);
     var plan = (plans || []).filter(function (p) { return p.tier === tier; })[0];
-    document.getElementById('bill-cost').textContent = sub ? money(plan && plan.price_monthly) : '$0';
+    var cycle = (sub && sub.billing_cycle) || 'monthly';
+    var cost = cyclePrice(plan, cycle);
+    document.getElementById('bill-cost').textContent = sub
+      ? (cycle === 'yearly' ? money(cost) + '/yr' : money(cost) + '/mo')
+      : '$0';
     document.getElementById('bill-renew').textContent =
       (sub && sub.current_period_end) ? String(sub.current_period_end).slice(0, 10) : '—';
 
@@ -114,6 +123,14 @@
     if (sub && sub.status && sub.status !== 'active') {
       msg('Subscription status: ' + sub.status);
     }
+
+    // Current-plan awareness: hide upgrade/cycle CTAs when already on Pro.
+    // Note: never clear bill-msg here — the checkout-return message and
+    // subscription-status notice are set earlier and must survive render.
+    var onPro = tier === 'pro' && sub && sub.status === 'active';
+    document.getElementById('btn-upgrade').style.display = onPro ? 'none' : '';
+    document.getElementById('btn-cycle-monthly').style.display = onPro ? 'none' : '';
+    document.getElementById('btn-cycle-yearly').style.display = onPro ? 'none' : '';
   }
 
   function renderLimits() {
