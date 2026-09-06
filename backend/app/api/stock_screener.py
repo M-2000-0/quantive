@@ -102,6 +102,12 @@ DIVIDEND_STOCKS = [
     {"symbol": "RTX", "name": "RTX Corp", "yield": 2.1, "sector": "Defense"},
     {"symbol": "HON", "name": "Honeywell", "yield": 2.0, "sector": "Industrial"},
     {"symbol": "CAT", "name": "Caterpillar", "yield": 1.6, "sector": "Industrial"},
+    {"symbol": "MO", "name": "Altria", "yield": 8.1, "sector": "Consumer"},
+    {"symbol": "CL", "name": "Colgate-Palmolive", "yield": 2.2, "sector": "Consumer"},
+    {"symbol": "KMB", "name": "Kimberly-Clark", "yield": 3.5, "sector": "Consumer"},
+    {"symbol": "TGT", "name": "Target", "yield": 3.2, "sector": "Consumer"},
+    {"symbol": "GIS", "name": "General Mills", "yield": 3.6, "sector": "Consumer"},
+    {"symbol": "KHC", "name": "Kraft Heinz", "yield": 5.4, "sector": "Consumer"},
 ]
 
 

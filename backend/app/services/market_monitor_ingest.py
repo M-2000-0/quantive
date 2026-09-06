@@ -238,12 +238,16 @@ DEFAULT_STOCKS = [
     "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "BRK-B",
     "JPM", "V", "UNH", "XOM", "JNJ", "WMT", "PG", "MA", "HD", "CVX",
     "MRK", "ABBV", "LLY", "AVGO", "COST", "KO", "PEP",
+    "MCD", "DIS", "NKE", "SBUX", "PFE", "T", "VZ", "GE", "MU",
+    "PLTR", "TSM", "CAT", "GILD", "INTU",
     # Growth / Tech
     "AMD", "CRM", "NFLX", "ADBE", "NOW", "INTC", "QCOM", "ORCL",
+    "SNOW", "UBER", "ANET", "ADSK", "MELI",
     # Crypto-adjacent
     "COIN", "MSTR", "MARA", "RIOT", "HOOD",
     # ETFs
     "SPY", "QQQ", "VTI", "ARKK", "GLD", "TLT", "IWM", "EEM",
+    "VOO", "BND", "AGG", "SCHD", "VNQ",
 ]
 
 DEFAULT_CRYPTO = [

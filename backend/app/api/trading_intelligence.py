@@ -58,10 +58,11 @@ TTL_STOCK_PRICES = 2 * 60   # 2 min for real-time
 TTL_SECTOR_DATA = 5 * 60    # 5 min for sectors
 TTL_TECHNICALS = 10 * 60    # 10 min for technicals
 
-# S&P 500 Top 50 stocks by market cap (symbol → name)
+# Major large-cap US stocks by market cap (symbol → name)
 SP500_TOP50 = {
     "AAPL": "Apple", "MSFT": "Microsoft", "NVDA": "NVIDIA", "AMZN": "Amazon",
-    "GOOGL": "Alphabet", "META": "Meta Platforms", "BRK-B": "Berkshire Hathaway",
+    "GOOGL": "Alphabet", "GOOG": "Alphabet C", "META": "Meta Platforms",
+    "BRK-B": "Berkshire Hathaway",
     "LLY": "Eli Lilly", "AVGO": "Broadcom", "TSLA": "Tesla",
     "WMT": "Walmart", "JPM": "JPMorgan Chase", "V": "Visa",
     "UNH": "UnitedHealth", "XOM": "Exxon Mobil", "MA": "Mastercard",
@@ -72,11 +73,20 @@ SP500_TOP50 = {
     "ORCL": "Oracle", "TMO": "Thermo Fisher", "PEP": "PepsiCo",
     "LIN": "Linde", "ACN": "Accenture", "CSCO": "Cisco",
     "ADBE": "Adobe", "DHR": "Danaher", "ABT": "Abbott Labs",
-    "WFC": "Wells Fargo", "CRM": "Salesforce", "TXN": "Texas Instruments",
+    "WFC": "Wells Fargo", "TXN": "Texas Instruments",
     "PM": "Philip Morris", "GE": "GE Aerospace", "AMGN": "Amgen",
     "INTC": "Intel", "CAT": "Caterpillar", "QCOM": "Qualcomm",
     "NOW": "ServiceNow", "GS": "Goldman Sachs", "AMAT": "Applied Materials",
     "BLK": "BlackRock", "ISRG": "Intuitive Surgical",
+    "PFE": "Pfizer", "T": "AT&T", "VZ": "Verizon", "DIS": "Walt Disney",
+    "MCD": "McDonald's", "NKE": "Nike", "SBUX": "Starbucks",
+    "LMT": "Lockheed Martin", "PLTR": "Palantir", "MU": "Micron",
+    "INTU": "Intuit", "TMUS": "T-Mobile", "ANET": "Arista Networks",
+    "AXP": "American Express", "MS": "Morgan Stanley",
+    "SCHW": "Charles Schwab", "GILD": "Gilead Sciences",
+    "MDLZ": "Mondelez", "TJX": "TJX Companies", "TGT": "Target",
+    "CMCSA": "Comcast", "ADSK": "Autodesk", "UNP": "Union Pacific",
+    "DE": "Deere", "TSM": "TSMC",
 }
 
 # NASDAQ 100 top stocks (additions beyond S&P 500)
@@ -89,6 +99,13 @@ NASDAQ100_EXTRA = {
     "ZS": "Zscaler", "NET": "Cloudflare", "SHOP": "Shopify",
     "ROKU": "Roku", "UBER": "Uber", "ABNB": "Airbnb",
     "DASH": "DoorDash", "HOOD": "Robinhood", "RBLX": "Roblox",
+    "ARM": "Arm Holdings", "ASML": "ASML", "PDD": "PDD Holdings",
+    "CEG": "Constellation Energy", "KDP": "Keurig Dr Pepper",
+    "ROST": "Ross Stores", "LULU": "Lululemon", "MAR": "Marriott",
+    "MCHP": "Microchip", "NXPI": "NXP", "REGN": "Regeneron",
+    "VRTX": "Vertex Pharmaceuticals", "FANG": "Diamondback Energy",
+    "CHTR": "Charter Communications", "EA": "Electronic Arts",
+    "BKR": "Baker Hughes",
 }
 
 # 11 SPDR Sector ETFs

@@ -6,11 +6,21 @@ Covers all major exchanges worldwide including pink sheets, OTC, and emerging ma
 # ── US Markets ───────────────────────────────────────────────────────
 
 US_LARGE_CAP = [
-    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "BRK-B",
-    "JPM", "V", "UNH", "XOM", "JNJ", "WMT", "PG", "MA", "HD", "CVX",
-    "MRK", "ABBV", "LLY", "AVGO", "COST", "KO", "PEP", "BAC", "CRM",
-    "NFLX", "ADBE", "AMD", "INTC", "QCOM", "ORCL", "NOW", "TXN", "PM",
-    "NEE", "UPS", "RTX", "HON", "LOW", "AMGN", "IBM", "BA", "GS",
+    # Mega cap tech / communication
+    "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "NVDA", "META", "TSLA",
+    "AVGO", "ORCL", "CRM", "NFLX", "ADBE", "AMD", "INTC", "QCOM", "MU",
+    "ADI", "ANET", "INTU", "TXN", "TSM", "NOW", "GE", "GEV", "SNDK",
+    # Consumer staples / discretionary
+    "WMT", "COST", "PG", "KO", "PEP", "PM", "HD", "LOW", "TGT", "TJX",
+    "MDLZ", "MCD", "NKE", "SBUX", "DIS", "CMCSA",
+    # Healthcare
+    "UNH", "JNJ", "LLY", "MRK", "ABBV", "AMGN", "PFE", "GILD", "MDT",
+    # Financials
+    "JPM", "V", "MA", "BAC", "BRK-B", "GS", "MS", "BLK", "BX", "SPGI",
+    "SCHW", "C", "AXP", "USB", "PNC", "MMC", "TRV",
+    # Energy / industrials / utilities
+    "XOM", "CVX", "NEE", "UPS", "RTX", "HON", "IBM", "BA",
+    "LMT", "CAT", "UNP", "DE", "EMR", "APD", "CSX", "OXY", "OKE",
 ]
 
 US_MID_SMALL_CAP = [
@@ -18,6 +28,8 @@ US_MID_SMALL_CAP = [
     "SOFI", "HOOD", "RIVN", "LCID", "CHPT", "CHWY", "ETSY", "WISH",
     "CLOV", "WKHS", "NIO", "XPEV", "LI", "BYND", "NKLA", "FUBO",
     "BROS", "LULU", "WDAY", "DDOG", "NET", "CRWD", "ZS", "PANW",
+    "SNOW", "MDB", "TWLO", "SE", "MELI", "UBER", "CVNA", "F", "GM",
+    "RBLX", "AFRM", "PATH", "DUOL", "MRNA", "U",
 ]
 
 US_CRYPTO_ADJACENT = [
@@ -29,6 +41,8 @@ US_ETFS = [
     "SPY", "QQQ", "VTI", "IWM", "EEM", "ARKK", "GLD", "TLT",
     "VXX", "XLF", "XLE", "XLK", "XLV", "XLI", "XLP", "XLU",
     "SOXX", "SMH", "BITX", "IBIT", "GBTC", "COIN", "BLOK",
+    "VOO", "IVV", "DIA", "VXUS", "EFA", "BND", "AGG", "SCHD",
+    "XLRE", "VNQ", "KRE", "XBI", "USO", "SLV", "HYG", "LQD", "IEF",
 ]
 
 US_PINK_SHEETS_OTC = [
@@ -82,6 +96,9 @@ IDX_BLUE_CHIPS = [
     "GOOD",  # Good Food Indonesia
     "RALS",  # Ramayana Lestari
     "MAPI",  # Mitra Adiperkasa
+    "AMMN",  # Amman Mineral Internasional
+    "BRPT",  # Barito Pacific
+    "PGAS",  # Perusahaan Gas Negara
 ]
 
 IDX_TECH_GROWTH = [
@@ -122,6 +139,10 @@ TSE_BLUE_CHIPS = [
     "5401.T",  # Nippon Steel
     "8766.T",  # Tokio Marine
     "7011.T",  # Mitsubishi Motors
+    "9983.T",  # Fast Retailing
+    "9432.T",  # NTT
+    "8031.T",  # Mitsui & Co
+    "8001.T",  # Itochu
 ]
 
 # ── London (LSE) ──────────────────────────────────────────────────────
@@ -147,6 +168,10 @@ LSE_BLUE_CHIPS = [
     "CRDA.L",  # Croda
     "SN.L",    # Smith & Nephew
     "SBRY.L",  # Sainsbury's
+    "PRU.L",   # Prudential
+    "REL.L",   # RELX
+    "GLEN.L",  # Glencore
+    "III.L",   # 3i Group
 ]
 
 # ── Hong Kong (HKEX) ─────────────────────────────────────────────────
@@ -172,6 +197,10 @@ HKEX_BLUE_CHIPS = [
     "2382.HK",  # Sunny Optical
     "0939.HK",  # CCB
     "1928.HK",  # Sands China
+    "1299.HK",  # AIA Group
+    "0001.HK",  # CK Hutchison
+    "0823.HK",  # Link REIT
+    "2388.HK",  # BOC Hong Kong
 ]
 
 # ── Europe (non-UK) ──────────────────────────────────────────────────
@@ -208,6 +237,15 @@ EUROPE_BLUE_CHIPS = [
     "RACE.MI",  # Ferrari (Italy)
     "ENEL.MI",  # Enel (Italy)
     "INTC.MI",  # Intesa Sanpaolo (Italy)
+    "IFX.DE",   # Infineon (Germany)
+    "MUV2.DE",  # Munich Re (Germany)
+    "DPW.DE",   # DHL Group (Germany)
+    "SU.PA",    # Schneider Electric (France)
+    "DSY.PA",   # Dassault Systemes (France)
+    "ABBN.SW",  # ABB (Switzerland)
+    "ZURN.SW",  # Zurich Insurance (Switzerland)
+    "HEIA.AS",  # Heineken (Netherlands)
+    "AD.AS",    # Ahold Delhaize (Netherlands)
 ]
 
 # ── Canada (TSX) ──────────────────────────────────────────────────────
@@ -233,6 +271,11 @@ TSX_BLUE_CHIPS = [
     "WCN.TO",  # Waste Connections
     "TFI.TO",  # TF International
     "ATD.TO",  # Alimentation Couche-Tard
+    "CP.TO",   # Canadian Pacific Kansas City
+    "CNR.TO",  # Canadian National Railway
+    "T.TO",    # Telus
+    "TRI.TO",  # Thomson Reuters
+    "POW.TO",  # Power Corporation
 ]
 
 # ── Australia (ASX) ──────────────────────────────────────────────────
@@ -253,6 +296,10 @@ ASX_BLUE_CHIPS = [
     "ALL.AX",  # Aristocrat Leisure
     "MIN.AX",  # Mineral Resources
     "JHX.AX",  # James Hardie
+    "WES.AX",  # Wesfarmers
+    "GMG.AX",  # Goodman Group
+    "TCL.AX",  # Transurban
+    "STO.AX",  # Santos
 ]
 
 # ── Crypto (Comprehensive) ──────────────────────────────────────────
