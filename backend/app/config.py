@@ -1,8 +1,25 @@
+import os
 import secrets
 import warnings
 from functools import lru_cache
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+_BASE_DIR = Path(__file__).resolve().parents[2]  # repo root
+_BACKEND_DIR = Path(__file__).resolve().parents[1]  # backend/
+
+# Load .env into os.environ so BOTH consumers see the same values:
+# - Settings (pydantic-settings) below, and
+# - modules reading os.environ directly at import time (billing, market
+#   data providers, notification providers, ...).
+# backend/.env (local overrides) loads first; load_dotenv never overwrites
+# keys already in os.environ, so it wins over the repo-root .env, and real
+# environment variables win over both.
+load_dotenv(_BACKEND_DIR / ".env")
+load_dotenv(_BASE_DIR / ".env")
 
 # ── Production secret requirements ─────────────────────────────────
 DEFAULT_SECRET_KEY = "change-me-to-a-random-secret-key-in-production"
@@ -107,7 +124,10 @@ class Settings(BaseSettings):
         return True
 
     class Config:
-        env_file = ".env"
+        env_file = [
+            str(_BACKEND_DIR / ".env"),
+            str(_BASE_DIR / ".env"),
+        ]
         env_file_encoding = "utf-8"
         extra = "ignore"
 
