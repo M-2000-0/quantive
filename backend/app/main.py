@@ -17,6 +17,7 @@ from app.config import get_settings
 from app.database import engine
 from app.jobs import JOBS, create_job, get_job
 from app.security.middleware import (
+    BearerPromotionMiddleware,
     GlobalExceptionHandler,
     RateLimitMiddleware,
     RequestIDMiddleware,
@@ -254,6 +255,9 @@ app.add_middleware(CSRFMiddleware, secret=settings.SECRET_KEY)
 app.add_middleware(IdempotencyMiddleware)
 app.add_middleware(CompressionMiddleware)
 app.add_middleware(PageAuthMiddleware)
+# Cookie→Bearer promotion for same-origin API calls (see class docstring).
+# Added LAST so it runs FIRST in the chain, before CSRF/rate-limit see headers.
+app.add_middleware(BearerPromotionMiddleware)
 
 # ── Static Files (cached) ───────────────────────────────────
 import os as _os

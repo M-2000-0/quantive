@@ -20,6 +20,38 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class BearerPromotionMiddleware(BaseHTTPMiddleware):
+    """Promote the httpOnly access-token cookie to an Authorization header.
+
+    Problem: pages authenticate with an httpOnly session cookie (set by the
+    HTML login), which JavaScript cannot read — so same-origin fetch() calls
+    to /api/ endpoints cannot attach a Bearer token themselves, while API
+    auth dependencies (app.security.get_current_user) read ONLY the
+    Authorization header. Result: every logged-in page's fetch() would 401.
+
+    Fix: for API paths carrying an access_token cookie and no explicit
+    Authorization header, promote cookie → Bearer header in-place. Adds no
+    new trust — the same JWT flows through the exact same signature/revocation
+    verification as a header token.
+    """
+
+    def __init__(self, app, api_prefixes: tuple[str, ...] = ("/api/",)):
+        super().__init__(app)
+        self.api_prefixes = api_prefixes
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith(self.api_prefixes):
+            token = request.cookies.get("access_token", "")
+            if token and not request.headers.get("authorization"):
+                headers = [
+                    (k, v) for (k, v) in request.scope["headers"]
+                    if k.lower() != b"authorization"
+                ]
+                headers.append((b"authorization", b"Bearer " + token.encode("utf-8")))
+                request.scope["headers"] = headers
+        return await call_next(request)
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response: Response = await call_next(request)
