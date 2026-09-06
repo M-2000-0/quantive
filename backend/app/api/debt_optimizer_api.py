@@ -19,9 +19,12 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.billing import check_limit, record_usage
+from app.models import User
+from app.security import get_current_user
 from app.optimization.qubo_formulator import formulate_qubo, decode_solution, evaluate_cost, DebtParameters
 from app.optimization.monte_carlo import run_monte_carlo, PortfolioInput, SimulationConfig
 from app.optimization.policy_engine import generate_policy_brief
@@ -104,15 +107,44 @@ def list_scenarios():
 
 
 @router.post("")
-def optimize_debt(request: OptimizationRequest):
-    """Full debt optimization pipeline.
+def optimize_debt(
+    request: OptimizationRequest,
+    user: User = Depends(get_current_user),
+):
+    """Full debt optimization pipeline (auth required, plan-limited).
 
-    1. Formulate QUBO matrix from debt parameters
-    2. Solve via hybrid quantum-classical solver
-    3. Run Monte Carlo stress tests
-    4. Generate AI policy brief
-    5. Return comprehensive results
+    Pipeline: data ingestion → QUBO → hybrid quantum-classical solver →
+    Monte Carlo stress tests → AI policy brief.
+
+    Raises 401 when unauthenticated, 429 when the org's daily
+    optimization limit is exhausted.
     """
+    # ── Step 0: Plan limit enforcement (metering gate) ───────────
+    limit_info = check_limit(user.org_id, "optimizations_per_day")
+    if not limit_info["allowed"]:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "daily_limit_reached",
+                "message": f"Daily optimization limit reached ({limit_info['current']}/{limit_info['limit']} on the {limit_info['plan']} plan). Upgrade to increase your limit.",
+                "current": limit_info["current"],
+                "limit": limit_info["limit"],
+                "plan": limit_info["plan"],
+                "resource": "optimizations_per_day",
+            },
+        )
+
+    result = _execute_optimization(request)
+    record_usage(user.org_id, "optimizations_per_day", 1)
+    result["billing"] = {
+        "plan": limit_info["plan"],
+        "usage": {"used": limit_info["current"] + 1, "limit": limit_info["limit"]},
+    }
+    return result
+
+
+def _execute_optimization(request: OptimizationRequest) -> dict:
+    """Core pipeline: QUBO formulation → hybrid solver → Monte Carlo → policy brief."""
     start_time = time.time()
 
     try:
@@ -327,12 +359,29 @@ def optimize_debt(request: OptimizationRequest):
 
 
 @router.post("/quick")
-def quick_optimize(request: QuickOptimizationRequest):
+def quick_optimize(
+    request: QuickOptimizationRequest,
+    user: User = Depends(get_current_user),
+):
     """Quick optimization with pre-filled parameters for demo/dashboard.
-    
+
     If use_live_data=True (default), fetches real US Treasury yield curve
     from treasury.gov and uses actual rates for the optimization.
+    Auth required; counts against the org's daily optimization limit.
     """
+    limit_info = check_limit(user.org_id, "optimizations_per_day")
+    if not limit_info["allowed"]:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "daily_limit_reached",
+                "message": f"Daily optimization limit reached ({limit_info['current']}/{limit_info['limit']} on the {limit_info['plan']} plan). Upgrade to increase your limit.",
+                "current": limit_info["current"],
+                "limit": limit_info["limit"],
+                "plan": limit_info["plan"],
+                "resource": "optimizations_per_day",
+            },
+        )
     total = request.total_debt_billion * 1e9
 
     # ── Fetch real yield curve ──────────────────────────────────────
@@ -390,7 +439,12 @@ def quick_optimize(request: QuickOptimizationRequest):
         n_simulations=500,
     )
 
-    result = optimize_debt(full_request)
+    result = _execute_optimization(full_request)
+    record_usage(user.org_id, "optimizations_per_day", 1)
+    result["billing"] = {
+        "plan": limit_info["plan"],
+        "usage": {"used": limit_info["current"] + 1, "limit": limit_info["limit"]},
+    }
 
     # Inject metadata about data source
     result["data_source"] = {

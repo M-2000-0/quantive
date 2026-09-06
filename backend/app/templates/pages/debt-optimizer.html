@@ -269,9 +269,20 @@ async function runOptimization() {
     const resp = await fetch(API + '/quick', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
       body: JSON.stringify({ total_debt_billion: 50, current_avg_coupon_pct: 5.2, current_avg_maturity_years: 6.5, current_floating_pct: 25, use_live_data: true })
     });
-    if (!resp.ok) throw new Error('API error: ' + resp.status);
+    if (!resp.ok) {
+      let msg = 'API error: ' + resp.status;
+      try {
+        const err = await resp.json();
+        const d = err.detail !== undefined ? err.detail : err;
+        if (d && typeof d === 'object' && d.message) msg = d.message;
+        else if (typeof d === 'string') msg = d;
+      } catch (e2) { /* non-JSON error body */ }
+      if (resp.status === 401) msg = 'Please log in to run optimizations.';
+      throw new Error(msg);
+    }
     cachedData = await resp.json();
     renderResults(cachedData);
     status.innerHTML = '<span class="positive"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:middle"><path d="M20 6L9 17l-5-5"/></svg> Optimization Complete</span>';
