@@ -206,7 +206,13 @@ def _compute_risk_scores(instruments: list) -> RiskScoreSummary:
 
 # ── Endpoints ─────────────────────────────────────────────────────────
 
-@router.get("/summary")
+@router.get(
+    "/summary",
+    response_model=DashboardSummary,
+    summary="Dashboard summary",
+    description="Returns aggregated dashboard data including total debt, instrument count, currency count, portfolio count, average maturity, weighted coupon, optimization counts, risk scores, maturity distribution, and top currencies. All data is live from the database.",
+    response_description="Aggregated portfolio and risk metrics for the main dashboard view",
+)
 def dashboard_summary(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -268,7 +274,13 @@ def dashboard_summary(
     }
 
 
-@router.get("/tasks")
+@router.get(
+    "/tasks",
+    response_model=list[DashboardTask],
+    summary="Dashboard tasks",
+    description="Returns priority tasks for the dashboard including active optimizations, upcoming maturities, and portfolio alerts. Tasks are sorted by priority (high > medium > low).",
+    response_description="List of actionable tasks with type, status, and priority",
+)
 def dashboard_tasks(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

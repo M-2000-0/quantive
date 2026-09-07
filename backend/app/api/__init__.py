@@ -48,6 +48,18 @@ from app.api import (
     exports_imf,
     rbac_admin,
     government,
+    transparency_index,
+    pricing,
+    sovereign_mode,
+    pilot_program,
+    government_relations,
+    immutable_audit_api,
+    approval_workflow_api,
+    model_validation_api,
+    interoperability_api,
+    disaster_recovery_api,
+    sla_api,
+    escrow_api,
     soc2_routes,
     quantum_routes,
     activity,
@@ -77,6 +89,7 @@ from app.api import (
     optimizations,
     pdf_reports,
     portfolio_access,
+    portfolio_detail,
     portfolios,
     preferences,
     progress,
@@ -109,6 +122,13 @@ from app.api import (
     sentiment_api,
     daily_digest_api,
     weekly_digest_api,
+    automation_api,
+    transparency_index,
+    pricing,
+    sovereign_mode,
+    pilot_program,
+    government_relations,
+    solvers,
 )
 from app.database import get_db
 from app.security.threats import router as threats_router
@@ -118,8 +138,10 @@ router.include_router(auth.router)
 router.include_router(auth_extended.router)
 router.include_router(mfa.router)
 router.include_router(portfolios.router)
+router.include_router(portfolio_detail.router)
 router.include_router(portfolio_access.router)
 router.include_router(optimizations.router)
+router.include_router(solvers.router)
 router.include_router(audit.router)
 router.include_router(analytics.router)
 router.include_router(progress.router)
@@ -231,6 +253,19 @@ router.include_router(track_record_api.router)
 router.include_router(sentiment_api.router)
 router.include_router(daily_digest_api.router)
 router.include_router(weekly_digest_api.router)
+router.include_router(automation_api.router)
+router.include_router(transparency_index.router)
+router.include_router(pricing.router)
+router.include_router(sovereign_mode.router)
+router.include_router(pilot_program.router)
+router.include_router(government_relations.router)
+router.include_router(immutable_audit_api.router)
+router.include_router(approval_workflow_api.router)
+router.include_router(model_validation_api.router)
+router.include_router(interoperability_api.router)
+router.include_router(disaster_recovery_api.router)
+router.include_router(sla_api.router)
+router.include_router(escrow_api.router)
 
 
 @router.get("/api/health")

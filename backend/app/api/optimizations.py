@@ -168,37 +168,97 @@ def cancel_optimization(job_id: str, user: User = Depends(get_current_user), db:
     log_audit_event(db, user, "optimization.cancelled", "optimization", job.id)
 
 
-@router.get("/{job_id}/strategies", response_model=list[StrategyResponse])
-def get_strategies(job_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("/{job_id}/strategies")
+def get_strategies(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    pagination: PaginationQuery = Depends(),
+):
     job = db.query(OptimizationJob).filter(
         OptimizationJob.id == job_id, OptimizationJob.org_id == user.org_id
     ).first()
     if not job:
         raise HTTPException(status_code=404, detail="Optimization job not found")
-    strategies = db.query(Strategy).filter(Strategy.job_id == job_id).order_by(Strategy.rank).all()
-    return [StrategyResponse.model_validate(s) for s in strategies]
+    query = db.query(Strategy).filter(Strategy.job_id == job_id).order_by(Strategy.rank)
+    items, total = paginate_query(
+        query,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        cursor=pagination.cursor,
+        sort_by=pagination.sort_by or "rank",
+        sort_order=pagination.sort_order,
+        model=Strategy,
+    )
+    return create_paginated_response(
+        items=items,
+        total=total,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        serializer=lambda s: StrategyResponse.model_validate(s).model_dump(mode="json"),
+    )
 
 
-@router.get("/{job_id}/benchmarks", response_model=list[BenchmarkResponse])
-def get_benchmarks(job_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("/{job_id}/benchmarks")
+def get_benchmarks(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    pagination: PaginationQuery = Depends(),
+):
     job = db.query(OptimizationJob).filter(
         OptimizationJob.id == job_id, OptimizationJob.org_id == user.org_id
     ).first()
     if not job:
         raise HTTPException(status_code=404, detail="Optimization job not found")
-    benchmarks = db.query(BenchmarkResult).filter(BenchmarkResult.job_id == job_id).all()
-    return [BenchmarkResponse.model_validate(b) for b in benchmarks]
+    query = db.query(BenchmarkResult).filter(BenchmarkResult.job_id == job_id)
+    items, total = paginate_query(
+        query,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        cursor=pagination.cursor,
+        sort_by=pagination.sort_by or "created_at",
+        sort_order=pagination.sort_order,
+        model=BenchmarkResult,
+    )
+    return create_paginated_response(
+        items=items,
+        total=total,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        serializer=lambda b: BenchmarkResponse.model_validate(b).model_dump(mode="json"),
+    )
 
 
-@router.get("/{job_id}/results", response_model=list[OptimizationResultResponse])
-def get_results(job_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("/{job_id}/results")
+def get_results(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    pagination: PaginationQuery = Depends(),
+):
     job = db.query(OptimizationJob).filter(
         OptimizationJob.id == job_id, OptimizationJob.org_id == user.org_id
     ).first()
     if not job:
         raise HTTPException(status_code=404, detail="Optimization job not found")
-    results = db.query(OptimizationResult).filter(OptimizationResult.job_id == job_id).all()
-    return [OptimizationResultResponse.model_validate(r) for r in results]
+    query = db.query(OptimizationResult).filter(OptimizationResult.job_id == job_id)
+    items, total = paginate_query(
+        query,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        cursor=pagination.cursor,
+        sort_by=pagination.sort_by or "created_at",
+        sort_order=pagination.sort_order,
+        model=OptimizationResult,
+    )
+    return create_paginated_response(
+        items=items,
+        total=total,
+        limit=pagination.limit,
+        offset=pagination.offset,
+        serializer=lambda r: OptimizationResultResponse.model_validate(r).model_dump(mode="json"),
+    )
 
 
 @router.get("/{job_id}/report")

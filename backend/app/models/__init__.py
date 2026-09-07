@@ -348,3 +348,11 @@ from app.models.social import (  # noqa: E402, F401
 from app.models.market_intelligence import MarketLaunch  # noqa: E402, F401
 from app.models.fintech_tracker import FintechLaunch  # noqa: E402, F401
 from app.models.user_profile import UserProfile, RecommendationInteraction  # noqa: E402, F401
+from app.models.automation import (  # noqa: E402, F401
+    Automation,
+    AutomationRun,
+    DunningCase,
+    Lead,
+    MrrEvent,
+    OnboardingSequence,
+)

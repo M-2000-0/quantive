@@ -3,7 +3,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -50,7 +50,7 @@ class Notification(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=gen_uuid)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    type: Mapped[str] = mapped_column(String(50), nullable=False)
+    type: Mapped[str] = mapped_column(SAEnum(NotificationType, values_callable=lambda e: [x.value for x in e], length=50), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     message: Mapped[str] = mapped_column(Text, default="")
     resource_type: Mapped[str | None] = mapped_column(String(50), nullable=True)

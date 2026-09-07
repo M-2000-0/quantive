@@ -14,6 +14,7 @@ from app.security import (
     get_current_user,
     hash_password,
     log_audit_event,
+    validate_password_policy,
     verify_password,
 )
 from app.security.threats import track_failed_login
@@ -24,6 +25,7 @@ _failed_logins: dict[str, list[float]] = defaultdict(list)
 _LOCKOUT_THRESHOLD = 5
 _LOCKOUT_WINDOW_SECONDS = 900
 _LOCKOUT_DURATION_SECONDS = 900
+_MAX_FAILED_EMAILS = 10000  # Prevent unbounded memory growth
 
 
 def _check_lockout(email: str):
@@ -41,6 +43,22 @@ def _check_lockout(email: str):
         _failed_logins[email] = []
 
 
+def _prune_failed_logins():
+    """Periodically prune old failed login entries to prevent memory leak."""
+    now = time.time()
+    expired = [
+        email for email, attempts in _failed_logins.items()
+        if not attempts or all(now - t > _LOCKOUT_DURATION_SECONDS for t in attempts)
+    ]
+    for email in expired:
+        del _failed_logins[email]
+    # Hard cap to prevent abuse
+    if len(_failed_logins) > _MAX_FAILED_EMAILS:
+        oldest = sorted(_failed_logins.keys(), key=lambda e: _failed_logins[e][-1] if _failed_logins[e] else 0)
+        for email in oldest[:len(oldest) - _MAX_FAILED_EMAILS]:
+            del _failed_logins[email]
+
+
 @router.post("/register", response_model=TokenResponse, status_code=201)
 def register(data: UserCreate, request: Request, response: Response, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == data.email.lower().strip()).first()
@@ -48,19 +66,7 @@ def register(data: UserCreate, request: Request, response: Response, db: Session
         raise HTTPException(status_code=409, detail="Email already registered")
 
     # Password policy enforcement
-    import re
-    pw = data.password
-    errors = []
-    if len(pw) < 8:
-        errors.append("at least 8 characters")
-    if not re.search(r'[A-Z]', pw):
-        errors.append("at least one uppercase letter")
-    if not re.search(r'[a-z]', pw):
-        errors.append("at least one lowercase letter")
-    if not re.search(r'[0-9]', pw):
-        errors.append("at least one digit")
-    if errors:
-        raise HTTPException(status_code=400, detail=f"Password must have: {', '.join(errors)}")
+    validate_password_policy(data.password)
 
     org = Organization(name=data.org_name or f"{data.name}'s Organization")
     db.add(org)
@@ -98,6 +104,7 @@ def register(data: UserCreate, request: Request, response: Response, db: Session
 def login(data: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     email = data.email.lower().strip()
     _check_lockout(email)
+    _prune_failed_logins()
 
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(data.password, user.password_hash):
@@ -188,19 +195,7 @@ def change_password(data: PasswordChange, user: User = Depends(get_current_user)
         raise HTTPException(status_code=401, detail="Current password is incorrect")
 
     # Password policy enforcement
-    import re
-    pw = data.new_password
-    errors = []
-    if len(pw) < 8:
-        errors.append("at least 8 characters")
-    if not re.search(r'[A-Z]', pw):
-        errors.append("at least one uppercase letter")
-    if not re.search(r'[a-z]', pw):
-        errors.append("at least one lowercase letter")
-    if not re.search(r'[0-9]', pw):
-        errors.append("at least one digit")
-    if errors:
-        raise HTTPException(status_code=400, detail=f"Password must have: {', '.join(errors)}")
+    validate_password_policy(data.new_password)
 
     user.password_hash = hash_password(data.new_password)
     db.commit()
