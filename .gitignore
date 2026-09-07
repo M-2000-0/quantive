@@ -73,3 +73,27 @@ next-env.d.ts
 /test_output2.txt
 /test_results.txt
 /test_suite_results.txt
+
+# runtime logs, cookies, debug output, throwaway scratch files
+*.log
+*.log.*
+*.err.txt
+*_log.txt
+*_log2.txt
+*_glass.txt
+*_glass_err.txt
+be_log.txt
+err.txt
+cookies.txt
+backend/cookies.txt
+backend/debug.err
+backend/server.log
+backend/backend_out.log
+backend/quantive.db.bak-*
+/5.md
+/6.md
+/work.md
+/build_engine*.py
+/fix_engine*.py
+/rewrite_engine.py
+/test_mc*.py
