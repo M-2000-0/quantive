@@ -19,6 +19,7 @@ from enum import Enum
 from typing import Optional
 
 import httpx
+from sqlalchemy import func
 
 logger = logging.getLogger("quantive.billing")
 
@@ -141,16 +142,72 @@ class UsageRecord:
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
-_subscriptions: dict[str, Subscription] = {}
-_usage: list[UsageRecord] = []
+def _billing_session():
+    """Fresh DB session for the billing store (caller must close)."""
+    from app.database import SessionLocal
+    return SessionLocal()
+
+
+def _row_to_sub(row) -> Subscription:
+    return Subscription(
+        id=row.id,
+        org_id=row.org_id,
+        user_id=row.user_id,
+        tier=PlanTier(row.tier),
+        billing_cycle=row.billing_cycle,
+        stripe_customer_id=row.stripe_customer_id or None,
+        stripe_subscription_id=row.stripe_subscription_id or None,
+        status=row.status,
+        current_period_start=row.current_period_start or None,
+        current_period_end=row.current_period_end or None,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
 
 
 def get_subscription(org_id: str) -> Optional[Subscription]:
-    """Get subscription for an org."""
-    for sub in _subscriptions.values():
-        if sub.org_id == org_id and sub.status in ("active", "trialing"):
-            return sub
-    return None
+    """Get the active subscription for an org (DB-backed — survives restarts)."""
+    from app.models.billing import SubscriptionRow
+    db = _billing_session()
+    try:
+        row = (db.query(SubscriptionRow)
+               .filter(SubscriptionRow.org_id == org_id,
+                       SubscriptionRow.status.in_(("active", "trialing")))
+               .order_by(SubscriptionRow.created_at.desc())
+               .first())
+        return _row_to_sub(row) if row else None
+    finally:
+        db.close()
+
+
+def list_subscriptions() -> list[Subscription]:
+    """All subscriptions, newest first (for batch jobs like dunning/MRR)."""
+    from app.models.billing import SubscriptionRow
+    db = _billing_session()
+    try:
+        rows = db.query(SubscriptionRow).order_by(SubscriptionRow.created_at.desc()).all()
+        return [_row_to_sub(r) for r in rows]
+    finally:
+        db.close()
+
+
+def set_subscription_status_by_org(org_id: str, status: str) -> bool:
+    """Update status on the org's active subscriptions. Returns True if any changed."""
+    from app.models.billing import SubscriptionRow
+    db = _billing_session()
+    try:
+        rows = (db.query(SubscriptionRow)
+                .filter(SubscriptionRow.org_id == org_id,
+                        SubscriptionRow.status.in_(("active", "trialing", "past_due")))
+                .all())
+        now = datetime.now(timezone.utc).isoformat()
+        for r in rows:
+            r.status = status
+            r.updated_at = now
+        db.commit()
+        return bool(rows)
+    finally:
+        db.close()
 
 
 def create_subscription(
@@ -161,11 +218,31 @@ def create_subscription(
     stripe_customer_id: Optional[str] = None,
     stripe_subscription_id: Optional[str] = None,
 ) -> Subscription:
-    """Create a new subscription."""
+    """Create a new subscription (persisted to billing_subscriptions)."""
+    from app.models.billing import SubscriptionRow
     sub_id = secrets.token_urlsafe(16)
     now = datetime.now(timezone.utc)
     period_days = 365 if billing_cycle == "yearly" else 31
-    sub = Subscription(
+    db = _billing_session()
+    try:
+        db.add(SubscriptionRow(
+            id=sub_id,
+            org_id=org_id,
+            user_id=user_id,
+            tier=tier.value,
+            billing_cycle=billing_cycle,
+            stripe_customer_id=stripe_customer_id or "",
+            stripe_subscription_id=stripe_subscription_id or "",
+            status="active",
+            current_period_start=now.isoformat(),
+            current_period_end=(now + timedelta(days=period_days)).isoformat(),
+            created_at=now.isoformat(),
+            updated_at=now.isoformat(),
+        ))
+        db.commit()
+    finally:
+        db.close()
+    return Subscription(
         id=sub_id,
         org_id=org_id,
         user_id=user_id,
@@ -175,9 +252,9 @@ def create_subscription(
         stripe_subscription_id=stripe_subscription_id,
         current_period_start=now.isoformat(),
         current_period_end=(now + timedelta(days=period_days)).isoformat(),
+        created_at=now.isoformat(),
+        updated_at=now.isoformat(),
     )
-    _subscriptions[sub_id] = sub
-    return sub
 
 
 def find_subscription_by_stripe_ref(ref: Optional[str]) -> Optional[Subscription]:
@@ -189,32 +266,49 @@ def find_subscription_by_stripe_ref(ref: Optional[str]) -> Optional[Subscription
     """
     if not ref:
         return None
-    for sub in _subscriptions.values():
-        if sub.stripe_subscription_id == ref:
-            return sub
-    return None
+    from app.models.billing import SubscriptionRow
+    db = _billing_session()
+    try:
+        row = (db.query(SubscriptionRow)
+               .filter(SubscriptionRow.stripe_subscription_id == ref)
+               .first())
+        return _row_to_sub(row) if row else None
+    finally:
+        db.close()
 
 
 def record_usage(org_id: str, resource: str, quantity: int = 1) -> UsageRecord:
-    """Record API usage for metering."""
+    """Record API usage for metering (persisted — quotas survive restarts)."""
+    from app.models.billing import UsageRow
     usage_id = secrets.token_urlsafe(8)
-    record = UsageRecord(id=usage_id, org_id=org_id, resource=resource, quantity=quantity)
-    _usage.append(record)
-    return record
+    ts = datetime.now(timezone.utc).isoformat()
+    db = _billing_session()
+    try:
+        db.add(UsageRow(id=usage_id, org_id=org_id, resource=resource,
+                        quantity=quantity, timestamp=ts))
+        db.commit()
+    finally:
+        db.close()
+    return UsageRecord(id=usage_id, org_id=org_id, resource=resource,
+                       quantity=quantity, timestamp=ts)
 
 
 def get_usage(org_id: str, resource: Optional[str] = None, since_hours: int = 24) -> dict:
     """Get usage stats for an org."""
-    from datetime import timedelta
+    from app.models.billing import UsageRow
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=since_hours)).isoformat()
 
-    records = [u for u in _usage if u.org_id == org_id and u.timestamp >= cutoff]
-    if resource:
-        records = [u for u in records if u.resource == resource]
+    db = _billing_session()
+    try:
+        filters = [UsageRow.org_id == org_id, UsageRow.timestamp >= cutoff]
+        if resource:
+            filters.append(UsageRow.resource == resource)
+        total = db.query(func.coalesce(func.sum(UsageRow.quantity), 0)).filter(*filters).scalar()
+    finally:
+        db.close()
 
-    total = sum(r.quantity for r in records)
     return {
-        "total": total,
+        "total": int(total or 0),
         "by_resource": {},
         "period_hours": since_hours,
     }
@@ -417,28 +511,52 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
 
     elif event_type == "customer.subscription.updated":
         # Update subscription status
-        for sub in _subscriptions.values():
-            if sub.stripe_subscription_id == obj.get("id"):
-                sub.status = obj.get("status", "active")
-                sub.updated_at = datetime.now(timezone.utc).isoformat()
-                logger.info(f"Subscription updated: {sub.id} status={sub.status}")
-                return {"action": "subscription_updated", "subscription_id": sub.id}
+        from app.models.billing import SubscriptionRow
+        db = _billing_session()
+        try:
+            row = (db.query(SubscriptionRow)
+                   .filter(SubscriptionRow.stripe_subscription_id == obj.get("id"))
+                   .first())
+            if row:
+                row.status = obj.get("status", "active")
+                row.updated_at = datetime.now(timezone.utc).isoformat()
+                db.commit()
+                logger.info(f"Subscription updated: {row.id} status={row.status}")
+                return {"action": "subscription_updated", "subscription_id": row.id}
+        finally:
+            db.close()
 
     elif event_type == "customer.subscription.deleted":
-        for sub in _subscriptions.values():
-            if sub.stripe_subscription_id == obj.get("id"):
-                sub.status = "canceled"
-                sub.updated_at = datetime.now(timezone.utc).isoformat()
-                logger.info(f"Subscription canceled: {sub.id}")
-                return {"action": "subscription_canceled", "subscription_id": sub.id}
+        from app.models.billing import SubscriptionRow
+        db = _billing_session()
+        try:
+            row = (db.query(SubscriptionRow)
+                   .filter(SubscriptionRow.stripe_subscription_id == obj.get("id"))
+                   .first())
+            if row:
+                row.status = "canceled"
+                row.updated_at = datetime.now(timezone.utc).isoformat()
+                db.commit()
+                logger.info(f"Subscription canceled: {row.id}")
+                return {"action": "subscription_canceled", "subscription_id": row.id}
+        finally:
+            db.close()
 
     elif event_type == "invoice.payment_failed":
-        for sub in _subscriptions.values():
-            if sub.stripe_customer_id == obj.get("customer"):
-                sub.status = "past_due"
-                sub.updated_at = datetime.now(timezone.utc).isoformat()
+        from app.models.billing import SubscriptionRow
+        db = _billing_session()
+        try:
+            row = (db.query(SubscriptionRow)
+                   .filter(SubscriptionRow.stripe_customer_id == obj.get("customer"))
+                   .first())
+            if row:
+                row.status = "past_due"
+                row.updated_at = datetime.now(timezone.utc).isoformat()
+                db.commit()
                 logger.warning(f"Payment failed for org {org_id}")
                 return {"action": "payment_failed", "org_id": org_id}
+        finally:
+            db.close()
 
     logger.info(f"Unhandled Stripe event type: {event_type}")
     return None

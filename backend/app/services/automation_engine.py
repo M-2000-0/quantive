@@ -391,12 +391,13 @@ def _run_dunning(db: Session, ctx: RunContext) -> None:
 
 def _open_cases_for_past_due(db: Session, ctx: RunContext) -> None:
     """Create dunning cases for any past_due subscription missing one."""
-    from app.billing import _subscriptions, get_subscription
+    from app.billing import list_subscriptions
     from app.models.automation import DunningCase
     from app.database import SessionLocal
     from app.models import Organization, User
 
-    for org_id, sub in list(_subscriptions.items()):
+    for sub in list_subscriptions():
+        org_id = sub.org_id
         if sub.status != "past_due":
             continue
         existing = db.query(DunningCase).filter(
@@ -435,23 +436,23 @@ def _subscription_active(db: Session, org_id: str) -> bool:
 
 
 def _set_subscription_status(db: Session, org_id: str, status: str) -> None:
-    from app.billing import _subscriptions
-    sub = _subscriptions.get(org_id)
-    if sub:
-        sub.status = status
+    from app.billing import set_subscription_status_by_org
+    set_subscription_status_by_org(org_id, status)
 
 
 # ── Runner 4: MRR tracker ───────────────────────────────────────────────
 
 def _run_mrr_tracker(db: Session, ctx: RunContext) -> None:
-    from app.billing import _subscriptions
+    from app.billing import list_subscriptions
     from app.models.automation import MrrEvent
 
     now = datetime.now(timezone.utc)
     hour_ago = now - timedelta(hours=1)
-    ctx.scanned = len(_subscriptions)
+    subs = list_subscriptions()
+    ctx.scanned = len(subs)
 
-    for org_id, sub in _subscriptions.items():
+    for sub in subs:
+        org_id = sub.org_id
         tier = sub.tier.value if hasattr(sub.tier, "value") else str(sub.tier)
         mrr_cents = TIER_MRR_CENTS.get(tier, 0)
         if sub.status == "canceled":

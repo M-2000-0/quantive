@@ -167,6 +167,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start news scheduler: %s", e)
 
+    # Ensure billing tables exist (subscriptions + usage metering — persisted
+    # so plans and daily quotas survive restarts)
+    try:
+        from app.models.billing import SubscriptionRow, UsageRow
+        SubscriptionRow.__table__.create(engine, checkfirst=True)
+        UsageRow.__table__.create(engine, checkfirst=True)
+        print("[OK] Billing tables ready")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create billing tables: %s", e)
+
     # Ensure automation tables exist + start automation scheduler (native workflow engine)
     try:
         from app.database import Base
