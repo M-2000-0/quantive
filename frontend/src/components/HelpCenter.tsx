@@ -29,7 +29,7 @@ export function HelpCenter() {
 
   const loadFAQ = async () => {
     try {
-      const data = await api.request('/support/faq');
+      const data = await api.request<FAQCategory[]>('/support/faq');
       setCategories(data);
     } catch (e) {
       console.error('Failed to load FAQ', e);

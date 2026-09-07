@@ -29,7 +29,7 @@ export function SignalConflictAlert({ symbol }: { symbol: string }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const result = await api.request(`/ai/signal-conflicts/${symbol}`);
+        const result = await api.request<ConflictData>(`/ai/signal-conflicts/${symbol}`);
         setData(result);
       } catch (e) {
         console.error('Failed to load signal conflicts', e);

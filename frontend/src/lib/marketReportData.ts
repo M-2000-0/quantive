@@ -145,7 +145,7 @@ export const REFINANCING_WALL: RefinancingYear[] = [
 
 export interface RiskFactor {
   factor: string;
-  probability: 'Low' | 'Medium' | 'High';
+  probability: 'Low' | 'Low-Medium' | 'Medium' | 'High';
   impact: string;
   mitigation: string;
 }

@@ -7,7 +7,7 @@ export interface AlertPreference {
   name: string;
   category: string;
   condition: string;
-  threshold: number;
+  threshold: string;
   channels: string[];
   enabled: boolean;
 }
@@ -90,26 +90,26 @@ export const MOCK_OPPORTUNITIES: Opportunity[] = [
 ];
 
 export const MOCK_API_KEYS: ApiKeyConfig[] = [
-  { id: 'k-1', name: 'Bloomberg Terminal', provider: 'bloomberg', displayName: 'Bloomberg Terminal', status: 'connected', lastUsed: '2026-09-01' },
-  { id: 'k-2', name: 'Refinitiv (Reuters)', provider: 'refinitiv', displayName: 'Refinitiv (Reuters)', status: 'connected', lastUsed: '2026-08-30' },
-  { id: 'k-3', name: 'FRED (Federal Reserve)', provider: 'fred', displayName: 'FRED (Federal Reserve)', status: 'expiring', expiresAt: new Date(Date.now() + 5 * 86_400_000).toISOString() },
-  { id: 'k-4', name: 'Morningstar Direct', provider: 'morningstar', displayName: 'Morningstar Direct', status: 'failed' },
-  { id: 'k-5', name: 'ICE Data Services', provider: 'ice', displayName: 'ICE Data Services', status: 'not_configured' },
+  { id: 'k-1', name: 'Bloomberg Terminal', provider: 'bloomberg', displayName: 'Bloomberg Terminal', services: ['Market Data'], status: 'connected', lastUsed: '2026-09-01' },
+  { id: 'k-2', name: 'Refinitiv (Reuters)', provider: 'refinitiv', displayName: 'Refinitiv (Reuters)', services: ['FX Rates'], status: 'connected', lastUsed: '2026-08-30' },
+  { id: 'k-3', name: 'FRED (Federal Reserve)', provider: 'fred', displayName: 'FRED (Federal Reserve)', services: ['Interest Rates'], status: 'expiring', expiresAt: new Date(Date.now() + 5 * 86_400_000).toISOString() },
+  { id: 'k-4', name: 'Morningstar Direct', provider: 'morningstar', displayName: 'Morningstar Direct', services: ['Fundamentals'], status: 'failed' },
+  { id: 'k-5', name: 'ICE Data Services', provider: 'ice', displayName: 'ICE Data Services', services: ['Reference Data'], status: 'not_configured' },
 ];
 
 export const MOCK_ALERT_PREFERENCES: AlertPreference[] = [
-  { id: 'a-1', name: 'Maturity approaching', category: 'maturities', condition: 'days_to_maturity < 30', threshold: 30, channels: ['email'], enabled: true },
-  { id: 'a-2', name: 'Large maturity wall', category: 'maturities', condition: 'single_year_pct > 20', threshold: 20, channels: ['email', 'sms'], enabled: true },
-  { id: 'a-3', name: 'Coupon reset', category: 'rates', condition: 'coupon_change_bps > 50', threshold: 50, channels: ['email'], enabled: true },
-  { id: 'a-4', name: 'Rate spike', category: 'rates', condition: 'rate_change_bps > 25', threshold: 25, channels: ['dashboard'], enabled: false },
-  { id: 'a-5', name: 'FX swing', category: 'fx', condition: 'fx_move_pct > 5', threshold: 5, channels: ['email', 'webhook'], enabled: true },
-  { id: 'a-6', name: 'FX hedge breach', category: 'fx', condition: 'hedge_ratio < 80', threshold: 80, channels: ['email'], enabled: true },
-  { id: 'a-7', name: 'Optimization done', category: 'optimization', condition: 'job_completed', threshold: 1, channels: ['email', 'dashboard'], enabled: true },
-  { id: 'a-8', name: 'Optimization failed', category: 'optimization', condition: 'job_failed', threshold: 1, channels: ['email', 'sms'], enabled: true },
-  { id: 'a-9', name: 'Risk score high', category: 'risk', condition: 'risk_score > 75', threshold: 75, channels: ['email'], enabled: true },
-  { id: 'a-10', name: 'Risk score critical', category: 'risk', condition: 'risk_score > 90', threshold: 90, channels: ['sms', 'webhook'], enabled: true },
-  { id: 'a-11', name: 'New opportunity', category: 'risk', condition: 'opportunity_score > 80', threshold: 80, channels: ['dashboard'], enabled: false },
-  { id: 'a-12', name: 'Weekly digest', category: 'maturities', condition: 'weekly_schedule', threshold: 1, channels: ['email'], enabled: true },
+  { id: 'a-1', name: 'Large Price Swings', category: 'Price Movements', condition: 'Daily move beyond band', threshold: '±2% daily change', channels: ['email'], enabled: true },
+  { id: 'a-2', name: 'Intraday Volatility', category: 'Price Movements', condition: 'Intraday range expansion', threshold: '±1.5% intraday', channels: ['dashboard'], enabled: true },
+  { id: 'a-3', name: 'Gap Open', category: 'Price Movements', condition: 'Open gaps over threshold', threshold: '±1% gap', channels: ['email'], enabled: false },
+  { id: 'a-4', name: 'Credit Rating Changes', category: 'Credit Events', condition: 'CDS spread widening', threshold: '>500bps CDS spread', channels: ['email', 'sms'], enabled: true },
+  { id: 'a-5', name: 'Downgrade Watch', category: 'Credit Events', condition: 'Agency negative watch', threshold: 'Any watch listing', channels: ['email'], enabled: true },
+  { id: 'a-6', name: 'Yield Curve Changes', category: 'Market Conditions', condition: 'Curve slope shift', threshold: '>25bps slope move', channels: ['email'], enabled: true },
+  { id: 'a-7', name: 'Rate Decision', category: 'Market Conditions', condition: 'Central bank meetings', threshold: 'Any policy change', channels: ['dashboard'], enabled: true },
+  { id: 'a-8', name: 'New Opportunities', category: 'Opportunities', condition: 'Relevance above bar', threshold: '>80 relevance', channels: ['email', 'dashboard'], enabled: true },
+  { id: 'a-9', name: 'Upside Alert', category: 'Opportunities', condition: 'Upside crosses target', threshold: '>10% upside', channels: ['email'], enabled: false },
+  { id: 'a-10', name: 'Maturity Window', category: 'Portfolio Health', condition: 'Maturity within window', threshold: '<30d to maturity', channels: ['email', 'sms'], enabled: true },
+  { id: 'a-11', name: 'Concentration Risk', category: 'Portfolio Health', condition: 'Single-name weight', threshold: '>15% weight', channels: ['email'], enabled: true },
+  { id: 'a-12', name: 'Weekly Digest', category: 'Portfolio Health', condition: 'Weekly schedule', threshold: 'Every Monday', channels: ['email'], enabled: true },
 ];
 
 export function formatCurrency(value: number): string {

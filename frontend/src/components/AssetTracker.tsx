@@ -146,7 +146,7 @@ export default function AssetTracker() {
     setLoading(true);
     setError(null);
     try {
-      const result = await api.assets.getAll() as AssetData;
+      const result = await api.assets.getAll() as unknown as AssetData;
       setData(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load asset data');

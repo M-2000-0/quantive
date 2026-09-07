@@ -11,7 +11,7 @@ interface RiskCategoryPanel {
   title: string;
   icon: string;
   color: string;
-  summaryEndpoint: string;
+  summaryEndpoint?: string;
 }
 
 const CATEGORY_PANELS: RiskCategoryPanel[] = [
@@ -29,6 +29,7 @@ interface RiskSummaryData {
   category_counts: Record<RiskCategory, number>;
   entity_id: string;
   entity_type: string;
+  trending?: string;
 }
 
 interface EarlyWarningSignal {
@@ -39,9 +40,9 @@ interface EarlyWarningSignal {
   currentValue: number;
   threshold: number;
   unit: string;
-  direction: 'above_danger' | 'below_danger';
-  status: 'normal' | 'watch' | 'warning' | 'critical';
-  trend: 'improving' | 'stable' | 'deteriorating';
+  direction: string;
+  status: string;
+  trend: string;
   description: string;
   lastUpdated: string;
 }
@@ -86,7 +87,7 @@ export default function RiskDashboard() {
     setLoading(true);
     try {
       const result = await api.risk.earlyWarning(entityId);
-      const severityOrder = {
+      const severityOrder: Record<string, number> = {
         critical: 0,
         high: 1,
         medium: 2,

@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import {
+  MOCK_CONSENSUS_INDICATORS,
   getCategoryIcon,
   type ConsensusIndicator } from '../lib/peerIntelligence';
 
@@ -52,7 +53,7 @@ export default function ConsensusAlert({
     if (!enabled) return;
 
     // Check for consensus indicators above threshold
-    const triggered = []
+    const triggered = MOCK_CONSENSUS_INDICATORS
       .filter((ind) => ind.consensusPercentage >= threshold && !dismissed.has(ind.id))
       .sort((a, b) => b.consensusPercentage - a.consensusPercentage)
       .slice(0, maxAlerts)
@@ -147,8 +148,8 @@ export default function ConsensusAlert({
             <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
               <span>{indicator.sampleSize.toLocaleString()} portfolios • {indicator.confidence}% confidence</span>
               {indicator.actionable && (
-                <span className="text-blue-600 font-medium cursor-pointer hover:underline">
-                  View Recommendation →
+                <span className="text-blue-600 font-medium cursor-pointer hover:underline uppercase text-[10px]">
+                  Actionable
                 </span>
               )}
             </div>

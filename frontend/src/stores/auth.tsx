@@ -42,11 +42,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   }, []);
 
-  const logout = useCallback(async () => {
-    // Clear httpOnly cookies via backend logout endpoint
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch {}
+  const logout = useCallback(() => {
+    // Clear local session first so UI updates immediately, then clear
+    // httpOnly cookies via the backend logout endpoint (fire and forget).
     localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setUser(null);
+    try {
+      fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    } catch {
+      /* network unavailable */
+    }
   }, []);
 
   return (

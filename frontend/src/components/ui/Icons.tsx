@@ -216,7 +216,7 @@ export const EMOJI_MAP: Record<string, IconName> = {
  '📆': 'calendarClock',
  '✏️': 'edit',
   '👁️': 'visibility',
-  '🎖️': 'award',
+  '🎖️': 'rating',
  '⚔️': 'gavel',
  '➡️': 'neutral',
  '↗️': 'arrowUp',

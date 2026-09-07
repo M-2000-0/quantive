@@ -21,11 +21,14 @@ export interface ConsensusIndicator {
   confidence: number;
   trend: ConsensusTrend;
   trendDelta: number;
+  actionable?: boolean;
 }
 
 export interface PeerBenchmark {
   id: string;
   metric: string;
+  category?: string;
+  insight?: string;
   userValue: number;
   peerMedian: number;
   peerP10: number;
@@ -59,17 +62,17 @@ export interface PeerAction {
 }
 
 export const MOCK_CONSENSUS_INDICATORS: ConsensusIndicator[] = [
-  { id: 'ci-1', category: 'duration', title: 'Extending Duration', description: 'Peers are lengthening portfolio duration to lock in yields.', consensusPercentage: 78, sampleSize: 1240, confidence: 88, trend: 'increasing', trendDelta: 6 },
-  { id: 'ci-2', category: 'hedging', title: 'Adding FX Hedges', description: 'Currency hedging overlays are being added across USD exposures.', consensusPercentage: 71, sampleSize: 1180, confidence: 84, trend: 'increasing', trendDelta: 4 },
-  { id: 'ci-3', category: 'allocation', title: 'Green Bond Allocation', description: 'Dedicated green sleeves now average 12% of peer portfolios.', consensusPercentage: 64, sampleSize: 1090, confidence: 81, trend: 'increasing', trendDelta: 3 },
+  { id: 'ci-1', category: 'duration', title: 'Extending Duration', description: 'Peers are lengthening portfolio duration to lock in yields.', consensusPercentage: 78, sampleSize: 1240, confidence: 88, trend: 'increasing', trendDelta: 6, actionable: true },
+  { id: 'ci-2', category: 'hedging', title: 'Adding FX Hedges', description: 'Currency hedging overlays are being added across USD exposures.', consensusPercentage: 71, sampleSize: 1180, confidence: 84, trend: 'increasing', trendDelta: 4, actionable: true },
+  { id: 'ci-3', category: 'allocation', title: 'Green Bond Allocation', description: 'Dedicated green sleeves now average 12% of peer portfolios.', consensusPercentage: 64, sampleSize: 1090, confidence: 81, trend: 'increasing', trendDelta: 3, actionable: true },
   { id: 'ci-4', category: 'credit', title: 'Tightening Credit Standards', description: 'Peers are raising minimum rating thresholds for new paper.', consensusPercentage: 58, sampleSize: 980, confidence: 77, trend: 'stable', trendDelta: 0 },
   { id: 'ci-5', category: 'refinancing', title: 'Pre-funding 2027 Maturities', description: 'Early refinancing of 2027 walls is gaining traction.', consensusPercentage: 52, sampleSize: 870, confidence: 73, trend: 'decreasing', trendDelta: -2 },
   { id: 'ci-6', category: 'risk', title: 'Raising Liquidity Buffers', description: 'Overnight liquidity buffers are being rebuilt after drawdowns.', consensusPercentage: 47, sampleSize: 810, confidence: 70, trend: 'stable', trendDelta: 1 },
 ];
 
 export const MOCK_PEER_BENCHMARKS: PeerBenchmark[] = [
-  { id: 'pb-1', metric: 'Weighted Coupon', userValue: 4.2, peerMedian: 4.0, peerP10: 3.1, peerP25: 3.6, peerP75: 4.5, peerP90: 5.0, unit: '%', percentile: 62 },
-  { id: 'pb-2', metric: 'Average Maturity', userValue: 7.1, peerMedian: 6.4, peerP10: 3.8, peerP25: 5.2, peerP75: 7.8, peerP90: 9.4, unit: 'yrs', percentile: 70 },
+  { id: 'pb-1', metric: 'Weighted Average Yield', userValue: 4.2, peerMedian: 4.0, peerP10: 3.1, peerP25: 3.6, peerP75: 4.5, peerP90: 5.0, unit: '%', percentile: 62 },
+  { id: 'pb-2', metric: 'Average Duration', userValue: 7.1, peerMedian: 6.4, peerP10: 3.8, peerP25: 5.2, peerP75: 7.8, peerP90: 9.4, unit: 'yrs', percentile: 70 },
   { id: 'pb-3', metric: 'FX Exposure', userValue: 28, peerMedian: 22, peerP10: 8, peerP25: 15, peerP75: 30, peerP90: 41, unit: '%', percentile: 68 },
   { id: 'pb-4', metric: 'Green Share', userValue: 9, peerMedian: 12, peerP10: 2, peerP25: 6, peerP75: 18, peerP90: 27, unit: '%', percentile: 38 },
   { id: 'pb-5', metric: 'Liquidity Buffer', userValue: 6.5, peerMedian: 5.0, peerP10: 2.0, peerP25: 3.5, peerP75: 7.0, peerP90: 10.0, unit: '%', percentile: 74 },

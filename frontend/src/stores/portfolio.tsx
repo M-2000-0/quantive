@@ -39,13 +39,16 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.portfolios.list();
-      setPortfolios(data as Portfolio[]);
+      const res = (await api.portfolios.list()) as unknown as
+        | { data: Portfolio[] }
+        | Portfolio[];
+      const items = Array.isArray(res) ? res : res.data;
+      setPortfolios(items);
 
       // Restore selected portfolio from localStorage
       const savedId = localStorage.getItem(SELECTED_KEY);
       if (savedId) {
-        const found = (data as Portfolio[]).find(p => p.id === savedId);
+        const found = items.find(p => p.id === savedId);
         if (found) setSelectedPortfolio(found);
       }
 

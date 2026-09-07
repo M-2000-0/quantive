@@ -104,9 +104,8 @@ export default function TrustDashboard({ optimizationId }: TrustDashboardProps =
     // In production, these would come from security/audit system
     const checkEnvironment = async () => {
       try {
-        const security = await import('../api/security');
-        const dashboard = security.security.dashboard();
-        const data = await dashboard;
+        const { api: apiClient } = await import('../api');
+        const data = await apiClient.security.dashboard();
         // Map security dashboard to environment flags
         setEnvironment(prev => ({
           ...prev,

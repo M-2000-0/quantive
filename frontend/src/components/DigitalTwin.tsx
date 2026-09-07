@@ -165,12 +165,12 @@ const NONLINEAR_COEFFS = {
         housing: 0.30,
         employment: 0.20 } };
 
-const SECTOR_MULTIPLIERS = {
-    energy: { 'energy': 1.4, 'high_inflation': 1.2, 'fx_shock': 1.15 },
-    infrastructure: { 'infrastructure': 1.3, 'high_inflation': 1.12, 'fx_shock': 1.08 },
-    water: { 'water': 1.25, 'high_inflation': 1.10, 'fx_shock': 1.05 },
-    housing: { 'housing': 1.35, 'high_inflation': 1.15, 'fx_shock': 1.10 },
-    employment: { 'employment': 1.2, 'high_inflation': 1.08, 'fx_shock': 1.06 } };
+const SECTOR_MULTIPLIERS: Record<string, Record<string, number> & { sector_nonlinear: number }> = {
+    energy: { 'energy': 1.4, 'high_inflation': 1.2, 'fx_shock': 1.15, sector_nonlinear: 1.15 },
+    infrastructure: { 'infrastructure': 1.3, 'high_inflation': 1.12, 'fx_shock': 1.08, sector_nonlinear: 1.1 },
+    water: { 'water': 1.25, 'high_inflation': 1.10, 'fx_shock': 1.05, sector_nonlinear: 1.08 },
+    housing: { 'housing': 1.35, 'high_inflation': 1.15, 'fx_shock': 1.10, sector_nonlinear: 1.12 },
+    employment: { 'employment': 1.2, 'high_inflation': 1.08, 'fx_shock': 1.06, sector_nonlinear: 1.05 } };
 
 const runSimulation = () => {
  setIsSimulating(true);

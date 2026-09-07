@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users } from 'lucide-react';
+import { Users, Lock } from 'lucide-react';
 
 interface ApprovalRequirement {
  name: string;

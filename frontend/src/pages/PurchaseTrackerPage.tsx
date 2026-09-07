@@ -17,7 +17,7 @@ export default function PurchaseTrackerPage() {
     return MOCK_PURCHASES.filter((p) => {
       if (statusFilter !== 'All' && p.currency !== statusFilter) return false;
       if (!q) return true;
-      return `${p.instrumentName} ${p.issuer} ${p.ticker || ''}`.toLowerCase().includes(q);
+      return `${p.instrumentName} ${p.issuer}`.toLowerCase().includes(q);
     });
   }, [query, statusFilter]);
 
@@ -38,6 +38,9 @@ export default function PurchaseTrackerPage() {
   return (
     <div>
       <h1>Purchase Tracker</h1>
+      <button type="button" aria-pressed="false">
+        ▶ Auto
+      </button>
       <div style={{ display: 'flex', gap: 12, margin: '12px 0' }}>
         <div className="panel">
           <div className="data-label">Total Principal</div>

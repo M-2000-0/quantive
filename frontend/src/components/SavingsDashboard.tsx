@@ -82,8 +82,8 @@ export default function SavingsDashboard() {
     setError(null);
     try {
       const [summaryData, milestonesData] = await Promise.all([
-        api.savings.summary() as Promise<SavingsSummary>,
-        api.savings.milestones() as Promise<MilestonesResponse>,
+        api.savings.summary() as unknown as Promise<SavingsSummary>,
+        api.savings.milestones() as unknown as Promise<MilestonesResponse>,
       ]);
       setSummary(summaryData);
       setMilestones(milestonesData);

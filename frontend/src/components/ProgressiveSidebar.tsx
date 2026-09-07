@@ -58,7 +58,7 @@ interface ProgressiveSidebarProps {
 export default function ProgressiveSidebar({ collapsed }: ProgressiveSidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
-  const userRole = (user as Record<string, unknown>)?.role as string || 'analyst';
+  const userRole = (user as unknown as Record<string, unknown>)?.role as string || 'analyst';
 
   // Role-based view presets
   const ROLE_VIEWS: Record<string, string[]> = {
@@ -104,7 +104,7 @@ export default function ProgressiveSidebar({ collapsed }: ProgressiveSidebarProp
           <Badge variant="info" className="text-[10px] uppercase">{userRole}</Badge>
         </div>
         <div className="flex items-center gap-1">
-          {(['role', 'simple', 'full'] as const).map((m) => (
+          {(['role', 'simplified', 'full'] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -114,7 +114,7 @@ export default function ProgressiveSidebar({ collapsed }: ProgressiveSidebarProp
                   : 'bg-white/40 text-slate-500 hover:bg-white/60'
               }`}
             >
-              {m === 'role' ? 'My View' : m === 'simple' ? 'Simple' : 'Full'}
+              {m === 'role' ? 'My View' : m === 'simplified' ? 'Simple' : 'Full'}
             </button>
           ))}
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
-import { GlassAreaChart } from './charts/GlassAreaChart';
+import GlassAreaChart from './charts/GlassAreaChart';
 
 interface NewsArticle {
   id: string;
@@ -66,7 +66,7 @@ export function NewsFeed() {
       const params: Record<string, string> = { limit: '100' };
       if (selectedCategory) params.category = selectedCategory;
       if (searchQuery) params.search = searchQuery;
-      const data = await api.request('/news/articles', { params });
+      const data = await api.request<NewsArticle[]>('/news/articles', { params });
       setArticles(data);
     } catch (e) {
       console.error('Failed to load articles', e);
@@ -75,7 +75,7 @@ export function NewsFeed() {
 
   const loadDigest = useCallback(async () => {
     try {
-      const data = await api.request('/news/digest?hours=24');
+      const data = await api.request<DigestData>('/news/digest?hours=24');
       setDigest(data);
     } catch (e) {
       console.error('Failed to load digest', e);
@@ -87,7 +87,7 @@ export function NewsFeed() {
       setLoading(true);
       await Promise.all([loadArticles(), loadDigest()]);
       try {
-        const srcData = await api.request('/news/sources');
+        const srcData = await api.request<NewsSource[]>('/news/sources');
         setSources(srcData);
       } catch (e) { /* ignore */ }
       setLoading(false);

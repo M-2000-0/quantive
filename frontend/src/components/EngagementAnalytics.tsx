@@ -97,13 +97,13 @@ export default function EngagementAnalytics() {
   const [tab, setTab] = useState<'overview' | 'pages' | 'features' | 'sessions'>('overview');
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d'>('7d');
 
-  const maxHeatmap = useMemo(() => Math.max(...[].map(h => h.sessions)), []);
+  const maxHeatmap = useMemo(() => Math.max(...MOCK_HEATMAP.map(h => h.sessions)), []);
 
-  const totalViews = [].reduce((s, p) => s + p.views, 0);
-  const totalUnique = [].reduce((s, p) => s + p.uniqueUsers, 0);
-  const avgBounce = [].reduce((s, p) => s + p.bounceRate, 0) / 0;
-  const totalSessions = [].reduce((s, d) => s + d.sessions, 0);
-  const avgDuration = [].reduce((s, d) => s + d.avgDuration, 0) / 0;
+  const totalViews = MOCK_PAGE_VIEWS.reduce((s, p) => s + p.views, 0);
+  const totalUnique = MOCK_PAGE_VIEWS.reduce((s, p) => s + p.uniqueUsers, 0);
+  const avgBounce = MOCK_PAGE_VIEWS.reduce((s, p) => s + p.bounceRate, 0) / MOCK_PAGE_VIEWS.length;
+  const totalSessions = MOCK_SESSIONS.reduce((s, d) => s + d.sessions, 0);
+  const avgDuration = MOCK_SESSIONS.reduce((s, d) => s + d.avgDuration, 0) / MOCK_SESSIONS.length;
 
   return (
     <div className="space-y-6">
@@ -171,7 +171,7 @@ export default function EngagementAnalytics() {
                     <>
                       <div key={`label-${h}`} className="text-[10px] text-slate-400 text-right pr-1">{h}:00</div>
                       {DAYS.map((_, d) => {
-                        const entry = [].find(a => a.hour === h && a.weekday === d);
+                        const entry = MOCK_HEATMAP.find(a => a.hour === h && a.weekday === d);
                         return <HeatmapCell key={`${h}-${d}`} value={entry?.sessions || 0} max={maxHeatmap} />;
                       })}
                     </>
@@ -234,7 +234,7 @@ export default function EngagementAnalytics() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/20">
-                {[].map(p => (
+                {MOCK_PAGE_VIEWS.map(p => (
                   <tr key={p.page} className="hover:bg-white/30 transition-colors">
                     <td className="px-6 py-3 font-medium text-slate-900">{p.page}</td>
                     <td className="px-6 py-3 text-right tabular-nums">{p.views.toLocaleString()}</td>
@@ -305,8 +305,8 @@ export default function EngagementAnalytics() {
           <div className="glass p-6">
             <h3 className="text-sm font-semibold text-slate-900 mb-4">Daily Sessions</h3>
             <div className="flex items-end gap-3 h-48">
-              {[].map(d => {
-                const maxSessions = Math.max(...[].map(s => s.sessions));
+              {MOCK_SESSIONS.map(d => {
+                const maxSessions = Math.max(...MOCK_SESSIONS.map(s => s.sessions));
                 return (
                   <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
                     <span className="text-[10px] font-bold text-slate-600 tabular-nums">{(d.sessions / 1000).toFixed(1)}k</span>

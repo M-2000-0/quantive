@@ -423,8 +423,14 @@ describe('DecisionJournal', () => {
 describe('SmartReportGenerator', () => {
   const mockDecision: DecisionEntry = {
     id: 'dec-test',
+    title: 'Refinance Test Bond',
+    description: 'Treasury yields dropped 25bps',
+    status: 'completed',
     portfolioId: 'pf-test',
     timestamp: Date.now(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['test'],
     recommendation: {
       type: 'refinance_opportunity',
       title: 'Refinance Test Bond',
@@ -478,8 +484,14 @@ describe('SmartReportGenerator', () => {
 describe('ApprovalWorkflow', () => {
   const mockDecision: DecisionEntry = {
     id: 'dec-wf-test',
+    title: 'Refinance Test Bond',
+    description: 'Test',
+    status: 'recommended',
     portfolioId: 'pf-test',
     timestamp: Date.now(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['test'],
     recommendation: {
       type: 'refinance_opportunity',
       title: 'Refinance Test Bond',

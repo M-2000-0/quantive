@@ -248,7 +248,10 @@ export default function KnowledgeGraph() {
           nodes: result.data.nodes,
           edges: result.data.edges }));
       } else {
-        setSearch(prev => ({ ...prev, loading: false, error: result.error || 'Search failed' }));
+        const message = !result.success && 'error' in result && result.error
+          ? result.error
+          : 'Search failed';
+        setSearch(prev => ({ ...prev, loading: false, error: message }));
       }
     } catch (err) {
       setSearch(prev => ({ ...prev, loading: false, error: 'Search request failed' }));
@@ -262,6 +265,7 @@ export default function KnowledgeGraph() {
   }, [handleSearch, search.query]);
 
   // Force-simulation step shared by the layout effect and animation loop
+  const animationRef = useRef<number>(0);
   const simulate = useCallback(() => {
     const nodes = data.nodes;
     const edges = data.edges;
@@ -509,7 +513,7 @@ export default function KnowledgeGraph() {
                       stroke={EDGE_COLORS[edge.type]}
                       strokeWidth={edge.weight * (isActive ? 2 : 1)}
                       strokeOpacity={isActive ? 0.8 : 0.2}
-                      strokeDasharray={edge.type === 'affected_by' ? '5,5' : undefined}
+                      strokeDasharray={String(edge.type) === 'affected_by' ? '5,5' : undefined}
                     />
                     {isActive && (
                       <text

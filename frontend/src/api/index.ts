@@ -54,10 +54,20 @@ import type {
   YieldCurve, FxRate, InterestRate, EconomicIndicator, MarketSnapshot,
   RiskSummary, InvestmentScenario, RiskScore, VaRResult,
   Notification, Watchlist, WatchlistItem, Tag, ActivityEvent, Comment,
-  ExportJob,
+  ExportJob, DashboardSummary, DashboardTask, PortfolioDetail, BenchmarkRow,
 } from '../types';
 
 export const api = {
+  // ── Generic request helper (used by feature components) ─────────
+  request: <T,>(path: string, options?: RequestInit & { params?: Record<string, string> }): Promise<T> => {
+    let url = path;
+    if (options?.params) {
+      const qs = new URLSearchParams(options.params);
+      url += (path.includes('?') ? '&' : '?') + qs.toString();
+    }
+    const { params: _params, ...init } = options || {};
+    return request<T>(url, init);
+  },
   // ── Auth ────────────────────────────────────────────────────────────
   auth: {
     register: (data: { email: string; password: string; name: string; org_name?: string }) =>
@@ -187,10 +197,8 @@ export const api = {
       const canUseSSE = typeof window !== 'undefined' && 'EventSource' in window;
       if (canUseSSE) {
         try {
-          const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
           const base = `${API_BASE}/optimizations/${encodeURIComponent(id)}/progress`;
-          const url = token ? `${base}?token=${encodeURIComponent(token)}` : base;
-          es = new EventSource(url);
+          es = new EventSource(base, { withCredentials: true });
           let fallbackDone = false;
           const fallback = () => {
             if (fallbackDone || closed) return;
@@ -410,8 +418,25 @@ export const api = {
 
   // ── Dashboard ───────────────────────────────────────────────────────
   dashboard: {
-    summary: () => request<Record<string, unknown>>('/dashboard/summary'),
-    tasks: (limit?: number) => request<Array<Record<string, unknown>>>(`/dashboard/tasks${limit ? `?limit=${limit}` : ''}`),
+    summary: () => request<DashboardSummary>('/dashboard/summary'),
+    tasks: (limit?: number) => request<DashboardTask[]>(`/dashboard/tasks${limit ? `?limit=${limit}` : ''}`),
+  },
+
+  // ── Portfolio Detail ──────────────────────────────────────────────
+  portfolioDetail: {
+    get: (id: string, params?: { sort_by?: string; sort_order?: string; currency?: string }) => {
+      const qs = new URLSearchParams();
+      if (params?.sort_by) qs.set('sort_by', params.sort_by);
+      if (params?.sort_order) qs.set('sort_order', params.sort_order);
+      if (params?.currency) qs.set('currency', params.currency);
+      const query = qs.toString();
+      return request<PortfolioDetail>(`/portfolio-detail/${id}${query ? `?${query}` : ''}`);
+    },
+  },
+
+  // ── Solver Leaderboard ────────────────────────────────────────────
+  solvers: {
+    leaderboard: () => request<BenchmarkRow[]>('/solvers/leaderboard'),
   },
 
   // ── Procurement Intelligence (Layer 7) ─────────────────────────────
@@ -856,6 +881,179 @@ export const api = {
     getStatus: () => request<any>('/backup/status'),
     trigger: () => request<any>('/backup/trigger', { method: 'POST' }),
     verify: () => request<any>('/backup/verify'),
+  },
+
+  // ── Sovereign Debt Transparency Index ─────────────────────────────────
+  transparencyIndex: {
+    country: (countryCode: string) => request<any>(`/transparency-index/countries/${countryCode}`),
+    allCountries: () => request<any[]>('/transparency-index/countries'),
+    calculate: (countryCode: string) => request<any>(`/transparency-index/calculate/${countryCode}`, { method: 'POST' }),
+    globalStats: () => request<any>('/transparency-index/stats'),
+    batchCalculate: (countryCodes: string[]) =>
+      request<any>('/transparency-index/batch-calculate', { method: 'POST', body: JSON.stringify({ country_codes: countryCodes }) }),
+    compare: (countryCodes: string[]) =>
+      request<any>('/transparency-index/compare', { method: 'POST', body: JSON.stringify({ country_codes: countryCodes }) }),
+  },
+
+  // ── Outcome-Based Pricing ────────────────────────────────────────────
+  pricing: {
+    calculate: (debtOutstanding: number, currency: string, optimizationType: string) =>
+      request<any>('/pricing/calculate', {
+        method: 'POST',
+        body: JSON.stringify({ debt_outstanding_usd: debtOutstanding, currency, optimization_type: optimizationType }),
+      }),
+    customize: (config: any) =>
+      request<any>('/pricing/customize', { method: 'POST', body: JSON.stringify(config) }),
+    availableOptimizations: () => request<any[]>('/pricing/optimizations'),
+  },
+
+  // ── Sovereign Mode ───────────────────────────────────────────────────
+  sovereignMode: {
+    status: () => request<any>('/sovereign-mode/status'),
+    enable: () => request<any>('/sovereign-mode/enable', { method: 'POST' }),
+    disable: () => request<any>('/sovereign-mode/disable', { method: 'POST' }),
+    securityChecklist: () => request<any>('/sovereign-mode/security-checklist'),
+  },
+
+  // ── Pilot Program ────────────────────────────────────────────────────
+  pilotProgram: {
+    dashboard: () => request<any>('/pilot-programs/dashboard'),
+    list: () => request<{ programs: any[] }>('/pilot-programs/list'),
+    create: (data: any) => request<any>('/pilot-programs/create', { method: 'POST', body: JSON.stringify(data) }),
+    status: (programId: string) => request<any>(`/pilot-programs/${programId}/status`),
+    transition: (programId: string, status: string, data?: any) =>
+      request<any>(`/pilot-programs/${programId}/transition`, {
+        method: 'POST',
+        body: JSON.stringify({ new_status: status, ...data }),
+      }),
+    caseStudy: (programId: string) => request<any>(`/pilot-programs/${programId}/case-study`),
+  },
+
+  // ── Government Relations ─────────────────────────────────────────────
+  governmentRelations: {
+    dashboard: () => request<any>('/government-relations/dashboard'),
+    createOpportunity: (data: any) =>
+      request<any>('/government-relations/opportunities', { method: 'POST', body: JSON.stringify(data) }),
+    listOpportunities: (params?: any) => {
+      const qs = new URLSearchParams();
+      if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any>(`/government-relations/opportunities?${qs.toString()}`);
+    },
+    createRFP: (data: any) =>
+      request<any>('/government-relations/rfp', { method: 'POST', body: JSON.stringify(data) }),
+    listRFPs: () => request<any[]>('/government-relations/rfp'),
+    addContact: (data: any) =>
+      request<any>('/government-relations/contacts', { method: 'POST', body: JSON.stringify(data) }),
+    listContacts: () => request<any[]>('/government-relations/contacts'),
+  },
+
+  // ── Immutable Audit Trail ────────────────────────────────────────────
+  immutableAudit: {
+    record: (data: any) =>
+      request<any>('/immutable-audit/record', { method: 'POST', body: JSON.stringify(data) }),
+    verify: (eventId: string) => request<any>(`/immutable-audit/verify/${eventId}`),
+    verifyChain: (start: string, end: string) =>
+      request<any>('/immutable-audit/verify-chain', { method: 'POST', body: JSON.stringify({ start_event_id: start, end_event_id: end }) }),
+    query: (params: any) => {
+      const qs = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
+      return request<any>(`/immutable-audit/events?${qs.toString()}`);
+    },
+    export: (eventId: string) => request<any>(`/immutable-audit/export/${eventId}`),
+  },
+
+  // ── Approval Workflow ────────────────────────────────────────────────
+  approvalWorkflow: {
+    request: (data: any) =>
+      request<any>('/approval-workflow/request', { method: 'POST', body: JSON.stringify(data) }),
+    pending: () => request<any[]>('/approval-workflow/pending'),
+    approve: (requestId: string, data: any) =>
+      request<any>(`/approval-workflow/${requestId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
+    deny: (requestId: string, data: any) =>
+      request<any>(`/approval-workflow/${requestId}/deny`, { method: 'POST', body: JSON.stringify(data) }),
+    cancel: (requestId: string) =>
+      request<any>(`/approval-workflow/${requestId}/cancel`, { method: 'POST' }),
+    history: (requestId: string) => request<any[]>(`/approval-workflow/${requestId}/history`),
+  },
+
+  // ── Model Validation ─────────────────────────────────────────────────
+  modelValidation: {
+    validate: (data: any) =>
+      request<any>('/model-validation/validate', { method: 'POST', body: JSON.stringify(data) }),
+    validateOptimality: (solutionId: string) =>
+      request<any>(`/model-validation/${solutionId}/validate-optimality`, { method: 'POST' }),
+    validateStability: (solutionId: string) =>
+      request<any>(`/model-validation/${solutionId}/validate-stability`, { method: 'POST' }),
+    backtest: (solutionId: string) =>
+      request<any>(`/model-validation/${solutionId}/backtest`, { method: 'POST' }),
+    history: (solutionId: string) => request<any[]>(`/model-validation/${solutionId}/history`),
+  },
+
+  // ── Interoperability ─────────────────────────────────────────────────
+  interoperability: {
+    convert: (data: any) =>
+      request<any>('/interoperability/convert', { method: 'POST', body: JSON.stringify(data) }),
+    validate: (data: any) =>
+      request<any>('/interoperability/validate', { method: 'POST', body: JSON.stringify(data) }),
+    parseFpML: (content: string) =>
+      request<any>('/interoperability/parse/fpml', { method: 'POST', body: JSON.stringify({ content }) }),
+    parseXBRL: (content: string) =>
+      request<any>('/interoperability/parse/xbrl', { method: 'POST', body: JSON.stringify({ content }) }),
+    supportedFormats: () => request<any[]>('/interoperability/supported-formats'),
+  },
+
+  // ── Disaster Recovery ────────────────────────────────────────────────
+  disasterRecovery: {
+    status: () => request<any>('/disaster-recovery/status'),
+    createBackup: (backupType: string, location?: string) =>
+      request<any>('/disaster-recovery/backup', {
+        method: 'POST',
+        body: JSON.stringify({ backup_type: backupType, location: location || 'primary' }),
+      }),
+    verifyBackup: (backupId: string) =>
+      request<any>(`/disaster-recovery/backup/${backupId}/verify`, { method: 'POST' }),
+    listBackups: (limit?: number) => request<any>(`/disaster-recovery/backups?limit=${limit || 50}`),
+    runTest: (testType: string) =>
+      request<any>('/disaster-recovery/test', { method: 'POST', body: JSON.stringify({ test_type: testType }) }),
+    getPlan: () => request<any>('/disaster-recovery/plan'),
+    getComplianceChecklist: () => request<any>('/disaster-recovery/compliance'),
+  },
+
+  // ── SLA Monitoring ───────────────────────────────────────────────────
+  sla: {
+    compliance: () => request<any>('/sla/compliance'),
+    recordUptime: (data: any) =>
+      request<any>('/sla/uptime', { method: 'POST', body: JSON.stringify(data) }),
+    reportIncident: (data: any) =>
+      request<any>('/sla/incident', { method: 'POST', body: JSON.stringify(data) }),
+    resolveIncident: (breachId: string, remediation: string) =>
+      request<any>(`/sla/incident/${breachId}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ remediation }),
+      }),
+    getBreaches: (days?: number) => request<any>(`/sla/breaches?days=${days || 30}`),
+    getCredits: () => request<any>('/sla/credits'),
+    documentation: () => request<any>('/sla/documentation'),
+  },
+
+  // ── Escrow ───────────────────────────────────────────────────────────
+  escrow: {
+    createAgreement: (data: any) =>
+      request<any>('/escrow/agreements', { method: 'POST', body: JSON.stringify(data) }),
+    listAgreements: () => request<any>('/escrow/agreements'),
+    getAgreement: (agreementId: string) => request<any>(`/escrow/agreements/${agreementId}`),
+    triggerRelease: (agreementId: string, condition: string, evidence: string) =>
+      request<any>(`/escrow/agreements/${agreementId}/trigger`, {
+        method: 'POST',
+        body: JSON.stringify({ condition, evidence }),
+      }),
+    updateSourceCode: (agreementId: string, version: string, commitHash: string, changelog: string) =>
+      request<any>(`/escrow/agreements/${agreementId}/update`, {
+        method: 'POST',
+        body: JSON.stringify({ version, commit_hash: commitHash, changelog }),
+      }),
+    getAgreementDocument: (agreementId: string) =>
+      request<any>(`/escrow/agreements/${agreementId}/document`),
   },
 };
 

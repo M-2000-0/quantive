@@ -435,6 +435,92 @@ export interface Comment {
   updated_at: string;
 }
 
+// ── Dashboard Types ────────────────────────────────────────────────
+
+export interface MaturityBucket {
+  year: number;
+  count: number;
+  total_principal: number;
+}
+
+export interface DashboardSummary {
+  total_debt: number;
+  instrument_count: number;
+  currency_count: number;
+  portfolio_count: number;
+  avg_maturity_years: number;
+  weighted_coupon_pct: number;
+  active_optimizations: number;
+  completed_optimizations: number;
+  risk_scores: {
+    refinancing_risk: number;
+    currency_risk: number;
+    interest_rate_risk: number;
+    overall: number;
+  };
+  maturity_distribution: MaturityBucket[];
+  top_currencies: Array<{ currency: string; total_principal: number; percentage: number }>;
+}
+
+export interface DashboardTask {
+  id: string;
+  type: string;
+  title: string;
+  meta: string;
+  status: string;
+  priority: string;
+  link?: string;
+}
+
+// ── Portfolio Detail Types ─────────────────────────────────────────
+
+export interface PortfolioInstrument {
+  id: string;
+  name: string;
+  instrument_type: string;
+  currency: string;
+  principal_outstanding: number;
+  coupon_rate: number;
+  maturity_date: string;
+  issue_date: string;
+  spread_bps: number;
+  years_to_maturity: number;
+  is_callable: boolean;
+}
+
+export interface PortfolioDetailSummary {
+  total_principal: number;
+  instrument_count: number;
+  currency_count: number;
+  avg_maturity_years: number;
+  weighted_coupon_pct: number;
+  weighted_spread_bps: number;
+  callable_count: number;
+}
+
+export interface CurrencyBreakdown {
+  currency: string;
+  total_principal: number;
+  percentage: number;
+  instrument_count: number;
+}
+
+export interface PortfolioDetail {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+  summary: PortfolioDetailSummary;
+  instruments: PortfolioInstrument[];
+  maturity_distribution: MaturityBucket[];
+  currency_breakdown: CurrencyBreakdown[];
+}
+
+export type WasteType = 'overpayment' | 'duplicate' | 'uncompetitive' | 'scope_creep' | 'other';
+
+export type BottleneckType = 'approval' | 'vendor' | 'budget' | 'compliance' | 'other';
+
 // ── Export Types ───────────────────────────────────────────────────
 
 export interface ExportJob {

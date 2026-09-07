@@ -69,9 +69,68 @@ const MOCK_DATA: ExplanationData = {
  summary: 'This allocation was chosen because it dominates the efficient frontier for your risk-adjusted return objective. The two binding constraints — FX exposure at 35% and green bond minimum at 10% — forced deviations from the unconstrained optimum of approximately $52M. Duration risk minimization was the dominant objective, contributing 42% of the total objective value despite only 30% weight, because the feasible set was shaped by constraints to favor shorter-duration instruments.'
 };
 
+interface AllocationReason {
+  instrument: string;
+  amount: number;
+  percentage: number;
+  reason: string;
+  rankingPosition: number;
+  alternativesConsidered: number;
+}
+
+interface ConstraintInfo {
+  name: string;
+  status: 'binding' | 'near-binding' | 'ok';
+  impact: string;
+  current: string;
+  limit: string;
+  utilization: number;
+}
+
+interface ObjectiveInfo {
+  name: string;
+  weight: number;
+  contribution: number;
+  dominant: boolean;
+}
+
+interface ScenarioInfo {
+  name: string;
+  probability: number;
+  portfolioImpact: number;
+  driver: string;
+}
+
+interface ExplainabilityData {
+  summary: string;
+  allocation: AllocationReason[];
+  constraints: ConstraintInfo[];
+  objectives: ObjectiveInfo[];
+  scenarios: ScenarioInfo[];
+}
+
+const MOCK_EXPLANATION: ExplainabilityData = {
+  summary: 'Duration was extended to lock in yields before expected rate cuts, funded by trimming short-dated bills.',
+  allocation: [
+    { instrument: 'US Treasury 10Y', amount: 120, percentage: 34, reason: 'Locks in 4.3% yield with strong liquidity.', rankingPosition: 1, alternativesConsidered: 5 },
+    { instrument: 'EU Green Bond 15Y', amount: 80, percentage: 22, reason: 'Adds duration plus ESG alignment.', rankingPosition: 2, alternativesConsidered: 4 },
+  ],
+  constraints: [
+    { name: 'Single-issuer limit', status: 'near-binding', impact: 'Caps Treasury exposure at 40%.', current: '34%', limit: '40%', utilization: 85 },
+    { name: 'Liquidity floor', status: 'ok', impact: 'No action needed.', current: '8%', limit: '5%', utilization: 40 },
+  ],
+  objectives: [
+    { name: 'Minimize cost', weight: 0.5, contribution: 0.34, dominant: true },
+    { name: 'Limit risk', weight: 0.3, contribution: 0.18, dominant: false },
+  ],
+  scenarios: [
+    { name: 'Base case', probability: 0.6, portfolioImpact: 1.2, driver: 'Gradual rate cuts' },
+    { name: 'Rate shock', probability: 0.15, portfolioImpact: -2.4, driver: 'Inflation surprise' },
+  ] };
+
 export default function ExplainabilityEngine() {
  const [activeTab, setActiveTab] = useState<'overview' | 'constraints' | 'objectives' | 'scenarios'>('overview');
- const data = [];
+ const data = MOCK_EXPLANATION;
 
  const tabs = [
  { id: 'overview' as const, label: 'Allocation Why', icon: 'Target' },

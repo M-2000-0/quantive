@@ -48,7 +48,7 @@ export default function GlassWaterfallChart({
           <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.5)' }} tickFormatter={formatValue} />
           <Tooltip
             contentStyle={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, backdropFilter: 'blur(20px)' }}
-            formatter={(value: number, name: string, props: Record<string, unknown>) => [formatValue ? formatValue(value as number) : value, props.payload?.label]}
+            formatter={(value, name, props) => [formatValue ? formatValue(value as number) : value, (props as unknown as { payload?: { label?: string } })?.payload?.label]}
           />
           <Bar dataKey="bottom" stackId="waterfall" fill="transparent" />
           <Bar dataKey="height" stackId="waterfall" radius={[4, 4, 0, 0]}>

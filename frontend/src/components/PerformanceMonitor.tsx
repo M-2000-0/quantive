@@ -117,13 +117,13 @@ export default function PerformanceMonitor() {
   }, []);
 
   const vitalsRating = useMemo(() => {
-    const good = [].filter(v => v.rating === 'good').length;
-    return `${good}/${0} passing`;
+    const good = MOCK_VITALS.filter(v => v.rating === 'good').length;
+    return `${good}/${MOCK_VITALS.length} passing`;
   }, []);
 
   const apiErrorRate = useMemo(() => {
-    const totalReq = [].reduce((s, a) => s + a.requests, 0);
-    const totalErr = [].reduce((s, a) => s + a.errors, 0);
+    const totalReq = MOCK_API.reduce((s, a) => s + a.requests, 0);
+    const totalErr = MOCK_API.reduce((s, a) => s + a.errors, 0);
     return ((totalErr / totalReq) * 100).toFixed(2);
   }, []);
 
@@ -173,7 +173,7 @@ export default function PerformanceMonitor() {
 
       {tab === 'vitals' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[].map(v => (
+          {MOCK_VITALS.map(v => (
             <div key={v.name} className="glass p-5">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -219,7 +219,7 @@ export default function PerformanceMonitor() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/20">
-                {[].map(a => {
+                {MOCK_API.map(a => {
                   const errorRate = a.requests > 0 ? (a.errors / a.requests) * 100 : 0;
                   const p95Status = a.p95 <= a.target ? 'good' : a.p95 <= a.target * 1.5 ? 'warning' : 'poor';
                   return (

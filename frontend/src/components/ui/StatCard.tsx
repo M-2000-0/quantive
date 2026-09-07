@@ -26,6 +26,14 @@ export default function StatCard({
   trend = 'neutral',
 }: StatCardProps) {
   const { color, arrow } = trendConfig[trend];
+  const iconName =
+    icon && typeof icon === 'object' && 'type' in (icon as unknown as Record<string, unknown>)
+      ? String(
+          ((icon as unknown as { type?: { displayName?: string; name?: string } }).type?.displayName) ||
+            ((icon as unknown as { type?: { displayName?: string; name?: string } }).type?.name) ||
+            '',
+        )
+      : '';
 
   return (
     <div className="glass-card p-5 glass-hover glass-shimmer group">
@@ -34,6 +42,7 @@ export default function StatCard({
         {icon && (
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/60 dark:bg-white/10 border border-white/60 dark:border-white/10 text-slate-600 dark:text-slate-300 shadow-sm backdrop-blur-md group-hover:bg-white/80 dark:group-hover:bg-white/15 transition-colors">
             {icon}
+            {iconName && <span className="sr-only">{iconName}</span>}
           </span>
         )}
       </div>

@@ -3,7 +3,7 @@ import Card from "./ui/Card";
 import StatCard from "./ui/StatCard";
 import Button from "./ui/Button";
 import { api } from "../api";
-import { WasteType, BottleneckType } from "../types";
+import { type WasteType, type BottleneckType } from "../types";
 
 interface ProcurementItemSummary {
   id: string;

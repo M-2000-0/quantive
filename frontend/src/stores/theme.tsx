@@ -24,9 +24,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
       const saved = localStorage.getItem('quantive_theme') as Theme | null;
-      return saved || 'dark';
+      return saved || 'system';
     } catch {
-      return 'dark';
+      return 'system';
     }
   });
 

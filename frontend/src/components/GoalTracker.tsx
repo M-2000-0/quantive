@@ -20,7 +20,7 @@ const MOCK_GOALS: Goal[] = [
 ];
 
 export default function GoalTracker() {
- const [goals, setGoals] = useState([]);
+ const [goals, setGoals] = useState<Goal[]>(MOCK_GOALS);
 
  const getProgress = (goal: Goal) => {
  if (goal.direction === 'down') {

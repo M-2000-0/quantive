@@ -59,7 +59,13 @@ export default function SettingsPage() {
         {active === 'Organization' && <h2>Organization</h2>}
         {active === 'Team' && <h2>Team</h2>}
         {active === 'Roles & Permissions' && <h2>Roles & Permissions</h2>}
-        {active === 'Shortcuts' && <h2>Shortcuts</h2>}
+        {active === 'Shortcuts' && (
+          <div>
+            <h2>Shortcuts</h2>
+            <p>⌘K / Ctrl+K</p>
+            <p>Open command palette</p>
+          </div>
+        )}
       </section>
     </div>
   );

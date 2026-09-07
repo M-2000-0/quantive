@@ -111,7 +111,7 @@ export default function MarketPulseWidget() {
     let cancelled = false;
     async function load() {
       try {
-        const data = await api.marketPulse.get() as MarketPulse;
+        const data = await api.marketPulse.get() as unknown as MarketPulse;
         if (!cancelled) setPulse(data);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
@@ -127,7 +127,7 @@ export default function MarketPulseWidget() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.marketPulse.get() as MarketPulse;
+      const data = await api.marketPulse.get() as unknown as MarketPulse;
       setPulse(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to refresh');

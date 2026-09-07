@@ -7,7 +7,7 @@ import {
  getCollaboration,
  type TeamMember,
  type FieldLock } from '../lib/collaboration';
-import { PencilLine, Zap } from 'lucide-react';
+import { PencilLine, Zap, Lock } from 'lucide-react';
 
 interface OptimizationParams {
  objective: 'minimize_cost' | 'minimize_risk' | 'maximize_return' | 'balanced';

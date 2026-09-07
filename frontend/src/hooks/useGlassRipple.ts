@@ -1,4 +1,4 @@
-import { useCallback, type RefObject } from 'react';
+import { useCallback, useRef } from 'react';
 
 /**
  * Tracks mouse position on an element and sets --ripple-x / --ripple-y
@@ -10,10 +10,10 @@ import { useCallback, type RefObject } from 'react';
  *   <div ref={ref} onMouseMove={onMouseMove} className="glass-ripple">
  */
 export function useGlassRipple<T extends HTMLElement>() {
-  const ref: { current: T | null } = { current: null };
+  const nodeRef = useRef<T | null>(null);
 
   const setRef = useCallback((node: T | null) => {
-    (ref as { current: T | null }).current = node;
+    nodeRef.current = node;
   }, []);
 
   const onMouseMove = useCallback((e: React.MouseEvent<T>) => {

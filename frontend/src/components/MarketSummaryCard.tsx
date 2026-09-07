@@ -45,7 +45,7 @@ export function MarketSummaryCard() {
   const loadSummary = async () => {
     setLoading(true);
     try {
-      const result = await api.request(`/ai/market-summary?use_llm=${useLLM}`);
+      const result = await api.request<MarketSummaryData>(`/ai/market-summary?use_llm=${useLLM}`);
       setData(result);
     } catch (e) {
       console.error('Failed to load market summary', e);

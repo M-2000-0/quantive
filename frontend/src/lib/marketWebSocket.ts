@@ -169,7 +169,7 @@ class MarketWebSocket {
 
   private handleMessage(data: Record<string, unknown>): void {
     // Yahoo Finance streaming format
-    const quote = data.quote || data;
+    const quote = (data.quote || data) as Record<string, any>;
     const ticker = (quote.symbol || quote.ticker) as string;
     const price = (quote.price || quote.regularMarketPrice || quote.p) as number;
 

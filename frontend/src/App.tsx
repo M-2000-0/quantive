@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import {
   Bell,
   BriefcaseBusiness,
@@ -24,14 +24,29 @@ import {
 import { useAuth } from './stores/auth';
 import { useDemoMode } from './stores/demoMode';
 import DemoModeBanner from './components/DemoModeBanner';
-import DashboardPage from './pages/DashboardPage';
-import SettingsPage from './pages/SettingsPage';
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import EventImpactDashboard from './pages/EventImpactDashboard';
-import OptimizationsPage from './pages/OptimizationsPage';
-import NewOptimizationPage from './pages/NewOptimizationPage';
+
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const EventImpactDashboard = lazy(() => import('./pages/EventImpactDashboard'));
+const OptimizationsPage = lazy(() => import('./pages/OptimizationsPage'));
+const NewOptimizationPage = lazy(() => import('./pages/NewOptimizationPage'));
+const TransparencyIndexPage = lazy(() => import('./pages/TransparencyIndexPage'));
+const OutcomePricingPage = lazy(() => import('./pages/OutcomePricingPage'));
+const CaseStudyGeneratorPage = lazy(() => import('./pages/CaseStudyGeneratorPage'));
+const PortfolioDetailPage = lazy(() => import('./pages/PortfolioDetailPage'));
+const ProcurementDashboardPage = lazy(() => import('./pages/ProcurementDashboardPage'));
+const GovernmentPilotPage = lazy(() => import('./pages/GovernmentPilotPage'));
+const SovereignModePage = lazy(() => import('./pages/SovereignModePage'));
+const AuditTrailPage = lazy(() => import('./pages/AuditTrailPage'));
+const ApprovalWorkflowPage = lazy(() => import('./pages/ApprovalWorkflowPage'));
+const ModelValidationPage = lazy(() => import('./pages/ModelValidationPage'));
+const InteroperabilityPage = lazy(() => import('./pages/InteroperabilityPage'));
+const DisasterRecoveryPage = lazy(() => import('./pages/DisasterRecoveryPage'));
+const SLAMonitoringPage = lazy(() => import('./pages/SLAMonitoringPage'));
+const EscrowPage = lazy(() => import('./pages/EscrowPage'));
 
 function isAuthenticated(): boolean {
   try {
@@ -66,6 +81,11 @@ const NAV_ITEMS = [
   { label: 'Overview', to: '/dashboard', icon: LayoutGrid },
   { label: 'Portfolio', to: '/dashboard', icon: BriefcaseBusiness },
   { label: 'Insights', to: '/events', icon: Gauge },
+  { label: 'Risk', to: '/risk-dashboard', icon: ShieldCheck },
+  { label: 'Solvers', to: '/solver-tournament', icon: Sparkles },
+  { label: 'Transparency Index', to: '/transparency-index', icon: LayoutGrid },
+  { label: 'Pricing', to: '/pricing', icon: LayoutGrid },
+  { label: 'Case Studies', to: '/case-studies', icon: LayoutGrid },
   { label: 'Security', to: '/settings', icon: ShieldCheck },
   { label: 'Settings', to: '/settings', icon: Settings },
 ];
@@ -263,6 +283,11 @@ function AppLayout() {
 
 export default function App() {
   return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#6b7280' }}>
+        Loading...
+      </div>
+    }>
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
@@ -276,6 +301,7 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
       </Route>
       <Route
         path="/settings"
@@ -298,6 +324,26 @@ export default function App() {
         <Route index element={<EventImpactDashboard />} />
       </Route>
       <Route
+        path="/risk-dashboard"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<RiskDashboardPage />} />
+      </Route>
+      <Route
+        path="/solver-tournament"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<SolverTournamentPage />} />
+      </Route>
+      <Route
         path="/optimizations"
         element={
           <ProtectedRoute>
@@ -308,7 +354,138 @@ export default function App() {
         <Route index element={<OptimizationsPage />} />
         <Route path="new" element={<NewOptimizationPage />} />
       </Route>
+      <Route
+        path="/transparency-index"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<TransparencyIndexPage />} />
+      </Route>
+      <Route
+        path="/pricing"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<OutcomePricingPage />} />
+      </Route>
+      <Route
+        path="/case-studies"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<CaseStudyGeneratorPage />} />
+      </Route>
+      <Route
+        path="/procurement"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ProcurementDashboardPage />} />
+      </Route>
+      <Route
+        path="/pilots"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<GovernmentPilotPage />} />
+      </Route>
+      <Route
+        path="/sovereign-mode"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<SovereignModePage />} />
+      </Route>
+      <Route
+        path="/audit-trail"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AuditTrailPage />} />
+      </Route>
+      <Route
+        path="/approvals"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ApprovalWorkflowPage />} />
+      </Route>
+      <Route
+        path="/model-validation"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ModelValidationPage />} />
+      </Route>
+      <Route
+        path="/interoperability"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<InteroperabilityPage />} />
+      </Route>
+      <Route
+        path="/disaster-recovery"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<DisasterRecoveryPage />} />
+      </Route>
+      <Route
+        path="/sla"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<SLAMonitoringPage />} />
+      </Route>
+      <Route
+        path="/escrow"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<EscrowPage />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }

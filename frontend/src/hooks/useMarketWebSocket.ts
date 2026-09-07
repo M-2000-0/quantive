@@ -50,7 +50,7 @@ export function useMarketWebSocket(
     [prices]
   );
 
-  // Subscribe to tickers and status changes
+  // Subscribe to tickers and status changes (single effect to avoid double-subscription)
   useEffect(() => {
     if (!autoConnect) return;
 
@@ -76,23 +76,6 @@ export function useMarketWebSocket(
       unsubscribersRef.current = [];
     };
   }, [autoConnect, tickers, ws]);
-
-  // Re-subscribe when tickers change
-  useEffect(() => {
-    // Clean up old subscriptions
-    unsubscribersRef.current.forEach((unsub) => unsub());
-
-    // Set up new subscriptions
-    const unsubTickers = ws.subscribeMultiple(tickers, (update) => {
-      setPrices((prev) => {
-        const next = new Map(prev);
-        next.set(update.ticker, update);
-        return next;
-      });
-    });
-
-    unsubscribersRef.current = [unsubTickers];
-  }, [tickers, ws]);
 
   return {
     prices,

@@ -39,7 +39,7 @@ export function TaskManager() {
 
   const loadTasks = async () => {
     try {
-      const data = await api.request('/tasks?limit=200');
+      const data = await api.request<Task[]>('/tasks?limit=200');
       setTasks(data);
     } catch (e) {
       console.error('Failed to load tasks', e);

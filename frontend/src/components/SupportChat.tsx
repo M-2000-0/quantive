@@ -28,7 +28,7 @@ export function SupportChat() {
     setLoading(true);
 
     try {
-      const res = await api.request('/support/chat', {
+      const res = await api.request<{ response: string; type?: string; confidence?: number }>('/support/chat', {
         method: 'POST',
         body: JSON.stringify({ content: userMsg }) });
       setMessages(prev => [...prev, {

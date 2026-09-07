@@ -14,7 +14,7 @@ interface SimulationScenario {
 interface SimulationResult {
   scenario: string;
   current: Record<string, number>;
-  projected: Record<string, number>;
+  projected: { gdp: number; debtToGdp: number; deficit: number; reserves: number; rating: string };
   timeline: Array<{ year: string; gdp: number; debt: number; deficit: number }>;
 }
 
@@ -63,7 +63,8 @@ export default function GovernmentDigitalTwin() {
         gdp: 2.4 + scenario.impact.gdp,
         debtToGdp: 98.5 + scenario.impact.debtToGdp,
         deficit: 3.8 + scenario.impact.deficit,
-        reserves: 450 + scenario.impact.reserves },
+        reserves: 450 + scenario.impact.reserves,
+        rating: scenario.impact.rating },
       timeline });
     setSimulating(false);
   };

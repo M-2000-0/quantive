@@ -12,7 +12,7 @@ export interface AssetAllocation {
   targetPct: number;
   currentPct: number;
   drift: number; // currentPct - targetPct (positive = overweight)
-  holdings: HoldingAllocation[];
+  holdings?: HoldingAllocation[];
 }
 
 export interface HoldingAllocation {

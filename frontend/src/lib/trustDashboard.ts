@@ -4,7 +4,7 @@
 // assumption coverage, model versioning, and uncertainty disclosure.
 // Layer 9: Trust Infrastructure — every recommendation gets a Trust Score.
 
-import { getAssumptionRegistry } from './assumptionRegistry';
+import { getAssumptionRegistry, type BiasReport } from './assumptionRegistry';
 
 // Loose record used for strategy / portfolio payloads passed to scoring.
 type dict = Record<string, any>;
@@ -131,7 +131,7 @@ const modelInfo: ModelTransparency = {
 export function getTrustMetrics(): TrustMetric[] {
   const now = new Date().toISOString();
 
-  const baseMetrics = [
+  const baseMetrics: TrustMetric[] = [
     {
       id: 'data-completeness',
       category: 'data_quality',
@@ -291,7 +291,7 @@ function computeRecommendationTrustScore(
     market_context?: dict;
     country_code: string;
   } | null = null,
-  assumptionRegistry?: ReturnType<typeof getAssumptionRegistry>['getBiasReport'][0]['category'] extends never ? [] : ReturnType<typeof getAssumptionRegistry>['getBiasReport']
+  assumptionRegistry?: BiasReport[]
 ): {
   overall: number;
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
@@ -438,7 +438,7 @@ export function detectCorruptionRisks(
     vendorAccessLevel: string;
     recentAnomalies: number;
   },
-  assumptionRegistry?: ReturnType<typeof getAssumptionRegistry>['getBiasReport'][0]['category'] extends never ? [] : ReturnType<typeof getAssumptionRegistry>['getBiasReport']
+  assumptionRegistry?: BiasReport[]
 ): CorruptionRisk[] {
   const risks: CorruptionRisk[] = [];
   const now = new Date().toISOString();

@@ -8,7 +8,7 @@ interface SourceInfo {
   name: string;
   provider: string;
   url: string;
-  status: 'live' | 'fallback' | 'error';
+  status: string;
   latency_ms: number | null;
   last_value: string | null;
   error: string | null;

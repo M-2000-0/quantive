@@ -123,7 +123,7 @@ export default function WeeklyConsensusTrend() {
  const [selectedTrend, setSelectedTrend] = useState<string | null>(null);
 
  const overallTrend = useMemo(() => {
- const avgChange = [].reduce((sum, t) => sum + (t.current - t.twelveWeekAgo), 0) / 0;
+ const avgChange = MOCK_WEEKLY_TRENDS.reduce((sum, t) => sum + (t.current - t.twelveWeekAgo), 0) / MOCK_WEEKLY_TRENDS.length;
  return avgChange;
  }, []);
 
@@ -148,14 +148,14 @@ export default function WeeklyConsensusTrend() {
  Consensus momentum: <span className="text-emerald-600">+{overallTrend.toFixed(0)}% average</span> over 12 weeks
  </div>
  <div className="text-xs text-slate-500 mt-0.5">
- {[].filter((t) => t.trend === 'up').length} of {0} indicators trending up
+ {MOCK_WEEKLY_TRENDS.filter((t) => t.trend === 'up').length} of {MOCK_WEEKLY_TRENDS.length} indicators trending up
  </div>
  </div>
  </div>
 
  {/* Trend Cards */}
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
- {[].map((trend) => {
+ {MOCK_WEEKLY_TRENDS.map((trend) => {
  const totalChange = trend.current - trend.twelveWeekAgo;
  const isSelected = selectedTrend === trend.id;
  const trendColor = trend.trend === 'up' ? '#10b981' : trend.trend === 'down' ? '#ef4444' : '#6b7280';

@@ -54,7 +54,7 @@ export default function RiskProfileQuiz({ onComplete, initialAnswers = {} }: Ris
  };
 
  const handleRestart = () => {
- setAnswers();
+ setAnswers({});
  setCurrentStep(0);
  setCompleted(false);
  setRecommendation(null);

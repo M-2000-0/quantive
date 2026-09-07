@@ -15,12 +15,12 @@ async function login({ email }: { email: string; password: string }) {
   };
 }
 
-async function register({ email, name }: { email: string; password: string; name: string }) {
+async function register(_args: { email: string; password: string; name: string }) {
   return {
     access_token: 'mock-access-token',
     refresh_token: 'mock-refresh-token',
     token_type: 'bearer',
-    user: { ...MOCK_USER, email, name: name || 'Treasury Admin' },
+    user: { ...MOCK_USER },
   };
 }
 

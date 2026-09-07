@@ -20,7 +20,7 @@ export function initAnalytics() {
     // Try dynamic import — gracefully degrade if package not installed
     try {
       import(/* @vite-ignore */ 'posthog-js').then((mod) => {
-        const posthog = mod.default || mod;
+        const posthog = (mod.default || mod) as unknown as NonNullable<typeof posthogInstance>;
         if (posthog && typeof posthog.init === 'function') {
           posthog.init(import.meta.env.VITE_POSTHOG_KEY!, {
             api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',

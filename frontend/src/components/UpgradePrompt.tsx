@@ -2,6 +2,7 @@
 // Inline upgrade prompt shown within a page when a feature is locked.
 // Displays a preview of what the locked feature offers and a CTA to upgrade.
 
+import { Lock } from 'lucide-react';
 import { PLANS, getRequiredPlan, getAnnualSavings, type PlanTier, type FeatureDefinition } from '../lib/featureFlags';
 
 interface UpgradePromptProps {

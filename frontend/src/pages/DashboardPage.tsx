@@ -2,46 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, ChevronRight, Loader2, Wallet } from 'lucide-react';
 import { api } from '../api';
+import type { DashboardSummary, DashboardTask } from '../types';
 import AssetTracker from '../components/AssetTracker';
 import DailyBriefing from '../components/DailyBriefing';
 import FirstRunWizard from '../components/FirstRunWizard';
 import MarketPulseWidget from '../components/MarketPulseWidget';
 import SavingsDashboard from '../components/SavingsDashboard';
-
-interface MaturityBucket {
-  year: number;
-  count: number;
-  total_principal: number;
-}
-
-interface DashboardSummary {
-  total_debt: number;
-  instrument_count: number;
-  currency_count: number;
-  portfolio_count: number;
-  avg_maturity_years: number;
-  weighted_coupon_pct: number;
-  active_optimizations: number;
-  completed_optimizations: number;
-  risk_scores: {
-    refinancing_risk: number;
-    currency_risk: number;
-    interest_rate_risk: number;
-    overall: number;
-  };
-  maturity_distribution: MaturityBucket[];
-  top_currencies: Array<{ currency: string; total_principal: number; percentage: number }>;
-}
-
-interface DashboardTask {
-  id: string;
-  type: string;
-  title: string;
-  meta: string;
-  status: string;
-  priority: string;
-  link?: string;
-}
 
 function formatCurrency(value: number): string {
   if (value >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
@@ -76,8 +42,8 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const summaryData = (await api.dashboard.summary()) as unknown as DashboardSummary;
-      const tasksData = (await api.dashboard.tasks()) as unknown as DashboardTask[];
+      const summaryData = await api.dashboard.summary();
+      const tasksData = await api.dashboard.tasks();
       setSummary(summaryData);
       setTasks(Array.isArray(tasksData) ? tasksData : []);
       setLastSync(new Date());

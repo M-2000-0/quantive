@@ -313,6 +313,7 @@ function createRegistry() {
     register: registerAssumption,
     resolve: resolveAssumption,
     getByCategory: getAssumptionsByCategory,
+    getAssumptionsByCategory,
     getPending: getPendingAssumptions,
     getBiasReport,
     getAccuracy: getAssumptionAccuracy,

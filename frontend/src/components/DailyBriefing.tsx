@@ -112,7 +112,7 @@ export default function DailyBriefing() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.briefing.get() as Briefing;
+      const data = await api.briefing.get() as unknown as Briefing;
       setBriefing(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load briefing');

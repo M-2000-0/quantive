@@ -112,9 +112,9 @@ export default function DecisionConfidenceScore() {
 
       <div className="grid grid-cols-2 gap-4 mb-6">
         {[
-          { label: 'Evidence Gathering', value: evidenceGathering, color: 'cyan', scoreIndex: 3 },
-          { label: 'Scenario Consideration', value: scenarioConsideration, color: 'purple', scoreIndex: 2 },
-          { label: 'Risk Review Completeness', value: riskReviewCompleteness, color: 'rose', scoreIndex: 4 },
+          { label: 'Evidence Gathering', value: evidenceGathering, color: 'cyan', scoreIndex: 3, description: 'Share of assumptions with documented justification.' },
+          { label: 'Scenario Consideration', value: scenarioConsideration, color: 'purple', scoreIndex: 2, description: 'Coverage of core economic scenarios.' },
+          { label: 'Risk Review Completeness', value: riskReviewCompleteness, color: 'rose', scoreIndex: 4, description: 'Completeness of risk review steps.' },
         ].map((m, i) => (
           <div key={i} className="bg-white/5 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">

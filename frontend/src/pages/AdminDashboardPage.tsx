@@ -1,7 +1,19 @@
 import { useState } from 'react';
+import { useAuth } from '../stores/auth';
 
 export default function AdminDashboardPage() {
+  const { user } = useAuth();
   const [tab, setTab] = useState('Overview');
+
+  if (!user || user.role !== 'admin') {
+    return (
+      <div>
+        <h1>Access Denied</h1>
+        <p>You need an admin role to view this page.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1>Admin Dashboard</h1>
@@ -25,8 +37,18 @@ export default function AdminDashboardPage() {
           <p>User Activity</p>
         </div>
       )}
-      {tab === 'System' && <p>System health</p>}
-      {tab === 'Billing' && <p>Billing overview</p>}
+      {tab === 'System' && (
+        <div>
+          <p>System Health</p>
+          <p>Performance Metrics</p>
+        </div>
+      )}
+      {tab === 'Billing' && (
+        <div>
+          <p>Billing overview</p>
+          <button type="button">Upgrade to Enterprise</button>
+        </div>
+      )}
     </div>
   );
 }

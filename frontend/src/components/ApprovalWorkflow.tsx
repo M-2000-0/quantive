@@ -10,7 +10,7 @@ interface WorkflowStep {
   label: string;
   status: 'pending' | 'active' | 'completed' | 'rejected';
   assignee?: string;
-  completedAt?: string;
+  completedAt?: number | string;
   notes?: string;
 }
 

@@ -31,7 +31,7 @@ export interface OptimizationSignal {
   expiresAt: number;
   status: 'new' | 'acknowledged' | 'acted' | 'expired' | 'dismissed';
   confidence?: number;
-  affectedInstruments?: Array<{ name: string }>;
+  affectedInstruments?: Array<{ name: string; principal?: number; type?: string }>;
   marketContext?: MarketContext & { creditSpreads?: number };
   estimatedSavings?: number;
   riskImpact?: number;

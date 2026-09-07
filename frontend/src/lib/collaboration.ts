@@ -16,7 +16,12 @@ export interface TeamMember {
   avatar?: string;
   isOnline: boolean;
   status: MemberStatus;
-  currentActivity?: string;
+  currentActivity?: {
+    page?: string;
+    portfolioId?: string;
+    activity?: string;
+    since?: string;
+  };
   lastSeen?: string;
 }
 
@@ -65,6 +70,27 @@ class CollaborationService {
   private chains: ApprovalChain[] = [];
   private listeners = new Set<CollabListener>();
   private presenceTimer: number | null = null;
+  private chainSeq = 0;
+
+  constructor() {
+    this.members = [
+      { id: 'user-1', name: 'Treasury Analyst', email: 'analyst@treasury.gov', role: 'treasury_analyst', isOnline: true, status: 'online', currentActivity: { page: 'Optimization' } },
+      { id: 'user-2', name: 'Risk Officer', email: 'risk@treasury.gov', role: 'risk_officer', isOnline: true, status: 'online' },
+      { id: 'user-3', name: 'Portfolio Manager', email: 'pm@treasury.gov', role: 'portfolio_manager', isOnline: false, status: 'offline' },
+    ];
+    this.chains = [
+      {
+        id: 'chain-seed-1',
+        title: 'Q1 Refinancing Approval',
+        currentStep: 0,
+        status: 'active',
+        steps: [
+          { id: 'chain-seed-1-s1', assignee: 'Treasury Analyst', assigneeId: 'user-1', roleName: 'treasury_analyst', status: 'active' },
+          { id: 'chain-seed-1-s2', assignee: 'Risk Officer', assigneeId: 'user-2', roleName: 'risk_officer', status: 'pending' },
+        ],
+      },
+    ];
+  }
 
   getMembers(): TeamMember[] {
     return this.members;
@@ -75,7 +101,74 @@ class CollaborationService {
   }
 
   getOnlineMembers(): TeamMember[] {
-    return this.members.filter((m) => m.isOnline);
+    return this.members.filter(m => m.isOnline);
+  }
+
+  getMembersByRole(role: UserRole): TeamMember[] {
+    return this.members.filter(m => m.role === role);
+  }
+
+  getTeamPeerSummary(): {
+    totalMembers: number;
+    onlineMembers: number;
+    roleActivity: Array<{ role: UserRole; label: string; count: number }>;
+  } {
+    const byRole = new Map<UserRole, number>();
+    for (const m of this.members) {
+      byRole.set(m.role, (byRole.get(m.role) || 0) + 1);
+    }
+    return {
+      totalMembers: this.members.length,
+      onlineMembers: this.members.filter(m => m.isOnline).length,
+      roleActivity: [...byRole.entries()].map(([role, count]) => ({
+        role,
+        label: ROLE_CONFIG[role].label,
+        count,
+      })),
+    };
+  }
+
+  createApprovalChain(
+    title: string,
+    steps: Array<{ roleName: UserRole; assignee?: string; assigneeId?: string }>,
+  ): ApprovalChain {
+    this.chainSeq += 1;
+    const chain: ApprovalChain = {
+      id: `chain-${Date.now()}-${this.chainSeq}`,
+      title,
+      currentStep: 0,
+      status: 'active',
+      steps: steps.map((s, i) => ({
+        id: `step-${Date.now()}-${this.chainSeq}-${i}`,
+        assignee: s.assignee || ROLE_CONFIG[s.roleName].label,
+        assigneeId: s.assigneeId,
+        roleName: s.roleName,
+        status: i === 0 ? 'active' : 'pending',
+      })),
+    };
+    this.chains.unshift(chain);
+    this.emit('chain_created', chain);
+    return chain;
+  }
+
+  approveStep(chainId: string, stepId: string, _userId: string, notes?: string): boolean {
+    const chain = this.chains.find(c => c.id === chainId);
+    if (!chain) return false;
+    const idx = chain.steps.findIndex(s => s.id === stepId);
+    if (idx < 0) return false;
+    // Mutate in place so existing step references observe the change.
+    chain.steps[idx].status = 'approved';
+    if (notes !== undefined) chain.steps[idx].notes = notes;
+    chain.steps[idx].completedAt = new Date().toISOString();
+    const next = chain.steps[idx + 1];
+    if (next) {
+      next.status = 'active';
+      chain.currentStep = idx + 1;
+    } else {
+      chain.status = 'approved';
+    }
+    this.emit('chain_updated', chain);
+    return true;
   }
 
   getFieldLocks(): FieldLock[] {
@@ -105,6 +198,32 @@ class CollaborationService {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  isFieldLocked(
+    _sessionId: string,
+    field: string,
+    _userId: string,
+  ): { locked: boolean; by?: string } {
+    const lock = this.getFieldLocks().find((l) => l.field === field);
+    return lock ? { locked: true, by: lock.lockedBy } : { locked: false };
+  }
+
+  lockField(_sessionId: string, field: string, userId: string): void {
+    void field;
+    void userId;
+  }
+
+  unlockField(_sessionId: string, field: string, userId: string): void {
+    void field;
+    void userId;
+  }
+
+  recordChange(
+    _sessionId: string,
+    change: { userId: string; field: string; oldValue: unknown; newValue?: unknown; applied?: boolean },
+  ): void {
+    void change;
   }
 
   private emit(event: CollabEvent, data?: unknown): void {

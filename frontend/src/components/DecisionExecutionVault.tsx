@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Landmark } from 'lucide-react';
+import { Landmark, Lock } from 'lucide-react';
 
 interface DecisionPackage {
  id: string;

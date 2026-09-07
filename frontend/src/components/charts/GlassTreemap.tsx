@@ -1,11 +1,11 @@
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
 
-interface TreemapData {
+type TreemapData = {
   name: string;
   size: number;
   color?: string;
   children?: TreemapData[];
-}
+};
 
 interface GlassTreemapProps {
   data: TreemapData[];

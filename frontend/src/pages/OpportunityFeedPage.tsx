@@ -24,6 +24,7 @@ export default function OpportunityFeedPage() {
   return (
     <div>
       <h1>Opportunity Feed</h1>
+      <span className="rounded-lg text-[10px] font-bold">Live</span>
       <div style={{ display: 'flex', gap: 8, margin: '12px 0', flexWrap: 'wrap', alignItems: 'center' }}>
         <span>All Risk</span>
         {(['All', 'Low', 'Medium', 'High'] as RiskFilter[]).map((r) => (
@@ -56,9 +57,8 @@ export default function OpportunityFeedPage() {
         {visible.map((o) => (
           <article key={o.id} className="panel">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <strong>
-                {o.ticker} — {o.name}
-              </strong>
+              <strong>{o.ticker}</strong>
+              <span>{o.name}</span>
               <span>Upside</span>
             </div>
             <div style={{ display: 'flex', gap: 16, marginTop: 6, fontSize: 13 }}>

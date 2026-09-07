@@ -57,12 +57,12 @@ export default function PeerComparisonWidget({
   showConsensus = true,
   portfolioName = 'Your Portfolio' }: PeerComparisonWidgetProps) {
   const alignmentScore = useMemo(() => {
-    const benchmarks = [];
-    return Math.round(benchmarks.reduce((sum, b) => sum + b.percentile, 0) / benchmarks.length);
+    if (MOCK_PEER_BENCHMARKS.length === 0) return 0;
+    return Math.round(MOCK_PEER_BENCHMARKS.reduce((sum, b) => sum + b.percentile, 0) / MOCK_PEER_BENCHMARKS.length);
   }, []);
 
   const topConsensus = useMemo(() => getTopConsensus(2), []);
-  const aboveMedianCount = [].filter((b) => b.percentile >= 50).length;
+  const aboveMedianCount = MOCK_PEER_BENCHMARKS.filter((b) => b.percentile >= 50).length;
 
   if (compact) {
     return (
@@ -74,7 +74,7 @@ export default function PeerComparisonWidget({
             {getPercentileLabel(alignmentScore)} of peers
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
-            {aboveMedianCount}/{0} metrics above median
+            {aboveMedianCount}/{MOCK_PEER_BENCHMARKS.length} metrics above median
           </div>
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function PeerComparisonWidget({
             {getPercentileLabel(alignmentScore)} of institutional peers
           </div>
           <div className="text-xs text-slate-500 mt-1">
-            Based on {0} key metrics across {MOCK_CONSENSUS_INDICATORS[0]?.sampleSize.toLocaleString()}+ portfolios
+            Based on {MOCK_PEER_BENCHMARKS.length} key metrics across {MOCK_CONSENSUS_INDICATORS[0]?.sampleSize.toLocaleString()}+ portfolios
           </div>
         </div>
       </div>

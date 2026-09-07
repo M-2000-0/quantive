@@ -15,12 +15,13 @@ interface BadgeProps {
   children: ReactNode;
   variant?: BadgeVariant;
   size?: 'sm' | 'md';
+  className?: string;
 }
 
-export default function Badge({ children, variant = 'default', size = 'sm' }: BadgeProps) {
+export default function Badge({ children, variant = 'default', size = 'sm', className = '' }: BadgeProps) {
   const sizeClasses = size === 'sm' ? 'px-2.5 py-1 text-[11px] font-bold tracking-wide' : 'px-3 py-1 text-xs font-bold tracking-wide';
   return (
-    <span className={`inline-flex items-center rounded-full ${variantStyles[variant]} ${sizeClasses}`}>
+    <span className={`inline-flex items-center rounded-full ${variantStyles[variant]} ${sizeClasses} ${className}`}>
       {children}
     </span>
   );

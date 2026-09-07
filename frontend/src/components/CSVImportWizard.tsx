@@ -84,7 +84,7 @@ export default function CSVImportWizard({
 
  const validateData = () => {
  const mappedFields = new Set(Object.values(mappings));
- const missing = requiredColumns.filter((rc) => !mappedFields.includes(rc));
+ const missing = requiredColumns.filter((rc) => !mappedFields.has(rc));
  return { valid: missing.length === 0, missingFields: missing };
  };
 

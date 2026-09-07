@@ -18,6 +18,10 @@ export default function BillingPage() {
         <span>$499</span>
         <span>$2499</span>
       </div>
+      <div>
+        <button type="button">Upgrade</button>
+        <button type="button">Upgrade</button>
+      </div>
       <p>Most Popular</p>
       <h2>Frequently Asked Questions</h2>
     </div>

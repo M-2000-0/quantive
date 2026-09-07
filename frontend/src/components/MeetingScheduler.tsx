@@ -32,7 +32,7 @@ export function MeetingScheduler() {
 
   const loadMeetings = async () => {
     try {
-      const data = await api.request('/meetings?limit=100');
+      const data = await api.request<Meeting[]>('/meetings?limit=100');
       setMeetings(data);
     } catch (e) {
       console.error('Failed to load meetings', e);

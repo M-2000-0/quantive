@@ -130,7 +130,7 @@ export function parseQASMToGates(qasm: string, numQubits: number): Gate[] {
       const a = parseInt(swapMatch[1]);
       const b = parseInt(swapMatch[2]);
       const l = Math.max(qubitLastLayer[a] ?? -1, qubitLastLayer[b] ?? -1) + 1;
-      gates.push({ gate: 'swap', qubit_a: a, qubit_b: b, layer: l });
+      gates.push({ gate: 'swap', qubit: a, qubit_a: a, qubit_b: b, layer: l });
       qubitLastLayer[a] = l;
       qubitLastLayer[b] = l;
       continue;

@@ -190,16 +190,17 @@ export function useMarketPolling<T>(
 
   // Stale data check
   useEffect(() => {
-    if (!state.lastUpdated) return;
-
     const checkStale = setInterval(() => {
-      if (state.lastUpdated && isDataStale(state.lastUpdated, staleThresholdMs)) {
-        setState((prev) => ({ ...prev, isStale: true }));
-      }
+      setState((prev) => {
+        if (prev.lastUpdated && isDataStale(prev.lastUpdated, staleThresholdMs)) {
+          if (!prev.isStale) return { ...prev, isStale: true };
+        }
+        return prev;
+      });
     }, 5000);
 
     return () => clearInterval(checkStale);
-  }, [state.lastUpdated, staleThresholdMs]);
+  }, [staleThresholdMs]);
 
   return {
     ...state,
@@ -212,22 +213,53 @@ export function useMarketPolling<T>(
 
 /**
  * Convenience hook for polling multiple market data sources simultaneously.
+ * Uses a single useMarketPolling call with a combined fetcher to avoid
+ * violating React's Rules of Hooks.
  */
 export function useMarketDataBundle<T extends Record<string, unknown>>(
   fetchers: Record<keyof T, () => Promise<unknown>>,
   options: PollingOptions = {}
 ): Record<keyof T, UseMarketPollingResult<unknown>> & { overallError: Error | null } {
-  const results = {} as Record<keyof T, UseMarketPollingResult<unknown>>;
-  const errors: Error[] = [];
+  const keys = Object.keys(fetchers) as Array<keyof T>;
 
-  for (const [key, fetcher] of Object.entries(fetchers)) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const result = useMarketPolling(fetcher as () => Promise<unknown>, {
-      ...options,
-      cacheKey: options.cacheKey ? `${options.cacheKey}_${key}` : undefined,
+  const combinedFetcher = useCallback(async () => {
+    const results = await Promise.allSettled(
+      keys.map((key) => fetchers[key]())
+    );
+    const combined = {} as Record<string, unknown>;
+    const errors: Error[] = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') {
+        combined[String(keys[i])] = r.value;
+      } else {
+        errors.push(r.reason instanceof Error ? r.reason : new Error(String(r.reason)));
+      }
     });
-    results[key as keyof T] = result;
-    if (result.error) errors.push(result.error);
+    return { ...combined, _bundleErrors: errors } as T & { _bundleErrors: Error[]; provider?: string };
+  }, [keys, fetchers]);
+
+  const bundleResult = useMarketPolling(combinedFetcher, options);
+
+  const results = {} as Record<keyof T, UseMarketPollingResult<unknown>>;
+  const errors: Error[] = bundleResult.data
+    ? ((bundleResult.data as unknown as { _bundleErrors: Error[] })._bundleErrors || [])
+    : [];
+  if (bundleResult.error) errors.push(bundleResult.error);
+
+  for (const key of keys) {
+    results[key] = {
+      data: bundleResult.data ? (bundleResult.data as unknown as Record<string, unknown>)[String(key)] as unknown ?? null : null,
+      error: bundleResult.error,
+      isLoading: bundleResult.isLoading,
+      isStale: bundleResult.isStale,
+      lastUpdated: bundleResult.lastUpdated,
+      provider: bundleResult.provider,
+      failureCount: bundleResult.failureCount,
+      refresh: bundleResult.refresh,
+      pause: bundleResult.pause,
+      resume: bundleResult.resume,
+      clearError: bundleResult.clearError,
+    };
   }
 
   return {

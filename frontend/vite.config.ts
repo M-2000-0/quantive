@@ -11,6 +11,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    exclude: ['e2e/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -25,10 +26,10 @@ export default defineConfig({
         'src/utils/decisionPackagePdf.ts',
       ],
       thresholds: {
-        lines: 9,
-        functions: 8,
-        branches: 5,
-        statements: 9,
+        lines: 25,
+        functions: 20,
+        branches: 15,
+        statements: 25,
       },
     },
   },

@@ -142,7 +142,7 @@ export default function FirstRunWizard() {
     }
     async function load() {
       try {
-        const data = await api.firstRun.quickStartData() as QuickStartData;
+        const data = await api.firstRun.quickStartData() as unknown as QuickStartData;
         if (cancelled) return;
         setQuickStartData(data);
 
@@ -170,12 +170,12 @@ export default function FirstRunWizard() {
     setStep('creating');
     setError(null);
     try {
-      const result = await api.firstRun.createDemoPortfolio() as DemoPortfolioResult;
+      const result = await api.firstRun.createDemoPortfolio() as unknown as DemoPortfolioResult;
       setDemoResult(result);
       setStep('ready');
 
       // Also fetch savings opportunity
-      const savingsData = await api.firstRun.savingsOpportunity(result.portfolio_id) as SavingsOpportunity;
+      const savingsData = await api.firstRun.savingsOpportunity(result.portfolio_id) as unknown as SavingsOpportunity;
       setSavings(savingsData);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create demo portfolio');
@@ -189,7 +189,7 @@ export default function FirstRunWizard() {
     setError(null);
     try {
       const portfolioId = demoResult?.portfolio_id;
-      const result = await api.firstRun.quickOptimize(portfolioId) as QuickOptimizeResult;
+      const result = await api.firstRun.quickOptimize(portfolioId) as unknown as QuickOptimizeResult;
       setOptimizeResult(result);
       setStep('results');
 
@@ -202,7 +202,7 @@ export default function FirstRunWizard() {
           if (status.status === 'completed') {
             stopPolling();
             // Fetch savings opportunity after completion
-            const savingsData = await api.firstRun.savingsOpportunity(result.portfolio_id) as SavingsOpportunity;
+            const savingsData = await api.firstRun.savingsOpportunity(result.portfolio_id) as unknown as SavingsOpportunity;
             setSavings(savingsData);
             setStep('done');
           }

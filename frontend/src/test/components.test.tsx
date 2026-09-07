@@ -71,7 +71,7 @@ describe('StatCard', () => {
 
   it('renders icon when provided', () => {
     render(<StatCard label="Test" value="100" icon={<BarChart3 className="w-5 h-5" />} />);
-    expect(screen.getByText('BarChart3')).toBeInTheDocument();
+    expect(screen.getByText('ChartColumn')).toBeInTheDocument();
   });
 
   it('renders change when provided', () => {

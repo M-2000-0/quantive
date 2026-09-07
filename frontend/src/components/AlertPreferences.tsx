@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AlertPreference } from '../lib/purchaseData';
+import { MOCK_ALERT_PREFERENCES, type AlertPreference } from '../lib/purchaseData';
 
 const CHANNEL_ICONS: Record<string, string> = {
   email: '📧',
@@ -15,7 +15,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Portfolio Health': 'from-rose-500 to-red-500' };
 
 export default function AlertPreferences() {
-  const [preferences, setPreferences] = useState([]);
+  const [preferences, setPreferences] = useState<AlertPreference[]>(MOCK_ALERT_PREFERENCES);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleAlert = (id: string) => {
@@ -84,8 +84,8 @@ export default function AlertPreferences() {
                       />
                     </button>
                     <div className="flex-1">
-                      <div className="font-medium text-sm text-slate-900">{pref.label}</div>
-                      <div className="text-xs text-slate-500">{pref.description}</div>
+                      <div className="font-medium text-sm text-slate-900">{pref.name}</div>
+                      <div className="text-xs text-slate-500">{pref.condition}</div>
                     </div>
                   </div>
 

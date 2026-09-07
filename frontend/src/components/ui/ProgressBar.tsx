@@ -7,6 +7,7 @@ interface ProgressBarProps {
   size?: ProgressSize;
   showPercentage?: boolean;
   variant?: ProgressVariant;
+  className?: string;
 }
 
 const variantStyles: Record<ProgressVariant, string> = {
@@ -28,11 +29,12 @@ export default function ProgressBar({
   size = 'md',
   showPercentage = false,
   variant = 'default',
+  className = '',
 }: ProgressBarProps) {
   const clampedValue = Math.min(100, Math.max(0, value * 100));
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${className}`}>
       {(label || showPercentage) && (
         <div className="flex items-center justify-between mb-2">
           {label && <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</span>}

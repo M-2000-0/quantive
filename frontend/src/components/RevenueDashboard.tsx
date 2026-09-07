@@ -69,10 +69,10 @@ export function RevenueDashboard() {
     const load = async () => {
       try {
         const [r, m, c, cu] = await Promise.all([
-          api.request('/management/revenue'),
-          api.request('/management/mrr'),
-          api.request('/management/churn'),
-          api.request('/management/customers'),
+          api.request<RevenueData>('/management/revenue'),
+          api.request<MRRData>('/management/mrr'),
+          api.request<ChurnData>('/management/churn'),
+          api.request<CustomerData>('/management/customers'),
         ]);
         setRevenue(r);
         setMRR(m);
