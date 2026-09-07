@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Automation — Quantive{% endblock %}
+{% block page_title %}Automation{% endblock %}
+{% block content %}
+<style>
+  .auto-wrap { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .auto-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .auto-head h1 { font-size: 1.5rem; font-weight: 600; color: var(--text, #e2e8f0); margin: 0; }
+  .auto-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--card, #131a2a); border: 1px solid var(--border, #223); border-radius: 10px; padding: 14px 16px; }
+  .stat-card .v { font-size: 1.4rem; font-weight: 700; color: var(--text, #e2e8f0); }
+  .stat-card .l { font-size: .75rem; color: var(--muted, #8892a8); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+  .auto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  .auto-card { background: var(--card, #131a2a); border: 1px solid var(--border, #223); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .auto-card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .auto-card h3 { margin: 0; font-size: 1rem; color: var(--text, #e2e8f0); }
+  .auto-card p.desc { margin: 0; font-size: .82rem; color: var(--muted, #8892a8); line-height: 1.5; }
+  .badge { font-size: .68rem; padding: 3px 9px; border-radius: 20px; font-weight: 600; letter-spacing: .03em; white-space: nowrap; }
+  .badge.sales { background: rgba(59,130,246,.15); color: #60a5fa; }
+  .badge.billing { background: rgba(16,185,129,.15); color: #34d399; }
+  .badge.onboarding { background: rgba(168,85,247,.15); color: #c084fc; }
+  .badge.support { background: rgba(245,158,11,.15); color: #fbbf24; }
+  .badge.ops { background: rgba(100,116,139,.2); color: #94a3b8; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  .status-dot.success { background: #34d399; }
+  .status-dot.failed { background: #f87171; }
+  .status-dot.never { background: #64748b; }
+  .auto-meta { font-size: .75rem; color: var(--muted, #8892a8); display: flex; gap: 14px; flex-wrap: wrap; }
+  .auto-actions { display: flex; gap: 8px; margin-top: auto; }
+  .btn { border: 1px solid var(--border, #334); background: var(--bg2, #1a2236); color: var(--text, #e2e8f0); padding: 7px 14px; border-radius: 8px; font-size: .8rem; cursor: pointer; transition: background .15s; }
+  .btn:hover { background: var(--bg3, #232d47); }
+  .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .btn.primary:hover { background: #1d4ed8; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .section-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted, #8892a8); margin: 26px 0 12px; }
+  table.runs { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  table.runs th { text-align: left; padding: 8px 10px; color: var(--muted, #8892a8); font-weight: 600; border-bottom: 1px solid var(--border, #223); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+  table.runs td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.04); color: var(--text, #cbd5e1); }
+  .run-summary { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leads-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 70px; gap: 8px; font-size: .8rem; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.05); color: var(--text, #cbd5e1); align-items: center; }
+  .leads-head { color: var(--muted, #8892a8); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
+  .score-pill { text-align: center; border-radius: 6px; font-weight: 700; padding: 2px 0; }
+  .score-pill.hot { background: rgba(16,185,129,.18); color: #34d399; }
+  .score-pill.warm { background: rgba(245,158,11,.18); color: #fbbf24; }
+  .score-pill.cold { background: rgba(100,116,139,.2); color: #94a3b8; }
+  .muted { color: var(--muted, #8892a8); }
+  #runDetail pre { background: var(--bg2, #0d1322); border: 1px solid var(--border, #223); border-radius: 8px; padding: 12px; font-size: .75rem; max-height: 300px; overflow: auto; white-space: pre-wrap; }
+</style>
+
+<div class="auto-wrap">
+  <div class="auto-head">
+    <h1>Automation</h1>
+    <button class="btn" onclick="loadAll()">Refresh</button>
+  </div>
+
+  <div class="auto-stats">
+    <div class="stat-card"><div class="v" id="stTotal">–</div><div class="l">Automations</div></div>
+    <div class="stat-card"><div class="v" id="stActions">–</div><div class="l">Actions (24h)</div></div>
+    <div class="stat-card"><div class="v" id="stMrr">–</div><div class="l">MRR</div></div>
+    <div class="stat-card"><div class="v" id="stDunning">–</div><div class="l">Open dunning</div></div>
+    <div class="stat-card"><div class="v" id="stLeads">–</div><div class="l">Leads</div></div>
+  </div>
+
+  <div class="auto-grid" id="autoGrid"></div>
+
+  <div class="section-title">Recent runs</div>
+  <table class="runs">
+    <thead><tr><th>Status</th><th>Automation</th><th>Trigger</th><th>Started</th><th>Duration</th><th class="run-summary">Summary</th><th></th></tr></thead>
+    <tbody id="runsBody"><tr><td colspan="7" class="muted">Loading…</td></tr></tbody>
+  </table>
+
+  <div class="section-title">Leads (CRM)</div>
+  <div class="leads-row leads-head"><div>Lead</div><div>Source</div><div>Stage</div><div>Company</div><div>Score</div></div>
+  <div id="leadsList"><div class="leads-row"><div class="muted" style="grid-column:1/-1">Loading…</div></div></div>
+
+  <div class="section-title">Revenue &amp; recovery</div>
+  <div class="auto-stats">
+    <div class="stat-card"><div class="v" id="mrrPaid">–</div><div class="l">Paid orgs</div></div>
+    <div class="stat-card"><div class="v" id="mrrNew">–</div><div class="l">New (30d)</div></div>
+    <div class="stat-card"><div class="v" id="mrrChurn">–</div><div class="l">Churned (30d)</div></div>
+    <div class="stat-card"><div class="v" id="dunRecovered">–</div><div class="l">Recovered</div></div>
+  </div>
+</div>
+
+<div id="runDetail" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; align-items:center; justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--card,#131a2a); border:1px solid var(--border,#334); border-radius:12px; padding:20px; width:min(720px,92vw); max-height:80vh; overflow:auto;">
+    <h3 id="runDetailTitle" style="margin:0 0 10px; color:var(--text,#e2e8f0);">Run detail</h3>
+    <pre id="runDetailPre"></pre>
+  </div>
+</div>
+
+<script>
+const KEY_NAMES = {};
+async function loadAll() {
+  try {
+    const [autosRes, runsRes, mrrRes, dunRes, leadsRes] = await Promise.all([
+      fetch('/api/automation', {credentials:'include'}),
+      fetch('/api/automation/runs/recent?limit=15', {credentials:'include'}),
+      fetch('/api/automation/mrr', {credentials:'include'}),
+      fetch('/api/automation/dunning', {credentials:'include'}),
+      fetch('/api/automation/leads', {credentials:'include'}),
+    ]);
+    const autos = (await autosRes.json()).automations || [];
+    const runs = (await runsRes.json()).runs || [];
+    const mrr = await mrrRes.json();
+    const dun = await dunRes.json();
+    const leads = (await leadsRes.json()).leads || [];
+
+    autos.forEach(a => KEY_NAMES[a.key] = a.name);
+
+    document.getElementById('stTotal').textContent = autos.length;
+    document.getElementById('stMrr').textContent = mrr.mrr_display || '$0';
+    document.getElementById('stDunning').textContent = dun.open ?? 0;
+    document.getElementById('stLeads').textContent = leads.length;
+    document.getElementById('mrrPaid').textContent = mrr.active_paid_orgs ?? 0;
+    document.getElementById('mrrNew').textContent = mrr.new_30d ?? 0;
+    document.getElementById('mrrChurn').textContent = mrr.churned_30d ?? 0;
+    document.getElementById('dunRecovered').textContent = dun.recovered ?? 0;
+
+    // 24h action count from runs
+    const dayAgo = Date.now() - 86400000;
+    const actions24h = runs.filter(r => r.started_at && new Date(r.started_at).getTime() > dayAgo)
+                           .reduce((s, r) => s + (r.actions_taken || 0), 0);
+    document.getElementById('stActions').textContent = actions24h;
+
+    // Automation cards
+    document.getElementById('autoGrid').innerHTML = autos.map(a => `
+      <div class="auto-card">
+        <div class="top">
+          <h3>${esc(a.name)}</h3>
+          <span class="badge ${esc(a.category)}">${esc(a.category)}</span>
+        </div>
+        <p class="desc">${esc(a.description)}</p>
+        <div class="auto-meta">
+          <span><span class="status-dot ${esc(a.last_status)}"></span>${esc(a.last_status)}</span>
+          <span>every ${a.interval_minutes}m</span>
+          <span>${a.last_run_at ? 'last: ' + new Date(a.last_run_at).toLocaleTimeString() : 'not run yet'}</span>
+        </div>
+        <div class="auto-actions">
+          <button class="btn primary" onclick="runNow('${esc(a.key)}', this)" ${a.enabled ? '' : 'disabled'}>Run now</button>
+          <button class="btn" onclick="toggleAuto('${esc(a.key)}')">${a.enabled ? 'Disable' : 'Enable'}</button>
+          <button class="btn" onclick="showRuns('${esc(a.key)}')">History</button>
+        </div>
+      </div>`).join('') || '<div class="muted">No automations registered</div>';
+
+    // Runs table
+    document.getElementById('runsBody').innerHTML = runs.map(r => `
+      <tr>
+        <td><span class="status-dot ${esc(r.status)}"></span>${esc(r.status)}</td>
+        <td>${esc(KEY_NAMES[r.automation_key] || r.automation_key)}</td>
+        <td>${esc(r.trigger)}</td>
+        <td>${r.started_at ? new Date(r.started_at).toLocaleTimeString() : '–'}</td>
+        <td>${r.duration_ms}ms</td>
+        <td class="run-summary" title="${esc(r.summary)}">${esc(r.summary)}</td>
+        <td><button class="btn" onclick='showRunDetail(${JSON.stringify(r.log || [])})'>Log</button></td>
+      </tr>`).join('') || '<tr><td colspan="7" class="muted">No runs yet — the scheduler runs each automation on its interval.</td></tr>';
+
+    // Leads
+    document.getElementById('leadsList').innerHTML = leads.map(l => {
+      const cls = l.score >= 70 ? 'hot' : l.score >= 40 ? 'warm' : 'cold';
+      return `<div class="leads-row">
+        <div>${esc(l.name || l.email || '—')} <span class="muted">${l.title ? '· ' + esc(l.title) : ''}</span></div>
+        <div>${esc(l.source)}</div>
+        <div>${esc(l.stage)}</div>
+        <div>${esc(l.company || '—')}</div>
+        <div><div class="score-pill ${cls}">${l.score}</div></div>
+      </div>`;
+    }).join('') || '<div class="leads-row"><div class="muted" style="grid-column:1/-1">No leads yet — POST to /api/automation/webhooks/lead to capture one.</div></div>';
+  } catch (e) {
+    console.error('Automation load failed', e);
+  }
+}
+
+async function runNow(key, btn) {
+  btn.disabled = true; btn.textContent = 'Running…';
+  try {
+    const r = await fetch(`/api/automation/${key}/run`, {method:'POST', credentials:'include'});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || r.status);
+    btn.textContent = `Done (${d.actions_taken} actions)`;
+  } catch (e) { btn.textContent = 'Failed'; alert('Run failed: ' + e.message); }
+  setTimeout(loadAll, 1200);
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Run now'; }, 3000);
+}
+
+async function toggleAuto(key) { await fetch(`/api/automation/${key}/toggle`, {method:'POST', credentials:'include'}); loadAll(); }
+
+async function showRuns(key) {
+  const r = await fetch(`/api/automation/${key}/runs?limit=20`, {credentials:'include'});
+  const d = await r.json();
+  showRunDetail((d.runs || []).map(x => `${x.status} · ${x.started_at} · ${x.summary}`).join('\n') || 'No runs yet');
+}
+
+function showRunDetail(log) {
+  document.getElementById('runDetailPre').textContent =
+    typeof log === 'string' ? log : JSON.stringify(log, null, 2);
+  document.getElementById('runDetail').style.display = 'flex';
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+{% endblock %}
