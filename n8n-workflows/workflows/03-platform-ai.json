@@ -1,5 +1,4 @@
 {
-  "id": "wf3-platform-ai",
   "name": "WF-3: Quantive Platform & AI",
   "active": false,
   "nodes": [
@@ -61,20 +60,20 @@
               "value": "Mozilla/5.0 (Quantive-n8n)"
             }
           ]
-        },
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000,
-        "onError": "continueRegularOutput"
+        }
       },
       "id": "auto-Yahoo Finance Quote-0058",
       "name": "Yahoo Finance Quote",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         400,
         0
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
     },
     {
       "parameters": {
@@ -152,20 +151,20 @@
           ]
         },
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpQueryAuth",
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 5000,
-        "onError": "continueRegularOutput"
+        "genericAuthType": "httpQueryAuth"
       },
       "id": "auto-Fetch Market News-0062",
       "name": "Fetch Market News",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         200,
         300
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -239,20 +238,20 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [\n    { role: 'system', content: 'You are a sovereign-debt market analyst. Summarize todays market conditions in 5 bullet points, max 120 words.' },\n    { role: 'user', content: 'Rates, dollar, gold, oil, equities, VIX, crypto — what matters for treasury desks today?' }\n  ],\n  temperature: 0.3,\n}) }}",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "retryOnFail": true,
-        "maxTries": 2,
-        "waitBetweenTries": 3000,
-        "onError": "continueRegularOutput"
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "auto-OpenAI Market Summary-0066",
       "name": "OpenAI Market Summary",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         200,
         600
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
     },
     {
       "parameters": {
@@ -312,20 +311,20 @@
     {
       "parameters": {
         "url": "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}/api/optimize-debt/status",
-        "options": {},
-        "retryOnFail": true,
-        "maxTries": 2,
-        "waitBetweenTries": 2000,
-        "onError": "continueRegularOutput"
+        "options": {}
       },
       "id": "auto-Ping Backend Status-0070",
       "name": "Ping Backend Status",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         200,
         900
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -384,20 +383,20 @@
     {
       "parameters": {
         "url": "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}/api/v1/digest",
-        "options": {},
-        "retryOnFail": true,
-        "maxTries": 2,
-        "waitBetweenTries": 3000,
-        "onError": "continueRegularOutput"
+        "options": {}
       },
       "id": "auto-Fetch App Digest-0074",
       "name": "Fetch App Digest",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         200,
         1200
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
     },
     {
       "parameters": {
@@ -613,8 +612,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "wf0-error-handler"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": {

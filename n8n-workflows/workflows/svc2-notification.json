@@ -1,5 +1,4 @@
 {
-  "id": "svc2-notification",
   "name": "SVC-2: Notification Service (manual)",
   "active": false,
   "nodes": [
@@ -75,8 +74,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "wf0-error-handler"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": {

@@ -1,5 +1,4 @@
 {
-  "id": "wf0-error-handler",
   "name": "WF-0: Error Handler",
   "active": false,
   "nodes": [
@@ -51,11 +50,17 @@
     {
       "parameters": {
         "rules": {
-          "rules": [
+          "values": [
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "be76e4a5-ae63-5082-b475-f027c801c6f6",
                     "leftValue": "={{$json.severity}}",
                     "rightValue": "critical",
                     "operator": {
@@ -63,14 +68,22 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Critical"
+              "renameOutput": true,
+              "outputKey": "Critical"
             },
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "67cc0a19-93e4-5094-bd51-2281048b07e0",
                     "leftValue": "={{$json.severity}}",
                     "rightValue": "high",
                     "operator": {
@@ -78,14 +91,22 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "High"
+              "renameOutput": true,
+              "outputKey": "High"
             },
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "fda83fcf-e643-5a56-9c1c-886b1a7e693e",
                     "leftValue": "={{$json.severity}}",
                     "rightValue": "medium",
                     "operator": {
@@ -93,9 +114,11 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Medium"
+              "renameOutput": true,
+              "outputKey": "Medium"
             }
           ]
         }
@@ -237,8 +260,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "wf0-error-handler"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": {

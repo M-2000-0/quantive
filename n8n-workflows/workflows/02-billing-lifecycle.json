@@ -1,14 +1,9 @@
 {
-  "id": "wf2-billing-lifecycle",
   "name": "WF-2: Billing & Customer Lifecycle",
   "active": false,
   "nodes": [
     {
-      "parameters": {
-        "events": [
-          "*"
-        ]
-      },
+      "parameters": {},
       "id": "auto-Stripe Trigger-0041",
       "name": "Stripe Trigger",
       "type": "n8n-nodes-base.stripeTrigger",
@@ -34,11 +29,17 @@
     {
       "parameters": {
         "rules": {
-          "rules": [
+          "values": [
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "b95bcd56-0271-536f-bc9d-0e56e52db34a",
                     "leftValue": "={{$json.type}}",
                     "rightValue": "customer.subscription.created",
                     "operator": {
@@ -46,14 +47,22 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Sub Created"
+              "renameOutput": true,
+              "outputKey": "Sub Created"
             },
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "5a27c119-2d69-5b68-a315-e9fb47000ce4",
                     "leftValue": "={{$json.type}}",
                     "rightValue": "customer.subscription.updated",
                     "operator": {
@@ -61,14 +70,22 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Sub Updated"
+              "renameOutput": true,
+              "outputKey": "Sub Updated"
             },
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "a9f07524-6401-5e94-bcd7-c974058cde19",
                     "leftValue": "={{$json.type}}",
                     "rightValue": "invoice.payment_failed",
                     "operator": {
@@ -76,14 +93,22 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Payment Failed"
+              "renameOutput": true,
+              "outputKey": "Payment Failed"
             },
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "1fb9a808-53f3-53cf-a9cb-6b73df104113",
                     "leftValue": "={{$json.type}}",
                     "rightValue": "customer.subscription.deleted",
                     "operator": {
@@ -91,9 +116,11 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Churn"
+              "renameOutput": true,
+              "outputKey": "Churn"
             }
           ]
         }
@@ -249,20 +276,20 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: $json.type, data: { object: $json.obj } }) }}",
-        "retryOnFail": true,
-        "maxTries": 3,
-        "waitBetweenTries": 3000,
-        "onError": "continueRegularOutput"
+        "jsonBody": "={{ JSON.stringify({ type: $json.type, data: { object: $json.obj } }) }}"
       },
       "id": "auto-Relay to Quantive Backend-0050",
       "name": "Relay to Quantive Backend",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         600,
         600
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
     },
     {
       "parameters": {
@@ -518,8 +545,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "wf0-error-handler"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": {

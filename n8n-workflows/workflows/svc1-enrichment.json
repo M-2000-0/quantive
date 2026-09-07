@@ -1,5 +1,4 @@
 {
-  "id": "svc1-enrichment",
   "name": "SVC-1: Lead Enrichment (manual)",
   "active": false,
   "nodes": [
@@ -41,20 +40,20 @@
           ]
         },
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpQueryAuth",
-        "retryOnFail": true,
-        "maxTries": 2,
-        "waitBetweenTries": 2000,
-        "onError": "continueRegularOutput"
+        "genericAuthType": "httpQueryAuth"
       },
       "id": "auto-Fetch Company Data (Clearbit)-0002",
       "name": "Fetch Company Data (Clearbit)",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         400,
         0
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -106,8 +105,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "wf0-error-handler"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": {

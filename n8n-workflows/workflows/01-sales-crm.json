@@ -1,5 +1,4 @@
 {
-  "id": "wf1-sales-crm",
   "name": "WF-1: Sales & CRM",
   "active": false,
   "nodes": [
@@ -81,20 +80,20 @@
           ]
         },
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpQueryAuth",
-        "retryOnFail": true,
-        "maxTries": 2,
-        "waitBetweenTries": 2000,
-        "onError": "continueRegularOutput"
+        "genericAuthType": "httpQueryAuth"
       },
       "id": "auto-Clearbit Company Lookup-0019",
       "name": "Clearbit Company Lookup",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         800,
         0
-      ]
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -133,11 +132,17 @@
     {
       "parameters": {
         "rules": {
-          "rules": [
+          "values": [
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "33ed2e57-4d53-521c-9340-25ec66afa568",
                     "leftValue": "={{$json.tier}}",
                     "rightValue": "hot",
                     "operator": {
@@ -145,14 +150,22 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Hot"
+              "renameOutput": true,
+              "outputKey": "Hot"
             },
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "2522834d-c1f1-509a-afac-40136a441eb0",
                     "leftValue": "={{$json.tier}}",
                     "rightValue": "warm",
                     "operator": {
@@ -160,14 +173,22 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Warm"
+              "renameOutput": true,
+              "outputKey": "Warm"
             },
             {
               "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
                 "conditions": [
                   {
+                    "id": "b387f84d-7898-56ea-9e88-6cade6356dab",
                     "leftValue": "={{$json.tier}}",
                     "rightValue": "cold",
                     "operator": {
@@ -175,9 +196,11 @@
                       "operation": "equals"
                     }
                   }
-                ]
+                ],
+                "combinator": "and"
               },
-              "renameOutput": "Cold"
+              "renameOutput": true,
+              "outputKey": "Cold"
             }
           ]
         }
@@ -790,8 +813,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "wf0-error-handler"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": {

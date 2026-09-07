@@ -1,5 +1,4 @@
 {
-  "id": "svc3-logger",
   "name": "SVC-3: Execution Logger (manual)",
   "active": false,
   "nodes": [
@@ -74,8 +73,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "wf0-error-handler"
+    "executionOrder": "v1"
   },
   "staticData": null,
   "meta": {

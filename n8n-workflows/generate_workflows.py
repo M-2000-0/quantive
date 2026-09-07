@@ -13,6 +13,7 @@ Regenerate with:  python generate_workflows.py
 
 import json
 import os
+import uuid
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "workflows")
 os.makedirs(OUT, exist_ok=True)
@@ -30,7 +31,7 @@ def nid(key):
     return IDS[key]
 
 
-def node(name, ntype, tv, params, pos, creds=None, on_error=None, webhook_id=None):
+def node(name, ntype, tv, params, pos, creds=None, on_error=None, webhook_id=None, retry=None):
     n = {
         "parameters": params,
         "id": nid(name),
@@ -41,8 +42,14 @@ def node(name, ntype, tv, params, pos, creds=None, on_error=None, webhook_id=Non
     }
     if creds:
         n["credentials"] = creds
+    # NOTE: retryOnFail/onError are NODE-level properties, not parameters —
+    # nesting them inside "parameters" breaks n8n import.
     if on_error:
         n["onError"] = on_error
+    if retry:
+        n["retryOnFail"] = True
+        n["maxTries"] = retry[0]
+        n["waitBetweenTries"] = retry[1]
     if webhook_id:
         n["webhookId"] = webhook_id
     return n
@@ -69,7 +76,7 @@ def slack(name, text, channel, pos):
 
 
 def http(name, url, pos, method="GET", qs=None, headers=None, body=None,
-         auth=None, on_error=None, retry=None, tv=4.2):
+         auth=None, on_error=None, retry=None, tv=4.1):
     p = {"url": url, "options": {}}
     if method != "GET":
         p["method"] = method
@@ -86,13 +93,8 @@ def http(name, url, pos, method="GET", qs=None, headers=None, body=None,
     if auth:
         p["authentication"] = "genericCredentialType"
         p["genericAuthType"] = auth
-    if retry:
-        p["retryOnFail"] = True
-        p["maxTries"] = retry[0]
-        p["waitBetweenTries"] = retry[1]
-    if on_error:
-        p["onError"] = on_error
-    return node(name, "n8n-nodes-base.httpRequest", tv, p, pos)
+    return node(name, "n8n-nodes-base.httpRequest", tv, p, pos,
+                on_error=on_error, retry=retry)
 
 
 def email(name, subject, body, to, pos):
@@ -125,20 +127,31 @@ def webhook(name, path, pos, response_mode="lastNode", raw_body=False):
 
 
 def switch_node(name, expr, rules, pos):
-    """rules: list of (value, outputLabel) — string equals."""
+    """rules: list of (value, outputLabel) — string equals.
 
-    def rule(val, label):
+    Emits the exact Switch v3 schema n8n exports: fixedCollection key is
+    "values" (not "rules"), each condition carries options + combinator,
+    and renameOutput is a boolean with the label in outputKey.
+    """
+
+    def rule(idx, val, label):
         return {
-            "conditions": {"conditions": [{
-                "leftValue": f"={{{{{expr}}}}}",
-                "rightValue": val,
-                "operator": {"type": "string", "operation": "equals"},
-            }]},
-            "renameOutput": label,
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{
+                    "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"quantive:{name}:{idx}")),
+                    "leftValue": f"={{{{{expr}}}}}",
+                    "rightValue": val,
+                    "operator": {"type": "string", "operation": "equals"},
+                }],
+                "combinator": "and",
+            },
+            "renameOutput": True,
+            "outputKey": label,
         }
 
     return node(name, "n8n-nodes-base.switch", 3,
-                {"rules": {"rules": [rule(v, l) for v, l in rules]}}, pos)
+                {"rules": {"values": [rule(i, v, l) for i, (v, l) in enumerate(rules)]}}, pos)
 
 
 def wire(*chains):
@@ -178,13 +191,15 @@ def wire(*chains):
 
 
 def wf(workflow_id, name, nodes, conns, tags, desc):
+    # No "id" (n8n assigns fresh ids on import) and no settings.errorWorkflow
+    # (it must reference a real numeric/string workflow id that only exists
+    # after import — wire WF-0 in the UI afterward instead).
     return {
-        "id": workflow_id,
         "name": name,
         "active": False,
         "nodes": nodes,
         "connections": conns,
-        "settings": {"executionOrder": "v1", "errorWorkflow": "wf0-error-handler"},
+        "settings": {"executionOrder": "v1"},
         "staticData": None,
         "meta": {"templateCredsSetupCompleted": False},
         "pinData": {},
@@ -449,7 +464,9 @@ WF1 = wf(
 # ════════════════════════════════════════════════════════════════════
 
 WF2_NODES = [
-    node("Stripe Trigger", "n8n-nodes-base.stripeTrigger", 1, {"events": ["*"]}, [0, 0]),
+    # stripeTrigger has no "events" parameter (only the optional "live" toggle) —
+    # empty parameters import cleanly on every version.
+    node("Stripe Trigger", "n8n-nodes-base.stripeTrigger", 1, {}, [0, 0]),
     code("Route by Event Type", """const ev = $input.first().json;
 const type = ev.type || 'unknown';
 const obj = ev.data && ev.data.object ? ev.data.object : ev;
