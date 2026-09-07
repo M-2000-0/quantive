@@ -31,6 +31,8 @@ engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
     pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_timeout=30,
 )
 
 
@@ -72,5 +74,8 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

@@ -172,3 +172,30 @@ class GlobalExceptionHandler(BaseHTTPMiddleware):
                     "request_id": getattr(request.state, "request_id", "unknown"),
                 },
             )
+
+
+class BodySizeLimitMiddleware(BaseHTTPMiddleware):
+    """Reject request bodies larger than a configurable threshold (default 10MB).
+    
+    Upload endpoints (/import, /upload) are exempt — they handle their own limits.
+    """
+
+    # Paths that handle their own upload limits
+    UPLOAD_PATHS = {"/api/portfolios/upload", "/api/v1/portfolios/upload"}
+
+    def __init__(self, app, max_body_bytes: int = 10 * 1024 * 1024):
+        super().__init__(app)
+        self.max_body_bytes = max_body_bytes
+
+    async def dispatch(self, request: Request, call_next):
+        if request.method in ("GET", "HEAD", "DELETE", "OPTIONS"):
+            return await call_next(request)
+        if request.url.path in self.UPLOAD_PATHS:
+            return await call_next(request)
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.max_body_bytes:
+            return JSONResponse(
+                status_code=413,
+                content={"detail": f"Request body too large. Maximum size: {self.max_body_bytes // (1024 * 1024)}MB"},
+            )
+        return await call_next(request)

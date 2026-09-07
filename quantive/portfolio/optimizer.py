@@ -133,7 +133,7 @@ class PortfolioOptimizer:
             port_rets = returns @ w
             q = np.quantile(port_rets, alpha)
             tail = port_rets[port_rets <= q]
-            return -float(tail.mean()) if len(tail) else -float(q)  # minimize loss => minimize -mean? CVaR negative; we minimize CVaR magnitude
+            return float(tail.mean()) if len(tail) else float(q)
         res = minimize(cvar_obj, x0, method="SLSQP", bounds=bounds, constraints=cons, options={"maxiter": 500})
         w = _project_simplex(res.x if res.success else x0)
         return _enforce_box(w, self.constraints)

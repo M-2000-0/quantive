@@ -22,7 +22,7 @@ CSRF_TOKEN_LIFETIME = 3600  # 1 hour
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 # Paths exempt from CSRF (public endpoints, webhooks, health)
-CSRF_EXEMPT_PATHS = {"/api/health", "/api/auth/login", "/api/auth/register", "/webhooks", "/api/", "/docs", "/redoc", "/openapi.json", "/login", "/register", "/forgot-password", "/reset-password"}
+CSRF_EXEMPT_PATHS = {"/api/health", "/api/auth/login", "/api/auth/register", "/webhooks", "/docs", "/redoc", "/openapi.json", "/login", "/register", "/forgot-password", "/reset-password"}
 
 
 def generate_csrf_token(secret: str) -> str:

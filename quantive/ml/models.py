@@ -85,11 +85,14 @@ class LassoModel(BaseModel):
             for j in range(p):
                 r = y - Xs @ coef + coef[j] * Xs[:, j]
                 rho = float(Xs[:, j] @ r)
+                xj_norm_sq = float(Xs[:, j] @ Xs[:, j])
                 # soft threshold
-                if rho < -self.alpha:
-                    coef[j] = (rho + self.alpha) / (Xs[:, j] @ Xs[:, j])
+                if xj_norm_sq < 1e-16:
+                    coef[j] = 0.0
+                elif rho < -self.alpha:
+                    coef[j] = (rho + self.alpha) / xj_norm_sq
                 elif rho > self.alpha:
-                    coef[j] = (rho - self.alpha) / (Xs[:, j] @ Xs[:, j])
+                    coef[j] = (rho - self.alpha) / xj_norm_sq
                 else:
                     coef[j] = 0.0
             if np.max(np.abs(coef - prev)) < self.tol:

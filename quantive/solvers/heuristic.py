@@ -53,6 +53,8 @@ class SimulatedAnnealingSolver(SolverInterface):
         evals = 0
 
         sigma = max(50.0, R / 40.0)
+        stall_count = 0
+        stall_threshold = max(1000, config.anneal_iterations // 10)
         for it in range(config.anneal_iterations):
             # exact-sum pairwise move (preserves sum(x) == R by construction)
             i = int(rng.integers(0, N))
@@ -87,11 +89,17 @@ class SimulatedAnnealingSolver(SolverInterface):
                 if new_e < best_e:
                     best_x = x.copy()
                     best_e = new_e
+                    stall_count = 0
+                else:
+                    stall_count += 1
             else:
                 x[i], x[j] = old_i, old_j
+                stall_count += 1
             temp *= cooling
             if temp < 1e-6:
                 temp = 1e-6
+            if stall_count >= stall_threshold:
+                break
 
         runtime = perf_counter() - t0
         # polish: project best onto feasible box-simplex, then deterministic repair

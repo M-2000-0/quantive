@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Setup Row Level Security on Quantive PostgreSQL database."""
+import os
 import psycopg2
 
 DB_CONFIG = {
-    "host": "db.01m11t96k7pbx6q9hgnj8qw14a.demo.vela.run",
-    "port": 25282,
-    "dbname": "postgres",
-    "user": "postgres",
-    "password": "6k9hgi-zvvLft-bshyRt",
+    "host": os.environ.get("DB_HOST", "localhost"),
+    "port": int(os.environ.get("DB_PORT", "5432")),
+    "dbname": os.environ.get("DB_NAME", "quantive"),
+    "user": os.environ.get("DB_USER", "quantive"),
+    "password": os.environ.get("DB_PASSWORD", ""),
 }
 
 def run():

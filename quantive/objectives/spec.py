@@ -240,7 +240,8 @@ class ProblemSpec:
             add("currency_limit_foreign", self.foreign_currency_limit_share * R, foreign,
                 f"foreign={foreign/R:.1%}")
         for ccy, cap in self.per_currency_limits.items():
-            val = sum(v for i, v in enumerate(x) if self.currencies[i] == ccy)
+            mask = self.currencies == ccy
+            val = float(x[mask].sum())
             add(f"currency_limit:{ccy}", cap * R, val, f"{ccy}={val/R:.1%}")
         # minimum liquidity
         if self.min_liquidity_share > 0:
@@ -306,7 +307,8 @@ class ProblemSpec:
         if self.foreign_currency_limit_share is not None:
             total += max(0.0, float(x[self.is_foreign].sum()) - self.foreign_currency_limit_share * R)
         for ccy, cap in self.per_currency_limits.items():
-            val = sum(float(v) for i, v in enumerate(x) if self.currencies[i] == ccy)
+            mask = self.currencies == ccy
+            val = float(x[mask].sum())
             total += max(0.0, val - cap * R)
         if self.min_liquidity_share > 0:
             total += max(0.0, self.min_liquidity_share * R - float(x[self.is_liquid].sum()))

@@ -17,7 +17,7 @@ It queries:
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Any
 
 import numpy as np
@@ -40,13 +40,12 @@ from quantive.models.institutional_memory import (
     transition_administration,
 )
 from quantive.scenarios.engine import ScenarioEngine
-from quantive.objectives.spec import build_spec, ProblemSpec
-from quantive.objectives.costs import scenario_costs, scenario_cost_matrix
-from quantive.risk.fiscal import FiscalRisk, FiscalPressure, SovereignRiskIndicator
-from quantive.risk.climate import ClimateRisk, ClimateScenario, ClimateImpact
-from quantive.risk.geopolitical import GeopoliticalRisk, GeopoliticalEvent, ConflictType
-from quantive.risk.cyber import CyberRisk, CyberVulnerability, CyberThreat
-from quantive.risk.supply_chain import SupplyChainRisk, SupplyChainDisruption, DisruptionType
+from quantive.objectives.spec import build_spec
+from quantive.risk.fiscal import FiscalRisk
+from quantive.risk.climate import ClimateRisk
+from quantive.risk.geopolitical import GeopoliticalRisk
+from quantive.risk.cyber import CyberRisk
+from quantive.risk.supply_chain import SupplyChainRisk
 from quantive.early_warning.indicators import (
     DEBT_TO_GDP_CONFIG,
     DEBT_SERVICE_CONFIG,
@@ -60,10 +59,7 @@ from quantive.early_warning.indicators import (
     PENSION_FUNDING_RATIO_CONFIG,
     PENSION_DEMOGRAPHIC_RATIO_CONFIG,
 )
-from quantive.strategies import generate_strategies, solve_profile
-from quantive.orchestration import run_full_job
-from quantive.solvers.registry import get_solver
-from quantive.models.enums import StrategyProfile, Currency, RateType
+from quantive.models.enums import Currency, RateType
 
 
 # ── Core Reasoning Output Models ──────────────────────────────────────────

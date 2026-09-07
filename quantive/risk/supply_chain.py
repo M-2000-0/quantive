@@ -3,34 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-
-class DisruptionType(str, Enum):
-    """Types of supply chain disruptions."""
-
-    PORT_CONGESTION = "port_congestion"
-    TRANSPORT_DISABLED = "transport_disabled"
-    RAW_MATERIAL_SHORTAGE = "raw_material_shortage"
-    MANUFACTURING_OUTAGE = "manufacturing_outage"
-    LOGISTICS_ROUTE_BLOCKED = "logistics_route_blocked"
-    SINGLE_SUPPLIER_FAILURE = "single_supplier_failure"
-    GEOPOLITICAL_INTERDICTION = "geopolitical_interdiction"
-    CYBER_SUPPLY_CHAIN = "cyber_supply_chain"
-    NATURAL_DISASTER = "natural_disaster"
-    DEMAND_SPIKE = "demand_spike"
-
-
-class TierLevel(str, Enum):
-    """Tier level of supply chain dependency."""
-
-    TIER_1 = "tier_1"
-    TIER_2 = "tier_2"
-    TIER_3 = "tier_3"
-    TIER_4_PLUS = "tier_4+"
+from quantive.risk.enums import DisruptionType, TierLevel
 
 
 class SupplyChainDisruption(BaseModel):

@@ -14,7 +14,7 @@ services:
     environment:
       POSTGRES_DB: quantive
       POSTGRES_USER: quantive
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_production}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Please set DB_PASSWORD in .env or environment}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - quantive-db-data:/var/lib/postgresql/data
@@ -42,7 +42,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://quantive:${DB_PASSWORD:-changeme_in_production}@postgres:5432/quantive
+      DATABASE_URL: postgresql://quantive:${DB_PASSWORD}@postgres:5432/quantive
       SECRET_KEY: ${SECRET_KEY:-generate_with_openssl_rand_hex_32}
       ALLOWED_ORIGINS: http://localhost,http://127.0.0.1
       FRED_API_KEY: ${FRED_API_KEY:-}
@@ -52,6 +52,12 @@ services:
       - "127.0.0.1:8000:8000"
     networks:
       - quantive-internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -68,11 +74,17 @@ services:
     container_name: quantive-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "127.0.0.1:8080:80"
     networks:
       - quantive-internal
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     security_opt:
       - no-new-privileges:true
 

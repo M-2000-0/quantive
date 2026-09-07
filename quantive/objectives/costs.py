@@ -26,7 +26,7 @@ Policy what-if multipliers model fiscal and regulatory policy impacts:
 """
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -34,7 +34,7 @@ from quantive.data.synthetic import BASE_FX, SOFR_BASE
 from quantive.models.instruments import DebtInstrument
 from quantive.models.optimization import EconomicScenario
 from quantive.models.enums import Currency, RateType
-from quantive.scenarios.definitions import _policy_shock_multiplier
+from quantive.scenarios.definitions import _policy_shock_multiplier, policy_dimension_multipliers, policy_debt_multipliers
 
 _FX_DEFAULT = {c.value: 1.0 for c in Currency}
 
@@ -78,25 +78,6 @@ _POLICY_DIMENSION_MULTIPLIERS: Dict[str, Dict[str, float]] = {
     "subsidy-increase-10pct": {"gdp": 1.03, "inflation": 1.02, "employment": 1.04, "debt_gdp": 0.97},
 }
 
-# Policy dimension impact multipliers (new - budget, GDP, debt, inflation, employment)
-_POLICY_BUDGET_MULTIPLIERS = {
-    "tax-cut-2pct": {"budget_impact": -0.02, "gdp_impact": 0.02, "debt_gdp_impact": -0.02, "inflation_impact": 0.01, "employment_impact": 0.01},
-    "tax-cut-5pct": {"budget_impact": -0.05, "gdp_impact": 0.05, "debt_gdp_impact": -0.05, "inflation_impact": 0.02, "employment_impact": 0.02},
-    "spending-cut-5pct": {"budget_impact": 0.08, "gdp_impact": -0.03, "debt_gdp_impact": 0.05, "inflation_impact": -0.02, "employment_impact": -0.01},
-    "spending-cut-10pct": {"budget_impact": 0.15, "gdp_impact": -0.05, "debt_gdp_impact": 0.10, "inflation_impact": -0.04, "employment_impact": -0.02},
-    "regulatory-relief": {"budget_impact": 0.0, "gdp_impact": 0.015, "debt_gdp_impact": -0.005, "inflation_impact": 0.005, "employment_impact": 0.01},
-    "subsidy-increase-10pct": {"budget_impact": -0.10, "gdp_impact": 0.03, "debt_gdp_impact": -0.03, "inflation_impact": 0.035, "employment_impact": 0.02},
-}
-
-_POLICY_DEBT_MULTIPLIERS = {
-    "tax-cut-2pct": {"debt": -0.02, "interest_savings": 0.01},
-    "tax-cut-5pct": {"debt": -0.05, "interest_savings": 0.02},
-    "spending-cut-5pct": {"debt": 0.08, "interest_savings": 0.0},
-    "spending-cut-10pct": {"debt": 0.15, "interest_savings": 0.0},
-    "regulatory-relief": {"debt": -0.005, "interest_savings": 0.0},
-    "subsidy-increase-10pct": {"debt": -0.10, "interest_savings": -0.005},
-}
-
 
 def instrument_rate(instrument: DebtInstrument, scenario: EconomicScenario,
                     sofr_base: float = SOFR_BASE) -> float:
@@ -137,29 +118,18 @@ def _apply_policy_multipliers(cost_matrix: np.ndarray,
         scenario_name = scenario.id
         if policy_type and scenario_name in _POLICY_DIMENSION_MULTIPLIERS:
             mult = _POLICY_DIMENSION_MULTIPLIERS[scenario_name]
-            # Apply generalized macro multiplier proportionally to instrument exposure
             for i in range(n_i):
-                # Base multiplier applied uniformly; instrument-specific
-                # effects handled by sector multipliers above
                 multipliers[i, s] = mult.get("gdp", 1.0)
-        elif policy_type and scenario_name in _POLICY_BUDGET_MULTIPLIERS:
-            # Apply budget/GDP/debt/inflation/employment dimension multipliers
-            budget_mult = _POLICY_BUDGET_MULTIPLIERS[scenario_name]
-            debt_mult = _POLICY_DEBT_MULTIPLIERS.get(scenario_name, {"debt": 0.0, "interest_savings": 0.0})
+        elif policy_type:
+            dim_mult = policy_dimension_multipliers(scenario_name, intensity)
+            debt_mult = policy_debt_multipliers(scenario_name, intensity)
             for i in range(n_i):
-                # Apply dimension multipliers proportionally
-                # GDP factor affects cost through economic activity
-                gdp_factor = budget_mult.get("gdp_impact", 0.0) * intensity
-                # Budget impact affects deficit financing costs
-                budget_factor = budget_mult.get("budget_impact", 0.0) * intensity
-                # Debt-to-GDP impact affects real financing costs
+                gdp_factor = dim_mult.get("gdp_impact", 0.0) * intensity
+                budget_factor = dim_mult.get("budget_impact", 0.0) * intensity
                 debt_factor = debt_mult.get("debt", 0.0) * intensity
-                # Inflation impact reduces real debt burden
-                inflation_factor = -budget_mult.get("inflation_impact", 0.0) * intensity  # negative: inflation erodes real debt
-                # Employment impact affects tax revenue and growth
-                employment_factor = budget_mult.get("employment_impact", 0.0) * intensity
+                inflation_factor = -dim_mult.get("inflation_impact", 0.0) * intensity
+                employment_factor = dim_mult.get("employment_impact", 0.0) * intensity
                 
-                # Composite multiplier: base 1.0 plus dimension effects
                 base_mult = 1.0 + gdp_factor + debt_factor + inflation_factor + employment_factor
                 multipliers[i, s] = base_mult
     

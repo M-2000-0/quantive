@@ -183,16 +183,19 @@ class QUBOSolver(SolverInterface):
             if spec.is_liquid[i]:
                 liq += x[i]
 
+        penalty_q = self._penalty_q(spec)
+
         def energy_cur() -> float:
             return self._energy_from_aggregates(spec, lin, buckets, currencies, flt, liq, total, penalty_q)
 
-        penalty_q = self._penalty_q(spec)
         best_x = x.copy()
         best_e = energy_cur()
         cur_e = best_e
         temp = config.annealing_initial_temp
         cooling = config.annealing_cooling_rate
         evals = 0
+        stall_count = 0
+        stall_threshold = max(1000, config.anneal_iterations // 10)
 
         for it in range(config.anneal_iterations):
             i = int(rng.integers(0, N))
@@ -229,6 +232,9 @@ class QUBOSolver(SolverInterface):
                 if new_e < best_e:
                     best_x = x.copy()
                     best_e = new_e
+                    stall_count = 0
+                else:
+                    stall_count += 1
             else:
                 # revert
                 x[i] -= d
@@ -241,9 +247,12 @@ class QUBOSolver(SolverInterface):
                 if spec.is_liquid[i]:
                     liq -= d
                 lin -= d * (w_cost * cost_coeff[i] + w_ir * spec.ir_risk[i] + w_fx * spec.fx_risk[i])
+                stall_count += 1
             temp *= cooling
             if temp < 1e-6:
                 temp = 1e-6
+            if stall_count >= stall_threshold:
+                break
 
         runtime = perf_counter() - t0
         # repair: project to box-simplex and deterministically restore feasibility

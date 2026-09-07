@@ -14,12 +14,9 @@ Key functions:
 
 from __future__ import annotations
 
-import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-
-from numpy import average
 
 from quantive.early_warning.models import (
     EarlyWarningRequest,
@@ -203,11 +200,7 @@ class EarlyWarningEngine:
         Uses the ScenarioAnalyzer's check_threshold_crossing method
         with bias-adjusted thresholds.
         """
-        from quantive.early_warning.scenario_analysis import ScenarioAnalyzer
-
-        analyzer = ScenarioAnalyzer()
-
-        warning = analyzer.check_threshold_crossing(
+        warning = self.scenario_analyzer.check_threshold_crossing(
             current_value=current_value,
             threshold=adjusted_threshold,
             critical_threshold=adjusted_critical,

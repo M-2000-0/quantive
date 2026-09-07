@@ -19,7 +19,7 @@ import numpy as np
 
 from quantive.data.synthetic import FX_VOLATILITY
 from quantive.models.optimization import EconomicScenario, ScenarioConfiguration
-from quantive.scenarios.definitions import named_scenarios, _policy_shock_multiplier
+from quantive.scenarios.definitions import named_scenarios, _policy_shock_multiplier, policy_dimension_multipliers, policy_debt_multipliers
 from quantive.scenarios.regime import EXPANSION, NORMAL, STRESS, CRISIS, Regime, RegimeSwitchingEngine
 
 # Distribution parameters for Monte-Carlo shock generation.

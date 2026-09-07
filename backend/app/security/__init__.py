@@ -23,6 +23,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
+def validate_password_policy(password: str) -> None:
+    """Validate password against security policy. Raises HTTPException if invalid."""
+    import re
+    errors = []
+    if len(password) < 8:
+        errors.append("at least 8 characters")
+    if not re.search(r'[A-Z]', password):
+        errors.append("at least one uppercase letter")
+    if not re.search(r'[a-z]', password):
+        errors.append("at least one lowercase letter")
+    if not re.search(r'[0-9]', password):
+        errors.append("at least one digit")
+    if errors:
+        raise HTTPException(status_code=400, detail=f"Password must have: {', '.join(errors)}")
+
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES))

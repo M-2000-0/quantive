@@ -293,6 +293,7 @@ RBAC_BYPASS_PATHS: set[str] = {
     "/api/auth/logout",
     "/api/health",
     "/api/billing/webhook",  # Stripe webhooks: HMAC-signed, no session
+    "/api/automation/webhooks/lead",  # public lead capture (website forms, n8n)
     "/docs",
     "/redoc",
     "/openapi.json",

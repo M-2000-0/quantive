@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -7,7 +8,6 @@ from pathlib import Path
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import text
@@ -18,6 +18,7 @@ from app.database import engine
 from app.jobs import JOBS, create_job, get_job
 from app.security.middleware import (
     BearerPromotionMiddleware,
+    BodySizeLimitMiddleware,
     GlobalExceptionHandler,
     RateLimitMiddleware,
     RequestIDMiddleware,
@@ -29,7 +30,6 @@ from app.security.compression import CompressionMiddleware
 from app.security.threats import ThreatDetectionMiddleware
 from app.security.csrf import CSRFMiddleware
 from app.security.idempotency import IdempotencyMiddleware
-from app.security.rate_limiter import RateLimiterMiddleware
 
 # ── Page Route Auth Middleware ───────────────────────────────────────
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -75,6 +75,27 @@ logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
+
+# Structured JSON logging for production
+if settings.ENVIRONMENT == "production":
+    try:
+        import structlog
+        structlog.configure(
+            processors=[
+                structlog.contextvars.merge_contextvars,
+                structlog.processors.add_log_level,
+                structlog.processors.TimeStamper(fmt="iso"),
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.format_exc_info,
+                structlog.processors.JSONRenderer(),
+            ],
+            wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+            context_class=dict,
+            logger_factory=structlog.PrintLoggerFactory(),
+            cache_logger_on_first_use=True,
+        )
+    except ImportError:
+        pass
 
 
 @asynccontextmanager
@@ -146,6 +167,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start news scheduler: %s", e)
 
+    # Ensure automation tables exist + start automation scheduler (native workflow engine)
+    try:
+        from app.database import Base
+        from app.models.automation import (
+            Automation, AutomationRun, DunningCase, Lead, MrrEvent, OnboardingSequence,
+        )
+        for _t in (Automation, AutomationRun, Lead, OnboardingSequence, DunningCase, MrrEvent):
+            _t.__table__.create(engine, checkfirst=True)
+        from app.services.automation_scheduler import start_automation_scheduler
+        await start_automation_scheduler()
+        print("[OK] Automation engine started (6 native workflow automations)")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not start automation engine: %s", e)
+
     yield
     print("[OK] Quantive shutting down gracefully")
 
@@ -189,6 +224,8 @@ async def optimize_background(background_tasks: BackgroundTasks) -> dict:
     return {"job_id": job.id, "status": job.status, "message": "Optimization started in background"}
 
 
+_jobs_lock = threading.Lock()
+
 def _run_optimization_job(job_id: str):
     try:
         import sys
@@ -207,12 +244,13 @@ def _run_optimization_job(job_id: str):
 
         result = run_full_job(p, prob)
 
-        JOBS[job_id].status = "completed"
-        JOBS[job_id].result = {
-            "id": result["result"].id,
-            "strategies": len(result["strategies"]),
-            "feasible": all(s.feasible for s in result["strategies"]),
-        }
+        with _jobs_lock:
+            JOBS[job_id].status = "completed"
+            JOBS[job_id].result = {
+                "id": result["result"].id,
+                "strategies": len(result["strategies"]),
+                "feasible": all(s.feasible for s in result["strategies"]),
+            }
 
         try:
             from app.audit.logger import AuditLogger
@@ -227,8 +265,9 @@ def _run_optimization_job(job_id: str):
             pass
 
     except Exception as e:
-        JOBS[job_id].status = "failed"
-        JOBS[job_id].error = str(e)
+        with _jobs_lock:
+            JOBS[job_id].status = "failed"
+            JOBS[job_id].error = str(e)
 
 
 @app.get("/api/v1/jobs/{job_id}")
@@ -245,11 +284,11 @@ app.include_router(router)
 
 app.add_middleware(GlobalExceptionHandler)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_PER_MINUTE)
 app.add_middleware(ThreatDetectionMiddleware)
-app.add_middleware(RateLimiterMiddleware, max_requests=200, window_seconds=60)
 app.add_middleware(RBACMiddleware)
 app.add_middleware(CSRFMiddleware, secret=settings.SECRET_KEY)
 app.add_middleware(IdempotencyMiddleware)
@@ -263,15 +302,15 @@ app.add_middleware(BearerPromotionMiddleware)
 import os as _os
 _STATIC_DIR = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "static")
 if _os.path.isdir(_STATIC_DIR):
-    from starlette.staticfiles import StaticFiles
-    app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+    from fastapi.staticfiles import StaticFiles as _StaticFiles
+    app.mount("/static", _StaticFiles(directory=_STATIC_DIR), name="static")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Request-ID"],
     expose_headers=["X-Request-ID", "X-Total-Count", "Retry-After"],
 )
 
@@ -325,12 +364,14 @@ async def login_post(request: Request, response: Response, email: str = Form(...
             from app.models.mfa_config import MFAConfig
             mfa_config = db.query(MFAConfig).filter(
                 MFAConfig.user_id == user.id,
-                MFAConfig.is_enabled == True
+                MFAConfig.enabled == True
             ).first()
             if mfa_config:
                 # Store user ID in session for MFA verification
                 resp = RedirectResponse("/mfa/verify", status_code=303)
-                resp.set_cookie("mfa_pending_user", user.id, httponly=True, secure=False, samesite="lax", max_age=300)
+                import hmac as _hmac, hashlib as _hashlib, time as _time
+                _mfa_sig = _hmac.new(settings.SECRET_KEY.encode(), f"{user.id}:{int(_time.time())}".encode(), _hashlib.sha256).hexdigest()[:16]
+                resp.set_cookie("mfa_pending_user", f"{user.id}:{int(_time.time())}:{_mfa_sig}", httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=300)
                 return resp
         except Exception:
             pass  # MFA table may not exist yet
@@ -339,11 +380,14 @@ async def login_post(request: Request, response: Response, email: str = Form(...
         log_audit_event(db, user, "user.login", "user", user.id,
                         ip_address=request.client.host if request.client else None)
         resp = RedirectResponse("/dashboard", status_code=303)
-        resp.set_cookie("access_token", access, httponly=True, secure=False, samesite="lax", max_age=1800)
-        resp.set_cookie("refresh_token", refresh, httponly=True, secure=False, samesite="lax", max_age=604800)
-        resp.set_cookie("user_name", user.name, max_age=604800)
-        resp.set_cookie("user_role", str(user.role.value if hasattr(user.role, 'value') else user.role), max_age=604800)
+        resp.set_cookie("access_token", access, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=1800)
+        resp.set_cookie("refresh_token", refresh, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
+        resp.set_cookie("user_name", user.name, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
+        resp.set_cookie("user_role", str(user.role.value if hasattr(user.role, 'value') else user.role), httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
         return resp
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -390,10 +434,10 @@ async def register_post(request: Request, first_name: str = Form(""), last_name:
         access = create_access_token({"sub": user.id, "org_id": user.org_id, "role": user.role})
         refresh = create_refresh_token({"sub": user.id})
         resp = RedirectResponse("/dashboard", status_code=303)
-        resp.set_cookie("access_token", access, httponly=True, secure=False, samesite="lax", max_age=1800)
-        resp.set_cookie("refresh_token", refresh, httponly=True, secure=False, samesite="lax", max_age=604800)
-        resp.set_cookie("user_name", user.name, max_age=604800)
-        resp.set_cookie("user_role", "admin", max_age=604800)
+        resp.set_cookie("access_token", access, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=1800)
+        resp.set_cookie("refresh_token", refresh, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
+        resp.set_cookie("user_name", user.name, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
+        resp.set_cookie("user_role", "admin", httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
         return resp
     finally:
         db.close()
@@ -401,11 +445,19 @@ async def register_post(request: Request, first_name: str = Form(""), last_name:
 
 @app.get("/mfa/verify", response_class=HTMLResponse)
 async def mfa_verify_page(request: Request):
-    mfa_user = request.cookies.get("mfa_pending_user")
-    if not mfa_user:
+    mfa_cookie = request.cookies.get("mfa_pending_user")
+    if not mfa_cookie:
+        return RedirectResponse("/login", status_code=303)
+    parts = mfa_cookie.split(":")
+    if len(parts) != 3:
+        return RedirectResponse("/login", status_code=303)
+    mfa_user_id, ts_str, sig = parts
+    import hmac as _hmac, hashlib as _hashlib
+    expected_sig = _hmac.new(settings.SECRET_KEY.encode(), f"{mfa_user_id}:{ts_str}".encode(), _hashlib.sha256).hexdigest()[:16]
+    if not _hmac.compare_digest(sig, expected_sig):
         return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse("pages/mfa-verify.html", {
-        "request": request, "user_id": mfa_user, **page_ctx()
+        "request": request, "user_id": mfa_user_id, **page_ctx()
     })
 
 
@@ -425,13 +477,13 @@ async def mfa_verify_post(request: Request, response: Response, user_id: str = F
         from app.models.mfa_config import MFAConfig
         mfa_config = db.query(MFAConfig).filter(
             MFAConfig.user_id == user.id,
-            MFAConfig.is_enabled == True
+            MFAConfig.enabled == True
         ).first()
 
         if not mfa_config:
             # MFA not enabled, skip verification
             pass
-        elif not verify_totp(mfa_config.secret_key, code):
+        elif not verify_totp(mfa_config.totp_secret, code):
             return templates.TemplateResponse("pages/mfa-verify.html", {
                 "request": request, "user_id": user_id,
                 "error": "Invalid verification code", **page_ctx()
@@ -443,10 +495,10 @@ async def mfa_verify_post(request: Request, response: Response, user_id: str = F
         log_audit_event(db, user, "user.login_mfa", "user", user.id,
                         ip_address=request.client.host if request.client else None)
         resp = RedirectResponse("/dashboard", status_code=303)
-        resp.set_cookie("access_token", access, httponly=True, secure=False, samesite="lax", max_age=1800)
-        resp.set_cookie("refresh_token", refresh, httponly=True, secure=False, samesite="lax", max_age=604800)
-        resp.set_cookie("user_name", user.name, max_age=604800)
-        resp.set_cookie("user_role", str(user.role.value if hasattr(user.role, 'value') else user.role), max_age=604800)
+        resp.set_cookie("access_token", access, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=1800)
+        resp.set_cookie("refresh_token", refresh, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
+        resp.set_cookie("user_name", user.name, httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
+        resp.set_cookie("user_role", str(user.role.value if hasattr(user.role, 'value') else user.role), httponly=True, secure=settings.ENVIRONMENT == "production", samesite="lax", max_age=604800)
         resp.delete_cookie("mfa_pending_user")
         return resp
     finally:
@@ -791,6 +843,11 @@ async def settings_page(request: Request):
     return templates.TemplateResponse("pages/settings.html", {"request": request, "active_page": "settings", **page_ctx()})
 
 
+@app.get("/automation", response_class=HTMLResponse)
+async def automation_page(request: Request):
+    return templates.TemplateResponse("pages/automation.html", {"request": request, "active_page": "automation", **page_ctx()})
+
+
 @app.get("/user-settings", response_class=HTMLResponse)
 async def user_settings_page(request: Request):
     return templates.TemplateResponse("pages/user-settings.html", {"request": request, "active_page": "settings", **page_ctx()})
@@ -799,11 +856,6 @@ async def user_settings_page(request: Request):
 @app.get("/system-status", response_class=HTMLResponse)
 async def system_status_page(request: Request):
     return templates.TemplateResponse("pages/system-status.html", {"request": request, "active_page": "settings", **page_ctx()})
-
-
-@app.get("/notifications", response_class=HTMLResponse)
-async def notifications_page(request: Request):
-    return templates.TemplateResponse("pages/notifications.html", {"request": request, "active_page": "settings", **page_ctx()})
 
 
 # ── Special Pages ────────────────────────────────────────────────────
@@ -862,15 +914,6 @@ async def briefing_page(request: Request):
 
 @app.get("/assets", response_class=HTMLResponse)
 async def assets_page(request: Request):
-    return templates.TemplateResponse("pages/dashboard.html", {
-        "request": request,
-        "active_page": "assets",
-        **page_ctx(),
-    })
-
-
-@app.get("/crypto", response_class=HTMLResponse)
-async def crypto_page(request: Request):
     return templates.TemplateResponse("pages/dashboard.html", {
         "request": request,
         "active_page": "assets",

@@ -3,22 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-
-class ConflictType(str, Enum):
-    """Types of geopolitical conflict or tension."""
-
-    MILITARY_CONFLICT = "military_conflict"
-    TRADE_WAR = "trade_war"
-    DIPLOMATIC_TENSION = "diplomatic_tension"
-    SANCTIONS = "sanctions"
-    BORDER_DISPUTE = "border_dispute"
-    INFLUENCE_COMPETITION = "influence_competition"
-    IDEOLOGICAL_CONFLICT = "ideological_conflict"
+from quantive.risk.enums import ConflictType
 
 
 class AllianceStatus(str, Enum):
