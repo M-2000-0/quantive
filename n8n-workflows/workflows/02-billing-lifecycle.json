@@ -1,157 +1,535 @@
 {
+  "id": "wf2-billing-lifecycle",
   "name": "WF-2: Billing & Customer Lifecycle",
-  "description": "Billing & customer lifecycle automation. Stripe webhook with signature verification, event routing, MRR tracking. All notifications via SVC-2, all logging via SVC-3.",
-  "tags": [
-    { "name": "billing" },
-    { "name": "stripe" },
-    { "name": "customer-lifecycle" }
-  ],
+  "active": false,
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "stripe-webhook",
-        "responseMode": "lastNode",
-        "options": { "rawBody": true, "binaryPropertyName": "data" }
+        "events": [
+          "*"
+        ]
       },
-      "id": "wf2-webhook-stripe",
-      "name": "Stripe Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [0, 200],
-      "webhookId": "stripe-webhook"
+      "id": "auto-Stripe Trigger-0041",
+      "name": "Stripe Trigger",
+      "type": "n8n-nodes-base.stripeTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['stripe-signature']) || '';\nconst secret = process.env.STRIPE_WEBHOOK_SECRET || '';\nlet raw = '';\nif ($input.first().binary && $input.first().binary.data) {\n  raw = Buffer.from($input.first().binary.data.data, 'base64').toString('utf8');\n}\nif (!raw) raw = JSON.stringify(item.body || {});\nconst parts = {};\nheader.split(',').forEach(p => { const idx = p.indexOf('='); if (idx !== -1) parts[p.slice(0, idx)] = p.slice(idx + 1); });\nconst timestamp = parts.t || '';\nconst signature = parts.v1 || '';\nconst signedPayload = `${timestamp}.${raw}`;\nconst expected = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (valid) { const age = Math.abs(Date.now() / 1000 - parseInt(timestamp || '0', 10)); if (age > 300) valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf2-billing-lifecycle','WF-2: Billing & Customer Lifecycle',$1,'webhook.auth','Invalid Stripe signature','Verify Stripe Signature','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [{ json: item }];"
+        "jsCode": "const ev = $input.first().json;\nconst type = ev.type || 'unknown';\nconst obj = ev.data && ev.data.object ? ev.data.object : ev;\nreturn [{ json: { type, obj, customer: obj.customer || null }}];"
       },
-      "id": "wf2-stripe-verify",
-      "name": "Verify Stripe Signature",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [240, 200]
-    },
-    {
-      "parameters": {
-        "jsCode": "const body = $input.first().json.body;\nconst event = body.data?.object;\nconst eventType = body.type || '';\nconst validTypes = ['customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed', 'checkout.session.completed'];\nif (!validTypes.includes(eventType)) return [{ json: { skip: true } }];\nreturn [{ json: { skip: false, eventType, event } }];"
-      },
-      "id": "wf2-route",
+      "id": "auto-Route by Event Type-0042",
       "name": "Route by Event Type",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 200]
+      "position": [
+        200,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const { eventType, event } = $input.first().json;\nconst postgres = Postgres.main;\nlet action = 'unknown';\nlet metadata = { eventType };\n\nswitch (eventType) {\n  case 'customer.subscription.created': {\n    const r = await postgres.query(`INSERT INTO customers (stripe_customer_id, email, name, plan, status, created_at) VALUES ($1, $2, $3, $4, 'active', CURRENT_TIMESTAMP) ON CONFLICT (stripe_customer_id) DO UPDATE SET email=EXCLUDED.email, name=EXCLUDED.name, plan=EXCLUDED.plan, status='active', updated_at=CURRENT_TIMESTAMP RETURNING id, email`, [event.customer, event.metadata?.email||'', event.metadata?.name||'', event.metadata?.plan||'starter']);\n    await postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'subscription.created', CURRENT_TIMESTAMP)`, [r.rows[0].id, (event.items?.data?.[0]?.price?.unit_amount||0)/100]);\n    action = 'created'; metadata = { ...metadata, customerId: r.rows[0].id };\n    break;\n  }\n  case 'customer.subscription.updated': {\n    const amt = (event.items?.data?.[0]?.price?.unit_amount||0)/100;\n    await postgres.query(`UPDATE customers SET plan=$1, updated_at=CURRENT_TIMESTAMP WHERE stripe_customer_id=$2`, [event.metadata?.plan||'starter', event.customer]);\n    await postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'subscription.updated', CURRENT_TIMESTAMP)`, [event.customer, amt]);\n    action = 'updated'; metadata = { ...metadata, amount: amt };\n    break;\n  }\n  case 'customer.subscription.deleted': {\n    await postgres.query(`UPDATE customers SET status='cancelled', updated_at=CURRENT_TIMESTAMP WHERE stripe_customer_id=$1`, [event.customer]);\n    await postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'cancellation', CURRENT_TIMESTAMP)`, [event.customer, (event.items?.data?.[0]?.price?.unit_amount||0)/100]);\n    action = 'deleted'; metadata = { ...metadata, customerId: event.customer };\n    break;\n  }\n  case 'invoice.paid': { action = 'invoice_paid'; metadata = { ...metadata, amount: (event.amount_paid||0)/100 }; break; }\n  case 'invoice.payment_failed': {\n    const cr = await postgres.query(`SELECT id FROM customers WHERE stripe_customer_id=$1`, [event.customer]);\n    await postgres.query(`INSERT INTO invoice_events (customer_id, stripe_customer_id, event_type, amount, status, created_at) VALUES ($1,$2,$3,$4,'failed',CURRENT_TIMESTAMP)`, [cr.rows[0]?.id||null, event.customer, 'invoice.payment_failed', (event.amount_due||0)/100]);\n    action = 'payment_failed'; break;\n  }\n  case 'checkout.session.completed': { action = 'checkout_completed'; break; }\n}\n\nconst totalR = await postgres.query(`SELECT COALESCE(SUM(amount),0) as total FROM mrr_events WHERE event_type!='cancellation' AND customer_id NOT IN (SELECT customer_id FROM mrr_events WHERE event_type='cancellation')`);\nconst totalMRR = parseFloat(totalR.rows[0].total || 0);\n\nconst msgs = {\n  created: `✅ New subscription. MRR: $${totalMRR}`,\n  updated: `🔄 Subscription updated. MRR: $${totalMRR}`,\n  deleted: `❌ Subscription cancelled. MRR: $${totalMRR}`,\n  payment_failed: `⚠️ Payment failed.`,\n  invoice_paid: `💰 Invoice paid.`,\n  checkout_completed: `🛒 Checkout completed.`,\n  unknown: `ℹ️ Stripe event processed.`\n};\n\nreturn [{ json: { channel: '#billing-events', severity: action === 'payment_failed' ? 'high' : 'low', dedupeKey: `stripe_${action}_${event?.id || Date.now()}`, text: msgs[action] || msgs.unknown, metadata: { flow: 'stripe_event', action, totalMRR, ...metadata } } }];"
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.type}}",
+                    "rightValue": "customer.subscription.created",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Sub Created"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.type}}",
+                    "rightValue": "customer.subscription.updated",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Sub Updated"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.type}}",
+                    "rightValue": "invoice.payment_failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Payment Failed"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.type}}",
+                    "rightValue": "customer.subscription.deleted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Churn"
+            }
+          ]
+        }
       },
-      "id": "wf2-process",
-      "name": "Process Stripe Event",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [720, 200]
+      "id": "auto-Switch Event-0043",
+      "name": "Switch Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        400,
+        0
+      ]
     },
     {
-      "parameters": { "workflowId": "svc2-notification" },
-      "id": "wf2-notify",
-      "name": "Notify Billing",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [960, 200]
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO customers (stripe_customer_id, plan, status, created_at, updated_at)\nVALUES ('{{ $json.customer }}', '{{ $json.obj.metadata.tier || \"starter\" }}', 'active', NOW(), NOW())\nON CONFLICT (stripe_customer_id) DO UPDATE SET status='active', plan=EXCLUDED.plan, updated_at=NOW();",
+        "options": {}
+      },
+      "id": "auto-Upsert Customer on Create-0044",
+      "name": "Upsert Customer on Create",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf2-log",
-      "name": "Log Billing",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [1200, 200]
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO mrr_events (customer_id, amount, event_type)\nSELECT id, COALESCE({{ $json.obj.items && $json.obj.items.data && $json.obj.items.data[0] && $json.obj.items.data[0].price ? $json.obj.items.data[0].price.unit_amount : 0 }}/100.0, 0), 'subscription.created'\nFROM customers WHERE stripe_customer_id='{{ $json.customer }}';",
+        "options": {}
+      },
+      "id": "auto-Log MRR on Create-0045",
+      "name": "Log MRR on Create",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        800,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 6 * * *" }] } },
-      "id": "wf2-schedule-mrr",
-      "name": "Daily MRR Schedule",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET plan='{{ $json.obj.metadata.tier || \"pro\" }}', updated_at=NOW() WHERE stripe_customer_id='{{ $json.customer }}';",
+        "options": {}
+      },
+      "id": "auto-Update Plan on Change-0046",
+      "name": "Update Plan on Change",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        150
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO invoice_events (stripe_customer_id, event_type, amount, status)\nVALUES ('{{ $json.customer }}', 'invoice.payment_failed', COALESCE({{ $json.obj.amount_due || 0 }}/100.0, 0), 'failed');",
+        "options": {}
+      },
+      "id": "auto-Log Payment Failure-0047",
+      "name": "Log Payment Failure",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET subscription_status='past_due', updated_at=NOW() WHERE stripe_customer_id='{{ $json.customer }}';",
+        "options": {}
+      },
+      "id": "auto-Mark Customer Past Due-0048",
+      "name": "Mark Customer Past Due",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        800,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET status='churned', subscription_status='canceled', churned_at=NOW() WHERE stripe_customer_id='{{ $json.customer }}';",
+        "options": {}
+      },
+      "id": "auto-Mark Churned-0049",
+      "name": "Mark Churned",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        450
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}/api/billing/webhook",
+        "options": {},
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: $json.type, data: { object: $json.obj } }) }}",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput"
+      },
+      "id": "auto-Relay to Quantive Backend-0050",
+      "name": "Relay to Quantive Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#billing-events",
+        "text": "💳 *{{ $json.type }}*\ncustomer: {{ $json.customer }}",
+        "otherOptions": {}
+      },
+      "id": "auto-Billing Event → Slack-0051",
+      "name": "Billing Event → Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        600
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Quantive Slack"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "auto-Re-engagement Cron-0052",
+      "name": "Re-engagement Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 500]
+      "position": [
+        0,
+        900
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const postgres = Postgres.main;\nconst yesterday = new Date(Date.now() - 86400000);\nconst mrr = await postgres.query(`SELECT COALESCE(SUM(amount),0) as total FROM mrr_events WHERE event_type!='cancellation' AND customer_id NOT IN (SELECT customer_id FROM mrr_events WHERE event_type='cancellation')`);\nconst newC = await postgres.query(`SELECT COUNT(*) as count FROM mrr_events WHERE event_type='subscription.created' AND created_at>=$1`, [yesterday.toISOString()]);\nconst churn = await postgres.query(`SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as mrr FROM mrr_events WHERE event_type='cancellation' AND created_at>=$1`, [yesterday.toISOString()]);\nconst total = parseFloat(mrr.rows[0].total||0);\nconst churnMRR = parseFloat(churn.rows[0].mrr||0);\nconst churnRate = total > 0 ? ((churnMRR / total) * 100).toFixed(2) : 0;\nreturn [{ json: { channel: '#metrics-daily', severity: 'low', dedupeKey: `mrr_${new Date().toISOString().split('T')[0]}`, text: `📊 *Daily MRR*\n*Current:* $${total}\n*New:* ${newC.rows[0].count}\n*Churned:* ${churn.rows[0].count}\n*Churn Rate:* ${churnRate}%`, metadata: { flow: 'daily_mrr', mrr: total, churnRate } } }];"
+        "operation": "executeQuery",
+        "query": "SELECT id, email, name FROM customers\nWHERE status='active' AND last_active_at < NOW() - INTERVAL '30 days' AND reengagement_sent = FALSE\nLIMIT 50;",
+        "options": {}
       },
-      "id": "wf2-mrr-report",
-      "name": "Calculate Daily MRR",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [240, 500]
-    },
-    {
-      "parameters": { "workflowId": "svc2-notification" },
-      "id": "wf2-notify-mrr",
-      "name": "Notify MRR",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [480, 500]
-    },
-    {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf2-log-mrr",
-      "name": "Log MRR",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 500]
-    },
-    {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * 1" }] } },
-      "id": "wf2-schedule-reengagement",
-      "name": "Re-engagement Schedule",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [0, 700]
-    },
-    {
-      "parameters": {
-        "jsCode": "const postgres = Postgres.main;\nconst thirtyAgo = new Date(Date.now() - 30*86400000);\nconst r = await postgres.query(`SELECT id, email, name FROM customers WHERE status='active' AND last_active_at<$1 AND reengagement_sent=false LIMIT 50`, [thirtyAgo.toISOString()]);\nreturn r.rows.map(row => ({ json: { ...row, channel: '#customer-success', severity: 'low', dedupeKey: `reeng_${row.id}`, text: `🔄 *Re-engagement*\n*Customer:* ${row.name} (${row.email})\n*Action:* Send re-engagement campaign`, metadata: { flow: 'reengagement', email: row.email } } }));"
-      },
-      "id": "wf2-reengagement",
+      "id": "auto-Find Inactive Customers-0053",
       "name": "Find Inactive Customers",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [240, 700]
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        200,
+        900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
-      "parameters": { "workflowId": "svc2-notification" },
-      "id": "wf2-notify-reengagement",
-      "name": "Notify Re-engagement",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [480, 700]
+      "parameters": {
+        "fromEmail": "quantive@quantive.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "We miss you — new in Quantive",
+        "emailFormat": "text",
+        "text": "Hi {{ $json.name || \"there\" }},\n\nIt's been a while since you used Quantive. New: market monitor, bubble detection, and a faster optimization engine.\n\nLog back in and take a look.\n\n— The Quantive Team",
+        "options": {}
+      },
+      "id": "auto-Re-engagement Email-0054",
+      "name": "Re-engagement Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        900
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-main",
+          "name": "Quantive SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
     },
     {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf2-log-reengagement",
-      "name": "Log Re-engagement",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 700]
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET reengagement_sent = TRUE WHERE id = '{{ $json.id }}';",
+        "options": {}
+      },
+      "id": "auto-Mark Re-engagement Sent-0055",
+      "name": "Mark Re-engagement Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     }
   ],
   "connections": {
-    "Stripe Webhook": { "main": [[{ "node": "Verify Stripe Signature", "type": "main", "index": 0 }]] },
-    "Verify Stripe Signature": { "main": [[{ "node": "Route by Event Type", "type": "main", "index": 0 }]] },
-    "Route by Event Type": { "main": [[{ "node": "Process Stripe Event", "type": "main", "index": 0 }]] },
-    "Process Stripe Event": { "main": [[{ "node": "Notify Billing", "type": "main", "index": 0 }]] },
-    "Notify Billing": { "main": [[{ "node": "Log Billing", "type": "main", "index": 0 }]] },
-    "Daily MRR Schedule": { "main": [[{ "node": "Calculate Daily MRR", "type": "main", "index": 0 }]] },
-    "Calculate Daily MRR": { "main": [[{ "node": "Notify MRR", "type": "main", "index": 0 }]] },
-    "Notify MRR": { "main": [[{ "node": "Log MRR", "type": "main", "index": 0 }]] },
-    "Re-engagement Schedule": { "main": [[{ "node": "Find Inactive Customers", "type": "main", "index": 0 }]] },
-    "Find Inactive Customers": { "main": [[{ "node": "Notify Re-engagement", "type": "main", "index": 0 }]] },
-    "Notify Re-engagement": { "main": [[{ "node": "Log Re-engagement", "type": "main", "index": 0 }]] }
+    "Stripe Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route by Event Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Event Type": {
+      "main": [
+        [
+          {
+            "node": "Switch Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Event": {
+      "main": [
+        [
+          {
+            "node": "Upsert Customer on Create",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log MRR on Create",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Plan on Change",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Payment Failure",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark Customer Past Due",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Churned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log MRR on Create": {
+      "main": [
+        [
+          {
+            "node": "Relay to Quantive Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Plan on Change": {
+      "main": [
+        [
+          {
+            "node": "Relay to Quantive Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Churned": {
+      "main": [
+        [
+          {
+            "node": "Relay to Quantive Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relay to Quantive Backend": {
+      "main": [
+        [
+          {
+            "node": "Billing Event → Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Re-engagement Cron": {
+      "main": [
+        [
+          {
+            "node": "Find Inactive Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Inactive Customers": {
+      "main": [
+        [
+          {
+            "node": "Re-engagement Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Re-engagement Email": {
+      "main": [
+        [
+          {
+            "node": "Mark Re-engagement Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "errorWorkflow": "wf0-error-handler" },
-  "active": false,
-  "meta": { "templateCredsSetupCompleted": false },
-  "id": "wf2-billing-lifecycle",
-  "pinData": {}
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "wf0-error-handler"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": null,
+  "tags": [
+    "billing",
+    "stripe"
+  ],
+  "description": "Native Stripe Trigger → Postgres plan/MRR/churn updates + relay of every event into the Quantive backend fulfillment webhook."
 }

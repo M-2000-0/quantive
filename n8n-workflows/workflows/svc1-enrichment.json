@@ -1,69 +1,123 @@
 {
-  "name": "SVC-1: Lead Enrichment Service",
-  "description": "Shared enrichment service: accepts raw lead data via Execute Workflow, performs duplicate check, company enrichment (Clearbit), lead scoring, and quality validation. Returns enriched, scored, validated lead to caller.",
-  "tags": [
-    { "name": "shared-service" },
-    { "name": "enrichment" }
-  ],
+  "id": "svc1-enrichment",
+  "name": "SVC-1: Lead Enrichment (manual)",
+  "active": false,
   "nodes": [
     {
       "parameters": {},
-      "id": "svc1-manual-trigger",
-      "name": "Manual Trigger",
+      "id": "auto-Manual-0000",
+      "name": "Manual",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const lead = $input.first().json;\n\nif (!lead || typeof lead !== 'object') {\n  return [{ json: { error: true, reason: 'invalid_payload', lead: null } }];\n}\nif (!lead.email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(String(lead.email))) {\n  return [{ json: { error: true, reason: 'missing_or_invalid_email', lead, score: 0 } }];\n}\n\nreturn [{ json: { ...lead, emailValid: true } }];"
+        "jsCode": "const items = $input.all().map(i => i.json);\nreturn items.map(it => ({ json: {\n  lead_id: it.id || it.lead_id || '',\n  email: it.email || '',\n  domain: (it.email || '').split('@')[1] || (it.company || '').toLowerCase().replace(/[^a-z0-9-]/g, '') + '.com',\n  company: it.company || '',\n}}));"
       },
-      "id": "svc1-validate",
-      "name": "Validate Payload",
+      "id": "auto-Build Enrich Queries-0001",
+      "name": "Build Enrich Queries",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 0]
+      "position": [
+        200,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const lead = $input.first().json;\nif (lead.error) return [{ json: lead }];\n\nconst postgres = Postgres.main;\ntry {\n  const existing = await postgres.query(`SELECT id, status, created_at FROM leads WHERE email = $1 LIMIT 1`, [lead.email]);\n  if (existing.rows.length > 0) {\n    return [{ json: { ...lead, isDuplicate: true, existingLeadId: existing.rows[0].id, existingStatus: existing.rows[0].status } }];\n  }\n} catch (e) {}\n\nreturn [{ json: { ...lead, isDuplicate: false } }];"
+        "url": "https://company.clearbit.com/v2/companies/find",
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "={{ $json.domain }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 2000,
+        "onError": "continueRegularOutput"
       },
-      "id": "svc1-dedup",
-      "name": "Check Duplicate",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 0]
+      "id": "auto-Fetch Company Data (Clearbit)-0002",
+      "name": "Fetch Company Data (Clearbit)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const lead = $input.first().json;\nif (lead.error) return [{ json: lead }];\n\nlet companySize = 0;\nlet industry = lead.industry || 'unknown';\nlet companyDomain = '';\n\ntry {\n  const domain = (lead.company_domain || lead.company || '').toLowerCase().replace(/[^a-z0-9.-]/g, '');\n  if (domain && process.env.CLEARBIT_API_KEY) {\n    const resp = await fetch(`https://company.clearbit.com/v2/companies/find?domain=${domain}`, {\n      headers: { 'Authorization': `Bearer ${process.env.CLEARBIT_API_KEY}` },\n      signal: AbortSignal.timeout(5000)\n    });\n    if (resp.ok) {\n      const co = await resp.json();\n      companySize = co.employees || 0;\n      industry = co.industry || industry;\n      companyDomain = co.domain || domain;\n    }\n  }\n} catch (e) {}\n\nreturn [{ json: { ...lead, companySize, industry, companyDomain, enrichedAt: new Date().toISOString() } }];"
+        "jsCode": "const src = $input.first().json;\nreturn [{ json: {\n  lead_id: src.lead_id || src.id || '',\n  email: src.email || '',\n  company_size: src.metrics && src.metrics.employees ? String(src.metrics.employees) : null,\n  industry: (src.category && src.category.sector) || null,\n  location: [src.geo && src.geo.city, src.geo && src.geo.country].filter(Boolean).join(', ') || null,\n  enriched_data: src,\n}}];"
       },
-      "id": "svc1-enrich",
-      "name": "Enrich Company Data",
+      "id": "auto-Map Enrichment-0003",
+      "name": "Map Enrichment",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 0]
-    },
-    {
-      "parameters": {
-        "jsCode": "const lead = $input.first().json;\nif (lead.error) return [{ json: lead }];\n\nlet score = 30;\nif (lead.source === 'demo_request') score += 20;\nelse if (lead.source === 'referral') score += 25;\nelse if (lead.source === 'inbound') score += 15;\nelse if (lead.source === 'outbound') score += 5;\n\nif (lead.companySize > 500) score += 25;\nelse if (lead.companySize > 100) score += 15;\nelse if (lead.companySize > 20) score += 5;\n\nif (['government', 'finance', 'technology', 'healthcare'].includes((lead.industry || '').toLowerCase())) score += 10;\nif (lead.company) score += 10;\nif (lead.phone) score += 5;\nif (lead.message && lead.message.length > 20) score += 5;\n\nscore = Math.min(score, 100);\nlet tier = 'low';\nif (score >= 80) tier = 'high';\nelse if (score >= 50) tier = 'medium';\n\nreturn [{ json: { ...lead, score, tier } }];"
-      },
-      "id": "svc1-score",
-      "name": "Calculate Score",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 0]
+      "position": [
+        600,
+        0
+      ]
     }
   ],
   "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Validate Payload", "type": "main", "index": 0 }]] },
-    "Validate Payload": { "main": [[{ "node": "Check Duplicate", "type": "main", "index": 0 }]] },
-    "Check Duplicate": { "main": [[{ "node": "Enrich Company Data", "type": "main", "index": 0 }]] },
-    "Enrich Company Data": { "main": [[{ "node": "Calculate Score", "type": "main", "index": 0 }]] }
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "Build Enrich Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Enrich Queries": {
+      "main": [
+        [
+          {
+            "node": "Fetch Company Data (Clearbit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Company Data (Clearbit)": {
+      "main": [
+        [
+          {
+            "node": "Map Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
-  "active": false,
-  "meta": { "templateCredsSetupCompleted": false },
-  "id": "svc1-enrichment",
-  "pinData": {}
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "wf0-error-handler"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": null,
+  "tags": [
+    "service",
+    "enrichment"
+  ],
+  "description": "Lead enrichment service: real Clearbit company lookup. Call with lead rows; returns enrichment fields per lead."
 }

@@ -1,48 +1,31 @@
 {
-  "name": "SVC-2: Notification Service",
-  "description": "Shared notification service: accepts {channel, text, severity, dedupeKey} via Execute Workflow. Performs deduplication (suppresses duplicate alerts within 15 minutes), routes to Slack by severity, and optionally sends email for high-severity alerts.",
-  "tags": [
-    { "name": "shared-service" },
-    { "name": "notification" }
-  ],
+  "id": "svc2-notification",
+  "name": "SVC-2: Notification Service (manual)",
+  "active": false,
   "nodes": [
     {
       "parameters": {},
-      "id": "svc2-manual-trigger",
-      "name": "Manual Trigger",
+      "id": "auto-Manual-0000",
+      "name": "Manual",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst channel = input.channel || '#general';\nconst text = input.text || '';\nconst severity = input.severity || 'low';\nconst dedupeKey = input.dedupeKey || null;\nconst metadata = input.metadata || {};\n\nif (!text) return [];\n\nreturn [{ json: { channel, text, severity, dedupeKey, metadata, timestamp: new Date().toISOString() } }];"
+        "jsCode": "const it = $input.first().json;\nreturn [{ json: {\n  channel: it.channel || '#workflow-logs',\n  severity: it.severity || 'low',\n  text: it.text || String(it.message || JSON.stringify(it)).slice(0, 500),\n}}];"
       },
-      "id": "svc2-normalize",
-      "name": "Normalize Input",
+      "id": "auto-Normalize Notification-0004",
+      "name": "Normalize Notification",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 0]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nif (!input.dedupeKey) return [{ json: input }];\n\nconst postgres = Postgres.main;\ntry {\n  const recent = await postgres.query(`SELECT id FROM workflow_notifications WHERE dedupe_key = $1 AND created_at > NOW() - INTERVAL '15 minutes' LIMIT 1`, [input.dedupeKey]);\n  if (recent.rows.length > 0) {\n    return [];\n  }\n} catch (e) {}\n\nreturn [{ json: input }];"
-      },
-      "id": "svc2-dedup",
-      "name": "Deduplication Check",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 0]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst postgres = Postgres.main;\ntry {\n  await postgres.query(`INSERT INTO workflow_notifications (channel, severity, dedupe_key, message_preview, created_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`, [input.channel, input.severity, input.dedupeKey, input.text.substring(0, 200)]);\n} catch (e) {}\nreturn [{ json: input }];"
-      },
-      "id": "svc2-log-notification",
-      "name": "Log Notification",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [720, 0]
+      "position": [
+        200,
+        0
+      ]
     },
     {
       "parameters": {
@@ -50,25 +33,60 @@
         "text": "={{ $json.text }}",
         "otherOptions": {}
       },
-      "id": "svc2-slack",
-      "name": "Send Slack",
-      "onError": "continueRegularOutput",
+      "id": "auto-Post to Slack-0005",
+      "name": "Post to Slack",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.1,
-      "typeOptions": { "operation": "postMessage" },
-      "position": [960, 0],
-      "credentials": { "slackApi": { "id": "slack-main", "name": "Slack API" } }
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Quantive Slack"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]] },
-    "Normalize Input": { "main": [[{ "node": "Deduplication Check", "type": "main", "index": 0 }]] },
-    "Deduplication Check": { "main": [[{ "node": "Log Notification", "type": "main", "index": 0 }]] },
-    "Log Notification": { "main": [[{ "node": "Send Slack", "type": "main", "index": 0 }]] }
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "Normalize Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Notification": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
-  "active": false,
-  "meta": { "templateCredsSetupCompleted": false },
-  "id": "svc2-notification",
-  "pinData": {}
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "wf0-error-handler"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": null,
+  "tags": [
+    "service",
+    "notification"
+  ],
+  "description": "Notification service: posts a formatted message to a Slack channel via the native Slack node."
 }

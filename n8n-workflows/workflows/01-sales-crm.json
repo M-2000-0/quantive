@@ -1,11 +1,7 @@
 {
+  "id": "wf1-sales-crm",
   "name": "WF-1: Sales & CRM",
-  "description": "Sales & CRM automation. All enrichment via SVC-1, all notifications via SVC-2, all logging via SVC-3. Lead/demo flows have score-based routing. Deal flow has size-based routing. Stage flow has direction-based routing.",
-  "tags": [
-    { "name": "sales" },
-    { "name": "crm" },
-    { "name": "customer-lifecycle" }
-  ],
+  "active": false,
   "nodes": [
     {
       "parameters": {
@@ -14,78 +10,251 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "wf1-webhook-lead",
+      "id": "auto-Lead Capture Webhook-0015",
       "name": "Lead Capture Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 0],
+      "position": [
+        0,
+        0
+      ],
       "webhookId": "lead-capture"
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /lead-capture','Verify Lead HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
       },
-      "id": "wf1-lead-verify",
+      "id": "auto-Verify Lead HMAC-0016",
       "name": "Verify Lead HMAC",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 0]
+      "position": [
+        200,
+        0
+      ]
     },
     {
       "parameters": {
-        "workflowId": "svc1-enrichment"
+        "operation": "executeQuery",
+        "query": "INSERT INTO leads (email, name, company, source, status, created_at, updated_at)\nVALUES ('{{ $json.email }}', '{{ $json.name }}', '{{ $json.company }}', '{{ $json.source }}', 'new', NOW(), NOW())\nON CONFLICT (email) DO UPDATE SET name=EXCLUDED.name, company=EXCLUDED.company, updated_at=NOW()\nRETURNING id, email, name, company, score, tier, status;",
+        "options": {}
       },
-      "id": "wf1-lead-enrich",
-      "name": "Enrich Lead",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [480, 0]
+      "id": "auto-Upsert Lead-0017",
+      "name": "Upsert Lead",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $input.first().json;\nreturn [{ json: {\n  email: lead.email, name: lead.name, company: lead.company,\n  domain: (lead.email || '').split('@')[1] || '',\n}}];"
+      },
+      "id": "auto-Build Enrichment Query-0018",
+      "name": "Build Enrichment Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://company.clearbit.com/v2/companies/find",
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "={{ $json.domain }}"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 2000,
+        "onError": "continueRegularOutput"
+      },
+      "id": "auto-Clearbit Company Lookup-0019",
+      "name": "Clearbit Company Lookup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Upsert Lead').first().json;\nconst src = $input.first().json || {};\nconst enriched = {\n  ...lead,\n  company_size: src.metrics && src.metrics.employees ? String(src.metrics.employees) : null,\n  industry: (src.category && src.category.sector) || null,\n  location: [src.geo && src.geo.city, src.geo && src.geo.country].filter(Boolean).join(', ') || null,\n};\nlet score = 0;\nconst size = enriched.company_size ? parseInt(enriched.company_size, 10) : 0;\nif (size > 500) score += 40; else if (size > 50) score += 25; else if (size > 0) score += 10;\nif (['financial services','banking','government','insurance'].some(k => (enriched.industry||'').toLowerCase().includes(k))) score += 30;\nif ((enriched.email||'').endsWith('.gov')) score += 20;\nconst tier = score >= 70 ? 'hot' : score >= 40 ? 'warm' : 'cold';\nreturn [{ json: { ...enriched, score, tier }}];"
+      },
+      "id": "auto-Merge Enrichment + Score-0020",
+      "name": "Merge Enrichment + Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE leads SET score={{ $json.score }}, tier='{{ $json.tier }}',\n  company_size='{{ $json.company_size || \"\" }}', industry='{{ $json.industry || \"\" }}', location='{{ $json.location || \"\" }}',\n  enriched_data='{{ JSON.stringify($json) }}'::jsonb, updated_at=NOW()\nWHERE email='{{ $json.email }}';",
+        "options": {}
+      },
+      "id": "auto-Update Lead Score-0021",
+      "name": "Update Lead Score",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1200,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
         "rules": {
-          "values": [
-            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "high", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "High Value" },
-            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "medium", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "Standard" }
+          "rules": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.tier}}",
+                    "rightValue": "hot",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Hot"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.tier}}",
+                    "rightValue": "warm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Warm"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.tier}}",
+                    "rightValue": "cold",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Cold"
+            }
           ]
-        },
-        "fallbackOutput": "extra"
+        }
       },
-      "id": "wf1-lead-switch",
+      "id": "auto-Route by Tier-0022",
       "name": "Route by Tier",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [720, 0]
+      "position": [
+        1400,
+        0
+      ]
     },
     {
       "parameters": {
-        "workflowId": "svc2-notification"
+        "channel": "#sales-leads",
+        "text": "🔥 *HOT LEAD*\n*{{ $json.name }}* ({{ $json.company }})\nScore {{ $json.score }} — {{ $json.industry || \"industry n/a\" }}\n{{ $json.email }}",
+        "otherOptions": {}
       },
-      "id": "wf1-notify-high",
-      "name": "Notify High-Value",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [960, 0]
+      "id": "auto-Hot Lead → Sales-0023",
+      "name": "Hot Lead → Sales",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1600,
+        0
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Quantive Slack"
+        }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "workflowId": "svc2-notification"
+        "channel": "#sales-leads",
+        "text": "🌤️ *Warm lead*: {{ $json.name }} ({{ $json.company }}), score {{ $json.score }}",
+        "otherOptions": {}
       },
-      "id": "wf1-notify-normal",
-      "name": "Notify Standard",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [960, 220]
+      "id": "auto-Warm Lead → Nurture-0024",
+      "name": "Warm Lead → Nurture",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1600,
+        150
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Quantive Slack"
+        }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "workflowId": "svc3-logger"
+        "operation": "executeQuery",
+        "query": "INSERT INTO lead_followups (lead_email, followup_type, scheduled_at, status)\nVALUES ('{{ $json.email }}', 'nurture', NOW() + INTERVAL '2 days', 'pending'),\n       ('{{ $json.email }}', 'nurture', NOW() + INTERVAL '7 days', 'pending');",
+        "options": {}
       },
-      "id": "wf1-log-lead",
-      "name": "Log Lead",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [1200, 0]
+      "id": "auto-Schedule Cold Follow-ups-0025",
+      "name": "Schedule Cold Follow-ups",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1600,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
@@ -94,88 +263,92 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "wf1-webhook-demo",
+      "id": "auto-Demo Booked Webhook-0026",
       "name": "Demo Booked Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 440],
+      "position": [
+        0,
+        500
+      ],
       "webhookId": "demo-booked"
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /demo-booked','Verify Demo HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
       },
-      "id": "wf1-demo-verify",
+      "id": "auto-Verify Demo HMAC-0027",
       "name": "Verify Demo HMAC",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 440]
+      "position": [
+        200,
+        500
+      ]
     },
     {
       "parameters": {
-        "workflowId": "svc1-enrichment"
+        "operation": "executeQuery",
+        "query": "INSERT INTO demos (lead_email, lead_name, company, demo_date, demo_type, status)\nVALUES ('{{ $json.email }}', '{{ $json.name }}', '{{ $json.company }}', '{{ $json.demo_date }}', '{{ $json.demo_type }}', 'scheduled');",
+        "options": {}
       },
-      "id": "wf1-demo-enrich",
-      "name": "Enrich Demo",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [480, 440]
+      "id": "auto-Insert Demo-0028",
+      "name": "Insert Demo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        400,
+        500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "rules": {
-          "values": [
-            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "high", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "High Score" },
-            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "medium", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "Standard" }
-          ]
-        },
-        "fallbackOutput": "extra"
+        "operation": "executeQuery",
+        "query": "UPDATE leads SET status='demo_scheduled', demo_booked_at=NOW() WHERE email='{{ $json.email }}';",
+        "options": {}
       },
-      "id": "wf1-demo-switch",
-      "name": "Route Demo by Tier",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [720, 440]
+      "id": "auto-Mark Lead Demo Booked-0029",
+      "name": "Mark Lead Demo Booked",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const demo = $input.first().json;\nconst postgres = Postgres.main;\n\nconst existing = await postgres.query(`SELECT id, status FROM leads WHERE email = $1`, [demo.email]);\nif (existing.rows.length > 0) {\n  await postgres.query(`UPDATE leads SET status = 'demo_scheduled', updated_at = CURRENT_TIMESTAMP WHERE email = $1`, [demo.email]);\n}\n\nconst result = await postgres.query(`INSERT INTO demos (lead_email, lead_name, company, demo_date, demo_type, status, created_at) VALUES ($1, $2, $3, $4, $5, 'scheduled', CURRENT_TIMESTAMP) RETURNING id`, [demo.email, demo.name, demo.company, demo.date, demo.type || 'standard']);\n\nreturn [{ json: { channel: '#sales-demos', severity: 'high', dedupeKey: `demo_${demo.email}_${demo.date}`, text: `🏆 *PRIORITY DEMO*\n*Lead:* ${demo.name} (${demo.email})\n*Score:* ${demo.score || 'n/a'}/100\n*Demo ID:* ${result.rows[0].id}\n> Priority scheduling recommended`, metadata: { flow: 'demo_booked', demoId: result.rows[0].id } } }];"
+        "channel": "#sales-demos",
+        "text": "📅 *Demo booked*: {{ $json.name }} ({{ $json.company }}) — {{ $json.demo_date }}",
+        "otherOptions": {}
       },
-      "id": "wf1-demo-store-high",
-      "name": "Store High-Score Demo",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 340]
-    },
-    {
-      "parameters": {
-        "jsCode": "const demo = $input.first().json;\nconst postgres = Postgres.main;\nconst result = await postgres.query(`INSERT INTO demos (lead_email, lead_name, company, demo_date, demo_type, status, created_at) VALUES ($1, $2, $3, $4, $5, 'scheduled', CURRENT_TIMESTAMP) RETURNING id`, [demo.email, demo.name, demo.company, demo.date, demo.type || 'standard']);\nreturn [{ json: { channel: '#sales-demos', severity: 'low', dedupeKey: `demo_${demo.email}_${demo.date}`, text: `📅 *Demo Booked*\n*Lead:* ${demo.name} (${demo.email})\n*Demo ID:* ${result.rows[0].id}`, metadata: { flow: 'demo_booked', demoId: result.rows[0].id } } }];"
+      "id": "auto-Demo → Sales Alerts-0030",
+      "name": "Demo → Sales Alerts",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        500
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Quantive Slack"
+        }
       },
-      "id": "wf1-demo-store-normal",
-      "name": "Store Standard Demo",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [960, 540]
-    },
-    {
-      "parameters": {
-        "workflowId": "svc2-notification"
-      },
-      "id": "wf1-notify-demo",
-      "name": "Notify Demo",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [1200, 340]
-    },
-    {
-      "parameters": {
-        "workflowId": "svc3-logger"
-      },
-      "id": "wf1-log-demo",
-      "name": "Log Demo",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [1440, 340]
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -184,188 +357,451 @@
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "wf1-webhook-deal",
+      "id": "auto-Deal Closed Webhook-0031",
       "name": "Deal Closed Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 800],
+      "position": [
+        0,
+        700
+      ],
       "webhookId": "deal-closed"
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /deal-closed','Verify Deal HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
       },
-      "id": "wf1-deal-verify",
+      "id": "auto-Verify Deal HMAC-0032",
       "name": "Verify Deal HMAC",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 800]
+      "position": [
+        200,
+        700
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const deal = $input.first().json.body;\nif (!deal || !deal.email) throw new Error('Deal missing email');\nconst postgres = Postgres.main;\nconst dealResult = await postgres.query(`INSERT INTO deals (lead_email, company, value, stage, closed_at, created_at) VALUES ($1, $2, $3, 'closed_won', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id`, [deal.email, deal.company, deal.value]);\nconst customerResult = await postgres.query(`INSERT INTO customers (email, name, company, deal_id, plan, status, created_at) VALUES ($1, $2, $3, $4, $5, 'active', CURRENT_TIMESTAMP) RETURNING id`, [deal.email, deal.name, deal.company, dealResult.rows[0].id, deal.plan || 'starter']);\nawait postgres.query(`UPDATE leads SET status = 'converted', updated_at = CURRENT_TIMESTAMP WHERE email = $1`, [deal.email]);\nawait postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'subscription.created', CURRENT_TIMESTAMP)`, [customerResult.rows[0].id, deal.value || 0]);\n\nconst isLarge = (deal.value || 0) >= 10000;\nreturn [{ json: { dealId: dealResult.rows[0].id, customerId: customerResult.rows[0].id, email: deal.email, value: deal.value || 0, channel: '#sales-closed', severity: isLarge ? 'high' : 'low', dedupeKey: `deal_${deal.email}_${dealResult.rows[0].id}`, text: isLarge ? `💰 *LARGE DEAL CLOSED!*\n*Customer:* ${deal.email}\n*Deal ID:* ${dealResult.rows[0].id}\n*Value:* $${deal.value}\n> 🎉 Congratulations!` : `✅ *Deal Closed*\n*Customer:* ${deal.email}\n*Deal ID:* ${dealResult.rows[0].id}\n*Value:* $${deal.value}` } }];"
-      },
-      "id": "wf1-deal-store",
-      "name": "Store Deal & Customer",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 800]
-    },
-    {
-      "parameters": {
-        "workflowId": "svc2-notification"
-      },
-      "id": "wf1-notify-deal",
-      "name": "Notify Deal",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 800]
-    },
-    {
-      "parameters": {
-        "workflowId": "svc3-logger"
-      },
-      "id": "wf1-log-deal",
-      "name": "Log Deal",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [960, 800]
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "deal-stage",
-        "responseMode": "lastNode",
+        "operation": "executeQuery",
+        "query": "INSERT INTO deals (lead_email, company, value, stage, closed_at)\nVALUES ('{{ $json.email }}', '{{ $json.company }}', {{ $json.value }}, 'closed_won', NOW()) RETURNING id;",
         "options": {}
       },
-      "id": "wf1-webhook-stage",
-      "name": "Deal Stage Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [0, 1060],
-      "webhookId": "deal-stage"
+      "id": "auto-Insert Deal-0033",
+      "name": "Insert Deal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        400,
+        700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /deal-stage','Verify Stage HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+        "operation": "executeQuery",
+        "query": "INSERT INTO customers (email, name, company, plan, status)\nVALUES ('{{ $json.email }}', '{{ $json.name }}', '{{ $json.company }}', '{{ $json.plan || \"pro\" }}', 'active')\nON CONFLICT (email) DO UPDATE SET status='active', updated_at=NOW();",
+        "options": {}
       },
-      "id": "wf1-stage-verify",
-      "name": "Verify Stage HMAC",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [240, 1060]
+      "id": "auto-Convert Lead → Customer-0034",
+      "name": "Convert Lead → Customer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const update = $input.first().json.body;\nif (!update || !update.dealId || !update.stage) throw new Error('Stage payload missing required fields');\nconst postgres = Postgres.main;\nconst prev = await postgres.query(`SELECT stage FROM deals WHERE id = $1`, [update.dealId]);\nconst prevStage = prev.rows[0]?.stage || 'unknown';\nawait postgres.query(`UPDATE deals SET stage = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [update.stage, update.dealId]);\nconst isClosed = ['closed_won', 'closed_lost'].includes(update.stage);\nconst direction = isClosed ? 'closed' : (['discovery', 'proposal', 'negotiation'].includes(update.stage) ? 'forward' : 'backward');\nconst severity = isClosed ? 'high' : (direction === 'backward' ? 'medium' : 'low');\nconst emoji = isClosed ? '🏁' : (direction === 'forward' ? '📈' : '📉');\nreturn [{ json: { dealId: update.dealId, prevStage, newStage: update.stage, channel: '#sales-pipeline', severity, dedupeKey: `stage_${update.dealId}_${update.stage}`, text: `${emoji} *Deal ${isClosed ? update.stage : direction === 'forward' ? 'Moved Forward' : 'Moved Backward'}*\n*Deal:* ${update.dealId}\n*${prevStage}* → *${update.stage}*`, metadata: { flow: 'deal_stage', dealId: update.dealId, prevStage, newStage: update.stage } } }];"
+        "operation": "executeQuery",
+        "query": "UPDATE leads SET status='converted', converted_at=NOW() WHERE email='{{ $json.email }}';",
+        "options": {}
       },
-      "id": "wf1-stage-update",
-      "name": "Update Deal Stage",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 1060]
+      "id": "auto-Mark Lead Converted-0035",
+      "name": "Mark Lead Converted",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        800,
+        700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "workflowId": "svc2-notification"
+        "channel": "#sales-closed",
+        "text": "🏆 *NEW CUSTOMER*: {{ $json.company }} — ${{ $json.value }} ({{ $json.plan || \"pro\" }})",
+        "otherOptions": {}
       },
-      "id": "wf1-notify-stage",
-      "name": "Notify Stage",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 1060]
+      "id": "auto-Deal Won → Sales-0036",
+      "name": "Deal Won → Sales",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        700
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Quantive Slack"
+        }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "workflowId": "svc3-logger"
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 13 * * 1-5"
+            }
+          ]
+        }
       },
-      "id": "wf1-log-stage",
-      "name": "Log Stage",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [960, 1060]
-    },
-    {
-      "parameters": {
-        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9,14 * * 1-5" }] }
-      },
-      "id": "wf1-schedule-followup",
-      "name": "Follow-up Schedule",
+      "id": "auto-Follow-up Cron-0037",
+      "name": "Follow-up Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 1300]
+      "position": [
+        0,
+        900
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const postgres = Postgres.main;\nconst result = await postgres.query(`SELECT id, lead_email, scheduled_at, attempts FROM lead_followups WHERE scheduled_at <= CURRENT_TIMESTAMP AND status = 'pending' AND attempts < 3 ORDER BY scheduled_at ASC LIMIT 20`);\nreturn result.rows.map(row => ({ json: row }));"
+        "operation": "executeQuery",
+        "query": "SELECT id, lead_email, followup_type, attempts FROM lead_followups\nWHERE status='pending' AND scheduled_at <= NOW() AND attempts < 3\nORDER BY scheduled_at ASC LIMIT 20;",
+        "options": {}
       },
-      "id": "wf1-followup-query",
+      "id": "auto-Get Pending Follow-ups-0038",
       "name": "Get Pending Follow-ups",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [240, 1300]
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        200,
+        900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const followup = $input.first().json;\nconst postgres = Postgres.main;\nawait postgres.query(`UPDATE lead_followups SET attempts = attempts + 1, last_attempt = CURRENT_TIMESTAMP, status = CASE WHEN attempts + 1 >= 3 THEN 'completed' ELSE 'pending' END WHERE id = $1`, [followup.id]);\nconst isRetry = followup.attempts >= 1;\nreturn [{ json: { channel: '#sales-followups', severity: isRetry ? 'medium' : 'low', dedupeKey: `followup_${followup.id}_${followup.attempts + 1}`, text: isRetry ? `⚠️ *Follow-up RETRY*\n*Lead:* ${followup.lead_email}\n*Attempt:* ${followup.attempts + 1}/3\n> Manual review recommended` : `📞 *Follow-up Reminder*\n*Lead:* ${followup.lead_email}\n*Follow-up ID:* ${followup.id}`, metadata: { flow: 'followup', followupId: followup.id, attempts: followup.attempts + 1 } } }];"
+        "operation": "executeQuery",
+        "query": "UPDATE lead_followups\nSET attempts = attempts + 1,\n    last_attempt = NOW(),\n    status = CASE WHEN attempts + 1 >= 3 THEN 'completed' ELSE 'pending' END\nWHERE id = '{{ $json.id }}';",
+        "options": {}
       },
-      "id": "wf1-followup-process",
-      "name": "Process Follow-up",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 1300]
+      "id": "auto-Mark Follow-up Attempt-0039",
+      "name": "Mark Follow-up Attempt",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        400,
+        900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "workflowId": "svc2-notification"
+        "fromEmail": "quantive@quantive.com",
+        "toEmail": "={{ $json.lead_email }}",
+        "subject": "Following up — Quantive for your treasury team",
+        "emailFormat": "text",
+        "text": "Hi,\n\nJust checking in on our earlier note about Quantive, the sovereign debt optimization platform.\n\nHappy to show how it works for your team in 20 minutes.\n\n— The Quantive Team",
+        "options": {}
       },
-      "id": "wf1-notify-followup",
-      "name": "Notify Follow-up",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 1300]
-    },
-    {
-      "parameters": {
-        "workflowId": "svc3-logger"
+      "id": "auto-Send Follow-up Email-0040",
+      "name": "Send Follow-up Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        600,
+        900
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-main",
+          "name": "Quantive SMTP"
+        }
       },
-      "id": "wf1-log-followup",
-      "name": "Log Follow-up",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [960, 1300]
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
-    "Lead Capture Webhook": { "main": [[{ "node": "Verify Lead HMAC", "type": "main", "index": 0 }]] },
-    "Verify Lead HMAC": { "main": [[{ "node": "Enrich Lead", "type": "main", "index": 0 }]] },
-    "Enrich Lead": { "main": [[{ "node": "Route by Tier", "type": "main", "index": 0 }]] },
-    "Route by Tier": { "main": [[{ "node": "Notify High-Value", "type": "main", "index": 0 }], [{ "node": "Notify Standard", "type": "main", "index": 0 }], []] },
-    "Notify High-Value": { "main": [[{ "node": "Log Lead", "type": "main", "index": 0 }]] },
-    "Notify Standard": { "main": [[{ "node": "Log Lead", "type": "main", "index": 0 }]] },
-    "Demo Booked Webhook": { "main": [[{ "node": "Verify Demo HMAC", "type": "main", "index": 0 }]] },
-    "Verify Demo HMAC": { "main": [[{ "node": "Enrich Demo", "type": "main", "index": 0 }]] },
-    "Enrich Demo": { "main": [[{ "node": "Route Demo by Tier", "type": "main", "index": 0 }]] },
-    "Route Demo by Tier": { "main": [[{ "node": "Store High-Score Demo", "type": "main", "index": 0 }], [{ "node": "Store Standard Demo", "type": "main", "index": 0 }], []] },
-    "Store High-Score Demo": { "main": [[{ "node": "Notify Demo", "type": "main", "index": 0 }]] },
-    "Store Standard Demo": { "main": [[{ "node": "Notify Demo", "type": "main", "index": 0 }]] },
-    "Notify Demo": { "main": [[{ "node": "Log Demo", "type": "main", "index": 0 }]] },
-    "Deal Closed Webhook": { "main": [[{ "node": "Verify Deal HMAC", "type": "main", "index": 0 }]] },
-    "Verify Deal HMAC": { "main": [[{ "node": "Store Deal & Customer", "type": "main", "index": 0 }]] },
-    "Store Deal & Customer": { "main": [[{ "node": "Notify Deal", "type": "main", "index": 0 }]] },
-    "Notify Deal": { "main": [[{ "node": "Log Deal", "type": "main", "index": 0 }]] },
-    "Deal Stage Webhook": { "main": [[{ "node": "Verify Stage HMAC", "type": "main", "index": 0 }]] },
-    "Verify Stage HMAC": { "main": [[{ "node": "Update Deal Stage", "type": "main", "index": 0 }]] },
-    "Update Deal Stage": { "main": [[{ "node": "Notify Stage", "type": "main", "index": 0 }]] },
-    "Notify Stage": { "main": [[{ "node": "Log Stage", "type": "main", "index": 0 }]] },
-    "Follow-up Schedule": { "main": [[{ "node": "Get Pending Follow-ups", "type": "main", "index": 0 }]] },
-    "Get Pending Follow-ups": { "main": [[{ "node": "Process Follow-up", "type": "main", "index": 0 }]] },
-    "Process Follow-up": { "main": [[{ "node": "Notify Follow-up", "type": "main", "index": 0 }]] },
-    "Notify Follow-up": { "main": [[{ "node": "Log Follow-up", "type": "main", "index": 0 }]] }
+    "Lead Capture Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Lead HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Lead HMAC": {
+      "main": [
+        [
+          {
+            "node": "Upsert Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Lead": {
+      "main": [
+        [
+          {
+            "node": "Build Enrichment Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Enrichment Query": {
+      "main": [
+        [
+          {
+            "node": "Clearbit Company Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clearbit Company Lookup": {
+      "main": [
+        [
+          {
+            "node": "Merge Enrichment + Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Enrichment + Score": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead Score": {
+      "main": [
+        [
+          {
+            "node": "Route by Tier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Tier": {
+      "main": [
+        [
+          {
+            "node": "Hot Lead → Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Warm Lead → Nurture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Schedule Cold Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Booked Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Demo HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Demo HMAC": {
+      "main": [
+        [
+          {
+            "node": "Insert Demo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Demo": {
+      "main": [
+        [
+          {
+            "node": "Mark Lead Demo Booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Lead Demo Booked": {
+      "main": [
+        [
+          {
+            "node": "Demo → Sales Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deal Closed Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Deal HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Deal HMAC": {
+      "main": [
+        [
+          {
+            "node": "Insert Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Deal": {
+      "main": [
+        [
+          {
+            "node": "Convert Lead → Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Lead → Customer": {
+      "main": [
+        [
+          {
+            "node": "Mark Lead Converted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Lead Converted": {
+      "main": [
+        [
+          {
+            "node": "Deal Won → Sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow-up Cron": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Mark Follow-up Attempt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Follow-up Attempt": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "errorWorkflow": "wf0-error-handler" },
-  "active": false,
-  "meta": { "templateCredsSetupCompleted": false },
-  "id": "wf1-sales-crm",
-  "pinData": {}
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "wf0-error-handler"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": null,
+  "tags": [
+    "sales",
+    "crm"
+  ],
+  "description": "Real-node sales pipeline: HMAC-verified webhooks → Postgres upserts → Clearbit enrichment → tiered Slack alerts → SMTP follow-ups."
 }

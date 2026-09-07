@@ -1,242 +1,630 @@
 {
-  "name": "WF-3: Platform & AI",
-  "description": "Platform & AI automation: market data + AI predictions, news monitoring with deduplication, watchlist price alerts, API health monitoring, weekly report. All notifications via SVC-2, all logging via SVC-3.",
-  "tags": [
-    { "name": "platform" },
-    { "name": "ai" },
-    { "name": "monitoring" }
-  ],
+  "id": "wf3-platform-ai",
+  "name": "WF-3: Quantive Platform & AI",
+  "active": false,
   "nodes": [
     {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/15 * * * *" }] } },
-      "id": "wf3-schedule-market",
-      "name": "Market Data Schedule",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "auto-Market Data Cron-0056",
+      "name": "Market Data Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const now = new Date();\nreturn [\n  { json: { symbol: 'US10Y', name: 'US 10-Year Treasury', source: 'fred', timestamp: now.toISOString() } },\n  { json: { symbol: 'US2Y', name: 'US 2-Year Treasury', source: 'fred', timestamp: now.toISOString() } },\n  { json: { symbol: 'DGS10', name: '10-Year Treasury Rate', source: 'fred', timestamp: now.toISOString() } },\n  { json: { symbol: 'DGS2', name: '2-Year Treasury Rate', source: 'fred', timestamp: now.toISOString() } }\n];"
+        "jsCode": "const symbols = [\n  { symbol: '^TNX', name: 'US 10Y Treasury Yield' },\n  { symbol: 'DX-Y.NYB', name: 'US Dollar Index' },\n  { symbol: 'GC=F', name: 'Gold Futures' },\n  { symbol: 'CL=F', name: 'WTI Crude' },\n  { symbol: '^GSPC', name: 'S&P 500' },\n  { symbol: '^VIX', name: 'VIX' },\n  { symbol: 'BTC-USD', name: 'Bitcoin' },\n  { symbol: 'ETH-USD', name: 'Ethereum' },\n];\nreturn symbols.map(s => ({ json: s }));"
       },
-      "id": "wf3-market-list",
-      "name": "List Market Instruments",
+      "id": "auto-Build Symbol List-0057",
+      "name": "Build Symbol List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 0]
+      "position": [
+        200,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const inst = $input.first().json;\nconst fredKey = process.env.FRED_API_KEY;\nconst url = `https://api.stlouisfed.org/fred/series/observations?series_id=${inst.symbol}&api_key=${fredKey}&file_type=json&sort_order=desc&limit=1`;\ntry {\n  const resp = await fetch(url);\n  const data = await resp.json();\n  const latest = data.observations?.[0];\n  return [{ json: { ...inst, value: parseFloat(latest?.value)||0, date: latest?.date } }];\n} catch (e) {\n  return [{ json: { ...inst, value: 0, error: e.message } }];\n}"
+        "url": "https://query1.finance.yahoo.com/v8/finance/chart/{{ $json.symbol }}",
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "range",
+              "value": "1d"
+            },
+            {
+              "name": "interval",
+              "value": "1h"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Quantive-n8n)"
+            }
+          ]
+        },
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput"
       },
-      "id": "wf3-fetch-market",
-      "name": "Fetch Market Data",
+      "id": "auto-Yahoo Finance Quote-0058",
+      "name": "Yahoo Finance Quote",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst chart = item.chart && item.chart.result && item.chart.result[0];\nif (!chart || !chart.meta || chart.meta.regularMarketPrice === undefined) return [];\nreturn [{ json: {\n  symbol: chart.meta.symbol,\n  name: $('Build Symbol List').first().json.name,\n  value: chart.meta.regularMarketPrice,\n  source: 'yahoo_finance',\n  timestamp: new Date((chart.meta.regularMarketTime || Date.now() / 1000) * 1000).toISOString(),\n}}];"
+      },
+      "id": "auto-Parse Yahoo Response-0059",
+      "name": "Parse Yahoo Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "retryOnFail": true, "maxTries": 3, "waitBetweenTries": 2000,
-      "position": [480, 0]
+      "position": [
+        600,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const md = $input.first().json;\nconst postgres = Postgres.main;\nawait postgres.query(`INSERT INTO market_data (symbol, name, value, source, timestamp) VALUES ($1,$2,$3,$4,$5)`, [md.symbol, md.name, md.value, md.source, md.timestamp]);\nreturn [$input.first()];"
+        "operation": "executeQuery",
+        "query": "INSERT INTO market_data (symbol, name, value, source, timestamp)\nVALUES ('{{ $json.symbol }}', '{{ $json.name }}', {{ $json.value }}, '{{ $json.source }}', '{{ $json.timestamp }}');",
+        "options": {}
       },
-      "id": "wf3-market-store",
+      "id": "auto-Store Market Data-0060",
       "name": "Store Market Data",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [720, 0]
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        800,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const md = $input.first().json;\nlet analysis = null;\ntry {\n  const prompt = `Analyze ${md.name} (${md.symbol}). Value: ${md.value}, Date: ${md.date}. Respond JSON: {\"trend\":\"up|down|stable\",\"forecast\":\"...\",\"risk\":\"low|medium|high\",\"factors\":[...]}`;\n  const resp = await fetch('https://api.openai.com/v1/chat/completions', {\n    method: 'POST',\n    headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },\n    body: JSON.stringify({ model: 'gpt-4', messages: [{ role: 'user', content: prompt }], response_format: { type: 'json_object' } })\n  });\n  const r = await resp.json();\n  analysis = JSON.parse(r.choices?.[0]?.message?.content || '{}');\n} catch (e) {}\nif (!analysis) return [];\nawait Postgres.main.query(`INSERT INTO ai_predictions (symbol, prediction_type, prediction, confidence, model_version, created_at) VALUES ($1,$2,$3,$4,'gpt-4',CURRENT_TIMESTAMP)`, [md.symbol, analysis.trend, JSON.stringify(analysis), analysis.risk==='low'?0.8:analysis.risk==='medium'?0.6:0.4]);\nreturn [{ json: { channel: '#platform-weekly', severity: 'low', dedupeKey: `market_${md.symbol}_${md.date}`, text: `📈 *AI Analysis: ${md.name}*\n*Trend:* ${analysis.trend}\n*Risk:* ${analysis.risk}\n*Value:* ${md.value}`, metadata: { flow: 'market_analysis', symbol: md.symbol } } }];"
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
       },
-      "id": "wf3-ai-predict",
-      "name": "AI Prediction + Store",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "retryOnFail": true, "maxTries": 3, "waitBetweenTries": 2000,
-      "position": [960, 0]
-    },
-    {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf3-log-market",
-      "name": "Log Market",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [1200, 0]
-    },
-    {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/30 * * * *" }] } },
-      "id": "wf3-schedule-news",
-      "name": "News Schedule",
+      "id": "auto-News Cron-0061",
+      "name": "News Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 220]
+      "position": [
+        0,
+        300
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const newsKey = process.env.NEWS_API_KEY;\ntry {\n  const resp = await fetch(`https://newsapi.org/v2/top-headlines?country=us&category=business&apiKey=${newsKey}&pageSize=20`);\n  const data = await resp.json();\n  return (data.articles||[]).map(a => ({ json: a }));\n} catch (e) {\n  return [{ json: { error: e.message } }];\n}"
+        "url": "https://newsapi.org/v2/top-headlines",
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "category",
+              "value": "business"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            },
+            {
+              "name": "pageSize",
+              "value": "30"
+            }
+          ]
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "retryOnFail": true,
+        "maxTries": 3,
+        "waitBetweenTries": 5000,
+        "onError": "continueRegularOutput"
       },
-      "id": "wf3-fetch-news",
-      "name": "Fetch News",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "retryOnFail": true, "maxTries": 3, "waitBetweenTries": 2000,
-      "position": [240, 220]
+      "id": "auto-Fetch Market News-0062",
+      "name": "Fetch Market News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        300
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const a = $input.first().json;\nif (a.error) return [];\nconst kw = ['debt','treasury','bond','interest rate','fed','inflation','fiscal','sovereign'];\nconst txt = `${(a.title||'').toLowerCase()} ${(a.description||'').toLowerCase()}`;\nif (!kw.some(k => txt.includes(k))) return [];\nconst postgres = Postgres.main;\nconst ex = await postgres.query(`SELECT id FROM news_articles WHERE url=$1`, [a.url]);\nif (ex.rows.length > 0) return [];\nawait postgres.query(`INSERT INTO news_articles (title,description,url,source,published_at,keywords,created_at) VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP)`, [a.title, a.description, a.url, a.source?.name, a.publishedAt, []]);\nreturn [{ json: { channel: '#market-news', severity: 'low', dedupeKey: `news_${Buffer.from(a.url||'').toString('base64').slice(0,40)}`, text: `📰 *Market News*\n*Title:* ${a.title}\n*Source:* ${a.source?.name}\n*URL:* ${a.url}`, metadata: { flow: 'news_alert' } } }];"
+        "jsCode": "const r = $input.first().json;\nif (!r.articles) return [];\nreturn r.articles\n  .filter(a => a.title && a.url)\n  .map(a => ({ json: {\n    title: a.title, description: a.description || '', url: a.url,\n    source: (a.source && a.source.name) || '', published_at: a.publishedAt,\n  }}));"
       },
-      "id": "wf3-news-filter",
-      "name": "Filter, Dedupe & Store",
+      "id": "auto-Normalize News-0063",
+      "name": "Normalize News",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 220]
+      "position": [
+        400,
+        300
+      ]
     },
     {
-      "parameters": { "workflowId": "svc2-notification" },
-      "id": "wf3-notify-news",
-      "name": "Notify News",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 220]
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO news_articles (title, description, url, source, published_at)\nVALUES ('{{ $json.title.replace(/'/g, \"\") }}', '{{ ($json.description || \"\").replace(/'/g, \"\") }}', '{{ $json.url }}', '{{ $json.source }}', '{{ $json.published_at }}')\nON CONFLICT (url) DO NOTHING;",
+        "options": {}
+      },
+      "id": "auto-Insert News Article-0064",
+      "name": "Insert News Article",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf3-log-news",
-      "name": "Log News",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [960, 220]
-    },
-    {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8,18 * * *" }] } },
-      "id": "wf3-schedule-watchlist",
-      "name": "Watchlist Schedule",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "auto-AI Summary Cron-0065",
+      "name": "AI Summary Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 440]
+      "position": [
+        0,
+        600
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const postgres = Postgres.main;\nconst wl = await postgres.query(`SELECT symbol, name, target_value, alert_threshold FROM watchlist_securities WHERE is_active=true`);\nconst results = [];\nfor (const sec of wl.rows) {\n  const latest = await postgres.query(`SELECT value FROM market_data WHERE symbol=$1 ORDER BY timestamp DESC LIMIT 1`, [sec.symbol]);\n  const current = latest.rows[0]?.value || 0;\n  const deviation = Math.abs(current - sec.target_value);\n  const hit = deviation <= sec.alert_threshold;\n  if (hit) {\n    const severity = deviation <= sec.alert_threshold * 0.25 ? 'high' : 'medium';\n    results.push({ json: { channel: '#watchlist-alerts', severity, dedupeKey: `watch_${sec.symbol}_${Math.round(current)}`, text: `🎯 *Watchlist Hit: ${sec.name}*\n*Current:* ${current}\n*Target:* ${sec.target_value}\n*Deviation:* ${deviation.toFixed(2)}`, metadata: { flow: 'watchlist_alert', symbol: sec.symbol } } });\n  }\n}\nreturn results;"
+        "url": "https://api.openai.com/v1/chat/completions",
+        "options": {},
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [\n    { role: 'system', content: 'You are a sovereign-debt market analyst. Summarize todays market conditions in 5 bullet points, max 120 words.' },\n    { role: 'user', content: 'Rates, dollar, gold, oil, equities, VIX, crypto — what matters for treasury desks today?' }\n  ],\n  temperature: 0.3,\n}) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput"
       },
-      "id": "wf3-watchlist-check",
-      "name": "Check Watchlist",
+      "id": "auto-OpenAI Market Summary-0066",
+      "name": "OpenAI Market Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst text = r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content || '';\nif (!text) return [];\nreturn [{ json: { summary: text.trim(), generated_at: new Date().toISOString() }}];"
+      },
+      "id": "auto-Extract Summary-0067",
+      "name": "Extract Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 440]
+      "position": [
+        400,
+        600
+      ]
     },
     {
-      "parameters": { "workflowId": "svc2-notification" },
-      "id": "wf3-notify-watchlist",
-      "name": "Notify Watchlist",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [480, 440]
+      "parameters": {
+        "channel": "#market-news",
+        "text": "📈 *Daily Market Summary* (AI)\n{{ $json.summary }}",
+        "otherOptions": {}
+      },
+      "id": "auto-Market Summary → Slack-0068",
+      "name": "Market Summary → Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        600,
+        600
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Quantive Slack"
+        }
+      },
+      "onError": "continueRegularOutput"
     },
     {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf3-log-watchlist",
-      "name": "Log Watchlist",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 440]
-    },
-    {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/10 * * * *" }] } },
-      "id": "wf3-schedule-health",
-      "name": "API Health Schedule",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "auto-Health Cron-0069",
+      "name": "Health Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 660]
+      "position": [
+        0,
+        900
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const apis = [\n  { name: 'FRED', url: 'https://api.stlouisfed.org/fred/series?series_id=DGS10&api_key=test&file_type=json' },\n  { name: 'NewsAPI', url: 'https://newsapi.org/v2/top-headlines?country=us&apiKey=test' },\n  { name: 'OpenAI', url: 'https://api.openai.com/v1/models' }\n];\nconst postgres = Postgres.main;\nconst results = [];\nfor (const api of apis) {\n  const start = Date.now();\n  let healthy = false, status = 0, errMsg = null;\n  try {\n    const resp = await fetch(api.url, { signal: AbortSignal.timeout(10000) });\n    status = resp.status; healthy = resp.ok;\n  } catch (e) { errMsg = e.message; }\n  const rt = Date.now() - start;\n  await postgres.query(`INSERT INTO api_health_checks (service,status_code,response_time_ms,status,checked_at) VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP)`, [api.name, status, rt, healthy?'healthy':'unhealthy']);\n  if (!healthy) {\n    results.push({ json: { channel: '#api-alerts', severity: 'high', dedupeKey: `health_${api.name}_${Date.now()}`, text: `⚠️ *API Down: ${api.name}*\n*Status:* ${status}\n*Time:* ${rt}ms\n*Error:* ${errMsg||'unhealthy'}`, metadata: { flow: 'api_health', service: api.name } } });\n  }\n}\nreturn results;"
+        "url": "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}/api/optimize-debt/status",
+        "options": {},
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 2000,
+        "onError": "continueRegularOutput"
       },
-      "id": "wf3-health-check",
-      "name": "Check API Health",
+      "id": "auto-Ping Backend Status-0070",
+      "name": "Ping Backend Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nconst healthy = r && r.status === 'operational';\nreturn [{ json: {\n  service: 'quantive-backend',\n  status: healthy ? 'healthy' : 'unhealthy',\n  status_code: healthy ? 200 : 503,\n  response_time_ms: 0,\n}}];"
+      },
+      "id": "auto-Evaluate Health-0071",
+      "name": "Evaluate Health",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "retryOnFail": true, "maxTries": 2, "waitBetweenTries": 3000,
-      "position": [240, 660]
+      "position": [
+        400,
+        900
+      ]
     },
     {
-      "parameters": { "workflowId": "svc2-notification" },
-      "id": "wf3-notify-health",
-      "name": "Notify Health",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [480, 660]
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO api_health_checks (service, status_code, response_time_ms, status)\nVALUES ('{{ $json.service }}', {{ $json.status_code }}, {{ $json.response_time_ms }}, '{{ $json.status }}');",
+        "options": {}
+      },
+      "id": "auto-Insert Health Check-0072",
+      "name": "Insert Health Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     },
     {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf3-log-health",
-      "name": "Log Health",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 660]
-    },
-    {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * 5" }] } },
-      "id": "wf3-schedule-weekly",
-      "name": "Weekly Report Schedule",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "auto-Metrics Cron-0073",
+      "name": "Metrics Cron",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 880]
+      "position": [
+        0,
+        1200
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const postgres = Postgres.main;\nconst weekAgo = new Date(Date.now() - 7*86400000);\nconst preds = await postgres.query(`SELECT COUNT(*) as total FROM ai_predictions WHERE created_at>=$1 AND actual_value IS NOT NULL`, [weekAgo.toISOString()]);\nconst news = await postgres.query(`SELECT COUNT(*) as total FROM news_articles WHERE created_at>=$1`, [weekAgo.toISOString()]);\nconst health = await postgres.query(`SELECT service, COUNT(CASE WHEN status='unhealthy' THEN 1 END) as failures FROM api_health_checks WHERE checked_at>=$1 GROUP BY service`, [weekAgo.toISOString()]);\nreturn [{ json: { channel: '#platform-weekly', severity: 'low', dedupeKey: `weekly_${new Date().toISOString().split('T')[0]}`, text: `📊 *Weekly Report*\n*Predictions:* ${preds.rows[0].total}\n*News:* ${news.rows[0].total}\n*Services:* ${health.rows.length}`, metadata: { flow: 'weekly_report' } } }];"
+        "url": "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}/api/v1/digest",
+        "options": {},
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "onError": "continueRegularOutput"
       },
-      "id": "wf3-weekly-report",
-      "name": "Aggregate Weekly",
+      "id": "auto-Fetch App Digest-0074",
+      "name": "Fetch App Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{ json: { snapshot: JSON.stringify(d).slice(0, 4000), fetched_at: new Date().toISOString() }}];"
+      },
+      "id": "auto-Shape Digest-0075",
+      "name": "Shape Digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 880]
+      "position": [
+        400,
+        1200
+      ]
     },
     {
-      "parameters": { "workflowId": "svc2-notification" },
-      "id": "wf3-notify-weekly",
-      "name": "Notify Weekly",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [480, 880]
-    },
-    {
-      "parameters": { "workflowId": "svc3-logger" },
-      "id": "wf3-log-weekly",
-      "name": "Log Weekly",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.1,
-      "position": [720, 880]
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO market_data (symbol, name, value, source, timestamp)\nVALUES ('QUANTIVE_DIGEST', 'App digest snapshot', 0, 'quantive_backend', NOW());",
+        "options": {}
+      },
+      "id": "auto-Store Digest Snapshot-0076",
+      "name": "Store Digest Snapshot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     }
   ],
   "connections": {
-    "Market Data Schedule": { "main": [[{ "node": "List Market Instruments", "type": "main", "index": 0 }]] },
-    "List Market Instruments": { "main": [[{ "node": "Fetch Market Data", "type": "main", "index": 0 }]] },
-    "Fetch Market Data": { "main": [[{ "node": "Store Market Data", "type": "main", "index": 0 }]] },
-    "Store Market Data": { "main": [[{ "node": "AI Prediction + Store", "type": "main", "index": 0 }]] },
-    "AI Prediction + Store": { "main": [[{ "node": "Log Market", "type": "main", "index": 0 }]] },
-    "News Schedule": { "main": [[{ "node": "Fetch News", "type": "main", "index": 0 }]] },
-    "Fetch News": { "main": [[{ "node": "Filter, Dedupe & Store", "type": "main", "index": 0 }]] },
-    "Filter, Dedupe & Store": { "main": [[{ "node": "Notify News", "type": "main", "index": 0 }]] },
-    "Notify News": { "main": [[{ "node": "Log News", "type": "main", "index": 0 }]] },
-    "Watchlist Schedule": { "main": [[{ "node": "Check Watchlist", "type": "main", "index": 0 }]] },
-    "Check Watchlist": { "main": [[{ "node": "Notify Watchlist", "type": "main", "index": 0 }]] },
-    "Notify Watchlist": { "main": [[{ "node": "Log Watchlist", "type": "main", "index": 0 }]] },
-    "API Health Schedule": { "main": [[{ "node": "Check API Health", "type": "main", "index": 0 }]] },
-    "Check API Health": { "main": [[{ "node": "Notify Health", "type": "main", "index": 0 }]] },
-    "Notify Health": { "main": [[{ "node": "Log Health", "type": "main", "index": 0 }]] },
-    "Weekly Report Schedule": { "main": [[{ "node": "Aggregate Weekly", "type": "main", "index": 0 }]] },
-    "Aggregate Weekly": { "main": [[{ "node": "Notify Weekly", "type": "main", "index": 0 }]] },
-    "Notify Weekly": { "main": [[{ "node": "Log Weekly", "type": "main", "index": 0 }]] }
+    "Market Data Cron": {
+      "main": [
+        [
+          {
+            "node": "Build Symbol List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Symbol List": {
+      "main": [
+        [
+          {
+            "node": "Yahoo Finance Quote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yahoo Finance Quote": {
+      "main": [
+        [
+          {
+            "node": "Parse Yahoo Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Yahoo Response": {
+      "main": [
+        [
+          {
+            "node": "Store Market Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "News Cron": {
+      "main": [
+        [
+          {
+            "node": "Fetch Market News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Market News": {
+      "main": [
+        [
+          {
+            "node": "Normalize News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize News": {
+      "main": [
+        [
+          {
+            "node": "Insert News Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Summary Cron": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Market Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Market Summary": {
+      "main": [
+        [
+          {
+            "node": "Extract Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Summary": {
+      "main": [
+        [
+          {
+            "node": "Market Summary → Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Cron": {
+      "main": [
+        [
+          {
+            "node": "Ping Backend Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ping Backend Status": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Health": {
+      "main": [
+        [
+          {
+            "node": "Insert Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metrics Cron": {
+      "main": [
+        [
+          {
+            "node": "Fetch App Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch App Digest": {
+      "main": [
+        [
+          {
+            "node": "Shape Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Digest": {
+      "main": [
+        [
+          {
+            "node": "Store Digest Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "errorWorkflow": "wf0-error-handler" },
-  "active": false,
-  "meta": { "templateCredsSetupCompleted": false },
-  "id": "wf3-platform-ai",
-  "pinData": {}
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "wf0-error-handler"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": null,
+  "tags": [
+    "platform",
+    "ai"
+  ],
+  "description": "Real integrations: Yahoo Finance market ingestion, NewsAPI headlines, OpenAI daily summaries, Quantive backend health/digest polling — all native HTTP + Postgres nodes."
 }

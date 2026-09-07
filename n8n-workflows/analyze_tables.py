@@ -12,7 +12,15 @@ for f in sorted(glob.glob("workflows/*.json")):
     d = json.load(open(f, encoding="utf-8"))
     wf = os.path.basename(f)
     for n in d.get("nodes", []):
-        if "code" in n.get("type", ""):
+        ntype = n.get("type", "")
+        # v2: SQL lives in native Postgres node query params
+        if "postgres" in ntype:
+            sql = n.get("parameters", {}).get("query", "")
+            for m in re.findall(r"(?:FROM|INTO|UPDATE)\s+([a-z_.]+)", sql, re.I):
+                if m.lower() not in ("the", "this", "a", "if", "no", "now"):
+                    table_refs[m].add(wf)
+        # v1 compat: SQL embedded in Code nodes
+        elif "code" in ntype:
             js = n.get("parameters", {}).get("jsCode", "")
             for m in re.findall(r"(?:FROM|INTO|UPDATE)\s+([a-z_]+)", js, re.I):
                 if m.lower() not in ("the", "this", "a", "if", "no"):
@@ -25,14 +33,20 @@ for t in sorted(table_refs):
 
 def tables_in(path):
     with open(path, encoding="utf-8") as fh:
-        return set(re.findall(r"CREATE TABLE IF NOT EXISTS ([a-z_]+)", fh.read()))
+        return set(re.findall(r"CREATE TABLE IF NOT EXISTS ([a-z_.]+)", fh.read()))
+
+
+def normalize(t):
+    """Map schema-qualified names (workflows.x) to bare table names."""
+    return t.split(".")[-1] if "." in t else t
 
 
 db1 = tables_in("schemas/database-schema.sql")
 
 print("\n=== Schema coverage (canonical: schemas/database-schema.sql) ===")
-needed = set(table_refs)
-for label, schema in [("schemas/database-schema.sql", db1)]:
+needed = {normalize(t) for t in set(table_refs) if t != "SET"}
+schema_norm = {normalize(t) for t in db1}
+for label, schema in [("schemas/database-schema.sql", schema_norm)]:
     missing = sorted(needed - schema)
     extra = sorted(schema - needed)
     print(f"--- {label}")

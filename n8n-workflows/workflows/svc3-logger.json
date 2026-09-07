@@ -1,58 +1,91 @@
 {
-  "name": "SVC-3: Execution Logger",
-  "description": "Shared logging service: accepts {workflowId, workflowName, executionId, status, flow, metadata} via Execute Workflow. Writes to workflow_executions and logs errors to workflow_errors. Provides centralized observability for all workflows.",
-  "tags": [
-    { "name": "shared-service" },
-    { "name": "logging" }
-  ],
+  "id": "svc3-logger",
+  "name": "SVC-3: Execution Logger (manual)",
+  "active": false,
   "nodes": [
     {
       "parameters": {},
-      "id": "svc3-manual-trigger",
-      "name": "Manual Trigger",
+      "id": "auto-Manual-0000",
+      "name": "Manual",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst workflowId = input.workflowId || 'unknown';\nconst workflowName = input.workflowName || 'Unknown Workflow';\nconst executionId = input.executionId || null;\nconst status = input.status || 'success';\nconst flow = input.flow || 'main';\nconst metadata = input.metadata || {};\nconst durationMs = input.durationMs || 0;\n\nreturn [{ json: { workflowId, workflowName, executionId, status, flow, metadata, durationMs, timestamp: new Date().toISOString() } }];"
+        "jsCode": "const it = $input.first().json;\nreturn [{ json: {\n  workflow_id: it.workflowId || it.workflow_id || 'unknown',\n  workflow_name: it.workflowName || it.workflow_name || 'unknown',\n  execution_id: it.executionId || it.execution_id || 'manual',\n  status: it.status || 'success',\n  duration_ms: it.durationMs || it.duration_ms || 0,\n  metadata: JSON.stringify(it.metadata || {}),\n}}];"
       },
-      "id": "svc3-normalize",
-      "name": "Normalize Input",
+      "id": "auto-Build Log Row-0006",
+      "name": "Build Log Row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 0]
+      "position": [
+        200,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst postgres = Postgres.main;\n\ntry {\n  await postgres.query(`INSERT INTO workflows.workflow_executions (workflow_id, workflow_name, execution_id, status, started_at, finished_at, duration_ms, metadata) VALUES ($1, $2, $3, $4, $5, $5, $6, $7::jsonb)`, [input.workflowId, input.workflowName, input.executionId, input.status, new Date().toISOString(), input.durationMs, JSON.stringify({ flow: input.flow, ...input.metadata })]);\n} catch (e) {}\n\nreturn [{ json: input }];"
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflows.workflow_executions (workflow_id, workflow_name, execution_id, status, duration_ms, metadata)\nVALUES ('{{ $json.workflow_id }}', '{{ $json.workflow_name }}', '{{ $json.execution_id }}', '{{ $json.status }}', {{ $json.duration_ms }}, '{{ $json.metadata }}'::jsonb);",
+        "options": {}
       },
-      "id": "svc3-write-execution",
-      "name": "Write Execution Log",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [480, 0]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nif (input.status !== 'error') return [{ json: input }];\n\nconst postgres = Postgres.main;\ntry {\n  await postgres.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, severity, created_at) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`, [input.workflowId, input.workflowName, input.executionId, input.metadata?.errorType || 'workflow_error', input.metadata?.errorMessage || 'Execution failed', input.metadata?.severity || 'medium']);\n} catch (e) {}\n\nreturn [{ json: input }];"
-      },
-      "id": "svc3-write-error",
-      "name": "Write Error Log",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [720, 0]
+      "id": "auto-Insert Execution Log-0007",
+      "name": "Insert Execution Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive DB"
+        }
+      }
     }
   ],
   "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]] },
-    "Normalize Input": { "main": [[{ "node": "Write Execution Log", "type": "main", "index": 0 }]] },
-    "Write Execution Log": { "main": [[{ "node": "Write Error Log", "type": "main", "index": 0 }]] }
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "Build Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Log Row": {
+      "main": [
+        [
+          {
+            "node": "Insert Execution Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
-  "active": false,
-  "meta": { "templateCredsSetupCompleted": false },
-  "id": "svc3-logger",
-  "pinData": {}
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "wf0-error-handler"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": null,
+  "tags": [
+    "service",
+    "logging"
+  ],
+  "description": "Execution logger: writes a row into workflows.workflow_executions via the native Postgres node."
 }

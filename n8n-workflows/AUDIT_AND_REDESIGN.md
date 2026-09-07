@@ -1,5 +1,14 @@
 # Quantive n8n Automation Ecosystem — Complete Audit & Redesign
 
+> **⚠️ SUPERSEDED (v2 rebuild):** The workflows described here were
+> later **fully rebuilt on native app nodes** (Postgres, Slack, SMTP,
+> Stripe Trigger, HTTP Request to real APIs and the live Quantive
+> backend). The `Postgres.main` code-node global described in this
+> document **no longer exists** and is no longer a deployment
+> prerequisite. Regenerate the current JSONs with
+> `python generate_workflows.py`. Sections below are retained as the
+> audit record of the v1 generation.
+
 **Audit Date:** 2026-09-06
 **Auditor:** Senior n8n Architect / Systems Auditor
 **Scope:** All workflows in `n8n-workflows/`

@@ -63,12 +63,20 @@ n8n-workflows/
 - n8n v1.x (self-hosted or cloud)
 - PostgreSQL 16+ with the schema from `schemas/database-schema.sql`
 - Slack workspace with bot permissions
-- Stripe account with webhook access
-- OpenAI API key (for WF-3 predictions)
-- FRED API key (for economic data in WF-3)
-- News API key (for news ingestion in WF-3)
+- Stripe account (for the WF-2 Stripe Trigger credential)
+- OpenAI API key (WF-3 daily summaries)
+- NewsAPI key (WF-3 news ingestion)
+- Clearbit API key (WF-1 lead enrichment; optional — flow degrades gracefully)
 
-> **IMPORTANT — `Postgres.main` helper:** All database access in these workflows is done through a non-standard global `Postgres.main` (a connection/query helper exposed in the n8n Code node sandbox). It uses `Postgres.main.query(text, params)`. Before activating any workflow, you must make this helper available in the n8n Code-node environment (e.g. via a small plugin/community helper or a `loadWorkflowData`-style bootstrap that sets a global `Postgres` object using the `postgres-main` credential). Without it every Code node that touches the DB will fail. See the `credentials/CREDENTIALS.md` and `AUDIT_AND_REDESIGN.md` for details.
+> **v2 architecture — real app nodes.** All workflows were rebuilt on
+> native n8n nodes: Postgres (executeQuery), Slack, Email (SMTP),
+> Stripe Trigger, and HTTP Request against real APIs (Yahoo Finance,
+> NewsAPI, OpenAI, Clearbit) and the live Quantive backend
+> (`/api/optimize-debt/status`, `/api/v1/digest`,
+> `/api/billing/webhook`). There is **no `Postgres.main` code-node
+> global** anymore — the previous bootstrap requirement is gone.
+> Code nodes remain only for HMAC verification, parsing, and routing.
+> Regenerate JSONs anytime with `python generate_workflows.py`.
 
 ## Setup Instructions
 
@@ -101,7 +109,13 @@ In n8n Settings → Credentials, create:
 
 | Credential | Type | Purpose |
 |---|---|---|
-| `postgres-main` | PostgreSQL | Connection pool used by the `Postgres.main` helper |
+| `postgres-main` | PostgreSQL | Native Postgres nodes (all DB reads/writes) |
+| `slack-main` | Slack API | All Slack alerts and digests |
+| `smtp-main` | SMTP | Follow-up and re-engagement email |
+| `stripe-main` | Stripe API | WF-2 Stripe Trigger |
+| `clearbit` | Header Auth | `Authorization: Bearer <CLEARBIT_API_KEY>` for WF-1 |
+| `newsapi` | Query Auth | `apiKey` param for WF-3 |
+| `openai` | Header Auth | `Authorization: Bearer <OPENAI_API_KEY>` for WF-3 |
 | `slack-main` | Slack API | All Slack alerts |
 
 API keys (FRED, NewsAPI, OpenAI, Stripe, webhook secrets) are provided via environment variables — see `.env.example`.
