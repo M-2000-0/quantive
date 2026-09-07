@@ -1,0 +1,294 @@
+{
+  "name": "WF-4: Operations & Internal",
+  "description": "Operations & internal automation: daily digest, weekly report, SLA monitoring, security scanning, nightly backup, error monitoring, HMAC-authenticated support ticket intake. All notifications via SVC-2, all logging via SVC-3.",
+  "tags": [
+    { "name": "operations" },
+    { "name": "internal" },
+    { "name": "monitoring" }
+  ],
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8 * * *" }] } },
+      "id": "wf4-schedule-digest",
+      "name": "Daily Digest Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst yesterday = new Date(Date.now() - 86400000);\nconst s = (await postgres.query(`SELECT (SELECT COUNT(*) FROM organizations) as orgs, (SELECT COUNT(*) FROM users WHERE last_login>=$1) as active_users, (SELECT COUNT(*) FROM portfolios) as portfolios, (SELECT COALESCE(SUM(market_value),0) FROM debt_instruments) as aum, (SELECT COUNT(*) FROM workflows.workflow_executions WHERE created_at>=$1 AND status='success') as ok, (SELECT COUNT(*) FROM workflows.workflow_executions WHERE created_at>=$1 AND status='error') as fail`, [yesterday.toISOString()])).rows[0];\nconst total = parseInt(s.ok||0)+parseInt(s.fail||0);\nconst rate = total > 0 ? ((parseInt(s.ok||0)/total)*100).toFixed(1) : 0;\nreturn [{ json: { channel: '#daily-digest', severity: 'low', dedupeKey: `digest_${new Date().toISOString().split('T')[0]}`, text: `📊 *Daily Digest*\n• Orgs: ${s.orgs} | Users (24h): ${s.active_users} | Portfolios: ${s.portfolios}\n• AUM: $${parseFloat(s.aum||0).toLocaleString()}\n• Workflows: ${s.ok} ok, ${s.fail} fail (${rate}%)`, metadata: { flow: 'daily_digest' } } }];"
+      },
+      "id": "wf4-digest-generate",
+      "name": "Generate Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf4-notify-digest",
+      "name": "Notify Digest",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 0]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf4-log-digest",
+      "name": "Log Digest",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 0]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 17 * * 5" }] } },
+      "id": "wf4-schedule-weekly",
+      "name": "Weekly Report Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst w = new Date(Date.now()-7*86400000);\nconst mrr = (await postgres.query(`SELECT COALESCE(SUM(amount),0) as t FROM mrr_events WHERE event_type!='cancellation' AND customer_id NOT IN (SELECT customer_id FROM mrr_events WHERE event_type='cancellation')`)).rows[0].t;\nconst nb = (await postgres.query(`SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as m FROM mrr_events WHERE event_type='subscription.created' AND created_at>=$1`, [w.toISOString()])).rows[0];\nconst ch = (await postgres.query(`SELECT COUNT(*) as c, COALESCE(SUM(amount),0) as m FROM mrr_events WHERE event_type='cancellation' AND created_at>=$1`, [w.toISOString()])).rows[0];\nconst net = parseFloat(nb.m||0)-parseFloat(ch.m||0);\nreturn [{ json: { channel: '#weekly-report', severity: 'low', dedupeKey: `weekly_${new Date().toISOString().split('T')[0]}`, text: `📈 *Weekly Report*\n*MRR:* $${parseFloat(mrr||0).toLocaleString()}\n*New:* ${nb.c} ($${parseFloat(nb.m||0).toLocaleString()}) | *Lost:* ${ch.c} ($${parseFloat(ch.m||0).toLocaleString()}) | *Net:* $${net.toLocaleString()}`, metadata: { flow: 'weekly_report', mrr } } }];"
+      },
+      "id": "wf4-weekly-generate",
+      "name": "Generate Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 220]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf4-notify-weekly",
+      "name": "Notify Weekly",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 220]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf4-log-weekly",
+      "name": "Log Weekly",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 220]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/5 * * * *" }] } },
+      "id": "wf4-schedule-sla",
+      "name": "SLA Monitor Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst r = await postgres.query(`SELECT id, subject, priority, EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - created_at))/60 as age_min FROM support_tickets WHERE status IN ('open','in_progress') AND ((priority='urgent' AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP-created_at))/60>15) OR (priority='high' AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP-created_at))/60>60) OR (priority='medium' AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP-created_at))/60>240) OR (priority='low' AND EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP-created_at))/60>1440)) ORDER BY created_at ASC LIMIT 20`);\nif (r.rows.length === 0) return [];\nconst lines = r.rows.map(t => `• [${t.priority.toUpperCase()}] #${t.id}: ${t.subject} — ${Math.floor(t.age_min)}m`);\nreturn [{ json: { channel: '#support-alerts', severity: 'high', dedupeKey: `sla_breach_${Date.now()}`, text: `🚨 *SLA Breach: ${r.rows.length} tickets*\n${lines.join('\\n')}`, metadata: { flow: 'sla_alert', count: r.rows.length } } }];"
+      },
+      "id": "wf4-sla-check",
+      "name": "Check SLA Breaches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 440]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf4-notify-sla",
+      "name": "Notify SLA",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 440]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf4-log-sla",
+      "name": "Log SLA",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 440]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 * * * *" }] } },
+      "id": "wf4-schedule-security",
+      "name": "Security Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 660]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst h = new Date(Date.now()-3600000);\nconst la = (await postgres.query(`SELECT COUNT(*) as total, COUNT(CASE WHEN success=false THEN 1 END) as failed FROM login_attempts WHERE created_at>=$1`, [h.toISOString()])).rows[0];\nconst aa = (await postgres.query(`SELECT ip_address, COUNT(*) as c FROM api_access_logs WHERE created_at>=$1 GROUP BY ip_address HAVING COUNT(*)>1000`, [h.toISOString()]));\nconst failRate = parseInt(la.total||0) > 0 ? ((parseInt(la.failed||0)/parseInt(la.total||0))*100).toFixed(1) : 0;\nconst alerts = [];\nif (parseFloat(failRate) > 30) alerts.push(`⚠️ Login failure rate: ${failRate}%`);\nif (aa.rows.length > 0) alerts.push(`⚠️ ${aa.rows.length} IPs exceeded rate limits`);\nif (alerts.length === 0) return [];\nreturn [{ json: { channel: '#security-alerts', severity: 'high', dedupeKey: `security_${Date.now()}`, text: `🔒 *Security Alert*\n${alerts.join('\\n')}`, metadata: { flow: 'security_alert' } } }];"
+      },
+      "id": "wf4-security-check",
+      "name": "Security Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 660]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf4-notify-security",
+      "name": "Notify Security",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 660]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf4-log-security",
+      "name": "Log Security",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 660]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 2 * * *" }] } },
+      "id": "wf4-schedule-backup",
+      "name": "Backup Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 880]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execSync } = require('child_process');\nconst fs = require('fs');\nconst path = require('path');\nconst ts = new Date().toISOString().replace(/[:.]/g,'-');\nconst dir = `/var/backups/quantive/${ts}`;\nlet result;\ntry {\n  fs.mkdirSync(dir, { recursive: true });\n  const f = path.join(dir, 'quantive.dump');\n  execSync(`pg_dump -h ${process.env.DB_HOST||'localhost'} -U ${process.env.DB_USER||'quantive'} -d ${process.env.DB_NAME||'quantive'} -Fc -f ${f}`, { timeout: 300000 });\n  const sz = (fs.statSync(f).size/(1024*1024)).toFixed(2);\n  await Postgres.main.query(`INSERT INTO workflows.backup_history (backup_path,backup_size,status,created_at) VALUES ($1,$2,'completed',CURRENT_TIMESTAMP)`, [dir, `${sz}MB`]);\n  result = { success: true, channel: '#ops-notifications', severity: 'low', dedupeKey: `backup_${ts}`, text: `✅ *Backup Complete*\n*Path:* ${dir}\n*Size:* ${sz}MB`, metadata: { flow: 'backup', size: sz } };\n} catch (e) {\n  result = { success: false, channel: '#ops-notifications', severity: 'high', dedupeKey: `backup_fail_${ts}`, text: `❌ *Backup Failed*\n*Error:* ${e.message}`, metadata: { flow: 'backup', error: e.message } };\n}\nreturn [{ json: result }];"
+      },
+      "id": "wf4-backup-run",
+      "name": "Run Backup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 880]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf4-notify-backup",
+      "name": "Notify Backup",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 880]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf4-log-backup",
+      "name": "Log Backup",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 880]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/30 * * * *" }] } },
+      "id": "wf4-schedule-errors",
+      "name": "Error Monitor Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 1100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst h = new Date(Date.now()-3600000);\nconst r = await postgres.query(`SELECT error_type, message, severity, COUNT(*) as count FROM workflows.workflow_errors WHERE created_at>=$1 GROUP BY error_type, message, severity ORDER BY count DESC LIMIT 10`, [h.toISOString()]);\nif (r.rows.length === 0) return [];\nconst lines = r.rows.map(e => `• [${e.severity}] ${e.error_type}: ${(e.message||'').substring(0,50)} (×${e.count})`);\nconst highCount = r.rows.filter(e => e.severity === 'critical' || e.severity === 'high').reduce((s,e) => s + parseInt(e.count), 0);\nreturn [{ json: { channel: '#platform-alerts', severity: highCount > 5 ? 'critical' : 'high', dedupeKey: `errors_${Date.now()}`, text: `⚠️ *Recent Errors (${r.rows.length} types)*\n${lines.join('\\n')}`, metadata: { flow: 'error_monitor', errorCount: r.rows.length } } }];"
+      },
+      "id": "wf4-error-monitor",
+      "name": "Monitor Errors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 1100]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf4-notify-errors",
+      "name": "Notify Errors",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 1100]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf4-log-errors",
+      "name": "Log Errors",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 1100]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-ticket",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf4-webhook-support",
+      "name": "Support Ticket Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 1320],
+      "webhookId": "support-ticket"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst sig = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(sig, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf4-operations-internal','WF-4: Operations & Internal',$1,'webhook.auth','Invalid HMAC on /support-ticket','Verify Support HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+      },
+      "id": "wf4-support-verify",
+      "name": "Verify Support HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 1320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ticket = $input.first().json.body;\nif (!ticket || !ticket.subject) throw new Error('Ticket missing subject');\nconst postgres = Postgres.main;\nconst r = await postgres.query(`INSERT INTO support_tickets (subject,description,priority,status,customer_email,created_at) VALUES ($1,$2,$3,'open',$4,CURRENT_TIMESTAMP) RETURNING id`, [ticket.subject, ticket.description, ticket.priority||'medium', ticket.email]);\nconst isUrgent = (ticket.priority||'medium') === 'urgent';\nreturn [{ json: { ticketId: r.rows[0].id, channel: '#support-alerts', severity: isUrgent ? 'critical' : 'low', dedupeKey: `ticket_${r.rows[0].id}`, text: isUrgent ? `🚨 *URGENT TICKET #${r.rows[0].id}*\n*Subject:* ${ticket.subject}\n*Email:* ${ticket.email}` : `🎫 *Ticket #${r.rows[0].id}*\n*Subject:* ${ticket.subject}`, metadata: { flow: 'support_ticket', ticketId: r.rows[0].id } } }];"
+      },
+      "id": "wf4-support-create",
+      "name": "Create Ticket",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 1320]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf4-notify-support",
+      "name": "Notify Support",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 1320]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf4-log-support",
+      "name": "Log Support",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 1320]
+    }
+  ],
+  "connections": {
+    "Daily Digest Schedule": { "main": [[{ "node": "Generate Digest", "type": "main", "index": 0 }]] },
+    "Generate Digest": { "main": [[{ "node": "Notify Digest", "type": "main", "index": 0 }]] },
+    "Notify Digest": { "main": [[{ "node": "Log Digest", "type": "main", "index": 0 }]] },
+    "Weekly Report Schedule": { "main": [[{ "node": "Generate Weekly Report", "type": "main", "index": 0 }]] },
+    "Generate Weekly Report": { "main": [[{ "node": "Notify Weekly", "type": "main", "index": 0 }]] },
+    "Notify Weekly": { "main": [[{ "node": "Log Weekly", "type": "main", "index": 0 }]] },
+    "SLA Monitor Schedule": { "main": [[{ "node": "Check SLA Breaches", "type": "main", "index": 0 }]] },
+    "Check SLA Breaches": { "main": [[{ "node": "Notify SLA", "type": "main", "index": 0 }]] },
+    "Notify SLA": { "main": [[{ "node": "Log SLA", "type": "main", "index": 0 }]] },
+    "Security Schedule": { "main": [[{ "node": "Security Check", "type": "main", "index": 0 }]] },
+    "Security Check": { "main": [[{ "node": "Notify Security", "type": "main", "index": 0 }]] },
+    "Notify Security": { "main": [[{ "node": "Log Security", "type": "main", "index": 0 }]] },
+    "Backup Schedule": { "main": [[{ "node": "Run Backup", "type": "main", "index": 0 }]] },
+    "Run Backup": { "main": [[{ "node": "Notify Backup", "type": "main", "index": 0 }]] },
+    "Notify Backup": { "main": [[{ "node": "Log Backup", "type": "main", "index": 0 }]] },
+    "Error Monitor Schedule": { "main": [[{ "node": "Monitor Errors", "type": "main", "index": 0 }]] },
+    "Monitor Errors": { "main": [[{ "node": "Notify Errors", "type": "main", "index": 0 }]] },
+    "Notify Errors": { "main": [[{ "node": "Log Errors", "type": "main", "index": 0 }]] },
+    "Support Ticket Webhook": { "main": [[{ "node": "Verify Support HMAC", "type": "main", "index": 0 }]] },
+    "Verify Support HMAC": { "main": [[{ "node": "Create Ticket", "type": "main", "index": 0 }]] },
+    "Create Ticket": { "main": [[{ "node": "Notify Support", "type": "main", "index": 0 }]] },
+    "Notify Support": { "main": [[{ "node": "Log Support", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "wf0-error-handler" },
+  "active": false,
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "wf4-operations-internal",
+  "pinData": {}
+}

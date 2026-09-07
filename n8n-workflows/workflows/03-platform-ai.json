@@ -1,0 +1,242 @@
+{
+  "name": "WF-3: Platform & AI",
+  "description": "Platform & AI automation: market data + AI predictions, news monitoring with deduplication, watchlist price alerts, API health monitoring, weekly report. All notifications via SVC-2, all logging via SVC-3.",
+  "tags": [
+    { "name": "platform" },
+    { "name": "ai" },
+    { "name": "monitoring" }
+  ],
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/15 * * * *" }] } },
+      "id": "wf3-schedule-market",
+      "name": "Market Data Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nreturn [\n  { json: { symbol: 'US10Y', name: 'US 10-Year Treasury', source: 'fred', timestamp: now.toISOString() } },\n  { json: { symbol: 'US2Y', name: 'US 2-Year Treasury', source: 'fred', timestamp: now.toISOString() } },\n  { json: { symbol: 'DGS10', name: '10-Year Treasury Rate', source: 'fred', timestamp: now.toISOString() } },\n  { json: { symbol: 'DGS2', name: '2-Year Treasury Rate', source: 'fred', timestamp: now.toISOString() } }\n];"
+      },
+      "id": "wf3-market-list",
+      "name": "List Market Instruments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inst = $input.first().json;\nconst fredKey = process.env.FRED_API_KEY;\nconst url = `https://api.stlouisfed.org/fred/series/observations?series_id=${inst.symbol}&api_key=${fredKey}&file_type=json&sort_order=desc&limit=1`;\ntry {\n  const resp = await fetch(url);\n  const data = await resp.json();\n  const latest = data.observations?.[0];\n  return [{ json: { ...inst, value: parseFloat(latest?.value)||0, date: latest?.date } }];\n} catch (e) {\n  return [{ json: { ...inst, value: 0, error: e.message } }];\n}"
+      },
+      "id": "wf3-fetch-market",
+      "name": "Fetch Market Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "retryOnFail": true, "maxTries": 3, "waitBetweenTries": 2000,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const md = $input.first().json;\nconst postgres = Postgres.main;\nawait postgres.query(`INSERT INTO market_data (symbol, name, value, source, timestamp) VALUES ($1,$2,$3,$4,$5)`, [md.symbol, md.name, md.value, md.source, md.timestamp]);\nreturn [$input.first()];"
+      },
+      "id": "wf3-market-store",
+      "name": "Store Market Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const md = $input.first().json;\nlet analysis = null;\ntry {\n  const prompt = `Analyze ${md.name} (${md.symbol}). Value: ${md.value}, Date: ${md.date}. Respond JSON: {\"trend\":\"up|down|stable\",\"forecast\":\"...\",\"risk\":\"low|medium|high\",\"factors\":[...]}`;\n  const resp = await fetch('https://api.openai.com/v1/chat/completions', {\n    method: 'POST',\n    headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },\n    body: JSON.stringify({ model: 'gpt-4', messages: [{ role: 'user', content: prompt }], response_format: { type: 'json_object' } })\n  });\n  const r = await resp.json();\n  analysis = JSON.parse(r.choices?.[0]?.message?.content || '{}');\n} catch (e) {}\nif (!analysis) return [];\nawait Postgres.main.query(`INSERT INTO ai_predictions (symbol, prediction_type, prediction, confidence, model_version, created_at) VALUES ($1,$2,$3,$4,'gpt-4',CURRENT_TIMESTAMP)`, [md.symbol, analysis.trend, JSON.stringify(analysis), analysis.risk==='low'?0.8:analysis.risk==='medium'?0.6:0.4]);\nreturn [{ json: { channel: '#platform-weekly', severity: 'low', dedupeKey: `market_${md.symbol}_${md.date}`, text: `📈 *AI Analysis: ${md.name}*\n*Trend:* ${analysis.trend}\n*Risk:* ${analysis.risk}\n*Value:* ${md.value}`, metadata: { flow: 'market_analysis', symbol: md.symbol } } }];"
+      },
+      "id": "wf3-ai-predict",
+      "name": "AI Prediction + Store",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "retryOnFail": true, "maxTries": 3, "waitBetweenTries": 2000,
+      "position": [960, 0]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf3-log-market",
+      "name": "Log Market",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1200, 0]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/30 * * * *" }] } },
+      "id": "wf3-schedule-news",
+      "name": "News Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const newsKey = process.env.NEWS_API_KEY;\ntry {\n  const resp = await fetch(`https://newsapi.org/v2/top-headlines?country=us&category=business&apiKey=${newsKey}&pageSize=20`);\n  const data = await resp.json();\n  return (data.articles||[]).map(a => ({ json: a }));\n} catch (e) {\n  return [{ json: { error: e.message } }];\n}"
+      },
+      "id": "wf3-fetch-news",
+      "name": "Fetch News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "retryOnFail": true, "maxTries": 3, "waitBetweenTries": 2000,
+      "position": [240, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const a = $input.first().json;\nif (a.error) return [];\nconst kw = ['debt','treasury','bond','interest rate','fed','inflation','fiscal','sovereign'];\nconst txt = `${(a.title||'').toLowerCase()} ${(a.description||'').toLowerCase()}`;\nif (!kw.some(k => txt.includes(k))) return [];\nconst postgres = Postgres.main;\nconst ex = await postgres.query(`SELECT id FROM news_articles WHERE url=$1`, [a.url]);\nif (ex.rows.length > 0) return [];\nawait postgres.query(`INSERT INTO news_articles (title,description,url,source,published_at,keywords,created_at) VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP)`, [a.title, a.description, a.url, a.source?.name, a.publishedAt, []]);\nreturn [{ json: { channel: '#market-news', severity: 'low', dedupeKey: `news_${Buffer.from(a.url||'').toString('base64').slice(0,40)}`, text: `📰 *Market News*\n*Title:* ${a.title}\n*Source:* ${a.source?.name}\n*URL:* ${a.url}`, metadata: { flow: 'news_alert' } } }];"
+      },
+      "id": "wf3-news-filter",
+      "name": "Filter, Dedupe & Store",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 220]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf3-notify-news",
+      "name": "Notify News",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 220]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf3-log-news",
+      "name": "Log News",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 220]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8,18 * * *" }] } },
+      "id": "wf3-schedule-watchlist",
+      "name": "Watchlist Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst wl = await postgres.query(`SELECT symbol, name, target_value, alert_threshold FROM watchlist_securities WHERE is_active=true`);\nconst results = [];\nfor (const sec of wl.rows) {\n  const latest = await postgres.query(`SELECT value FROM market_data WHERE symbol=$1 ORDER BY timestamp DESC LIMIT 1`, [sec.symbol]);\n  const current = latest.rows[0]?.value || 0;\n  const deviation = Math.abs(current - sec.target_value);\n  const hit = deviation <= sec.alert_threshold;\n  if (hit) {\n    const severity = deviation <= sec.alert_threshold * 0.25 ? 'high' : 'medium';\n    results.push({ json: { channel: '#watchlist-alerts', severity, dedupeKey: `watch_${sec.symbol}_${Math.round(current)}`, text: `🎯 *Watchlist Hit: ${sec.name}*\n*Current:* ${current}\n*Target:* ${sec.target_value}\n*Deviation:* ${deviation.toFixed(2)}`, metadata: { flow: 'watchlist_alert', symbol: sec.symbol } } });\n  }\n}\nreturn results;"
+      },
+      "id": "wf3-watchlist-check",
+      "name": "Check Watchlist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 440]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf3-notify-watchlist",
+      "name": "Notify Watchlist",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 440]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf3-log-watchlist",
+      "name": "Log Watchlist",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 440]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "*/10 * * * *" }] } },
+      "id": "wf3-schedule-health",
+      "name": "API Health Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 660]
+    },
+    {
+      "parameters": {
+        "jsCode": "const apis = [\n  { name: 'FRED', url: 'https://api.stlouisfed.org/fred/series?series_id=DGS10&api_key=test&file_type=json' },\n  { name: 'NewsAPI', url: 'https://newsapi.org/v2/top-headlines?country=us&apiKey=test' },\n  { name: 'OpenAI', url: 'https://api.openai.com/v1/models' }\n];\nconst postgres = Postgres.main;\nconst results = [];\nfor (const api of apis) {\n  const start = Date.now();\n  let healthy = false, status = 0, errMsg = null;\n  try {\n    const resp = await fetch(api.url, { signal: AbortSignal.timeout(10000) });\n    status = resp.status; healthy = resp.ok;\n  } catch (e) { errMsg = e.message; }\n  const rt = Date.now() - start;\n  await postgres.query(`INSERT INTO api_health_checks (service,status_code,response_time_ms,status,checked_at) VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP)`, [api.name, status, rt, healthy?'healthy':'unhealthy']);\n  if (!healthy) {\n    results.push({ json: { channel: '#api-alerts', severity: 'high', dedupeKey: `health_${api.name}_${Date.now()}`, text: `⚠️ *API Down: ${api.name}*\n*Status:* ${status}\n*Time:* ${rt}ms\n*Error:* ${errMsg||'unhealthy'}`, metadata: { flow: 'api_health', service: api.name } } });\n  }\n}\nreturn results;"
+      },
+      "id": "wf3-health-check",
+      "name": "Check API Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "retryOnFail": true, "maxTries": 2, "waitBetweenTries": 3000,
+      "position": [240, 660]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf3-notify-health",
+      "name": "Notify Health",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 660]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf3-log-health",
+      "name": "Log Health",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 660]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * 5" }] } },
+      "id": "wf3-schedule-weekly",
+      "name": "Weekly Report Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 880]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst weekAgo = new Date(Date.now() - 7*86400000);\nconst preds = await postgres.query(`SELECT COUNT(*) as total FROM ai_predictions WHERE created_at>=$1 AND actual_value IS NOT NULL`, [weekAgo.toISOString()]);\nconst news = await postgres.query(`SELECT COUNT(*) as total FROM news_articles WHERE created_at>=$1`, [weekAgo.toISOString()]);\nconst health = await postgres.query(`SELECT service, COUNT(CASE WHEN status='unhealthy' THEN 1 END) as failures FROM api_health_checks WHERE checked_at>=$1 GROUP BY service`, [weekAgo.toISOString()]);\nreturn [{ json: { channel: '#platform-weekly', severity: 'low', dedupeKey: `weekly_${new Date().toISOString().split('T')[0]}`, text: `📊 *Weekly Report*\n*Predictions:* ${preds.rows[0].total}\n*News:* ${news.rows[0].total}\n*Services:* ${health.rows.length}`, metadata: { flow: 'weekly_report' } } }];"
+      },
+      "id": "wf3-weekly-report",
+      "name": "Aggregate Weekly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 880]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf3-notify-weekly",
+      "name": "Notify Weekly",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 880]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf3-log-weekly",
+      "name": "Log Weekly",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 880]
+    }
+  ],
+  "connections": {
+    "Market Data Schedule": { "main": [[{ "node": "List Market Instruments", "type": "main", "index": 0 }]] },
+    "List Market Instruments": { "main": [[{ "node": "Fetch Market Data", "type": "main", "index": 0 }]] },
+    "Fetch Market Data": { "main": [[{ "node": "Store Market Data", "type": "main", "index": 0 }]] },
+    "Store Market Data": { "main": [[{ "node": "AI Prediction + Store", "type": "main", "index": 0 }]] },
+    "AI Prediction + Store": { "main": [[{ "node": "Log Market", "type": "main", "index": 0 }]] },
+    "News Schedule": { "main": [[{ "node": "Fetch News", "type": "main", "index": 0 }]] },
+    "Fetch News": { "main": [[{ "node": "Filter, Dedupe & Store", "type": "main", "index": 0 }]] },
+    "Filter, Dedupe & Store": { "main": [[{ "node": "Notify News", "type": "main", "index": 0 }]] },
+    "Notify News": { "main": [[{ "node": "Log News", "type": "main", "index": 0 }]] },
+    "Watchlist Schedule": { "main": [[{ "node": "Check Watchlist", "type": "main", "index": 0 }]] },
+    "Check Watchlist": { "main": [[{ "node": "Notify Watchlist", "type": "main", "index": 0 }]] },
+    "Notify Watchlist": { "main": [[{ "node": "Log Watchlist", "type": "main", "index": 0 }]] },
+    "API Health Schedule": { "main": [[{ "node": "Check API Health", "type": "main", "index": 0 }]] },
+    "Check API Health": { "main": [[{ "node": "Notify Health", "type": "main", "index": 0 }]] },
+    "Notify Health": { "main": [[{ "node": "Log Health", "type": "main", "index": 0 }]] },
+    "Weekly Report Schedule": { "main": [[{ "node": "Aggregate Weekly", "type": "main", "index": 0 }]] },
+    "Aggregate Weekly": { "main": [[{ "node": "Notify Weekly", "type": "main", "index": 0 }]] },
+    "Notify Weekly": { "main": [[{ "node": "Log Weekly", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "wf0-error-handler" },
+  "active": false,
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "wf3-platform-ai",
+  "pinData": {}
+}

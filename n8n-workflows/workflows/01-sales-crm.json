@@ -1,0 +1,371 @@
+{
+  "name": "WF-1: Sales & CRM",
+  "description": "Sales & CRM automation. All enrichment via SVC-1, all notifications via SVC-2, all logging via SVC-3. Lead/demo flows have score-based routing. Deal flow has size-based routing. Stage flow has direction-based routing.",
+  "tags": [
+    { "name": "sales" },
+    { "name": "crm" },
+    { "name": "customer-lifecycle" }
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf1-webhook-lead",
+      "name": "Lead Capture Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "lead-capture"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /lead-capture','Verify Lead HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+      },
+      "id": "wf1-lead-verify",
+      "name": "Verify Lead HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc1-enrichment"
+      },
+      "id": "wf1-lead-enrich",
+      "name": "Enrich Lead",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "high", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "High Value" },
+            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "medium", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "Standard" }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "id": "wf1-lead-switch",
+      "name": "Route by Tier",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 0]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc2-notification"
+      },
+      "id": "wf1-notify-high",
+      "name": "Notify High-Value",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 0]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc2-notification"
+      },
+      "id": "wf1-notify-normal",
+      "name": "Notify Standard",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 220]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc3-logger"
+      },
+      "id": "wf1-log-lead",
+      "name": "Log Lead",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1200, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-booked",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf1-webhook-demo",
+      "name": "Demo Booked Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 440],
+      "webhookId": "demo-booked"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /demo-booked','Verify Demo HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+      },
+      "id": "wf1-demo-verify",
+      "name": "Verify Demo HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 440]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc1-enrichment"
+      },
+      "id": "wf1-demo-enrich",
+      "name": "Enrich Demo",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 440]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "high", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "High Score" },
+            { "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [{ "leftValue": "={{ $json.tier }}", "rightValue": "medium", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": "Standard" }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "id": "wf1-demo-switch",
+      "name": "Route Demo by Tier",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "const demo = $input.first().json;\nconst postgres = Postgres.main;\n\nconst existing = await postgres.query(`SELECT id, status FROM leads WHERE email = $1`, [demo.email]);\nif (existing.rows.length > 0) {\n  await postgres.query(`UPDATE leads SET status = 'demo_scheduled', updated_at = CURRENT_TIMESTAMP WHERE email = $1`, [demo.email]);\n}\n\nconst result = await postgres.query(`INSERT INTO demos (lead_email, lead_name, company, demo_date, demo_type, status, created_at) VALUES ($1, $2, $3, $4, $5, 'scheduled', CURRENT_TIMESTAMP) RETURNING id`, [demo.email, demo.name, demo.company, demo.date, demo.type || 'standard']);\n\nreturn [{ json: { channel: '#sales-demos', severity: 'high', dedupeKey: `demo_${demo.email}_${demo.date}`, text: `🏆 *PRIORITY DEMO*\n*Lead:* ${demo.name} (${demo.email})\n*Score:* ${demo.score || 'n/a'}/100\n*Demo ID:* ${result.rows[0].id}\n> Priority scheduling recommended`, metadata: { flow: 'demo_booked', demoId: result.rows[0].id } } }];"
+      },
+      "id": "wf1-demo-store-high",
+      "name": "Store High-Score Demo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "const demo = $input.first().json;\nconst postgres = Postgres.main;\nconst result = await postgres.query(`INSERT INTO demos (lead_email, lead_name, company, demo_date, demo_type, status, created_at) VALUES ($1, $2, $3, $4, $5, 'scheduled', CURRENT_TIMESTAMP) RETURNING id`, [demo.email, demo.name, demo.company, demo.date, demo.type || 'standard']);\nreturn [{ json: { channel: '#sales-demos', severity: 'low', dedupeKey: `demo_${demo.email}_${demo.date}`, text: `📅 *Demo Booked*\n*Lead:* ${demo.name} (${demo.email})\n*Demo ID:* ${result.rows[0].id}`, metadata: { flow: 'demo_booked', demoId: result.rows[0].id } } }];"
+      },
+      "id": "wf1-demo-store-normal",
+      "name": "Store Standard Demo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 540]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc2-notification"
+      },
+      "id": "wf1-notify-demo",
+      "name": "Notify Demo",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1200, 340]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc3-logger"
+      },
+      "id": "wf1-log-demo",
+      "name": "Log Demo",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1440, 340]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "deal-closed",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf1-webhook-deal",
+      "name": "Deal Closed Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 800],
+      "webhookId": "deal-closed"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /deal-closed','Verify Deal HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+      },
+      "id": "wf1-deal-verify",
+      "name": "Verify Deal HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "const deal = $input.first().json.body;\nif (!deal || !deal.email) throw new Error('Deal missing email');\nconst postgres = Postgres.main;\nconst dealResult = await postgres.query(`INSERT INTO deals (lead_email, company, value, stage, closed_at, created_at) VALUES ($1, $2, $3, 'closed_won', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id`, [deal.email, deal.company, deal.value]);\nconst customerResult = await postgres.query(`INSERT INTO customers (email, name, company, deal_id, plan, status, created_at) VALUES ($1, $2, $3, $4, $5, 'active', CURRENT_TIMESTAMP) RETURNING id`, [deal.email, deal.name, deal.company, dealResult.rows[0].id, deal.plan || 'starter']);\nawait postgres.query(`UPDATE leads SET status = 'converted', updated_at = CURRENT_TIMESTAMP WHERE email = $1`, [deal.email]);\nawait postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'subscription.created', CURRENT_TIMESTAMP)`, [customerResult.rows[0].id, deal.value || 0]);\n\nconst isLarge = (deal.value || 0) >= 10000;\nreturn [{ json: { dealId: dealResult.rows[0].id, customerId: customerResult.rows[0].id, email: deal.email, value: deal.value || 0, channel: '#sales-closed', severity: isLarge ? 'high' : 'low', dedupeKey: `deal_${deal.email}_${dealResult.rows[0].id}`, text: isLarge ? `💰 *LARGE DEAL CLOSED!*\n*Customer:* ${deal.email}\n*Deal ID:* ${dealResult.rows[0].id}\n*Value:* $${deal.value}\n> 🎉 Congratulations!` : `✅ *Deal Closed*\n*Customer:* ${deal.email}\n*Deal ID:* ${dealResult.rows[0].id}\n*Value:* $${deal.value}` } }];"
+      },
+      "id": "wf1-deal-store",
+      "name": "Store Deal & Customer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 800]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc2-notification"
+      },
+      "id": "wf1-notify-deal",
+      "name": "Notify Deal",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 800]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc3-logger"
+      },
+      "id": "wf1-log-deal",
+      "name": "Log Deal",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 800]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "deal-stage",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf1-webhook-stage",
+      "name": "Deal Stage Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 1060],
+      "webhookId": "deal-stage"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst signature = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.WEBHOOK_SECRET || '';\nconst payload = JSON.stringify(body);\nconst expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf1-sales-crm','WF-1: Sales & CRM',$1,'webhook.auth','Invalid HMAC on /deal-stage','Verify Stage HMAC','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [item];"
+      },
+      "id": "wf1-stage-verify",
+      "name": "Verify Stage HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 1060]
+    },
+    {
+      "parameters": {
+        "jsCode": "const update = $input.first().json.body;\nif (!update || !update.dealId || !update.stage) throw new Error('Stage payload missing required fields');\nconst postgres = Postgres.main;\nconst prev = await postgres.query(`SELECT stage FROM deals WHERE id = $1`, [update.dealId]);\nconst prevStage = prev.rows[0]?.stage || 'unknown';\nawait postgres.query(`UPDATE deals SET stage = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [update.stage, update.dealId]);\nconst isClosed = ['closed_won', 'closed_lost'].includes(update.stage);\nconst direction = isClosed ? 'closed' : (['discovery', 'proposal', 'negotiation'].includes(update.stage) ? 'forward' : 'backward');\nconst severity = isClosed ? 'high' : (direction === 'backward' ? 'medium' : 'low');\nconst emoji = isClosed ? '🏁' : (direction === 'forward' ? '📈' : '📉');\nreturn [{ json: { dealId: update.dealId, prevStage, newStage: update.stage, channel: '#sales-pipeline', severity, dedupeKey: `stage_${update.dealId}_${update.stage}`, text: `${emoji} *Deal ${isClosed ? update.stage : direction === 'forward' ? 'Moved Forward' : 'Moved Backward'}*\n*Deal:* ${update.dealId}\n*${prevStage}* → *${update.stage}*`, metadata: { flow: 'deal_stage', dealId: update.dealId, prevStage, newStage: update.stage } } }];"
+      },
+      "id": "wf1-stage-update",
+      "name": "Update Deal Stage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 1060]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc2-notification"
+      },
+      "id": "wf1-notify-stage",
+      "name": "Notify Stage",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 1060]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc3-logger"
+      },
+      "id": "wf1-log-stage",
+      "name": "Log Stage",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 1060]
+    },
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9,14 * * 1-5" }] }
+      },
+      "id": "wf1-schedule-followup",
+      "name": "Follow-up Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 1300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst result = await postgres.query(`SELECT id, lead_email, scheduled_at, attempts FROM lead_followups WHERE scheduled_at <= CURRENT_TIMESTAMP AND status = 'pending' AND attempts < 3 ORDER BY scheduled_at ASC LIMIT 20`);\nreturn result.rows.map(row => ({ json: row }));"
+      },
+      "id": "wf1-followup-query",
+      "name": "Get Pending Follow-ups",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 1300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const followup = $input.first().json;\nconst postgres = Postgres.main;\nawait postgres.query(`UPDATE lead_followups SET attempts = attempts + 1, last_attempt = CURRENT_TIMESTAMP, status = CASE WHEN attempts + 1 >= 3 THEN 'completed' ELSE 'pending' END WHERE id = $1`, [followup.id]);\nconst isRetry = followup.attempts >= 1;\nreturn [{ json: { channel: '#sales-followups', severity: isRetry ? 'medium' : 'low', dedupeKey: `followup_${followup.id}_${followup.attempts + 1}`, text: isRetry ? `⚠️ *Follow-up RETRY*\n*Lead:* ${followup.lead_email}\n*Attempt:* ${followup.attempts + 1}/3\n> Manual review recommended` : `📞 *Follow-up Reminder*\n*Lead:* ${followup.lead_email}\n*Follow-up ID:* ${followup.id}`, metadata: { flow: 'followup', followupId: followup.id, attempts: followup.attempts + 1 } } }];"
+      },
+      "id": "wf1-followup-process",
+      "name": "Process Follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 1300]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc2-notification"
+      },
+      "id": "wf1-notify-followup",
+      "name": "Notify Follow-up",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 1300]
+    },
+    {
+      "parameters": {
+        "workflowId": "svc3-logger"
+      },
+      "id": "wf1-log-followup",
+      "name": "Log Follow-up",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 1300]
+    }
+  ],
+  "connections": {
+    "Lead Capture Webhook": { "main": [[{ "node": "Verify Lead HMAC", "type": "main", "index": 0 }]] },
+    "Verify Lead HMAC": { "main": [[{ "node": "Enrich Lead", "type": "main", "index": 0 }]] },
+    "Enrich Lead": { "main": [[{ "node": "Route by Tier", "type": "main", "index": 0 }]] },
+    "Route by Tier": { "main": [[{ "node": "Notify High-Value", "type": "main", "index": 0 }], [{ "node": "Notify Standard", "type": "main", "index": 0 }], []] },
+    "Notify High-Value": { "main": [[{ "node": "Log Lead", "type": "main", "index": 0 }]] },
+    "Notify Standard": { "main": [[{ "node": "Log Lead", "type": "main", "index": 0 }]] },
+    "Demo Booked Webhook": { "main": [[{ "node": "Verify Demo HMAC", "type": "main", "index": 0 }]] },
+    "Verify Demo HMAC": { "main": [[{ "node": "Enrich Demo", "type": "main", "index": 0 }]] },
+    "Enrich Demo": { "main": [[{ "node": "Route Demo by Tier", "type": "main", "index": 0 }]] },
+    "Route Demo by Tier": { "main": [[{ "node": "Store High-Score Demo", "type": "main", "index": 0 }], [{ "node": "Store Standard Demo", "type": "main", "index": 0 }], []] },
+    "Store High-Score Demo": { "main": [[{ "node": "Notify Demo", "type": "main", "index": 0 }]] },
+    "Store Standard Demo": { "main": [[{ "node": "Notify Demo", "type": "main", "index": 0 }]] },
+    "Notify Demo": { "main": [[{ "node": "Log Demo", "type": "main", "index": 0 }]] },
+    "Deal Closed Webhook": { "main": [[{ "node": "Verify Deal HMAC", "type": "main", "index": 0 }]] },
+    "Verify Deal HMAC": { "main": [[{ "node": "Store Deal & Customer", "type": "main", "index": 0 }]] },
+    "Store Deal & Customer": { "main": [[{ "node": "Notify Deal", "type": "main", "index": 0 }]] },
+    "Notify Deal": { "main": [[{ "node": "Log Deal", "type": "main", "index": 0 }]] },
+    "Deal Stage Webhook": { "main": [[{ "node": "Verify Stage HMAC", "type": "main", "index": 0 }]] },
+    "Verify Stage HMAC": { "main": [[{ "node": "Update Deal Stage", "type": "main", "index": 0 }]] },
+    "Update Deal Stage": { "main": [[{ "node": "Notify Stage", "type": "main", "index": 0 }]] },
+    "Notify Stage": { "main": [[{ "node": "Log Stage", "type": "main", "index": 0 }]] },
+    "Follow-up Schedule": { "main": [[{ "node": "Get Pending Follow-ups", "type": "main", "index": 0 }]] },
+    "Get Pending Follow-ups": { "main": [[{ "node": "Process Follow-up", "type": "main", "index": 0 }]] },
+    "Process Follow-up": { "main": [[{ "node": "Notify Follow-up", "type": "main", "index": 0 }]] },
+    "Notify Follow-up": { "main": [[{ "node": "Log Follow-up", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "wf0-error-handler" },
+  "active": false,
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "wf1-sales-crm",
+  "pinData": {}
+}

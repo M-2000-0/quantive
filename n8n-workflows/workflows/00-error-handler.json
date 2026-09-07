@@ -1,0 +1,161 @@
+{
+  "name": "WF-0: Error Handler",
+  "description": "Centralized error handler for all Quantive workflows. Receives execution failures via the Error Trigger, classifies severity, logs to workflow_errors, and routes Slack alerts by severity.",
+  "tags": [
+    {
+      "name": "error-handling"
+    },
+    {
+      "name": "core-infrastructure"
+    }
+  ],
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf0-error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconst execution = error.execution || {};\nconst workflow = error.workflow || {};\nconst errorNode = error.node || {};\n\nlet severity = 'low';\nconst errorMsg = (error.message || '').toLowerCase();\nconst nodeType = (errorNode.type || '').toLowerCase();\n\nif (errorMsg.includes('connection') || errorMsg.includes('timeout') || errorMsg.includes('econnrefused')) {\n  severity = 'high';\n} else if (errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('quota')) {\n  severity = 'critical';\n} else if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('unauthorized')) {\n  severity = 'critical';\n} else if (errorMsg.includes('500') || errorMsg.includes('internal server')) {\n  severity = 'high';\n} else if (errorMsg.includes('validation') || errorMsg.includes('invalid')) {\n  severity = 'medium';\n}\n\nif (nodeType.includes('webhook')) severity = 'high';\nif (nodeType.includes('stripe')) severity = 'critical';\n\nreturn [{\n  json: {\n    severity,\n    errorMessage: error.message || 'Unknown error',\n    errorNode: errorNode.name || 'Unknown node',\n    nodeType: errorNode.type || 'Unknown',\n    workflowId: workflow.id || 'Unknown',\n    workflowName: workflow.name || 'Unknown',\n    executionId: execution.id || 'Unknown',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf0-classify",
+      "name": "Classify Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const error = $input.first().json;\nconst postgres = Postgres.main;\n\nawait postgres.query(`\n  INSERT INTO workflows.workflow_errors \n    (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at)\n  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)\n`, [\n  error.workflowId,\n  error.workflowName,\n  error.executionId,\n  error.nodeType,\n  error.errorMessage,\n  error.errorNode,\n  error.nodeType,\n  error.severity\n]);\n\nreturn [$input.first()];"
+      },
+      "id": "wf0-log-to-db",
+      "name": "Log to Database",
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.severity }}",
+                    "rightValue": "critical",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Critical"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.severity }}",
+                    "rightValue": "high",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "High"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.severity }}",
+                    "rightValue": "medium",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Medium"
+            }
+          ]
+        }
+      },
+      "id": "wf0-route-severity",
+      "name": "Route by Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#platform-critical",
+        "text": "=🚨 *CRITICAL ERROR*\\n\\n*Workflow:* {{ $json.workflowName }} ({{ $json.workflowId }})\\n*Node:* {{ $json.errorNode }} ({{ $json.nodeType }})\\n*Error:* {{ $json.errorMessage }}\\n*Execution:* {{ $json.executionId }}\\n*Time:* {{ $json.timestamp }}",
+        "otherOptions": {}
+      },
+      "id": "wf0-slack-critical",
+      "name": "Slack Critical",
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "typeOptions": { "operation": "postMessage" },
+      "position": [960, 150],
+      "credentials": { "slackApi": { "id": "slack-main", "name": "Slack API" } }
+    },
+    {
+      "parameters": {
+        "channel": "#platform-alerts",
+        "text": "=⚠️ *High Severity Error*\\n\\n*Workflow:* {{ $json.workflowName }}\\n*Node:* {{ $json.errorNode }}\\n*Error:* {{ $json.errorMessage }}\\n*Time:* {{ $json.timestamp }}",
+        "otherOptions": {}
+      },
+      "id": "wf0-slack-high",
+      "name": "Slack High",
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "typeOptions": { "operation": "postMessage" },
+      "position": [960, 300],
+      "credentials": { "slackApi": { "id": "slack-main", "name": "Slack API" } }
+    },
+    {
+      "parameters": {
+        "channel": "#workflow-logs",
+        "text": "=ℹ️ *{{ $json.severity }} Error*\\n\\n*Workflow:* {{ $json.workflowName }}\\n*Error:* {{ $json.errorMessage }}\\n*Time:* {{ $json.timestamp }}",
+        "otherOptions": {}
+      },
+      "id": "wf0-slack-medium",
+      "name": "Slack Medium/Low",
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "typeOptions": { "operation": "postMessage" },
+      "position": [960, 450],
+      "credentials": { "slackApi": { "id": "slack-main", "name": "Slack API" } }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "Classify Error", "type": "main", "index": 0 }]]
+    },
+    "Classify Error": {
+      "main": [[{ "node": "Log to Database", "type": "main", "index": 0 }]]
+    },
+    "Log to Database": {
+      "main": [[{ "node": "Route by Severity", "type": "main", "index": 0 }]]
+    },
+    "Route by Severity": {
+      "main": [
+        [{ "node": "Slack Critical", "type": "main", "index": 0 }],
+        [{ "node": "Slack High", "type": "main", "index": 0 }],
+        [{ "node": "Slack Medium/Low", "type": "main", "index": 0 }],
+        [{ "node": "Slack Medium/Low", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "wf0-error-handler",
+  "pinData": {}
+}

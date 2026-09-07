@@ -1,0 +1,157 @@
+{
+  "name": "WF-2: Billing & Customer Lifecycle",
+  "description": "Billing & customer lifecycle automation. Stripe webhook with signature verification, event routing, MRR tracking. All notifications via SVC-2, all logging via SVC-3.",
+  "tags": [
+    { "name": "billing" },
+    { "name": "stripe" },
+    { "name": "customer-lifecycle" }
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-webhook",
+        "responseMode": "lastNode",
+        "options": { "rawBody": true, "binaryPropertyName": "data" }
+      },
+      "id": "wf2-webhook-stripe",
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "webhookId": "stripe-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['stripe-signature']) || '';\nconst secret = process.env.STRIPE_WEBHOOK_SECRET || '';\nlet raw = '';\nif ($input.first().binary && $input.first().binary.data) {\n  raw = Buffer.from($input.first().binary.data.data, 'base64').toString('utf8');\n}\nif (!raw) raw = JSON.stringify(item.body || {});\nconst parts = {};\nheader.split(',').forEach(p => { const idx = p.indexOf('='); if (idx !== -1) parts[p.slice(0, idx)] = p.slice(idx + 1); });\nconst timestamp = parts.t || '';\nconst signature = parts.v1 || '';\nconst signedPayload = `${timestamp}.${raw}`;\nconst expected = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');\nlet valid = false;\ntry {\n  const a = Buffer.from(signature, 'hex');\n  const b = Buffer.from(expected, 'hex');\n  valid = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { valid = false; }\nif (valid) { const age = Math.abs(Date.now() / 1000 - parseInt(timestamp || '0', 10)); if (age > 300) valid = false; }\nif (!valid) {\n  try {\n    await Postgres.main.query(`INSERT INTO workflows.workflow_errors (workflow_id, workflow_name, execution_id, error_type, message, node_id, node_type, severity, created_at) VALUES ('wf2-billing-lifecycle','WF-2: Billing & Customer Lifecycle',$1,'webhook.auth','Invalid Stripe signature','Verify Stripe Signature','webhook','high',CURRENT_TIMESTAMP)`, [$execution.id]);\n  } catch (e) {}\n  return [];\n}\nreturn [{ json: item }];"
+      },
+      "id": "wf2-stripe-verify",
+      "name": "Verify Stripe Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst event = body.data?.object;\nconst eventType = body.type || '';\nconst validTypes = ['customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed', 'checkout.session.completed'];\nif (!validTypes.includes(eventType)) return [{ json: { skip: true } }];\nreturn [{ json: { skip: false, eventType, event } }];"
+      },
+      "id": "wf2-route",
+      "name": "Route by Event Type",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { eventType, event } = $input.first().json;\nconst postgres = Postgres.main;\nlet action = 'unknown';\nlet metadata = { eventType };\n\nswitch (eventType) {\n  case 'customer.subscription.created': {\n    const r = await postgres.query(`INSERT INTO customers (stripe_customer_id, email, name, plan, status, created_at) VALUES ($1, $2, $3, $4, 'active', CURRENT_TIMESTAMP) ON CONFLICT (stripe_customer_id) DO UPDATE SET email=EXCLUDED.email, name=EXCLUDED.name, plan=EXCLUDED.plan, status='active', updated_at=CURRENT_TIMESTAMP RETURNING id, email`, [event.customer, event.metadata?.email||'', event.metadata?.name||'', event.metadata?.plan||'starter']);\n    await postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'subscription.created', CURRENT_TIMESTAMP)`, [r.rows[0].id, (event.items?.data?.[0]?.price?.unit_amount||0)/100]);\n    action = 'created'; metadata = { ...metadata, customerId: r.rows[0].id };\n    break;\n  }\n  case 'customer.subscription.updated': {\n    const amt = (event.items?.data?.[0]?.price?.unit_amount||0)/100;\n    await postgres.query(`UPDATE customers SET plan=$1, updated_at=CURRENT_TIMESTAMP WHERE stripe_customer_id=$2`, [event.metadata?.plan||'starter', event.customer]);\n    await postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'subscription.updated', CURRENT_TIMESTAMP)`, [event.customer, amt]);\n    action = 'updated'; metadata = { ...metadata, amount: amt };\n    break;\n  }\n  case 'customer.subscription.deleted': {\n    await postgres.query(`UPDATE customers SET status='cancelled', updated_at=CURRENT_TIMESTAMP WHERE stripe_customer_id=$1`, [event.customer]);\n    await postgres.query(`INSERT INTO mrr_events (customer_id, amount, event_type, created_at) VALUES ($1, $2, 'cancellation', CURRENT_TIMESTAMP)`, [event.customer, (event.items?.data?.[0]?.price?.unit_amount||0)/100]);\n    action = 'deleted'; metadata = { ...metadata, customerId: event.customer };\n    break;\n  }\n  case 'invoice.paid': { action = 'invoice_paid'; metadata = { ...metadata, amount: (event.amount_paid||0)/100 }; break; }\n  case 'invoice.payment_failed': {\n    const cr = await postgres.query(`SELECT id FROM customers WHERE stripe_customer_id=$1`, [event.customer]);\n    await postgres.query(`INSERT INTO invoice_events (customer_id, stripe_customer_id, event_type, amount, status, created_at) VALUES ($1,$2,$3,$4,'failed',CURRENT_TIMESTAMP)`, [cr.rows[0]?.id||null, event.customer, 'invoice.payment_failed', (event.amount_due||0)/100]);\n    action = 'payment_failed'; break;\n  }\n  case 'checkout.session.completed': { action = 'checkout_completed'; break; }\n}\n\nconst totalR = await postgres.query(`SELECT COALESCE(SUM(amount),0) as total FROM mrr_events WHERE event_type!='cancellation' AND customer_id NOT IN (SELECT customer_id FROM mrr_events WHERE event_type='cancellation')`);\nconst totalMRR = parseFloat(totalR.rows[0].total || 0);\n\nconst msgs = {\n  created: `✅ New subscription. MRR: $${totalMRR}`,\n  updated: `🔄 Subscription updated. MRR: $${totalMRR}`,\n  deleted: `❌ Subscription cancelled. MRR: $${totalMRR}`,\n  payment_failed: `⚠️ Payment failed.`,\n  invoice_paid: `💰 Invoice paid.`,\n  checkout_completed: `🛒 Checkout completed.`,\n  unknown: `ℹ️ Stripe event processed.`\n};\n\nreturn [{ json: { channel: '#billing-events', severity: action === 'payment_failed' ? 'high' : 'low', dedupeKey: `stripe_${action}_${event?.id || Date.now()}`, text: msgs[action] || msgs.unknown, metadata: { flow: 'stripe_event', action, totalMRR, ...metadata } } }];"
+      },
+      "id": "wf2-process",
+      "name": "Process Stripe Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 200]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf2-notify",
+      "name": "Notify Billing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [960, 200]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf2-log",
+      "name": "Log Billing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 6 * * *" }] } },
+      "id": "wf2-schedule-mrr",
+      "name": "Daily MRR Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst yesterday = new Date(Date.now() - 86400000);\nconst mrr = await postgres.query(`SELECT COALESCE(SUM(amount),0) as total FROM mrr_events WHERE event_type!='cancellation' AND customer_id NOT IN (SELECT customer_id FROM mrr_events WHERE event_type='cancellation')`);\nconst newC = await postgres.query(`SELECT COUNT(*) as count FROM mrr_events WHERE event_type='subscription.created' AND created_at>=$1`, [yesterday.toISOString()]);\nconst churn = await postgres.query(`SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as mrr FROM mrr_events WHERE event_type='cancellation' AND created_at>=$1`, [yesterday.toISOString()]);\nconst total = parseFloat(mrr.rows[0].total||0);\nconst churnMRR = parseFloat(churn.rows[0].mrr||0);\nconst churnRate = total > 0 ? ((churnMRR / total) * 100).toFixed(2) : 0;\nreturn [{ json: { channel: '#metrics-daily', severity: 'low', dedupeKey: `mrr_${new Date().toISOString().split('T')[0]}`, text: `📊 *Daily MRR*\n*Current:* $${total}\n*New:* ${newC.rows[0].count}\n*Churned:* ${churn.rows[0].count}\n*Churn Rate:* ${churnRate}%`, metadata: { flow: 'daily_mrr', mrr: total, churnRate } } }];"
+      },
+      "id": "wf2-mrr-report",
+      "name": "Calculate Daily MRR",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 500]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf2-notify-mrr",
+      "name": "Notify MRR",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 500]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf2-log-mrr",
+      "name": "Log MRR",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 500]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * 1" }] } },
+      "id": "wf2-schedule-reengagement",
+      "name": "Re-engagement Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "const postgres = Postgres.main;\nconst thirtyAgo = new Date(Date.now() - 30*86400000);\nconst r = await postgres.query(`SELECT id, email, name FROM customers WHERE status='active' AND last_active_at<$1 AND reengagement_sent=false LIMIT 50`, [thirtyAgo.toISOString()]);\nreturn r.rows.map(row => ({ json: { ...row, channel: '#customer-success', severity: 'low', dedupeKey: `reeng_${row.id}`, text: `🔄 *Re-engagement*\n*Customer:* ${row.name} (${row.email})\n*Action:* Send re-engagement campaign`, metadata: { flow: 'reengagement', email: row.email } } }));"
+      },
+      "id": "wf2-reengagement",
+      "name": "Find Inactive Customers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 700]
+    },
+    {
+      "parameters": { "workflowId": "svc2-notification" },
+      "id": "wf2-notify-reengagement",
+      "name": "Notify Re-engagement",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [480, 700]
+    },
+    {
+      "parameters": { "workflowId": "svc3-logger" },
+      "id": "wf2-log-reengagement",
+      "name": "Log Re-engagement",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [720, 700]
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": { "main": [[{ "node": "Verify Stripe Signature", "type": "main", "index": 0 }]] },
+    "Verify Stripe Signature": { "main": [[{ "node": "Route by Event Type", "type": "main", "index": 0 }]] },
+    "Route by Event Type": { "main": [[{ "node": "Process Stripe Event", "type": "main", "index": 0 }]] },
+    "Process Stripe Event": { "main": [[{ "node": "Notify Billing", "type": "main", "index": 0 }]] },
+    "Notify Billing": { "main": [[{ "node": "Log Billing", "type": "main", "index": 0 }]] },
+    "Daily MRR Schedule": { "main": [[{ "node": "Calculate Daily MRR", "type": "main", "index": 0 }]] },
+    "Calculate Daily MRR": { "main": [[{ "node": "Notify MRR", "type": "main", "index": 0 }]] },
+    "Notify MRR": { "main": [[{ "node": "Log MRR", "type": "main", "index": 0 }]] },
+    "Re-engagement Schedule": { "main": [[{ "node": "Find Inactive Customers", "type": "main", "index": 0 }]] },
+    "Find Inactive Customers": { "main": [[{ "node": "Notify Re-engagement", "type": "main", "index": 0 }]] },
+    "Notify Re-engagement": { "main": [[{ "node": "Log Re-engagement", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "wf0-error-handler" },
+  "active": false,
+  "meta": { "templateCredsSetupCompleted": false },
+  "id": "wf2-billing-lifecycle",
+  "pinData": {}
+}
