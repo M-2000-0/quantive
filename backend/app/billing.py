@@ -588,3 +588,29 @@ def check_limit(org_id: str, resource: str) -> dict:
         "limit": limit,
         "plan": tier.value,
     }
+
+
+def enforce_resource_limit(org_id: str, resource: str, current: Optional[int] = None) -> dict:
+    """Gate a count-based plan limit (max_portfolios, max_instruments, ...).
+
+    Pass ``current`` for stock limits (number of rows an org already has);
+    omit it to use metered usage (daily counters). Raises 403 with a
+    structured detail the frontend can surface.
+    """
+    from fastapi import HTTPException
+
+    info = check_limit(org_id, resource)
+    if current is not None:
+        info["current"] = current
+        info["allowed"] = True if info["limit"] == -1 else current < info["limit"]
+    if not info["allowed"]:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "plan_limit_reached",
+                "message": f"Plan limit reached for {resource} ({info['current']}/{info['limit']} on the {info['plan']} plan). Upgrade to increase your limit.",
+                "resource": resource,
+                **info,
+            },
+        )
+    return info

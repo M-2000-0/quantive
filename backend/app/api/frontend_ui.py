@@ -124,6 +124,15 @@ class UIPortfolioCreate(BaseModel):
 def create_portfolio(request: Request, data: UIPortfolioCreate, db: Session = Depends(get_db)):
     """Create a portfolio bound to the logged-in user/org."""
     user = _get_user_from_request(request, db)
+
+    # Plan limits: max_portfolios + max_instruments (stock limits)
+    from app.billing import enforce_resource_limit
+    enforce_resource_limit(
+        user.org_id, "max_portfolios",
+        db.query(Portfolio).filter(Portfolio.org_id == user.org_id).count(),
+    )
+    enforce_resource_limit(user.org_id, "max_instruments", len(data.instruments))
+
     portfolio = Portfolio(
         name=data.name,
         description=data.description,

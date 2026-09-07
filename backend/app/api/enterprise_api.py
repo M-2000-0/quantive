@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.security import get_current_user
 
 
 router = APIRouter(prefix="/api/v1", tags=["enterprise-engine"])
@@ -223,8 +224,16 @@ def optimize_portfolio(request: OptimizeRequest):
 
 
 @router.post("/simulate")
-def simulate_stress(request: SimulateRequest):
-    """Run parallelized Monte Carlo stress tests (10K+ paths)."""
+def simulate_stress(request: SimulateRequest, user=Depends(get_current_user)):
+    """Run parallelized Monte Carlo stress tests (10K+ paths).
+
+    Plan-limited: n_paths is capped by the org's max_scenarios limit
+    (100 free / 10,000 pro / unlimited enterprise).
+    """
+    from app.billing import enforce_resource_limit
+    from app.models import User
+    enforce_resource_limit(user.org_id, "max_scenarios", request.n_paths)
+
     start = time.time()
 
     try:

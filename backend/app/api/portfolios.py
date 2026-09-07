@@ -22,6 +22,7 @@ from app.schemas import (
     PortfolioUpdate,
 )
 from app.security import get_current_user, log_audit_event, require_role
+from app.billing import enforce_resource_limit
 from app.security.portfolio_rbac import (
     PortfolioRole,
     require_portfolio_access,
@@ -73,6 +74,11 @@ def create_portfolio(
     user: User = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
     db: Session = Depends(get_db),
 ):
+    # Plan limit: max_portfolios (stock limit on the org's portfolios)
+    enforce_resource_limit(
+        user.org_id, "max_portfolios",
+        db.query(Portfolio).filter(Portfolio.org_id == user.org_id).count(),
+    )
 
     portfolio = Portfolio(
         name=data.name.strip(),
@@ -225,6 +231,12 @@ def add_instrument(
     ).first()
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    # Plan limit: max_instruments (stock limit per portfolio)
+    enforce_resource_limit(
+        user.org_id, "max_instruments",
+        db.query(DebtInstrument).filter(DebtInstrument.portfolio_id == portfolio_id).count(),
+    )
 
     if data.currency.upper() not in VALID_CURRENCIES:
         raise HTTPException(status_code=422, detail=f"Invalid currency. Must be one of: {VALID_CURRENCIES}")
