@@ -14,6 +14,10 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
+from app.config import get_settings
+
+settings = get_settings()
+
 
 # CSRF token lifetime (in seconds)
 CSRF_TOKEN_LIFETIME = 3600  # 1 hour
@@ -57,58 +61,110 @@ def validate_csrf_token(token: str, secret: str) -> bool:
         return False
 
 
-class CSRFMiddleware(BaseHTTPMiddleware):
-    """CSRF protection middleware using double-submit cookie pattern."""
-    
-    def __init__(self, app, secret: str = "csrf-secret-change-in-production"):
-        super().__init__(app)
+class CSRFMiddleware:
+    """CSRF protection middleware using double-submit cookie pattern.
+
+    Raw ASGI middleware (not BaseHTTPMiddleware) so it reliably runs
+    in the Starlette/FastAPI middleware stack.
+    """
+    def __init__(self, app, secret: str = "csrfsecret-change-in-production"):
+        self.app = app
         self.secret = secret
-    
-    async def dispatch(self, request: Request, call_next):
-        # Skip CSRF for exempt paths
+
+    async def __call__(self, scope, receive, send):
+        import sys
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse, Response
+        from starlette.types import Message
+
+        request = Request(scope, receive)
         path = request.url.path
         exempt = any(path.startswith(p) for p in CSRF_EXEMPT_PATHS)
+
+        print(f"CSRF ASGI: {scope['method']} {path} exempt={exempt}", file=sys.stderr, flush=True)
+
+        if request.method == "GET":
+            async def get_send(message: Message) -> None:
+                if message["type"] == "http.response.start":
+                    if "csrf_token" not in request.cookies:
+                        token = generate_csrf_token(self.secret)
+                        message.setdefault("headers", []).append(
+                            (b"set-cookie",
+                             f"csrf_token={token}; Path=/; SameSite=strict; Max-Age={CSRF_TOKEN_LIFETIME}; Secure={settings.SECURE_COOKIES}".encode("latin-1"))
+                        )
+                await send(message)
+            await self.app(scope, receive, get_send)
+            return
+
         if exempt:
-            return await call_next(request)
-        # Skip CSRF for non-state-changing methods
-        if request.method not in CSRF_METHODS:
-            response = await call_next(request)
-            # Set CSRF token cookie on GET requests
-            if request.method == "GET" and "csrf_token" not in request.cookies:
-                token = generate_csrf_token(self.secret)
-                response.set_cookie(
-                    key="csrf_token",
-                    value=token,
-                    httponly=False,  # JavaScript needs to read this
-                    secure=True,
-                    samesite="strict",
-                    max_age=CSRF_TOKEN_LIFETIME,
-                )
-            return response
-        
+            return await self.app(scope, receive, send)
+
         # Validate CSRF for state-changing methods
-        # Check header first (for AJAX requests)
+        async def body_receive() -> Message:
+            return await receive()
+
         header_token = request.headers.get("X-CSRF-Token")
-        # Check cookie second
         cookie_token = request.cookies.get("csrf_token")
-        
-        # Both must be present and match
-        if not header_token or not cookie_token:
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "CSRF token missing. Include X-CSRF-Token header and csrf_token cookie."},
-            )
-        
-        if header_token != cookie_token:
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "CSRF token mismatch."},
-            )
-        
-        if not validate_csrf_token(header_token, self.secret):
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "CSRF token expired or invalid."},
-            )
-        
-        return await call_next(request)
+
+        if path.startswith("/api/"):
+            if not header_token:
+                await send({
+                    "type": "http.response.start",
+                    "status": 403,
+                    "headers": [(b"content-type", b"application/json")],
+                })
+                await send({
+                    "type": "http.response.body",
+                    "body": b'{"detail":"CSRF token missing. Include X-CSRF-Token header."}',
+                })
+                return
+            if not validate_csrf_token(header_token, self.secret):
+                await send({
+                    "type": "http.response.start",
+                    "status": 403,
+                    "headers": [(b"content-type", b"application/json")],
+                })
+                await send({
+                    "type": "http.response.body",
+                    "body": b'{"detail":"CSRF token expired or invalid."}',
+                })
+                return
+        else:
+            if not header_token or not cookie_token:
+                await send({
+                    "type": "http.response.start",
+                    "status": 403,
+                    "headers": [(b"content-type", b"application/json")],
+                })
+                await send({
+                    "type": "http.response.body",
+                    "body": b'{"detail":"CSRF token missing. Include X-CSRF-Token header and csrf_token cookie."}',
+                })
+                return
+            if header_token != cookie_token:
+                await send({
+                    "type": "http.response.start",
+                    "status": 403,
+                    "headers": [(b"content-type", b"application/json")],
+                })
+                await send({
+                    "type": "http.response.body",
+                    "body": b'{"detail":"CSRF token mismatch."}',
+                })
+                return
+            if not validate_csrf_token(header_token, self.secret):
+                await send({
+                    "type": "http.response.start",
+                    "status": 403,
+                    "headers": [(b"content-type", b"application/json")],
+                })
+                await send({
+                    "type": "http.response.body",
+                    "body": b'{"detail":"CSRF token expired or invalid."}',
+                })
+                return
+
+        await self.app(scope, receive, send)

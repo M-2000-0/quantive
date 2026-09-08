@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     ENABLE_PROVENANCE: bool = True      # Track model origins
     ENVIRONMENT: str = "development"    # "production" enforces real SECRET_KEY
+    SECURE_COOKIES: bool = False         # set True in production (requires HTTPS)
 
     # ── Data residency controls ─────────────────────────────────────
     DATA_RESIDENCY_REGION: str = "us-east-1"       # AWS/GCP region
