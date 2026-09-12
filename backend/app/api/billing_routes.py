@@ -78,7 +78,7 @@ def get_my_subscription(
 @router.post("/checkout")
 async def create_checkout(
     request: Request,
-    tier: str = Query(..., description="Plan tier: pro, enterprise"),
+    tier: str = Query(..., description="Plan tier: pro, enterprise, personal_2k, personal, personal_10k"),
     billing_cycle: str = Query("monthly", description="monthly or yearly"),
     user: User = Depends(get_current_user),
 ):
