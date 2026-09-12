@@ -202,7 +202,15 @@ def execute_run(db: Session, run_id: str, max_cost: int = 50) -> AgentRun:
     return run
 
 
-def approve_step(db: Session, run_id: str, seq: int, approved: bool, start: bool = True) -> AgentRun:
+def approve_step(
+    db: Session,
+    run_id: str,
+    seq: int,
+    approved: bool,
+    start: bool = True,
+    approver: Any | None = None,
+    comment: str = "",
+) -> AgentRun:
     run = db.query(AgentRun).filter(AgentRun.id == run_id).first()
     if not run:
         raise KeyError(f"Unknown run: {run_id}")
@@ -215,6 +223,12 @@ def approve_step(db: Session, run_id: str, seq: int, approved: bool, start: bool
         raise KeyError(f"Unknown step {seq}")
     if step.status != "waiting_approval":
         raise ValueError("step is not awaiting approval")
+    # Four-eyes: the run creator may never approve their own step.
+    if approver is not None and getattr(approver, "id", None) == run.actor_id:
+        raise PermissionError("four-eyes: approver must differ from run creator")
+    step.approved_by = getattr(approver, "id", None)
+    step.approved_at = _now()
+    step.approve_comment = (comment or "")[:2000]
     if approved:
         step.approval_status = "approved"
         step.status = "pending"

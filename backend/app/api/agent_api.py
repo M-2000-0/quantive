@@ -41,6 +41,7 @@ class CreateRunBody(BaseModel):
 
 class ApproveBody(BaseModel):
     approved: bool
+    comment: str = ""
 
 
 def _step_dict(s: AgentStep) -> dict:
@@ -51,6 +52,8 @@ def _step_dict(s: AgentStep) -> dict:
         "status": s.status,
         "output": s.output,
         "approval_status": s.approval_status,
+        "approved_by": s.approved_by,
+        "approved_at": s.approved_at.isoformat() if s.approved_at else None,
         "error": s.error,
         "started_at": s.started_at.isoformat() if s.started_at else None,
         "finished_at": s.finished_at.isoformat() if s.finished_at else None,
@@ -142,17 +145,31 @@ def get_run(run_id: str, user: User = Depends(get_current_user), db: Session = D
 @router.post("/runs/{run_id}/steps/{seq}/approve")
 def approve(run_id: str, seq: int, body: ApproveBody,
             user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Approval requires analyst+ (four-eyes: approver should differ from actor;
-    # enforced by UI convention, recorded in audit).
+    # Approval requires analyst+. Four-eyes (approver != creator) is enforced
+    # in approve_step and mapped to 403 here.
     if str(getattr(user.role, "value", user.role)) not in ("analyst", "admin"):
         raise HTTPException(403, "approval requires analyst role")
     run, _ = _load(run_id, db)
     if run.org_id != user.org_id:
         raise HTTPException(404, "run not found")
     try:
-        run = approve_step(db, run_id, seq, body.approved, start=False)
+        run = approve_step(db, run_id, seq, body.approved, start=False,
+                           approver=user, comment=body.comment)
+    except PermissionError as e:
+        raise HTTPException(403, str(e))
     except (KeyError, ValueError) as e:
         raise HTTPException(400, str(e))
+    from app.security import log_audit_event
+
+    try:
+        log_audit_event(
+            db, user,
+            action=f"agent.step.{'approved' if body.approved else 'rejected'}",
+            resource_type="agent_run", resource_id=run_id, org_id=user.org_id,
+            metadata={"seq": seq, "tool": run.plan[seq].get("tool") if seq < len(run.plan or []) else None},
+        )
+    except Exception:
+        pass
     if body.approved and run.status == "queued":
         _spawn(run_id)
         run, steps = _load(run_id, db)

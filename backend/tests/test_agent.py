@@ -30,6 +30,45 @@ def _wait(auth_client, run_id, want=("completed",), timeout=15.0):
     raise AssertionError(f"run {run_id} never reached {want}: {last}")
 
 
+def _second_user_in_same_org(auth_client, email):
+    """Register a new user, move them into the first user's org, return authed client."""
+    from fastapi.testclient import TestClient
+
+    from app.config import get_settings
+    from app.main import app
+    from app.models import User
+    from app.security.csrf import generate_csrf_token
+    from tests.conftest import TestingSessionLocal
+
+    settings = get_settings()
+    second = TestClient(app)
+    token = generate_csrf_token(settings.SECRET_KEY)
+    second.headers["X-CSRF-Token"] = token
+    second.cookies.set("csrf_token", token)
+
+    db = TestingSessionLocal()
+    try:
+        me = db.query(User).filter(User.email == "test@example.com").first()
+        org_id = me.org_id
+    finally:
+        db.close()
+
+    r = second.post("/api/auth/register", json={
+        "email": email, "password": "Test@Pass123", "name": "Approver", "org_name": "Temp"})
+    assert r.status_code in (200, 201), r.text
+    tok = r.json()["access_token"]
+
+    db = TestingSessionLocal()
+    try:
+        u = db.query(User).filter(User.email == email).first()
+        u.org_id = org_id
+        db.commit()
+    finally:
+        db.close()
+    second.headers["Authorization"] = f"Bearer {tok}"
+    return second
+
+
 def test_tools_listed(auth_client):
     r = auth_client.get("/api/agent/tools")
     assert r.status_code == 200, r.text
@@ -75,10 +114,18 @@ def test_approval_gate_and_approve(auth_client):
     assert body["steps"][0]["status"] == "completed"
     assert body["steps"][1]["status"] == "waiting_approval"
 
-    a = auth_client.post(f"/api/agent/runs/{run_id}/steps/1/approve", json={"approved": True})
+    # Four-eyes: the creator may not approve their own step.
+    own = auth_client.post(f"/api/agent/runs/{run_id}/steps/1/approve", json={"approved": True})
+    assert own.status_code == 403
+
+    # A second analyst in the same org approves.
+    approver = _second_user_in_same_org(auth_client, "approver@x.y")
+    a = approver.post(f"/api/agent/runs/{run_id}/steps/1/approve",
+                      json={"approved": True, "comment": "looks good"})
     assert a.status_code == 200, a.text
     done = _wait(auth_client, run_id, want=("completed",))
     assert done["steps"][1]["output"]["ok"] is True
+    assert done["steps"][1]["approved_by"] is not None
 
 
 def test_approval_reject_fails_run(auth_client):
@@ -88,7 +135,8 @@ def test_approval_reject_fails_run(auth_client):
     })
     run_id = r.json()["id"]
     _wait(auth_client, run_id, want=("waiting_approval",))
-    d = auth_client.post(f"/api/agent/runs/{run_id}/steps/0/approve", json={"approved": False})
+    approver = _second_user_in_same_org(auth_client, "rejector@x.y")
+    d = approver.post(f"/api/agent/runs/{run_id}/steps/0/approve", json={"approved": False})
     assert d.status_code == 200
     assert d.json()["status"] == "failed"
 

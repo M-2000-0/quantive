@@ -60,6 +60,10 @@ class AgentStep(Base):
     output: Mapped[dict | None] = mapped_column(JSONType, nullable=True)
     # none | pending | approved | rejected
     approval_status: Mapped[str] = mapped_column(String(20), default="none")
+    # Four-eyes record: who decided, when, why.
+    approved_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approve_comment: Mapped[str] = mapped_column(Text, default="")
     error: Mapped[str] = mapped_column(Text, default="")
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
