@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% block title %}Personalized Recommendations — Quantive{% endblock %}
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;padding:32px 24px">
+  <!-- Header -->
+  <div style="margin-bottom:32px">
+    <div class="stat-label" style="margin-bottom:8px">PERSONALIZED RECOMMENDATIONS</div>
+    <h1 style="font-size:28px;font-weight:700;color:var(--text);margin:0">Opportunity Discovery</h1>
+    <p style="font-size:13px;color:var(--text3);margin-top:6px">Set your investment preferences, then see ranked opportunities tailored to your portfolio and risk profile.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:24px">
+    <!-- Left column: Preferences form -->
+    <div>
+      <div class="glass" style="padding:24px;margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div class="stat-label" style="margin-bottom:0">INVESTMENT PREFERENCES</div>
+          <div style="font-size:11px;color:var(--text3)">Phase 1 — explicit user input</div>
+        </div>
+
+        <form id="prefs-form" style="display:flex;flex-direction:column;gap:18px">
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text3);margin-bottom:6px">Risk Tolerance</label>
+            <select id="risk-tolerance" name="risk_tolerance" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px;outline:none">
+              <option value="">— Not set —</option>
+              <option value="conservative">Conservative — capital preservation</option>
+              <option value="moderate">Moderate — balanced growth</option>
+              <option value="aggressive">Aggressive — maximize returns</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text3);margin-bottom:6px">Investment Horizon (years)</label>
+            <input id="horizon" name="investment_horizon_years" type="number" min="1" max="40" placeholder="e.g. 10"
+                   style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px;outline:none">
+          </div>
+
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text3);margin-bottom:6px">Currency Preferences</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px" id="currency-prefs">
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.2)">
+                <input type="checkbox" value="USD" checked> USD
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.2)">
+                <input type="checkbox" value="MXN" checked> MXN
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.2)">
+                <input type="checkbox" value="EUR"> EUR
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.2)">
+                <input type="checkbox" value="GBP"> GBP
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.2)">
+                <input type="checkbox" value="JPY"> JPY
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text3);margin-bottom:6px">Liquidity Needs</label>
+            <select id="liquidity-needs" name="liquidity_needs" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px;outline:none">
+              <option value="">— Not set —</option>
+              <option value="low">Low — long-term lock-ups acceptable</option>
+              <option value="medium">Medium — some flexibility needed</option>
+              <option value="high">High — prioritize liquidity</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text3);margin-bottom:6px">Focus Sectors (optional)</label>
+            <input id="focus-sectors" name="focus_sectors" type="text" placeholder="e.g. energy, infrastructure, technology"
+                   style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px;outline:none">
+            <div style="font-size:10px;color:var(--text3);margin-top:4px">Comma-separated. Leave blank for broad exposure.</div>
+          </div>
+
+          <div>
+            <label style="display:block;font-size:11px;color:var(--text3);margin-bottom:6px">Explicit Exclusions (tickers / instruments)</label>
+            <input id="exclusions" name="exclusions" type="text" placeholder="e.g. TSLA, OIL, MEXICO-SOV"
+                   style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:13px;outline:none">
+            <div style="font-size:10px;color:var(--text3);margin-top:4px">Comma-separated. These instruments will never appear in recommendations.</div>
+          </div>
+
+          <div style="display:flex;gap:8px;padding-top:4px">
+            <button type="submit" style="flex:1;padding:11px 16px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Save Preferences</button>
+            <button type="button" id="reset-prefs" style="padding:11px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;cursor:pointer"
+                    onclick="resetForm()">Reset</button>
+          </div>
+          <div id="prefs-status" style="font-size:12px;min-height:18px"></div>
+        </form>
+      </div>
+
+      <!-- Active preferences summary -->
+      <div class="glass" style="padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="stat-label" style="margin-bottom:0">ACTIVE PREFERENCES</div>
+          <button id="refresh-prefs" style="font-size:11px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.2);color:var(--text2);cursor:pointer"
+                  onclick="loadPreferences()">Refresh</button>
+        </div>
+        <div id="prefs-summary" style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+          <div style="color:var(--text3);font-size:12px">Loading preferences...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: Recommendations list -->
+    <div>
+      <div class="glass" style="padding:24px;margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="stat-label" style="margin-bottom:0">RECOMMENDATIONS</div>
+          <div style="display:flex;gap:8px">
+            <select id="recs-limit" onchange="loadRecommendations()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);font-size:12px;outline:none">
+              <option value="5">Top 5</option>
+              <option value="7" selected>Top 7</option>
+              <option value="10">Top 10</option>
+              <option value="15">Top 15</option>
+            </select>
+            <button onclick="loadRecommendations()" style="padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,0.2);color:var(--text2);font-size:12px;cursor:pointer">Refresh</button>
+          </div>
+        </div>
+        <div id="recs-loading" style="font-size:12px;color:var(--text3)">Loading recommendations...</div>
+        <div id="recs-list" style="display:flex;flex-direction:column;gap:12px"></div>
+        <div id="recs-empty" style="display:none;color:var(--text3);font-size:12px;padding:16px;border-radius:8px;border:1px dashed var(--border);background:rgba(0,0,0,0.15)">
+          No recommendations yet. Save your preferences and ensure your portfolio has instruments.
+        </div>
+      </div>
+
+      <!-- Portfolio + market context card -->
+      <div class="glass" style="padding:24px">
+        <div class="stat-label" style="margin-bottom:16px">CONTEXT</div>
+        <div id="context-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="padding:14px;border-radius:8px;background:rgba(0,0,0,0.2)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">TOTAL DEBT</div>
+            <div id="ctx-total-debt" style="font-size:18px;font-weight:700;color:var(--text)">--</div>
+          </div>
+          <div style="padding:14px;border-radius:8px;background:rgba(0,0,0,0.2)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">INSTRUMENTS</div>
+            <div id="ctx-instrument-count" style="font-size:18px;font-weight:700;color:var(--text)">--</div>
+          </div>
+          <div style="padding:14px;border-radius:8px;background:rgba(0,0,0,0.2)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">AVG MATURITY</div>
+            <div id="ctx-avg-maturity" style="font-size:18px;font-weight:700;color:var(--text)">--</div>
+          </div>
+          <div style="padding:14px;border-radius:8px;background:rgba(0,0,0,0.2)">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px">WEIGHTED COUPON</div>
+            <div id="ctx-coupon" style="font-size:18px;font-weight:700;color:var(--text)">--</div>
+          </div>
+        </div>
+        <div id="market-context" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function escapeHtml(s){return String(s==null?' ':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+async function loadPreferences(){
+  try{
+    const r = await fetch('/api/recommendations/preferences');
+    if(!r.ok){
+      document.getElementById('prefs-summary').innerHTML = `<div style="color:var(--red);font-size:12px">Could not load preferences (${r.status})</div>`;
+      return;
+    }
+    const data = await r.json();
+    const p = data.preferences || {};
+    const exclusions = (data.exclusions || []);
+
+    // Fill form fields (without triggering change handlers)
+    document.getElementById('risk-tolerance').value = p.risk_tolerance || '';
+    document.getElementById('horizon').value = p.investment_horizon_years || '';
+    document.getElementById('liquidity-needs').value = p.liquidity_needs || '';
+    document.getElementById('focus-sectors').value = (p.focus_sectors || []).join(', ');
+    document.getElementById('exclusions').value = (exclusions || []).join(', ');
+
+    // Currency checkboxes
+    const desired = new Set((p.currency_preferences || ['USD','MXN']).map(c=>c.toUpperCase()));
+    document.querySelectorAll('#currency-prefs input[type=checkbox]').forEach(cb=>{
+      cb.checked = desired.has(cb.value);
+    });
+
+    // Summary
+    const rows = [
+      ['Risk Tolerance', p.risk_tolerance || '— not set —'],
+      ['Horizon', p.investment_horizon_years ? `${p.investment_horizon_years} years` : '— not set —'],
+      ['Currencies', (p.currency_preferences||[]).length ? (p.currency_preferences||[]).join(', ') : '— not set —'],
+      ['Liquidity', p.liquidity_needs || '— not set —'],
+      ['Focus Sectors', (p.focus_sectors||[]).join(', ') || '— not set —'],
+      ['Exclusions', (exclusions||[]).join(', ') || 'none'],
+    ];
+    document.getElementById('prefs-summary').innerHTML = rows.map(([k,v])=>
+      `<div style="display:flex;justify-content:space-between;gap:12px">
+        <span style="color:var(--text3)">${escapeHtml(k)}</span>
+        <span style="color:var(--text);text-align:right">${escapeHtml(v)}</span>
+      </div>`
+    ).join('');
+  }catch(e){
+    document.getElementById('prefs-summary').innerHTML = `<div style="color:var(--red);font-size:12px">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function savePreferences(){
+  const body = {
+    risk_tolerance: document.getElementById('risk-tolerance').value || null,
+    investment_horizon_years: document.getElementById('horizon').value ? parseInt(document.getElementById('horizon').value,10) : null,
+    currency_preferences: [...document.querySelectorAll('#currency-prefs input[type=checkbox]:checked')].map(cb=>cb.value),
+    liquidity_needs: document.getElementById('liquidity-needs').value || null,
+    focus_sectors: document.getElementById('focus-sectors').value ? document.getElementById('focus-sectors').value.split(',').map(s=>s.trim()).filter(Boolean) : null,
+    exclusions: document.getElementById('exclusions').value ? document.getElementById('exclusions').value.split(',').map(s=>s.trim()).filter(Boolean) : null,
+  };
+
+  const status = document.getElementById('prefs-status');
+  status.textContent = 'Saving...';
+  status.style.color = 'var(--text3)';
+
+  try{
+    const r = await fetch('/api/recommendations/preferences', {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if(!r.ok){
+      const err = await r.json().catch(()=>({}));
+      status.textContent = `Error ${r.status}: ${err.detail||err.message||'unknown'}`;
+      status.style.color = 'var(--red)';
+      return;
+    }
+    const data = await r.json();
+    status.textContent = 'Preferences saved.';
+    status.style.color = 'var(--green)';
+    await loadPreferences();
+  }catch(e){
+    status.textContent = `Error: ${escapeHtml(e.message)}`;
+    status.style.color = 'var(--red)';
+  }
+}
+
+function resetForm(){
+  document.getElementById('risk-tolerance').value = '';
+  document.getElementById('horizon').value = '';
+  document.getElementById('liquidity-needs').value = '';
+  document.getElementById('focus-sectors').value = '';
+  document.getElementById('exclusions').value = '';
+  document.querySelectorAll('#currency-prefs input[type=checkbox]').forEach(cb=>{
+    cb.checked = cb.value==='USD' || cb.value==='MXN';
+  });
+  document.getElementById('prefs-status').textContent = '';
+}
+
+async function loadRecommendations(){
+  const list = document.getElementById('recs-list');
+  const empty = document.getElementById('recs-empty');
+  const loading = document.getElementById('recs-loading');
+  const limit = parseInt(document.getElementById('recs-limit').value,10);
+
+  loading.style.display = 'block';
+  list.innerHTML = '';
+  empty.style.display = 'none';
+
+  try{
+    const url = `/api/recommendations/personalized?limit=${limit}`;
+    const r = await fetch(url);
+    if(!r.ok){
+      loading.style.display = 'none';
+      list.innerHTML = `<div style="color:var(--red);font-size:12px;padding:12px;border-radius:8px;background:rgba(255,0,0,0.08)">Could not load recommendations (${r.status}). ${r.status===401?'Please log in.':''}</div>`;
+      return;
+    }
+    const data = await r.json();
+
+    // Context cards
+    const ps = data.portfolio_summary || {};
+    document.getElementById('ctx-total-debt').textContent = ps.total_debt ? '$'+Number(ps.total_debt).toLocaleString('en-US',{maximumFractionDigits:0}) : '--';
+    document.getElementById('ctx-instrument-count').textContent = ps.instrument_count ?? '--';
+    document.getElementById('ctx-avg-maturity').textContent = ps.avg_maturity ? Number(ps.avg_maturity).toFixed(1)+' yrs' : '--';
+    document.getElementById('ctx-coupon').textContent = ps.weighted_coupon ? (Number(ps.weighted_coupon)*100).toFixed(2)+'%' : '--';
+
+    const mc = data.market_context || {};
+    document.getElementById('market-context').innerHTML = (mc.rate_10y!=null||mc.rate_2y!=null) ? `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
+        ${mc.rate_10y!=null?`<span>10Y yield: <strong style="color:var(--text)">${(Number(mc.rate_10y)*100).toFixed(2)}%</strong></span>`:''}
+        ${mc.rate_2y!=null?`<span>2Y yield: <strong style="color:var(--text)">${(Number(mc.rate_2y)*100).toFixed(2)}%</strong></span>`:''}
+        ${mc.rate_30y!=null?`<span>30Y yield: <strong style="color:var(--text)">${(Number(mc.rate_30y)*100).toFixed(2)}%</strong></span>`:''}
+        ${mc.curve_spread_bps!=null?`<span>Curve spread: <strong style="color:${Number(mc.curve_spread_bps)<0?'var(--red)':'var(--green)'}">${Number(mc.curve_spread_bps).toFixed(0)} bps</strong></span>`:''}
+      </div>` : '';
+
+    const recs = data.recommendations || [];
+    loading.style.display = 'none';
+
+    if(recs.length===0){
+      empty.style.display = 'block';
+      list.innerHTML = '';
+      return;
+    }
+
+    list.innerHTML = recs.map((rec, idx)=>{
+      const score = Math.round(Number(rec.score||0)*100);
+      const barColor = score>=70?'var(--green)':score>=50?'#fbbf24':'var(--red)';
+      const rankBadge = score>=70?'high':score>=50?'medium':'low';
+      return `<div style="padding:16px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,0.2);position:relative">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">#${idx+1} · ${escapeHtml(rec.type||'opportunity')}</span>
+              <span style="font-size:9px;padding:2px 6px;border-radius:4px;background:${barColor}22;color:${barColor};font-weight:600">${rankBadge}</span>
+            </div>
+            <div style="font-size:15px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:6px">${escapeHtml(rec.title)}</div>
+            <p style="font-size:12px;color:var(--text2);line-height:1.5;margin:0 0 10px">${escapeHtml(rec.text)}</p>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:22px;font-weight:800;color:${barColor}">${score}</div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">relevance</div>
+          </div>
+        </div>
+        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden">
+          <div style="width:${score}%;height:100%;background:${barColor};border-radius:2px;transition:width 0.3s"></div>
+        </div>
+        ${rec.relevance_explanation?`<div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.4">${escapeHtml(rec.relevance_explanation)}</div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    loading.style.display = 'none';
+    list.innerHTML = `<div style="color:var(--red);font-size:12px;padding:12px;border-radius:8px;background:rgba(255,0,0,0.08)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+document.getElementById('prefs-form').addEventListener('submit', e=>{
+  e.preventDefault();
+  savePreferences();
+});
+
+document.getElementById('refresh-prefs').addEventListener('click', loadPreferences);
+loadPreferences();
+loadRecommendations();
+</script>
+{% endblock %}
