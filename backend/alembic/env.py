@@ -12,6 +12,7 @@ from app.models.extended import *  # noqa: ensure extended models imported
 from app.models.portfolio_access import *  # noqa: ensure portfolio access models
 from app.models.social import *  # noqa: ensure social models
 from app.models.integrations import *  # noqa: ensure integration models
+from app.agent.models import *  # noqa: ensure agent run/step models imported
 
 config = context.config
 if config.config_file_name is not None:
