@@ -141,6 +141,31 @@ def test_approval_reject_fails_run(auth_client):
     assert d.json()["status"] == "failed"
 
 
+def test_ops_tools_run(auth_client):
+    r = auth_client.post("/api/agent/runs", json={
+        "goal": "Ops overview",
+        "steps": [
+            {"tool": "list_automations", "args": {}},
+            {"tool": "notify_owner", "args": {"title": "review ready"}},
+        ],
+    })
+    assert r.status_code == 202, r.text
+    done = _wait(auth_client, r.json()["id"])
+    assert done["steps"][0]["output"]["ok"] is True
+    assert len(done["steps"][0]["output"]["automations"]) >= 1
+    assert done["steps"][1]["output"]["ok"] is True
+
+
+def test_run_automation_is_gated(auth_client):
+    r = auth_client.post("/api/agent/runs", json={
+        "goal": "Score leads via automation",
+        "steps": [{"tool": "run_automation", "args": {"key": "lead_capture_score"}}],
+    })
+    assert r.status_code == 202, r.text
+    body = _wait(auth_client, r.json()["id"], want=("waiting_approval",))
+    assert body["steps"][0]["status"] == "waiting_approval"
+
+
 def test_org_isolation(client):
     # Second org's run must not leak to first org's user.
     from app.security.csrf import generate_csrf_token

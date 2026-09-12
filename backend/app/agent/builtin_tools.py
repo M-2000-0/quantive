@@ -215,3 +215,76 @@ def save_note(ctx: ToolContext, project_id: str, title: str, body_text: str = ""
     ctx.db.commit()
     ctx.db.refresh(d)
     return {"ok": True, "document_id": d.id, "folder": folder}
+
+
+@quantive_tool("list_automations", "List registered automations with last-run status", risk="read")
+def list_automations(ctx: ToolContext) -> dict:
+    from app.models.automation import Automation
+    from app.services import automation_engine
+
+    automation_engine.ensure_automations(ctx.db)
+    autos = ctx.db.query(Automation).order_by(Automation.category, Automation.key).all()
+    return {
+        "ok": True,
+        "automations": [
+            {"key": a.key, "name": a.name, "category": a.category,
+             "enabled": a.enabled, "last_status": a.last_status} for a in autos
+        ],
+    }
+
+
+@quantive_tool(
+    "run_automation",
+    "Run a registered automation (lead scoring, onboarding, dunning, ...). Side effects possible.",
+    risk="needs_approval",
+    min_role="analyst",
+    timeout_seconds=120,
+    cost=5,
+)
+def run_automation(ctx: ToolContext, key: str) -> dict:
+    from app.services import automation_engine
+
+    try:
+        result = automation_engine.run_automation(key, ctx.db, trigger="agent")
+    except KeyError:
+        return {"ok": False, "error": f"unknown automation: {key}"}
+    return {"ok": result.get("status") != "failed", **result}
+
+
+@quantive_tool("optimization_status", "Job progress + result counts for verification", risk="read")
+def optimization_status(ctx: ToolContext, job_id: str) -> dict:
+    from app.models import BenchmarkResult, OptimizationJob, OptimizationResult, Strategy
+
+    job = (
+        ctx.db.query(OptimizationJob)
+        .filter(OptimizationJob.id == job_id, OptimizationJob.org_id == ctx.org_id)
+        .first()
+    )
+    if not job:
+        return {"ok": False, "error": "job not found"}
+    return {
+        "ok": True,
+        "job_id": job.id,
+        "status": str(job.status),
+        "progress": job.progress,
+        "strategies": ctx.db.query(Strategy).filter(Strategy.job_id == job.id).count(),
+        "results": ctx.db.query(OptimizationResult).filter(OptimizationResult.job_id == job.id).count(),
+        "benchmarks": ctx.db.query(BenchmarkResult).filter(BenchmarkResult.job_id == job.id).count(),
+        "error": job.error_message,
+    }
+
+
+@quantive_tool(
+    "notify_owner",
+    "Create an in-app notification for the run creator (no external send)",
+    risk="write_internal",
+    min_role="analyst",
+)
+def notify_owner(ctx: ToolContext, title: str, message: str = "") -> dict:
+    from app.models.extended import Notification
+
+    n = Notification(user_id=ctx.user.id, type="system", title=title[:255],
+                     message=message[:5000], resource_type="agent_run", resource_id=ctx.run_id)
+    ctx.db.add(n)
+    ctx.db.commit()
+    return {"ok": True, "notification_id": n.id}
