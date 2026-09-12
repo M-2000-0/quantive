@@ -122,7 +122,27 @@ API keys (FRED, NewsAPI, OpenAI, Stripe, webhook secrets) are provided via envir
 
 ### 5. Activate Workflows
 
-After configuring credentials and testing each workflow:
+After configuring credentials and testing each workflow, run the go-live
+checklist below. Every n8n cycle also reports itself to the Quantive
+backend's `/api/automation/webhooks/external-run`, so n8n runs appear in
+the `/automation` dashboard run history (HMAC-verified via
+`x-quantive-signature`; set `QUANTIVE_WEBHOOK_SECRET` in both n8n and the
+backend to enforce it).
+
+#### Go-Live Checklist
+
+| # | Step | Verified when |
+|---|---|---|
+| 1 | Postgres schema applied | `psql -f schemas/database-schema.sql` runs clean; `workflows` schema exists |
+| 2 | Credentials created (7) | All workflows show no missing-credential warnings |
+| 3 | WF-0 imported + activated | Trigger a test failure in any workflow → error row in `workflows.workflow_errors` + Slack ping |
+| 4 | WF-0 wired as error workflow | Settings → Error Workflow on WF-1..4 points at the imported WF-0 id |
+| 5 | Backend reachable from n8n | `QUANTIVE_BASE_URL` set; WF-3 health cron records a healthy `api_health_checks` row |
+| 6 | Bridge verified | Any WF-3/WF-4 cycle creates an `n8n:*` run in the /automation dashboard |
+| 7 | Stripe webhook registered | Stripe Dashboard → Webhooks points at n8n's Stripe Trigger production URL; a test payment flips the org plan in the app |
+| 8 | Execution logging on | n8n executions saved; `workflows.workflow_executions` rows appear via SVC-3 |
+| 9 | Monitoring live | `analyze_tables.py` passes after any future workflow SQL change |
+| 10 | Secrets audit | No API keys in workflow JSON; all via env/credentials; `.env` not committed |
 
 ```bash
 # Or activate via n8n API

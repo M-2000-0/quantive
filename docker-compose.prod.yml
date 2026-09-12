@@ -69,7 +69,7 @@ services:
         condition: service_healthy
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=postgresql+asyncpg://quantive:${POSTGRES_PASSWORD}@postgres:5432/quantive
+      - DATABASE_URL=postgresql+psycopg2://quantive:${POSTGRES_PASSWORD}@postgres:5432/quantive
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - CORS_ORIGINS=${CORS_ORIGINS:-https://yourdomain.gov}
       - DEBUG=false
@@ -93,6 +93,11 @@ services:
         reservations:
           memory: 2G
           cpus: '2'
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   # ── Frontend (Nginx) ────────────────────────────────────────────────
   frontend:
@@ -106,7 +111,7 @@ services:
 
   # ── Nginx Reverse Proxy ─────────────────────────────────────────────
   nginx:
-    image: nginx:alpine
+    image: nginx:1.27-alpine
     container_name: quantive-nginx
     restart: unless-stopped
     depends_on:
@@ -121,6 +126,11 @@ services:
       - nginx-logs:/var/log/nginx
     networks:
       - quantive-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
 volumes:
   postgres-data:

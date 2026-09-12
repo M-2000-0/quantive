@@ -1,0 +1,4046 @@
+{
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "name": "Quantive Management Dashboard & Internal Operations",
+  "connections": {
+    "Customer Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Customer Postgres Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Postgres Metrics": {
+      "main": [
+        [
+          {
+            "node": "Customer Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Compute Metrics": {
+      "main": [
+        [
+          {
+            "node": "Customer HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Customer Postgres Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Churn Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Churn Postgres Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Churn Postgres Analysis": {
+      "main": [
+        [
+          {
+            "node": "Churn Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Churn Compute Metrics": {
+      "main": [
+        [
+          {
+            "node": "Churn HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Churn Postgres Insert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Churn Rate High?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Churn Rate High?": {
+      "main": [
+        [
+          {
+            "node": "Churn Alert Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pipeline Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Pipeline Postgres Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pipeline Postgres Query": {
+      "main": [
+        [
+          {
+            "node": "Pipeline Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pipeline Compute Metrics": {
+      "main": [
+        [
+          {
+            "node": "Pipeline HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pipeline Postgres Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Demo Postgres Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Postgres Query": {
+      "main": [
+        [
+          {
+            "node": "Demo Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Compute Metrics": {
+      "main": [
+        [
+          {
+            "node": "Demo HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Demo Postgres Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Activity Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "User Activity Postgres Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Activity Postgres Query": {
+      "main": [
+        [
+          {
+            "node": "User Activity Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Activity Compute Metrics": {
+      "main": [
+        [
+          {
+            "node": "User Activity HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "User Activity Postgres Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prediction Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Model Performance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Model Performance": {
+      "main": [
+        [
+          {
+            "node": "Prediction Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prediction Compute Metrics": {
+      "main": [
+        [
+          {
+            "node": "Prediction HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prediction Postgres Insert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Drift Detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drift Detected?": {
+      "main": [
+        [
+          {
+            "node": "Drift Alert Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System Monitor Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Health Check Backend",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "System Metrics Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Check Backend": {
+      "main": [
+        [
+          {
+            "node": "System Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System Metrics Postgres": {
+      "main": [
+        [
+          {
+            "node": "System Compute Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "System Compute Metrics": {
+      "main": [
+        [
+          {
+            "node": "System Metrics HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "System Postgres Insert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Backend Unhealthy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backend Unhealthy?": {
+      "main": [
+        [
+          {
+            "node": "Unhealthy Alert Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Team Notification Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Team HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Team HMAC": {
+      "main": [
+        [
+          {
+            "node": "Notification Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notification Route": {
+      "main": [
+        [
+          {
+            "node": "Send Team Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Team Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Team SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Creation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Task HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Task HMAC": {
+      "main": [
+        [
+          {
+            "node": "Insert Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Task": {
+      "main": [
+        [
+          {
+            "node": "Task Created Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Created Slack": {
+      "main": [
+        [
+          {
+            "node": "Respond Task Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meeting Schedule Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Meeting HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Meeting HMAC": {
+      "main": [
+        [
+          {
+            "node": "Insert Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Meeting": {
+      "main": [
+        [
+          {
+            "node": "Insert Meeting Attendees",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Meeting Attendees": {
+      "main": [
+        [
+          {
+            "node": "Meeting Scheduled Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meeting Scheduled Slack": {
+      "main": [
+        [
+          {
+            "node": "Respond Meeting Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Generation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Document HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Document HMAC": {
+      "main": [
+        [
+          {
+            "node": "Generate Document Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Document Content": {
+      "main": [
+        [
+          {
+            "node": "Email Document",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Document Record",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond Document Generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contract Workflow Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Contract HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Contract HMAC": {
+      "main": [
+        [
+          {
+            "node": "Contract Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contract Action": {
+      "main": [
+        [
+          {
+            "node": "Create Contract Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Approve Contract",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Contract Record": {
+      "main": [
+        [
+          {
+            "node": "Contract Status Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve Contract": {
+      "main": [
+        [
+          {
+            "node": "Contract Status Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reject Contract": {
+      "main": [
+        [
+          {
+            "node": "Contract Status Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contract Status Slack": {
+      "main": [
+        [
+          {
+            "node": "Respond Contract Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Automation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Email HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Email HMAC": {
+      "main": [
+        [
+          {
+            "node": "Email Template Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Template Route": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Follow-up Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Newsletter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Log Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-up Email": {
+      "main": [
+        [
+          {
+            "node": "Log Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Newsletter": {
+      "main": [
+        [
+          {
+            "node": "Log Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Email Sent": {
+      "main": [
+        [
+          {
+            "node": "Respond Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Report Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Daily Metrics Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Metrics Query": {
+      "main": [
+        [
+          {
+            "node": "Format Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Daily Report": {
+      "main": [
+        [
+          {
+            "node": "Post Daily Report Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Report Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Weekly Metrics Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Metrics Query": {
+      "main": [
+        [
+          {
+            "node": "Format Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Weekly Report": {
+      "main": [
+        [
+          {
+            "node": "Post Weekly Report Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Weekly Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Alert Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Error Alerts Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Alerts Query": {
+      "main": [
+        [
+          {
+            "node": "Gate Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate Error Alert": {
+      "main": [
+        [
+          {
+            "node": "Error Alert Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Error Alert Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup Monitor Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Backup Status Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup Status Query": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Backup Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Backup Health": {
+      "main": [
+        [
+          {
+            "node": "Backup Status HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Backup Unhealthy?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup Unhealthy?": {
+      "main": [
+        [
+          {
+            "node": "Backup Alert Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Backup OK Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Monitor Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Failed Logins Query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Audit Log Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Failed Logins Query": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Security",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Log Query": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Security",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Security": {
+      "main": [
+        [
+          {
+            "node": "Security Metrics HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Threat Detected?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Security Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Threat Detected?": {
+      "main": [
+        [
+          {
+            "node": "Security Alert Critical Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Security Status Low Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Integration Hub Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Dashboard Data Aggregation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard Data Aggregation": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Dashboard Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Dashboard Health": {
+      "main": [
+        [
+          {
+            "node": "Hub Status HTTP Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Hub Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Data Stale?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Stale?": {
+      "main": [
+        [
+          {
+            "node": "Stale Data Alert Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hub Status OK Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "rev-sched",
+      "name": "Revenue Schedule Trigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "hoursInterval": 1,
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "rev-pg-metrics",
+      "name": "Revenue Postgres Metrics",
+      "parameters": {
+        "query": "SELECT DATE_TRUNC('month', created_at) AS month, plan_tier, COUNT(DISTINCT customer_id) AS customer_count, SUM(amount) AS mrr, SUM(amount) * 12 AS arr, AVG(amount) AS arpu, SUM(amount) / COUNT(DISTINCT customer_id) AS ltv FROM subscriptions WHERE status = 'active' AND created_at >= NOW() - INTERVAL '12 months' GROUP BY DATE_TRUNC('month', created_at), plan_tier ORDER BY month DESC, plan_tier;",
+        "operation": "executeQuery",
+        "additionalFields": {},
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        220,
+        0
+      ],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "rev-code",
+      "name": "Revenue Compute Metrics",
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst currentMonth = items.filter(i => { const d = new Date(i.json.month); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });\nconst previousMonth = items.filter(i => { const d = new Date(i.json.month); const prev = new Date(now); prev.setMonth(prev.getMonth() - 1); return d.getMonth() === prev.getMonth() && d.getFullYear() === prev.getFullYear(); });\nconst currentMRR = currentMonth.reduce((sum, i) => sum + (i.json.mrr || 0), 0);\nconst previousMRR = previousMonth.reduce((sum, i) => sum + (i.json.mrr || 0), 0);\nconst mrrGrowthRate = previousMRR > 0 ? ((currentMRR - previousMRR) / previousMRR * 100) : 0;\nconst revenueByTier = {};\ncurrentMonth.forEach(i => { const tier = i.json.plan_tier; if (!revenueByTier[tier]) revenueByTier[tier] = { mrr: 0, arr: 0, customers: 0 }; revenueByTier[tier].mrr += i.json.mrr || 0; revenueByTier[tier].arr += i.json.arr || 0; revenueByTier[tier].customers += i.json.customer_count || 0; });\nconst forecast = { nextMonth: currentMRR * (1 + mrrGrowthRate / 100), nextQuarter: currentMRR * 3 * Math.pow(1 + mrrGrowthRate / 100, 3), nextYear: currentMRR * 12 * Math.pow(1 + mrrGrowthRate / 100, 12) };\nreturn [{ json: { timestamp: now.toISOString(), mrr: currentMRR, arr: currentMRR * 12, arpu: currentMonth.reduce((sum, i) => sum + (i.json.arpu || 0), 0) / Math.max(currentMonth.length, 1), ltv: currentMonth.reduce((sum, i) => sum + (i.json.ltv || 0), 0) / Math.max(currentMonth.length, 1), mrrGrowthRate, revenueByTier, forecast, totalCustomers: currentMonth.reduce((sum, i) => sum + (i.json.customer_count || 0), 0) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        440,
+        0
+      ],
+      "typeVersion": 2
+    },
+    {
+      "id": "rev-http",
+      "name": "Revenue HTTP Post",
+      "parameters": {
+        "headerParameters": {
+          "parameters": [
+            {
+              "value": "application/json",
+              "name": "Content-Type"
+            },
+            {
+              "value": "=Bearer {$env.BACKEND_API_KEY}",
+              "name": "Authorization"
+            }
+          ]
+        },
+        "method": "POST",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/revenue",
+        "sendHeaders": true,
+        "options": {
+          "maxTries": 3,
+          "retryOnFail": true,
+          "timeout": 30000
+        },
+        "sendBody": true
+      },
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        660,
+        0
+      ],
+      "typeVersion": 4.1
+    },
+    {
+      "id": "rev-pg-insert",
+      "name": "Revenue Postgres Insert",
+      "parameters": {
+        "query": "INSERT INTO revenue_dashboard_data (timestamp, mrr, arr, arpu, ltv, mrr_growth_rate, revenue_by_tier, forecast, total_customers) VALUES ('{{ $json.timestamp }}', {{ $json.mrr }}, {{ $json.arr }}, {{ $json.arpu }}, {{ $json.ltv }}, {{ $json.mrrGrowthRate }}, '{{ JSON.stringify($json.revenueByTier) }}'::jsonb, '{{ JSON.stringify($json.forecast) }}'::jsonb, {{ $json.totalCustomers }});",
+        "operation": "executeQuery",
+        "additionalFields": {},
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        880,
+        0
+      ],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "mrr-sched",
+      "name": "MRR Schedule Trigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "hoursInterval": 1,
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        0,
+        200
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "id": "mrr-pg",
+      "name": "MRR Postgres Breakdown",
+      "parameters": {
+        "query": "WITH current_mrr AS (SELECT plan_tier, SUM(amount) AS mrr FROM subscriptions WHERE status = 'active' GROUP BY plan_tier), previous_mrr AS (SELECT plan_tier, SUM(amount) AS mrr FROM subscriptions WHERE status = 'active' AND created_at < DATE_TRUNC('month', NOW()) GROUP BY plan_tier), new_mrr AS (SELECT plan_tier, SUM(amount) AS mrr FROM subscriptions WHERE status = 'active' AND created_at >= DATE_TRUNC('month', NOW()) GROUP BY plan_tier), churned_mrr AS (SELECT plan_tier, SUM(amount) AS mrr FROM subscriptions WHERE status = 'cancelled' AND cancelled_at >= DATE_TRUNC('month', NOW()) GROUP BY plan_tier) SELECT c.plan_tier, c.mrr AS current_mrr, COALESCE(p.mrr, 0) AS previous_mrr, COALESCE(n.mrr, 0) AS new_mrr, COALESCE(ch.mrr, 0) AS churned_mrr, COALESCE(p.mrr, 0) - COALESCE(ch.mrr, 0) AS retained_mrr FROM current_mrr c LEFT JOIN previous_mrr p ON c.plan_tier = p.plan_tier LEFT JOIN new_mrr n ON c.plan_tier = n.plan_tier LEFT JOIN churned_mrr ch ON c.plan_tier = ch.plan_tier ORDER BY c.plan_tier;",
+        "operation": "executeQuery",
+        "additionalFields": {},
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        220,
+        200
+      ],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "mrr-code",
+      "name": "MRR Compute Components",
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nlet totalMRR = 0, totalNewMRR = 0, totalExpansionMRR = 0, totalContractionMRR = 0, totalChurnedMRR = 0;\nconst mrrByPlan = {};\nitems.forEach(item => { const d = item.json; const tier = d.plan_tier; totalMRR += d.current_mrr || 0; totalNewMRR += d.new_mrr || 0; totalChurnedMRR += d.churned_mrr || 0; if (!mrrByPlan[tier]) mrrByPlan[tier] = { mrr: 0, previousMrr: 0, newMrr: 0, churnedMrr: 0, netNewMrr: 0 }; mrrByPlan[tier].mrr += d.current_mrr || 0; mrrByPlan[tier].previousMrr += d.previous_mrr || 0; mrrByPlan[tier].newMrr += d.new_mrr || 0; mrrByPlan[tier].churnedMrr += d.churned_mrr || 0; mrrByPlan[tier].netNewMrr = mrrByPlan[tier].newMrr - mrrByPlan[tier].churnedMrr; if (d.current_mrr > (d.previous_mrr || 0)) totalExpansionMRR += d.current_mrr - (d.previous_mrr || 0); else totalContractionMRR += (d.previous_mrr || 0) - d.current_mrr; });\nconst netNewMRR = totalNewMRR + totalExpansionMRR - totalContractionMRR - totalChurnedMRR;\nconst previousTotalMRR = items.reduce((sum, i) => sum + (i.json.previous_mrr || 0), 0);\nconst growthRate = previousTotalMRR > 0 ? ((totalMRR - previousTotalMRR) / previousTotalMRR * 100) : 0;\nreturn [{ json: { timestamp: now.toISOString(), totalMRR, totalNewMRR, totalExpansionMRR, totalContractionMRR, totalChurnedMRR, netNewMRR, growthRate, previousTotalMRR, mrrByPlan, arr: totalMRR * 12 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "position": [
+        440,
+        200
+      ],
+      "typeVersion": 2
+    },
+    {
+      "id": "mrr-http",
+      "name": "MRR HTTP Post",
+      "parameters": {
+        "headerParameters": {
+          "parameters": [
+            {
+              "value": "application/json",
+              "name": "Content-Type"
+            },
+            {
+              "value": "=Bearer {$env.BACKEND_API_KEY}",
+              "name": "Authorization"
+            }
+          ]
+        },
+        "method": "POST",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/mrr",
+        "sendHeaders": true,
+        "options": {
+          "maxTries": 3,
+          "retryOnFail": true,
+          "timeout": 30000
+        },
+        "sendBody": true
+      },
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        660,
+        200
+      ],
+      "typeVersion": 4.1
+    },
+    {
+      "id": "mrr-pg-insert",
+      "name": "MRR Postgres Insert",
+      "parameters": {
+        "query": "INSERT INTO mrr_dashboard_data (timestamp, total_mrr, total_new_mrr, total_expansion_mrr, total_contraction_mrr, total_churned_mrr, net_new_mrr, growth_rate, previous_total_mrr, mrr_by_plan, arr) VALUES ('{{ $json.timestamp }}', {{ $json.totalMRR }}, {{ $json.totalNewMRR }}, {{ $json.totalExpansionMRR }}, {{ $json.totalContractionMRR }}, {{ $json.totalChurnedMRR }}, {{ $json.netNewMRR }}, {{ $json.growthRate }}, {{ $json.previousTotalMRR }}, '{{ JSON.stringify($json.mrrByPlan) }}'::jsonb, {{ $json.arr }});",
+        "operation": "executeQuery",
+        "additionalFields": {},
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "position": [
+        880,
+        200
+      ],
+      "typeVersion": 2.1
+    },
+    {
+      "id": "cust-sched",
+      "name": "Customer Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "id": "cust-pg",
+      "name": "Customer Postgres Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DATE_TRUNC('month', created_at) AS month,\n  COUNT(DISTINCT id) AS total_customers,\n  COUNT(DISTINCT id) FILTER (WHERE status = 'active') AS active_customers,\n  COUNT(DISTINCT id) FILTER (WHERE status = 'churned') AS churned_customers,\n  COUNT(DISTINCT id) FILTER (WHERE status = 'active' AND plan = 'starter') AS starter_customers,\n  COUNT(DISTINCT id) FILTER (WHERE status = 'active' AND plan = 'pro') AS pro_customers,\n  COUNT(DISTINCT id) FILTER (WHERE status = 'active' AND plan = 'enterprise') AS enterprise_customers,\n  AVG(EXTRACT(EPOCH FROM (COALESCE(churned_at, NOW()) - created_at)) / 86400) AS avg_lifetime_days\nFROM customers\nWHERE created_at >= NOW() - INTERVAL '12 months'\nGROUP BY DATE_TRUNC('month', created_at)\nORDER BY month DESC;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "cust-code",
+      "name": "Customer Compute Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst currentMonth = items.filter(i => { const d = new Date(i.json.month); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });\nconst previousMonth = items.filter(i => { const d = new Date(i.json.month); const prev = new Date(now); prev.setMonth(prev.getMonth() - 1); return d.getMonth() === prev.getMonth() && d.getFullYear() === prev.getFullYear(); });\nconst current = currentMonth[0] || {};\nconst prev = previousMonth[0] || {};\nconst totalCustomers = current.total_customers || 0;\nconst activeCustomers = current.active_customers || 0;\nconst churnedCustomers = current.churned_customers || 0;\nconst previousTotal = prev.total_customers || 0;\nconst customerGrowthRate = previousTotal > 0 ? ((totalCustomers - previousTotal) / previousTotal * 100) : 0;\nconst churnRate = activeCustomers > 0 ? (churnedCustomers / (activeCustomers + churnedCustomers) * 100) : 0;\nconst retentionRate = 100 - churnRate;\nconst planDistribution = {\n  starter: current.starter_customers || 0,\n  pro: current.pro_customers || 0,\n  enterprise: current.enterprise_customers || 0\n};\nconst avgLifetimeDays = current.avg_lifetime_days || 0;\nconst avgLifetimeMonths = avgLifetimeDays / 30;\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  totalCustomers, activeCustomers, churnedCustomers,\n  customerGrowthRate, churnRate, retentionRate,\n  planDistribution, avgLifetimeDays, avgLifetimeMonths,\n  previousTotal\n}}];"
+      },
+      "position": [
+        440,
+        400
+      ]
+    },
+    {
+      "id": "cust-http",
+      "name": "Customer HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "cust-pg-insert",
+      "name": "Customer Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO customer_dashboard_data (timestamp, total_customers, active_customers, churned_customers, customer_growth_rate, churn_rate, retention_rate, plan_distribution, avg_lifetime_days)\nVALUES ('{{ $json.timestamp }}', {{ $json.totalCustomers }}, {{ $json.activeCustomers }}, {{ $json.churnedCustomers }}, {{ $json.customerGrowthRate }}, {{ $json.churnRate }}, {{ $json.retentionRate }}, '{{ JSON.stringify($json.planDistribution) }}'::jsonb, {{ $json.avgLifetimeDays }});",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "churn-sched",
+      "name": "Churn Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        600
+      ]
+    },
+    {
+      "id": "churn-pg",
+      "name": "Churn Postgres Analysis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH churned AS (\n  SELECT id, email, plan, created_at, churned_at,\n    EXTRACT(EPOCH FROM (churned_at - created_at)) / 86400 AS lifetime_days,\n    CASE\n      WHEN churned_at - created_at < INTERVAL '30 days' THEN 'early'\n      WHEN churned_at - created_at < INTERVAL '90 days' THEN 'medium'\n      ELSE 'long_term'\n    END AS tenure_segment\n  FROM customers WHERE status = 'churned' AND churned_at >= NOW() - INTERVAL '30 days'\n),\nactive AS (\n  SELECT id, plan, created_at,\n    EXTRACT(EPOCH FROM (NOW() - created_at)) / 86400 AS tenure_days\n  FROM customers WHERE status = 'active'\n)\nSELECT\n  (SELECT COUNT(*) FROM churned) AS churned_count,\n  (SELECT COUNT(*) FROM churned WHERE tenure_segment = 'early') AS early_churn,\n  (SELECT COUNT(*) FROM churned WHERE tenure_segment = 'medium') AS medium_churn,\n  (SELECT COUNT(*) FROM churned WHERE tenure_segment = 'long_term') AS long_term_churn,\n  (SELECT AVG(lifetime_days) FROM churned) AS avg_lifetime_days,\n  (SELECT plan, COUNT(*) AS cnt FROM churned GROUP BY plan) AS churn_by_plan_json,\n  (SELECT COUNT(*) FROM active WHERE tenure_days > 90) AS at_risk_candidates;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "churn-code",
+      "name": "Churn Compute Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst d = items[0] ? items[0].json : {};\nconst churnedCount = parseInt(d.churned_count) || 0;\nconst earlyChurn = parseInt(d.early_churn) || 0;\nconst mediumChurn = parseInt(d.medium_churn) || 0;\nconst longTermChurn = parseInt(d.long_term_churn) || 0;\nconst avgLifetimeDays = parseFloat(d.avg_lifetime_days) || 0;\nconst atRiskCandidates = parseInt(d.at_risk_candidates) || 0;\nconst earlyChurnRate = churnedCount > 0 ? (earlyChurn / churnedCount * 100) : 0;\nconst healthScore = Math.max(0, 100 - earlyChurnRate * 2 - (atRiskCandidates > 10 ? 20 : 0));\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  churnedCount, earlyChurn, mediumChurn, longTermChurn,\n  avgLifetimeDays, atRiskCandidates, earlyChurnRate, healthScore\n}}];"
+      },
+      "position": [
+        440,
+        600
+      ]
+    },
+    {
+      "id": "churn-http",
+      "name": "Churn HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/churn",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        600
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "churn-pg-insert",
+      "name": "Churn Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO churn_dashboard_data (timestamp, churned_count, early_churn, medium_churn, long_term_churn, avg_lifetime_days, at_risk_candidates, early_churn_rate, health_score)\nVALUES ('{{ $json.timestamp }}', {{ $json.churnedCount }}, {{ $json.earlyChurn }}, {{ $json.mediumChurn }}, {{ $json.longTermChurn }}, {{ $json.avgLifetimeDays }}, {{ $json.atRiskCandidates }}, {{ $json.earlyChurnRate }}, {{ $json.healthScore }});",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "churn-if-high",
+      "name": "Churn Rate High?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.earlyChurnRate > 30 }}",
+              "value2": true,
+              "id": "9e924694-ffe2-5b2c-8411-3463c30e1621"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "position": [
+        1100,
+        600
+      ]
+    },
+    {
+      "id": "churn-slack-alert",
+      "name": "Churn Alert Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#customer-success",
+        "text": "⚠️ *High Churn Rate*\nEarly churn rate: {{ $json.earlyChurnRate }}%\nAt-risk customers: {{ $json.atRiskCandidates }}\nHealth score: {{ $json.healthScore }}/100",
+        "otherOptions": {}
+      },
+      "position": [
+        1320,
+        550
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "pipe-sched",
+      "name": "Pipeline Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        800
+      ]
+    },
+    {
+      "id": "pipe-pg",
+      "name": "Pipeline Postgres Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT stage, COUNT(*) AS deal_count, SUM(value) AS total_value, AVG(value) AS avg_value,\n  COUNT(*) FILTER (WHERE closed_at >= NOW() - INTERVAL '7 days') AS closed_7d,\n  COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS created_7d\nFROM deals\nGROUP BY stage\nORDER BY\n  CASE stage\n    WHEN 'prospecting' THEN 1\n    WHEN 'qualification' THEN 2\n    WHEN 'proposal' THEN 3\n    WHEN 'negotiation' THEN 4\n    WHEN 'closed_won' THEN 5\n    WHEN 'closed_lost' THEN 6\n  END;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "pipe-code",
+      "name": "Pipeline Compute Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst stages = items.map(i => i.json);\nconst totalDeals = stages.reduce((sum, s) => sum + (parseInt(s.deal_count) || 0), 0);\nconst totalValue = stages.reduce((sum, s) => sum + (parseFloat(s.total_value) || 0), 0);\nconst avgDealSize = totalDeals > 0 ? totalValue / totalDeals : 0;\nconst closedWon = stages.find(s => s.stage === 'closed_won');\nconst closedLost = stages.find(s => s.stage === 'closed_lost');\nconst wonCount = closedWon ? parseInt(closedWon.deal_count) || 0 : 0;\nconst lostCount = closedLost ? parseInt(closedLost.deal_count) || 0 : 0;\nconst conversionRate = (wonCount + lostCount) > 0 ? (wonCount / (wonCount + lostCount) * 100) : 0;\nconst weightedPipeline = stages.reduce((sum, s) => {\n  const mult = {prospecting: 0.1, qualification: 0.2, proposal: 0.5, negotiation: 0.7, closed_won: 1, closed_lost: 0};\n  return sum + (parseFloat(s.total_value) || 0) * (mult[s.stage] || 0);\n}, 0);\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  stages, totalDeals, totalValue, avgDealSize,\n  wonCount, lostCount, conversionRate, weightedPipeline\n}}];"
+      },
+      "position": [
+        440,
+        800
+      ]
+    },
+    {
+      "id": "pipe-http",
+      "name": "Pipeline HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/pipeline",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        800
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "pipe-pg-insert",
+      "name": "Pipeline Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO pipeline_dashboard_data (timestamp, total_deals, total_value, avg_deal_size, won_count, lost_count, conversion_rate, weighted_pipeline, stages)\nVALUES ('{{ $json.timestamp }}', {{ $json.totalDeals }}, {{ $json.totalValue }}, {{ $json.avgDealSize }}, {{ $json.wonCount }}, {{ $json.lostCount }}, {{ $json.conversionRate }}, {{ $json.weightedPipeline }}, '{{ JSON.stringify($json.stages) }}'::jsonb);",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "demo-sched",
+      "name": "Demo Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        1000
+      ]
+    },
+    {
+      "id": "demo-pg",
+      "name": "Demo Postgres Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DATE_TRUNC('week', demo_date) AS week,\n  COUNT(*) AS total_demos,\n  COUNT(*) FILTER (WHERE status = 'completed') AS completed_demos,\n  COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled_demos,\n  COUNT(*) FILTER (WHERE demo_type = 'discovery') AS discovery_demos,\n  COUNT(*) FILTER (WHERE demo_type = 'technical') AS technical_demos,\n  COUNT(*) FILTER (WHERE demo_type = 'executive') AS executive_demos,\n  AVG(CASE WHEN status = 'completed' THEN 1.0 ELSE 0.0 END) * 100 AS completion_rate\nFROM demos\nWHERE demo_date >= NOW() - INTERVAL '12 weeks'\nGROUP BY DATE_TRUNC('week', demo_date)\nORDER BY week DESC;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        1000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "demo-code",
+      "name": "Demo Compute Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst current = items[0] ? items[0].json : {};\nconst totalDemos = parseInt(current.total_demos) || 0;\nconst completedDemos = parseInt(current.completed_demos) || 0;\nconst completionRate = totalDemos > 0 ? (completedDemos / totalDemos * 100) : 0;\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  totalDemos, completedDemos,\n  cancelledDemos: parseInt(current.cancelled_demos) || 0,\n  discoveryDemos: parseInt(current.discovery_demos) || 0,\n  technicalDemos: parseInt(current.technical_demos) || 0,\n  executiveDemos: parseInt(current.executive_demos) || 0,\n  completionRate\n}}];"
+      },
+      "position": [
+        440,
+        1000
+      ]
+    },
+    {
+      "id": "demo-http",
+      "name": "Demo HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/demos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        1000
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "demo-pg-insert",
+      "name": "Demo Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO demo_dashboard_data (timestamp, total_demos, completed_demos, cancelled_demos, discovery_demos, technical_demos, executive_demos, completion_rate)\nVALUES ('{{ $json.timestamp }}', {{ $json.totalDemos }}, {{ $json.completedDemos }}, {{ $json.cancelledDemos }}, {{ $json.discoveryDemos }}, {{ $json.technicalDemos }}, {{ $json.executiveDemos }}, {{ $json.completionRate }});",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        1000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "useract-sched",
+      "name": "User Activity Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        1200
+      ]
+    },
+    {
+      "id": "useract-pg",
+      "name": "User Activity Postgres Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DATE_TRUNC('day', last_active_at) AS day,\n  COUNT(DISTINCT id) AS active_users,\n  COUNT(DISTINCT id) FILTER (WHERE last_active_at >= NOW() - INTERVAL '24 hours') AS active_24h,\n  COUNT(DISTINCT id) FILTER (WHERE last_active_at >= NOW() - INTERVAL '7 days') AS active_7d,\n  COUNT(DISTINCT id) FILTER (WHERE last_active_at >= NOW() - INTERVAL '30 days') AS active_30d,\n  AVG(EXTRACT(EPOCH FROM (NOW() - last_active_at)) / 86400) AS avg_days_since_active\nFROM users\nWHERE is_active = TRUE\nGROUP BY DATE_TRUNC('day', last_active_at)\nORDER BY day DESC\nLIMIT 30;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "useract-code",
+      "name": "User Activity Compute Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst latest = items[0] ? items[0].json : {};\nconst active24h = parseInt(latest.active_24h) || 0;\nconst active7d = parseInt(latest.active_7d) || 0;\nconst active30d = parseInt(latest.active_30d) || 0;\nconst avgDaysSinceActive = parseFloat(latest.avg_days_since_active) || 0;\nconst engagementRate = active30d > 0 ? (active7d / active30d * 100) : 0;\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  active24h, active7d, active30d, avgDaysSinceActive, engagementRate\n}}];"
+      },
+      "position": [
+        440,
+        1200
+      ]
+    },
+    {
+      "id": "useract-http",
+      "name": "User Activity HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/user-activity",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        1200
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "useract-pg-insert",
+      "name": "User Activity Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO user_activity_dashboard_data (timestamp, active_24h, active_7d, active_30d, avg_days_since_active, engagement_rate)\nVALUES ('{{ $json.timestamp }}', {{ $json.active24h }}, {{ $json.active7d }}, {{ $json.active30d }}, {{ $json.avgDaysSinceActive }}, {{ $json.engagementRate }});",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "pred-sched",
+      "name": "Prediction Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        1400
+      ]
+    },
+    {
+      "id": "pred-http",
+      "name": "Fetch Model Performance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/api/ai/model-performance",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        220,
+        1400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "pred-code",
+      "name": "Prediction Compute Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst perf = items[0] ? items[0].json : {};\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  accuracy: perf.accuracy || 0,\n  precision: perf.precision || 0,\n  recall: perf.recall || 0,\n  f1Score: perf.f1_score || 0,\n  totalPredictions: perf.total_predictions || 0,\n  correctPredictions: perf.correct_predictions || 0,\n  driftScore: perf.drift_score || 0,\n  modelVersion: perf.model_version || 'unknown'\n}}];"
+      },
+      "position": [
+        440,
+        1400
+      ]
+    },
+    {
+      "id": "pred-http-post",
+      "name": "Prediction HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/predictions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        1400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "pred-pg-insert",
+      "name": "Prediction Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO prediction_dashboard_data (timestamp, accuracy, precision_score, recall_score, f1_score, total_predictions, correct_predictions, drift_score, model_version)\nVALUES ('{{ $json.timestamp }}', {{ $json.accuracy }}, {{ $json.precision }}, {{ $json.recall }}, {{ $json.f1Score }}, {{ $json.totalPredictions }}, {{ $json.correctPredictions }}, {{ $json.driftScore }}, '{{ $json.modelVersion }}');",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        1400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "pred-if-drift",
+      "name": "Drift Detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.driftScore > 0.1 }}",
+              "value2": true,
+              "id": "ec6bb0f8-2aae-5aa0-b2be-f0e9a52ab178"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "position": [
+        1100,
+        1400
+      ]
+    },
+    {
+      "id": "pred-slack-drift",
+      "name": "Drift Alert Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#platform-alerts",
+        "text": "⚠️ *Model Drift Detected*\nDrift score: {{ $json.driftScore }}\nModel: {{ $json.modelVersion }}\nAccuracy: {{ $json.accuracy }}%",
+        "otherOptions": {}
+      },
+      "position": [
+        1320,
+        1350
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "sysmon-sched",
+      "name": "System Monitor Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        1600
+      ]
+    },
+    {
+      "id": "sysmon-http",
+      "name": "Health Check Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/api/optimize-debt/status",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 10000
+        }
+      },
+      "position": [
+        220,
+        1600
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "sysmon-pg",
+      "name": "System Metrics Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  (SELECT COUNT(*) FROM optimization_jobs WHERE status = 'running') AS running_jobs,\n  (SELECT COUNT(*) FROM optimization_jobs WHERE status = 'completed' AND completed_at >= NOW() - INTERVAL '24 hours') AS completed_24h,\n  (SELECT COUNT(*) FROM optimization_jobs WHERE status = 'failed' AND completed_at >= NOW() - INTERVAL '24 hours') AS failed_24h,\n  (SELECT AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) FROM optimization_jobs WHERE status = 'completed' AND completed_at >= NOW() - INTERVAL '24 hours') AS avg_job_duration,\n  (SELECT COUNT(*) FROM users WHERE last_active_at >= NOW() - INTERVAL '1 hour') AS active_users_1h,\n  (SELECT pg_database_size('quantive')) AS db_size_bytes;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        1800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "sysmon-code",
+      "name": "System Compute Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst health = items[0] ? items[0].json : {};\nconst metrics = items[1] ? items[1].json : {};\nconst backendHealthy = health && health.status === 'operational';\nconst runningJobs = parseInt(metrics.running_jobs) || 0;\nconst completed24h = parseInt(metrics.completed_24h) || 0;\nconst failed24h = parseInt(metrics.failed_24h) || 0;\nconst avgJobDuration = parseFloat(metrics.avg_job_duration) || 0;\nconst successRate = (completed24h + failed24h) > 0 ? (completed24h / (completed24h + failed24h) * 100) : 100;\nconst dbSizeBytes = parseInt(metrics.db_size_bytes) || 0;\nconst dbSizeMB = dbSizeBytes / 1048576;\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  backendHealthy, runningJobs, completed24h, failed24h,\n  avgJobDuration, successRate, dbSizeMB, activeUsers1h: parseInt(metrics.active_users_1h) || 0\n}}];"
+      },
+      "position": [
+        440,
+        1700
+      ]
+    },
+    {
+      "id": "sysmon-http-post",
+      "name": "System Metrics HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/system",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        1700
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "sysmon-pg-insert",
+      "name": "System Postgres Insert",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO system_monitoring_data (timestamp, backend_healthy, running_jobs, completed_24h, failed_24h, avg_job_duration, success_rate, db_size_mb, active_users_1h)\nVALUES ('{{ $json.timestamp }}', {{ $json.backendHealthy }}, {{ $json.runningJobs }}, {{ $json.completed24h }}, {{ $json.failed24h }}, {{ $json.avgJobDuration }}, {{ $json.successRate }}, {{ $json.dbSizeMB }}, {{ $json.activeUsers1h }});",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        1700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "sysmon-if-unhealthy",
+      "name": "Backend Unhealthy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.backendHealthy === false }}",
+              "value2": true,
+              "id": "e5eb2eac-d523-5e96-b897-a2169223eb3f"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "position": [
+        1100,
+        1700
+      ]
+    },
+    {
+      "id": "sysmon-slack-unhealthy",
+      "name": "Unhealthy Alert Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#platform-critical",
+        "text": "🚨 *Backend Unhealthy*\nBackend status check failed at {{ $json.timestamp }}\nRunning jobs: {{ $json.runningJobs }}",
+        "otherOptions": {}
+      },
+      "position": [
+        1320,
+        1650
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "teamnot-webhook",
+      "name": "Team Notification Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "team-notification",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "position": [
+        0,
+        2000
+      ],
+      "webhookId": "team-notification"
+    },
+    {
+      "id": "teamnot-verify",
+      "name": "Verify Team HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
+      },
+      "position": [
+        220,
+        2000
+      ]
+    },
+    {
+      "id": "teamnot-switch",
+      "name": "Notification Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "tn-1",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "email",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "tn-2",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "slack",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Slack"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "tn-3",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SMS"
+            }
+          ]
+        }
+      },
+      "position": [
+        440,
+        2000
+      ]
+    },
+    {
+      "id": "teamnot-email",
+      "name": "Send Team Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'quantive@quantive.com' }}",
+        "toEmail": "={{ $json.recipient }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.body }}",
+        "options": {}
+      },
+      "position": [
+        660,
+        1950
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "quantive-smtp",
+          "name": "Quantive SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "teamnot-slack",
+      "name": "Send Team Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "={{ $json.channel || '#general' }}",
+        "text": "={{ $json.message }}",
+        "otherOptions": {}
+      },
+      "position": [
+        660,
+        2000
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "teamnot-sms",
+      "name": "Send Team SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "stringBody": "=To={{ $json.recipient }}&From={{ $env.TWILIO_PHONE }}&Body={{ $json.message }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3
+        }
+      },
+      "position": [
+        660,
+        2050
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "task-webhook",
+      "name": "Task Creation Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-create",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "position": [
+        0,
+        2200
+      ],
+      "webhookId": "task-create"
+    },
+    {
+      "id": "task-verify",
+      "name": "Verify Task HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
+      },
+      "position": [
+        220,
+        2200
+      ]
+    },
+    {
+      "id": "task-pg-insert",
+      "name": "Insert Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tasks (title, description, priority, status, assigned_to, due_date, created_by, metadata)\nVALUES ('{{ $json.title.replace(/'/g, \"''\") }}', '{{ ($json.description || \"\").replace(/'/g, \"''\") }}', '{{ $json.priority || \"medium\" }}', 'todo', '{{ $json.assigned_to || \"\" }}', '{{ $json.due_date || \"\" }}', '{{ $json.created_by || \"system\" }}', '{{ JSON.stringify($json.metadata || {}) }}'::jsonb)\nRETURNING id, title, priority, status;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        440,
+        2200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "task-slack-notify",
+      "name": "Task Created Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#team-tasks",
+        "text": "✅ *New Task Created*\n*{{ $json.title }}*\nPriority: {{ $json.priority }}\nStatus: {{ $json.status }}",
+        "otherOptions": {}
+      },
+      "position": [
+        660,
+        2200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "task-respond",
+      "name": "Respond Task Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, task: $json }) }}",
+        "options": {}
+      },
+      "position": [
+        880,
+        2200
+      ]
+    },
+    {
+      "id": "meet-webhook",
+      "name": "Meeting Schedule Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meeting-schedule",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "position": [
+        0,
+        2400
+      ],
+      "webhookId": "meeting-schedule"
+    },
+    {
+      "id": "meet-verify",
+      "name": "Verify Meeting HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
+      },
+      "position": [
+        220,
+        2400
+      ]
+    },
+    {
+      "id": "meet-pg-insert",
+      "name": "Insert Meeting",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO meetings (title, description, meeting_date, meeting_type, organizer, status)\nVALUES ('{{ $json.title.replace(/'/g, \"''\") }}', '{{ ($json.description || \"\").replace(/'/g, \"''\") }}', '{{ $json.meeting_date }}', '{{ $json.meeting_type || \"general\" }}', '{{ $json.organizer }}', 'scheduled')\nRETURNING id, title, meeting_date, meeting_type;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        440,
+        2400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "meet-pg-insert-attendees",
+      "name": "Insert Meeting Attendees",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO meeting_attendees (meeting_id, user_email, status)\nSELECT '{{ $json.id }}', unnest(ARRAY[{{ ($json.attendees || []).map(a => \"'\" + a + \"'\").join(\",\") }}]), 'invited'\nON CONFLICT DO NOTHING;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        660,
+        2400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "meet-slack-notify",
+      "name": "Meeting Scheduled Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#team-meetings",
+        "text": "📅 *Meeting Scheduled*\n*{{ $json.title }}*\nDate: {{ $json.meeting_date }}\nType: {{ $json.meeting_type }}",
+        "otherOptions": {}
+      },
+      "position": [
+        880,
+        2400
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "meet-respond",
+      "name": "Respond Meeting Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, meeting: $json }) }}",
+        "options": {}
+      },
+      "position": [
+        1100,
+        2400
+      ]
+    },
+    {
+      "id": "docgen-webhook",
+      "name": "Document Generation Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "document-generate",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "position": [
+        0,
+        2600
+      ],
+      "webhookId": "document-generate"
+    },
+    {
+      "id": "docgen-verify",
+      "name": "Verify Document HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
+      },
+      "position": [
+        220,
+        2600
+      ]
+    },
+    {
+      "id": "docgen-code",
+      "name": "Generate Document Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\nconst docType = body.type || 'report';\nconst timestamp = new Date().toISOString();\nlet html = '';\nif (docType === 'report') {\n  html = `<html><head><title>Quantive Report</title><style>body{font-family:Arial,sans-serif;margin:40px}h1{color:#1a1a2e}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}</style></head><body><h1>Quantive Report - ${body.title || 'Untitled'}</h1><p>Generated: ${timestamp}</p><p>${body.content || ''}</p></body></html>`;\n} else if (docType === 'contract') {\n  html = `<html><head><title>Quantive Contract</title><style>body{font-family:Georgia,serif;margin:40px}h1{color:#16213e}.sig{margin-top:40px;border-top:1px solid #333;padding-top:10px}</style></head><body><h1>Service Agreement</h1><p>Between Quantive and ${body.client || 'Client'}</p><p>Effective: ${body.effective_date || timestamp}</p><p>${body.terms || ''}</p><div class=\"sig\"><p>Authorized Signature: ___________________</p></div></body></html>`;\n} else {\n  html = `<html><head><title>Document</title></head><body><h1>${body.title || 'Document'}</h1><p>${body.content || ''}</p></body></html>`;\n}\nreturn [{ json: { docType, title: body.title || 'Untitled', html, timestamp, client: body.client || '' } }];"
+      },
+      "position": [
+        440,
+        2600
+      ]
+    },
+    {
+      "id": "docgen-email",
+      "name": "Email Document",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'quantive@quantive.com' }}",
+        "toEmail": "={{ $json.client || $env.DEFAULT_RECIPIENT }}",
+        "subject": "=Quantive Document: {{ $json.title }}",
+        "emailFormat": "text",
+        "text": "={{ $json.html }}",
+        "options": {}
+      },
+      "position": [
+        660,
+        2600
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "quantive-smtp",
+          "name": "Quantive SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "docgen-pg-insert",
+      "name": "Insert Document Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documents (doc_type, title, html_content, client, generated_at)\nVALUES ('{{ $json.docType }}', '{{ $json.title.replace(/'/g, \"''\") }}', '{{ $json.html.replace(/'/g, \"''\") }}', '{{ $json.client }}', '{{ $json.timestamp }}')\nRETURNING id;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        2600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "docgen-respond",
+      "name": "Respond Document Generated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, docType: $json.docType, title: $json.title }) }}",
+        "options": {}
+      },
+      "position": [
+        1100,
+        2600
+      ]
+    },
+    {
+      "id": "contract-webhook",
+      "name": "Contract Workflow Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract-workflow",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "position": [
+        0,
+        2800
+      ],
+      "webhookId": "contract-workflow"
+    },
+    {
+      "id": "contract-verify",
+      "name": "Verify Contract HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
+      },
+      "position": [
+        220,
+        2800
+      ]
+    },
+    {
+      "id": "contract-switch",
+      "name": "Contract Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "ct-1",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "create",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Create"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "ct-2",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Approve"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "ct-3",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "reject",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reject"
+            }
+          ]
+        }
+      },
+      "position": [
+        440,
+        2800
+      ]
+    },
+    {
+      "id": "contract-create-pg",
+      "name": "Create Contract Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO contracts (title, client, value, status, created_by, metadata)\nVALUES ('{{ $json.title.replace(/'/g, \"''\") }}', '{{ $json.client }}', {{ $json.value || 0 }}, 'draft', '{{ $json.created_by || \"system\" }}', '{{ JSON.stringify($json.metadata || {}) }}'::jsonb)\nRETURNING id, title, status;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        660,
+        2750
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "contract-approve-pg",
+      "name": "Approve Contract",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE contracts SET status = 'approved', approved_at = NOW(), approved_by = '{{ $json.approved_by }}'\nWHERE id = '{{ $json.contract_id }}'\nRETURNING id, title, status;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        660,
+        2800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "contract-reject-pg",
+      "name": "Reject Contract",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE contracts SET status = 'rejected', rejected_at = NOW(), rejection_reason = '{{ ($json.reason || \"\").replace(/'/g, \"''\") }}'\nWHERE id = '{{ $json.contract_id }}'\nRETURNING id, title, status;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        660,
+        2850
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "contract-slack",
+      "name": "Contract Status Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#contracts",
+        "text": "=📋 *Contract {{ $json.status }}*\n*{{ $json.title }}*\nClient: {{ $json.client }}",
+        "otherOptions": {}
+      },
+      "position": [
+        880,
+        2800
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "contract-respond",
+      "name": "Respond Contract Action",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, contract: $json }) }}",
+        "options": {}
+      },
+      "position": [
+        1100,
+        2800
+      ]
+    },
+    {
+      "id": "email-webhook",
+      "name": "Email Automation Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-automation",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "position": [
+        0,
+        3000
+      ],
+      "webhookId": "email-automation"
+    },
+    {
+      "id": "email-verify",
+      "name": "Verify Email HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst item = $input.first().json;\nconst header = (item.headers && item.headers['x-quantive-signature']) || '';\nconst secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\nconst raw = JSON.stringify(item.body || {});\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nlet ok = false;\ntry {\n  const a = Buffer.from(header, 'hex'); const b = Buffer.from(expected, 'hex');\n  ok = a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);\n} catch (e) { ok = false; }\nif (!ok) throw new Error('Invalid HMAC signature');\nreturn [{ json: item.body }];"
+      },
+      "position": [
+        220,
+        3000
+      ]
+    },
+    {
+      "id": "email-switch",
+      "name": "Email Template Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "em-1",
+                    "leftValue": "={{ $json.template }}",
+                    "rightValue": "welcome",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Welcome"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "em-2",
+                    "leftValue": "={{ $json.template }}",
+                    "rightValue": "followup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Follow-up"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "em-3",
+                    "leftValue": "={{ $json.template }}",
+                    "rightValue": "newsletter",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Newsletter"
+            }
+          ]
+        }
+      },
+      "position": [
+        440,
+        3000
+      ]
+    },
+    {
+      "id": "email-welcome",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'quantive@quantive.com' }}",
+        "toEmail": "={{ $json.recipient }}",
+        "subject": "Welcome to Quantive",
+        "emailFormat": "text",
+        "text": "Hi {{ $json.name || 'there' }},\n\nWelcome to Quantive — the sovereign debt optimization platform.\n\nYour account is now active. Log in to get started.\n\n— The Quantive Team",
+        "options": {}
+      },
+      "position": [
+        660,
+        2950
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "quantive-smtp",
+          "name": "Quantive SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "email-followup",
+      "name": "Send Follow-up Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'quantive@quantive.com' }}",
+        "toEmail": "={{ $json.recipient }}",
+        "subject": "={{ $json.subject || 'Following up — Quantive' }}",
+        "emailFormat": "text",
+        "text": "={{ $json.body || 'Hi,\\n\\nJust checking in. Let us know if you have any questions about Quantive.\\n\\n— The Quantive Team' }}",
+        "options": {}
+      },
+      "position": [
+        660,
+        3000
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "quantive-smtp",
+          "name": "Quantive SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "email-newsletter",
+      "name": "Send Newsletter",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'quantive@quantive.com' }}",
+        "toEmail": "={{ $json.recipient }}",
+        "subject": "=Quantive Newsletter — {{ new Date().toLocaleDateString() }}",
+        "emailFormat": "text",
+        "text": "={{ $json.content || 'This week in sovereign debt markets...' }}",
+        "options": {}
+      },
+      "position": [
+        660,
+        3050
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "quantive-smtp",
+          "name": "Quantive SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "email-pg-log",
+      "name": "Log Email Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO email_log (recipient, template, subject, sent_at, status)\nVALUES ('{{ $json.recipient }}', '{{ $json.template }}', '{{ ($json.subject || \"\").replace(/'/g, \"''\") }}', NOW(), 'sent');",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        3000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "email-respond",
+      "name": "Respond Email Sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, template: $json.template, recipient: $json.recipient }) }}",
+        "options": {}
+      },
+      "position": [
+        1100,
+        3000
+      ]
+    },
+    {
+      "id": "daily-sched",
+      "name": "Daily Report Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        3200
+      ]
+    },
+    {
+      "id": "daily-pg-metrics",
+      "name": "Daily Metrics Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  (SELECT COUNT(*) FROM users WHERE is_active = TRUE) AS active_users,\n  (SELECT COUNT(*) FROM customers WHERE status = 'active') AS active_customers,\n  (SELECT COALESCE(SUM(amount), 0) FROM mrr_events WHERE event_type = 'subscription.created' AND created_at >= NOW() - INTERVAL '24 hours') AS new_mrr_24h,\n  (SELECT COUNT(*) FROM leads WHERE created_at >= NOW() - INTERVAL '24 hours') AS new_leads_24h,\n  (SELECT COUNT(*) FROM deals WHERE closed_at >= NOW() - INTERVAL '24 hours') AS closed_deals_24h,\n  (SELECT COUNT(*) FROM support_tickets WHERE created_at >= NOW() - INTERVAL '24 hours') AS new_tickets_24h,\n  (SELECT COUNT(*) FROM optimization_jobs WHERE status = 'completed' AND completed_at >= NOW() - INTERVAL '24 hours') AS completed_optimizations_24h,\n  (SELECT COUNT(*) FROM workflows.workflow_executions WHERE created_at >= NOW() - INTERVAL '24 hours' AND status = 'success') AS wf_success_24h,\n  (SELECT COUNT(*) FROM workflows.workflow_executions WHERE created_at >= NOW() - INTERVAL '24 hours' AND status != 'success') AS wf_failed_24h;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        3200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "daily-code",
+      "name": "Format Daily Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst m = items[0] ? items[0].json : {};\nconst report = `🌅 *Quantive Daily Report* — ${now.toLocaleDateString()}\n\n👤 *Users & Customers*\n• Active users: ${m.active_users || 0}\n• Active customers: ${m.active_customers || 0}\n\n💰 *Revenue*\n• New MRR (24h): $${Number(m.new_mrr_24h || 0).toFixed(2)}\n\n📈 *Sales*\n• New leads (24h): ${m.new_leads_24h || 0}\n• Closed deals (24h): ${m.closed_deals_24h || 0}\n\n🎫 *Support*\n• New tickets (24h): ${m.new_tickets_24h || 0}\n\n⚡ *Platform*\n• Completed optimizations: ${m.completed_optimizations_24h || 0}\n• Workflow runs: ${m.wf_success_24h || 0} success / ${m.wf_failed_24h || 0} failed`;\nreturn [{ json: { timestamp: now.toISOString(), report, metrics: m } }];"
+      },
+      "position": [
+        440,
+        3200
+      ]
+    },
+    {
+      "id": "daily-slack",
+      "name": "Post Daily Report Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#daily-digest",
+        "text": "={{ $json.report }}",
+        "otherOptions": {}
+      },
+      "position": [
+        660,
+        3200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "daily-pg-insert",
+      "name": "Insert Daily Report",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO daily_reports (timestamp, report_data, metrics)\nVALUES ('{{ $json.timestamp }}', '{{ $json.report.replace(/'/g, \"''\") }}', '{{ JSON.stringify($json.metrics) }}'::jsonb);",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        3200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "weekly-sched",
+      "name": "Weekly Report Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        3400
+      ]
+    },
+    {
+      "id": "weekly-pg-metrics",
+      "name": "Weekly Metrics Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  (SELECT COUNT(*) FROM leads WHERE created_at >= NOW() - INTERVAL '7 days') AS new_leads_7d,\n  (SELECT COUNT(*) FROM demos WHERE demo_date >= NOW() - INTERVAL '7 days') AS demos_7d,\n  (SELECT COUNT(*) FROM deals WHERE closed_at >= NOW() - INTERVAL '7 days') AS closed_deals_7d,\n  (SELECT COALESCE(SUM(value), 0) FROM deals WHERE closed_at >= NOW() - INTERVAL '7 days' AND stage = 'closed_won') AS revenue_7d,\n  (SELECT COUNT(*) FROM customers WHERE status = 'active' AND created_at >= NOW() - INTERVAL '7 days') AS new_customers_7d,\n  (SELECT COUNT(*) FROM customers WHERE status = 'churned' AND churned_at >= NOW() - INTERVAL '7 days') AS churned_7d,\n  (SELECT COUNT(*) FROM support_tickets WHERE created_at >= NOW() - INTERVAL '7 days') AS tickets_7d,\n  (SELECT COUNT(*) FROM optimization_jobs WHERE completed_at >= NOW() - INTERVAL '7 days') AS optimizations_7d;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        3400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "weekly-code",
+      "name": "Format Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst m = items[0] ? items[0].json : {};\nconst weekStart = new Date(now);\nweekStart.setDate(now.getDate() - 7);\nconst report = `📊 *Quantive Weekly Report* — ${weekStart.toLocaleDateString()} to ${now.toLocaleDateString()}\n\n🎯 *Sales Pipeline*\n• New leads: ${m.new_leads_7d || 0}\n• Demos conducted: ${m.demos_7d || 0}\n• Deals closed: ${m.closed_deals_7d || 0}\n• Revenue won: $${Number(m.revenue_7d || 0).toFixed(2)}\n\n👥 *Customer Growth*\n• New customers: ${m.new_customers_7d || 0}\n• Churned: ${m.churned_7d || 0}\n• Net: ${(m.new_customers_7d || 0) - (m.churned_7d || 0)}\n\n🎫 *Support*\n• Tickets created: ${m.tickets_7d || 0}\n\n⚡ *Platform*\n• Optimizations completed: ${m.optimizations_7d || 0}`;\nreturn [{ json: { timestamp: now.toISOString(), report, metrics: m } }];"
+      },
+      "position": [
+        440,
+        3400
+      ]
+    },
+    {
+      "id": "weekly-slack",
+      "name": "Post Weekly Report Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#weekly-report",
+        "text": "={{ $json.report }}",
+        "otherOptions": {}
+      },
+      "position": [
+        660,
+        3400
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "weekly-email",
+      "name": "Email Weekly Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'quantive@quantive.com' }}",
+        "toEmail": "={{ $env.LEADERSHIP_EMAIL || 'leadership@quantive.com' }}",
+        "subject": "=Quantive Weekly Report — {{ new Date().toLocaleDateString() }}",
+        "emailFormat": "text",
+        "text": "={{ $json.report }}",
+        "options": {}
+      },
+      "position": [
+        880,
+        3400
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "quantive-smtp",
+          "name": "Quantive SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "weekly-pg-insert",
+      "name": "Insert Weekly Report",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO weekly_reports (timestamp, report_data, metrics)\nVALUES ('{{ $json.timestamp }}', '{{ $json.report.replace(/'/g, \"''\") }}', '{{ JSON.stringify($json.metrics) }}'::jsonb);",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        1100,
+        3400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "erralert-sched",
+      "name": "Error Alert Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        3600
+      ]
+    },
+    {
+      "id": "erralert-pg",
+      "name": "Error Alerts Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT error_type, message, severity, COUNT(*) AS count,\n  MAX(created_at) AS last_occurrence\nFROM workflows.workflow_errors\nWHERE created_at >= NOW() - INTERVAL '1 hour'\nGROUP BY error_type, message, severity\nHAVING COUNT(*) >= 3\nORDER BY count DESC\nLIMIT 10;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        3600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "erralert-code",
+      "name": "Gate Error Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst now = new Date();\nif (!items.length) return [];\nconst text = `🚨 *${items.length} recurring error groups (last hour)*\\n` +\n  items.slice(0, 5).map(r => `• [${r.severity}] ${r.error_type}: ${String(r.message).slice(0, 120)} ×${r.count}`).join('\\n');\nreturn [{ json: { timestamp: now.toISOString(), text, errors: items } }];"
+      },
+      "position": [
+        440,
+        3600
+      ]
+    },
+    {
+      "id": "erralert-slack",
+      "name": "Error Alert Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#platform-alerts",
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
+      },
+      "position": [
+        660,
+        3600
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "erralert-pg-insert",
+      "name": "Insert Error Alert Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO error_alert_logs (timestamp, error_count, alert_sent, errors_json)\nVALUES ('{{ $json.timestamp }}', {{ $json.errors.length }}, TRUE, '{{ JSON.stringify($json.errors) }}'::jsonb);",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        3600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "backup-sched",
+      "name": "Backup Monitor Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 4 * * *"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        3800
+      ]
+    },
+    {
+      "id": "backup-pg-status",
+      "name": "Backup Status Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  (SELECT COUNT(*) FROM workflows.backup_history WHERE status = 'completed' AND backup_path LIKE '%daily%') AS daily_backups_completed,\n  (SELECT MAX(created_at) FROM workflows.backup_history WHERE status = 'completed') AS last_backup_time,\n  (SELECT COUNT(*) FROM workflows.backup_history WHERE status = 'failed' AND created_at >= NOW() - INTERVAL '7 days') AS failed_backups_7d;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        3800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "backup-code",
+      "name": "Evaluate Backup Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst d = items[0] ? items[0].json : {};\nconst lastBackup = d.last_backup_time ? new Date(d.last_backup_time) : null;\nconst hoursSinceBackup = lastBackup ? (now - lastBackup) / 3600000 : 999;\nconst dailyBackupsCompleted = parseInt(d.daily_backups_completed) || 0;\nconst failedBackups7d = parseInt(d.failed_backups_7d) || 0;\nconst healthy = hoursSinceBackup < 26 && failedBackups7d === 0;\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  healthy, dailyBackupsCompleted, failedBackups7d, hoursSinceBackup: Math.round(hoursSinceBackup)\n}}];"
+      },
+      "position": [
+        440,
+        3800
+      ]
+    },
+    {
+      "id": "backup-http-post",
+      "name": "Backup Status HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/backup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        3800
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "backup-if-unhealthy",
+      "name": "Backup Unhealthy?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.healthy === false }}",
+              "value2": true,
+              "id": "23c21c9c-9938-51ca-9e51-180feb405e9e"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "position": [
+        880,
+        3800
+      ]
+    },
+    {
+      "id": "backup-slack-alert",
+      "name": "Backup Alert Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#ops-notifications",
+        "text": "⚠️ *Backup Health Issue*\nHours since last backup: {{ $json.hoursSinceBackup }}\nFailed backups (7d): {{ $json.failedBackups7d }}\nDaily backups completed: {{ $json.dailyBackupsCompleted }}",
+        "otherOptions": {}
+      },
+      "position": [
+        1100,
+        3750
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "backup-slack-ok",
+      "name": "Backup OK Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#ops-notifications",
+        "text": "✅ *Backup Status OK*\nLast backup: {{ $json.hoursSinceBackup }}h ago\nDaily backups: {{ $json.dailyBackupsCompleted }}",
+        "otherOptions": {}
+      },
+      "position": [
+        1100,
+        3850
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "secmon-sched",
+      "name": "Security Monitor Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        4000
+      ]
+    },
+    {
+      "id": "secmon-pg-logins",
+      "name": "Failed Logins Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ip_address, COUNT(*) AS attempts,\n  MAX(attempted_at) AS last_attempt,\n  ARRAY_AGG(DISTINCT email) AS targeted_emails\nFROM login_attempts\nWHERE success = FALSE AND attempted_at >= NOW() - INTERVAL '1 hour'\nGROUP BY ip_address\nHAVING COUNT(*) >= 5\nORDER BY attempts DESC\nLIMIT 20;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        4000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "secmon-pg-audit",
+      "name": "Audit Log Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT action, resource_type, COUNT(*) AS count\nFROM audit_log\nWHERE created_at >= NOW() - INTERVAL '1 hour'\nGROUP BY action, resource_type\nORDER BY count DESC\nLIMIT 10;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        4200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "secmon-code",
+      "name": "Evaluate Security",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst failedLogins = items[0] ? items[0].json : {};\nconst auditActivity = items[1] ? items[1].json : {};\nconst loginRows = items[0] ? items[0].json : [];\nconst isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);\nconst threatLevel = isObject(loginRows) ? 'low' :\n  loginRows.length > 10 ? 'critical' :\n  loginRows.length > 5 ? 'high' :\n  loginRows.length > 0 ? 'medium' : 'low';\nconst report = {\n  timestamp: now.toISOString(),\n  failedLoginAttempts: isObject(loginRows) ? 0 : loginRows.length,\n  uniqueIPs: isObject(loginRows) ? 0 : new Set(loginRows.map(r => r.ip_address)).size,\n  threatLevel,\n  topIPs: isObject(loginRows) ? [] : loginRows.slice(0, 5).map(r => ({ ip: r.ip_address, attempts: r.attempts })),\n  auditEvents: Array.isArray(auditActivity) ? auditActivity.slice(0, 5) : []\n};\nreturn [{ json: report }];"
+      },
+      "position": [
+        440,
+        4100
+      ]
+    },
+    {
+      "id": "secmon-http-post",
+      "name": "Security Metrics HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/security",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        4100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "secmon-if-threat",
+      "name": "Threat Detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.threatLevel === 'critical' || $json.threatLevel === 'high' }}",
+              "value2": true,
+              "id": "5c2991fc-fece-5acb-ac40-f755e7e71305"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "position": [
+        880,
+        4100
+      ]
+    },
+    {
+      "id": "secmon-slack-critical",
+      "name": "Security Alert Critical Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#security-alerts",
+        "text": "🔐 *CRITICAL Security Alert*\nFailed login attempts: {{ $json.failedLoginAttempts }}\nUnique IPs: {{ $json.uniqueIPs }}\nThreat level: {{ $json.threatLevel }}\nTop IPs: {{ $json.topIPs.map(ip => ip.ip + ' (' + ip.attempts + ')').join(', ') }}",
+        "otherOptions": {}
+      },
+      "position": [
+        1100,
+        4050
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "secmon-slack-low",
+      "name": "Security Status Low Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#security-alerts",
+        "text": "✅ *Security Status OK*\nNo significant threats in the last hour.",
+        "otherOptions": {}
+      },
+      "position": [
+        1100,
+        4150
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "secmon-pg-insert",
+      "name": "Insert Security Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO security_monitoring_logs (timestamp, failed_login_attempts, unique_ips, threat_level, alert_sent)\nVALUES ('{{ $json.timestamp }}', {{ $json.failedLoginAttempts }}, {{ $json.uniqueIPs }}, '{{ $json.threatLevel }}', TRUE);",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        1320,
+        4100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "hub-sched",
+      "name": "Integration Hub Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        4400
+      ]
+    },
+    {
+      "id": "hub-pg-dashboard",
+      "name": "Dashboard Data Aggregation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  'revenue' AS section,\n  (SELECT COUNT(*) FROM revenue_dashboard_data WHERE timestamp >= NOW() - INTERVAL '1 hour') AS data_points,\n  MAX(timestamp) AS last_update\nFROM revenue_dashboard_data\nUNION ALL\nSELECT\n  'mrr' AS section,\n  (SELECT COUNT(*) FROM mrr_dashboard_data WHERE timestamp >= NOW() - INTERVAL '1 hour') AS data_points,\n  MAX(timestamp) AS last_update\nFROM mrr_dashboard_data\nUNION ALL\nSELECT\n  'customers' AS section,\n  (SELECT COUNT(*) FROM customer_dashboard_data WHERE timestamp >= NOW() - INTERVAL '1 hour') AS data_points,\n  MAX(timestamp) AS last_update\nFROM customer_dashboard_data\nUNION ALL\nSELECT\n  'churn' AS section,\n  (SELECT COUNT(*) FROM churn_dashboard_data WHERE timestamp >= NOW() - INTERVAL '1 hour') AS data_points,\n  MAX(timestamp) AS last_update\nFROM churn_dashboard_data\nUNION ALL\nSELECT\n  'pipeline' AS section,\n  (SELECT COUNT(*) FROM pipeline_dashboard_data WHERE timestamp >= NOW() - INTERVAL '1 hour') AS data_points,\n  MAX(timestamp) AS last_update\nFROM pipeline_dashboard_data;",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        220,
+        4400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "hub-code",
+      "name": "Aggregate Dashboard Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst now = new Date();\nconst sections = items.map(i => i.json);\nconst totalDataPoints = sections.reduce((sum, s) => sum + (parseInt(s.data_points) || 0), 0);\nconst allSectionsHaveData = sections.every(s => parseInt(s.data_points) > 0);\nconst oldestUpdate = sections.reduce((oldest, s) => {\n  const t = s.last_update ? new Date(s.last_update) : null;\n  return t && (!oldest || t < oldest) ? t : oldest;\n}, null);\nconst hoursSinceUpdate = oldestUpdate ? (now - oldestUpdate) / 3600000 : 999;\nreturn [{ json: {\n  timestamp: now.toISOString(),\n  totalDataPoints, allSectionsHaveData, hoursSinceUpdate: Math.round(hoursSinceUpdate),\n  sections\n}}];"
+      },
+      "position": [
+        440,
+        4400
+      ]
+    },
+    {
+      "id": "hub-http-post",
+      "name": "Hub Status HTTP Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/analytics/hub-status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {$env.BACKEND_API_KEY}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "retryOnFail": true,
+          "maxTries": 3,
+          "timeout": 30000
+        }
+      },
+      "position": [
+        660,
+        4400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-pg-insert",
+      "name": "Insert Hub Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO integration_hub_data (timestamp, total_data_points, all_sections_have_data, hours_since_update, sections_json)\nVALUES ('{{ $json.timestamp }}', {{ $json.totalDataPoints }}, {{ $json.allSectionsHaveData }}, {{ $json.hoursSinceUpdate }}, '{{ JSON.stringify($json.sections) }}'::jsonb);",
+        "additionalFields": {},
+        "options": {}
+      },
+      "position": [
+        880,
+        4400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "quantive-db",
+          "name": "Quantive Production DB"
+        }
+      }
+    },
+    {
+      "id": "hub-if-stale",
+      "name": "Data Stale?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.hoursSinceUpdate > 2 }}",
+              "value2": true,
+              "id": "e7effee0-1cb2-5381-9e94-32e15c2201ea"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "position": [
+        1100,
+        4400
+      ]
+    },
+    {
+      "id": "hub-slack-stale",
+      "name": "Stale Data Alert Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#platform-alerts",
+        "text": "⚠️ *Dashboard Data Stale*\nHours since update: {{ $json.hoursSinceUpdate }}\nSections with data: {{ $json.sections.filter(s => s.data_points > 0).length }}/{{ $json.sections.length }}",
+        "otherOptions": {}
+      },
+      "position": [
+        1320,
+        4350
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-slack-ok",
+      "name": "Hub Status OK Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "parameters": {
+        "channel": "#workflow-logs",
+        "text": "✅ *Integration Hub OK*\nData points: {{ $json.totalDataPoints }}\nAll sections active: {{ $json.allSectionsHaveData }}",
+        "otherOptions": {}
+      },
+      "position": [
+        1320,
+        4450
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-bot",
+          "name": "Quantive Slack Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ]
+}

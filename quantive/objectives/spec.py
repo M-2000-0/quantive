@@ -224,9 +224,13 @@ class ProblemSpec:
             detail=f"raised={total:.2f} (required {R:.2f})",
         ))
         # instrument capacities
+        cap_breach = x - self.capacity
+        cap_tol = 1e-6 * np.maximum(self.capacity, 1.0)
         cap_viol = float(np.maximum(x - self.capacity, 0.0).sum())
         statuses.append(ConstraintStatus(
-            name="instrument_capacity", satisfied=cap_viol <= 1e-6, violation=cap_viol,
+            name="instrument_capacity",
+            satisfied=bool(np.all(cap_breach <= cap_tol)),
+            violation=cap_viol,
             detail="sum of per-instrument capacity breaches",
         ))
         # floating rate limit

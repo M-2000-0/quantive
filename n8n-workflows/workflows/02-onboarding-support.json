@@ -1,0 +1,3312 @@
+{
+  "name": "Quantive Onboarding & Customer Support",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "account-created",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-001",
+      "name": "Account Created Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "account-created"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    email: body.email,\n    name: body.name,\n    org_id: body.org_id,\n    plan: body.plan || 'free',\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-002",
+      "name": "Extract User Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/customers",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{$json.email}}"
+            },
+            {
+              "name": "name",
+              "value": "={{$json.name}}"
+            },
+            {
+              "name": "metadata[org_id]",
+              "value": "={{$json.org_id}}"
+            },
+            {
+              "name": "metadata[plan]",
+              "value": "={{$json.plan}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-003",
+      "name": "Create Stripe Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_STRIPE_CREDENTIAL_ID",
+          "name": "Stripe API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "customers",
+        "columns": "email, name, org_id, plan, stripe_customer_id, created_at",
+        "options": {},
+        "query": "INSERT INTO customers (email, name, org_id, plan, stripe_customer_id, created_at)\nVALUES ('{{ $json.email }}', '{{ $json.name }}', '{{ $json.org_id }}', '{{ $json.plan }}', '{{ $json.id }}', '{{ $json.created_at }}')"
+      },
+      "id": "node-004",
+      "name": "Insert Customer Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $env.QUANTIVE_BASE_URL }}/api/automation/webhooks/external-run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "account.created"
+            },
+            {
+              "name": "org_id",
+              "value": "={{$json.org_id}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-005",
+      "name": "Notify Backend Account Created",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_QUANTIVE_CREDENTIAL_ID",
+          "name": "Quantive API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tier-change",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-006",
+      "name": "Tier Change Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        250
+      ],
+      "webhookId": "tier-change"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst tier = body.tier || 'free';\nlet features = {};\n\nif (tier === 'free') {\n  features = {\n    max_portfolios: 3,\n    max_optimizations: 5,\n    api_access: false,\n    priority_support: false,\n    market_data: false\n  };\n} else if (tier === 'pro') {\n  features = {\n    max_portfolios: 50,\n    max_optimizations: 500,\n    api_access: true,\n    priority_support: false,\n    market_data: true\n  };\n} else if (tier === 'enterprise') {\n  features = {\n    max_portfolios: -1,\n    max_optimizations: -1,\n    api_access: true,\n    priority_support: true,\n    market_data: true\n  };\n}\n\nreturn [{\n  json: {\n    org_id: body.org_id,\n    tier,\n    features\n  }\n}];"
+      },
+      "id": "node-007",
+      "name": "Determine Tier Features",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "output": 0,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "free",
+                    "operation": "equals",
+                    "id": "084d885f-3cf7-5ee2-a9f8-5669c7faea86"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 1,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "pro",
+                    "operation": "equals",
+                    "id": "e698ef62-6f97-517e-9b2c-bece8ace4610"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 2,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "enterprise",
+                    "operation": "equals",
+                    "id": "161c0083-62e5-5d98-8be3-971fe63995a3"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            }
+          ]
+        },
+        "dataType": "string",
+        "value": "={{$json.tier}}"
+      },
+      "id": "node-008",
+      "name": "Route by Tier",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        440,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "org_features",
+        "columns": "max_portfolios, max_optimizations, api_access, priority_support, market_data",
+        "options": {},
+        "query": "UPDATE org_features\nSET max_portfolios = {{ $json.features.max_portfolios }},\n    max_optimizations = {{ $json.features.max_optimizations }},\n    api_access = {{ $json.features.api_access }},\n    priority_support = {{ $json.features.priority_support }},\n    market_data = {{ $json.features.market_data }}\nWHERE org_id = '{{ $json.org_id }}'"
+      },
+      "id": "node-009",
+      "name": "Update Free Features",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        150
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "org_features",
+        "columns": "max_portfolios, max_optimizations, api_access, priority_support, market_data",
+        "options": {},
+        "query": "UPDATE org_features\nSET max_portfolios = {{ $json.features.max_portfolios }},\n    max_optimizations = {{ $json.features.max_optimizations }},\n    api_access = {{ $json.features.api_access }},\n    priority_support = {{ $json.features.priority_support }},\n    market_data = {{ $json.features.market_data }}\nWHERE org_id = '{{ $json.org_id }}'"
+      },
+      "id": "node-010",
+      "name": "Update Pro Features",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        250
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": "org_features",
+        "columns": "max_portfolios, max_optimizations, api_access, priority_support, market_data",
+        "options": {},
+        "query": "UPDATE org_features\nSET max_portfolios = {{ $json.features.max_portfolios }},\n    max_optimizations = {{ $json.features.max_optimizations }},\n    api_access = {{ $json.features.api_access }},\n    priority_support = {{ $json.features.priority_support }},\n    market_data = {{ $json.features.market_data }}\nWHERE org_id = '{{ $json.org_id }}'"
+      },
+      "id": "node-011",
+      "name": "Update Enterprise Features",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        350
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $env.QUANTIVE_BASE_URL }}/api/automation/webhooks/external-run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "tier.changed"
+            },
+            {
+              "name": "org_id",
+              "value": "={{$json.org_id}}"
+            },
+            {
+              "name": "tier",
+              "value": "={{$json.tier}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-012",
+      "name": "Notify Backend Tier Change",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        880,
+        250
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_QUANTIVE_CREDENTIAL_ID",
+          "name": "Quantive API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = {\n  subject: `Welcome to Quantive, ${input.name}!`,\n  to: input.email,\n  template: 'welcome',\n  data: {\n    loginUrl: `${input.loginUrl || 'https://app.quantive.io'}`,\n    quickStartGuide: `${input.baseUrl || 'https://app.quantive.io'}/docs/quick-start`,\n    supportContact: 'support@quantive.io',\n    videoUrl: `${input.baseUrl || 'https://app.quantive.io'}/docs/getting-started`\n  }\n};\nreturn [{ json: body }];"
+      },
+      "id": "node-013",
+      "name": "Generate Welcome Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.to}}",
+        "subject": "={{$json.subject}}",
+        "html": "<h1>Welcome to Quantive!</h1><p>Hello {{$json.data.name || 'there'}},</p><p>We're excited to have you on board. Quantive helps you optimize your sovereign debt portfolio with AI-powered analytics.</p><p><strong>Get Started:</strong></p><ul><li><a href='{{$json.data.loginUrl}}'>Login to your account</a></li><li><a href='{{$json.data.quickStartGuide}}'>Quick Start Guide</a></li><li><a href='{{$json.data.videoUrl}}'>Getting Started Video</a></li></ul><p>Need help? Contact us at <a href='mailto:{{$json.data.supportContact}}'>{{$json.data.supportContact}}</a></p>",
+        "options": {}
+      },
+      "id": "node-014",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        440,
+        500
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO email_log (recipient, subject, template, sent_at)\nVALUES ('{{ $json.to }}', '{{ $json.subject }}', '{{ $json.template }}', NOW())",
+        "options": {}
+      },
+      "id": "node-015",
+      "name": "Log Welcome Email",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 300,
+        "unit": "seconds",
+        "options": {}
+      },
+      "id": "node-016",
+      "name": "Wait 5 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        220,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{\n  json: {\n    to: input.to,\n    subject: 'How to Get Started with Quantive',\n    loginUrl: input.loginUrl || 'https://app.quantive.io',\n    apiTokenUrl: input.baseUrl ? `${input.baseUrl}/settings/api-tokens` : 'https://app.quantive.io/settings/api-tokens',\n    twoFactorUrl: input.baseUrl ? `${input.baseUrl}/settings/security` : 'https://app.quantive.io/settings/security',\n    passwordTips: [\n      'Use at least 12 characters',\n      'Include uppercase and lowercase letters',\n      'Add numbers and special characters',\n      'Don\\'t reuse passwords from other sites'\n    ]\n  }\n}];"
+      },
+      "id": "node-017",
+      "name": "Generate Login Instructions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        440,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.to}}",
+        "subject": "How to Get Started with Quantive",
+        "html": "<h1>Your Login Instructions</h1><p><strong>Login URL:</strong> <a href='{{$json.loginUrl}}'>{{$json.loginUrl}}</a></p><h2>Next Steps:</h2><h3>1. Create Your API Token</h3><p>Go to <a href='{{$json.apiTokenUrl}}'>API Settings</a> to create your API token.</p><h3>2. Enable Two-Factor Authentication</h3><p>Secure your account by enabling 2FA at <a href='{{$json.twoFactorUrl}}'>Security Settings</a></p><h3>3. Password Best Practices</h3><ul>{{$json.passwordTips.map(t => '<li>' + t + '</li>').join('')}}</ul>",
+        "options": {}
+      },
+      "id": "node-018",
+      "name": "Send Login Instructions",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        660,
+        700
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO email_log (recipient, subject, template, sent_at)\nVALUES ('{{ $json.to }}', 'How to Get Started with Quantive', 'login-instructions', NOW())",
+        "options": {}
+      },
+      "id": "node-019",
+      "name": "Log Login Instructions Email",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        880,
+        700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "node-020",
+      "name": "Onboarding Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT o.*, u.email, u.name FROM onboarding_sequences o\nJOIN users u ON o.user_id = u.id\nWHERE o.completed = false\nAND o.next_send_at <= NOW()",
+        "options": {}
+      },
+      "id": "node-021",
+      "name": "Get Pending Onboarding",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst step = input.step || 1;\nconst steps = {\n  1: {\n    subject: 'Create Your First Portfolio',\n    guide: 'portfolio-creation'\n  },\n  2: {\n    subject: 'Import Your Data with CSV',\n    guide: 'csv-import'\n  },\n  3: {\n    subject: 'Run Your First Optimization',\n    guide: 'first-optimization'\n  },\n  4: {\n    subject: 'Explore Your Risk Dashboard',\n    guide: 'risk-dashboard'\n  },\n  5: {\n    subject: 'Set Up Automated Reports',\n    guide: 'reporting-setup'\n  }\n};\nreturn [{\n  json: {\n    ...input,\n    currentStep: step,\n    stepData: steps[step] || steps[1],\n    baseUrl: input.baseUrl || 'https://app.quantive.io'\n  }\n}];"
+      },
+      "id": "node-022",
+      "name": "Check Onboarding Step",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        440,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-023",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        660,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "output": 0,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "1",
+                    "operation": "equals",
+                    "id": "bfd91735-d746-5436-aa28-745f8cca9c88"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 1,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "2",
+                    "operation": "equals",
+                    "id": "9f933a60-c25c-5c05-9c37-6b375c6f673b"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 2,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "3",
+                    "operation": "equals",
+                    "id": "b3b5fcb1-d3d2-578e-b763-0b9fe3eb137f"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 3,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "4",
+                    "operation": "equals",
+                    "id": "04b3e792-8f7b-5e05-add7-e96e0313416c"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 4,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "5",
+                    "operation": "equals",
+                    "id": "5b0688cf-90ff-5cec-a80d-72ee63a7d6ca"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            }
+          ]
+        },
+        "dataType": "number",
+        "value": "={{$json.currentStep}}"
+      },
+      "id": "node-024",
+      "name": "Route by Onboarding Step",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        880,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Step 1: Create Your First Portfolio",
+        "html": "<h1>Create Your First Portfolio</h1><p>Hello {{$json.name}},</p><p>Welcome to your first step! Let's create your sovereign debt portfolio.</p><p><a href='{{$json.baseUrl}}/portfolios/new'>Create Portfolio</a></p><p>You can add bonds, loans, and other debt instruments to track and optimize your portfolio.</p>",
+        "options": {}
+      },
+      "id": "node-025",
+      "name": "Step 1: Portfolio Guide",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        700
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Step 2: Import Your Data",
+        "html": "<h1>Import Your Data with CSV</h1><p>Hello {{$json.name}},</p><p>Now that you have a portfolio, let's import your existing data.</p><p><a href='{{$json.baseUrl}}/portfolios/import'>Import CSV</a></p><p>Download our <a href='{{$json.baseUrl}}/docs/csv-template'>CSV template</a> to get started.</p>",
+        "options": {}
+      },
+      "id": "node-026",
+      "name": "Step 2: Import Guide",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        800
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Step 3: Run Your First Optimization",
+        "html": "<h1>Run Your First Optimization</h1><p>Hello {{$json.name}},</p><p>Ready to see the power of Quantive? Run your first debt optimization.</p><p><a href='{{$json.baseUrl}}/optimizations/new'>Start Optimization</a></p><p>Our AI will analyze your portfolio and suggest optimal strategies.</p>",
+        "options": {}
+      },
+      "id": "node-027",
+      "name": "Step 3: Optimize Guide",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        900
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Step 4: Explore Your Risk Dashboard",
+        "html": "<h1>Explore Your Risk Dashboard</h1><p>Hello {{$json.name}},</p><p>Monitor your portfolio's risk metrics in real-time.</p><p><a href='{{$json.baseUrl}}/dashboard'>View Dashboard</a></p><p>Track interest rate risk, currency exposure, and more.</p>",
+        "options": {}
+      },
+      "id": "node-028",
+      "name": "Step 4: Analytics Guide",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1000
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Step 5: Set Up Automated Reports",
+        "html": "<h1>Set Up Automated Reports</h1><p>Hello {{$json.name}},</p><p>Stay informed with automated portfolio reports.</p><p><a href='{{$json.baseUrl}}/reports/configure'>Configure Reports</a></p><p>Schedule daily, weekly, or monthly reports delivered to your inbox.</p>",
+        "options": {}
+      },
+      "id": "node-029",
+      "name": "Step 5: Reports Guide",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE onboarding_sequences\nSET step = step + 1,\n    next_send_at = NOW() + INTERVAL '1 day',\n    completed = (step + 1) >= 5\nWHERE id = '{{ $json.id }}'",
+        "options": {}
+      },
+      "id": "node-030",
+      "name": "Update Onboarding Step",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst nextStep = input.step + 1;\nreturn [{\n  json: {\n    completed: nextStep >= 5,\n    org_id: input.org_id\n  }\n}];"
+      },
+      "id": "node-031",
+      "name": "Check Completion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.completed}}",
+              "operation": "equal",
+              "value2": true,
+              "id": "a8b2fe89-cb8b-5ed6-9f8a-75501e73da22"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "node-032",
+      "name": "IF Completed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE onboarding_sequences SET completed_at = NOW() WHERE org_id = '{{ $json.org_id }}'",
+        "options": {}
+      },
+      "id": "node-033",
+      "name": "Mark Onboarding Complete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "node-034",
+      "name": "Usage Tracking Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{ $env.QUANTIVE_BASE_URL }}/api/portfolios",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "node-035",
+      "name": "Fetch Portfolios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        220,
+        1200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_QUANTIVE_CREDENTIAL_ID",
+          "name": "Quantive API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://{{ $env.QUANTIVE_BASE_URL }}/api/optimizations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "node-036",
+      "name": "Fetch Optimizations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        440,
+        1200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_QUANTIVE_CREDENTIAL_ID",
+          "name": "Quantive API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const portfolios = $input.first().json.body || $input.first().json;\noptimizations = $input.last().json.body || $input.last().json;\n\nconst metrics = [];\nconst orgMap = {};\n\nif (Array.isArray(portfolios)) {\n  for (const p of portfolios) {\n    if (!orgMap[p.org_id]) orgMap[p.org_id] = { portfolios: 0, optimizations: 0 };\n    orgMap[p.org_id].portfolios++;\n  }\n}\n\nif (Array.isArray(optimizations)) {\n  for (const o of optimizations) {\n    if (!orgMap[o.org_id]) orgMap[o.org_id] = { portfolios: 0, optimizations: 0 };\n    orgMap[o.org_id].optimizations++;\n  }\n}\n\nfor (const [org_id, data] of Object.entries(orgMap)) {\n  metrics.push({\n    json: {\n      org_id,\n      portfolios_created: data.portfolios,\n      optimizations_run: data.optimizations,\n      api_calls: data.optimizations * 10,\n      storage_used_mb: data.portfolios * 2.5,\n      measured_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn metrics;"
+      },
+      "id": "node-037",
+      "name": "Calculate Usage Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO usage_metrics (org_id, portfolios_created, optimizations_run, api_calls, storage_used_mb, measured_at)\nVALUES ('{{ $json.org_id }}', {{ $json.portfolios_created }}, {{ $json.optimizations_run }}, {{ $json.api_calls }}, {{ $json.storage_used_mb }}, '{{ $json.measured_at }}')",
+        "options": {}
+      },
+      "id": "node-038",
+      "name": "Insert Usage Metrics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.api_calls > 10000 || $json.portfolios_created > 40}}",
+              "operation": "equal",
+              "value2": true,
+              "id": "53736b49-1709-5469-8fe5-8a55ed9b31ad"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "node-039",
+      "name": "IF Usage Over Limit",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email || 'user@quantive.io'}}",
+        "subject": "Time to Upgrade Your Plan",
+        "html": "<h1>You're Growing Fast!</h1><p>Your usage is approaching your plan limits. Upgrade to unlock more features.</p><p><a href='https://app.quantive.io/billing'>Upgrade Now</a></p>",
+        "options": {}
+      },
+      "id": "node-040",
+      "name": "Send Upgrade Prompt",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        1100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-041",
+      "name": "Re-engagement Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.id, u.email, u.name, u.last_login, u.status,\n  EXTRACT(DAY FROM NOW() - u.last_login) as days_inactive\nFROM users u\nWHERE u.last_login < NOW() - INTERVAL '7 days'\nAND u.status = 'active'",
+        "options": {}
+      },
+      "id": "node-042",
+      "name": "Find Inactive Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        220,
+        1500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst daysInactive = input.days_inactive || 0;\nlet emailType = '7-day';\n\nif (daysInactive > 30) {\n  emailType = '30-day-offer';\n} else if (daysInactive > 14) {\n  emailType = '14-day-features';\n} else if (daysInactive > 7) {\n  emailType = '7-day-miss-you';\n}\n\nreturn [{\n  json: {\n    ...input,\n    emailType,\n    daysInactive\n  }\n}];"
+      },
+      "id": "node-043",
+      "name": "Check Engagement Level",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        440,
+        1500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.daysInactive > 30}}",
+              "operation": "equal",
+              "value2": true,
+              "id": "35eceb12-b074-57cf-b387-6001f8e5b544"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "node-044",
+      "name": "IF Inactive 30+ Days",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.daysInactive > 14}}",
+              "operation": "equal",
+              "value2": true,
+              "id": "e60dca7d-21fe-5f08-89fc-29b4a204370e"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "node-045",
+      "name": "IF Inactive 14+ Days",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "We Miss You at Quantive!",
+        "html": "<h1>We Miss You!</h1><p>Hi {{$json.name}},</p><p>It's been {{$json.daysInactive}} days since your last visit. We've made some exciting updates!</p><p><a href='https://app.quantive.io'>Come Back and Explore</a></p>",
+        "options": {}
+      },
+      "id": "node-046",
+      "name": "Send 7-Day Miss You Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1900
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "New Features You'll Love",
+        "html": "<h1>Discover New Features</h1><p>Hi {{$json.name}},</p><p>We've added powerful new features to help you optimize your debt portfolio:</p><ul><li>AI-Powered Risk Analysis</li><li>Real-time Market Data</li><li>Advanced Scenario Modeling</li></ul><p><a href='https://app.quantive.io'>Check Them Out</a></p>",
+        "options": {}
+      },
+      "id": "node-047",
+      "name": "Send 14-Day Features Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1700
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Special Offer: 30 Days Free Pro Upgrade",
+        "html": "<h1>Special Welcome Back Offer!</h1><p>Hi {{$json.name}},</p><p>We want you back! Get 30 days of Pro features FREE.</p><p>Use code: COMEBACK30</p><p><a href='https://app.quantive.io/billing?promo=COMEBACK30'>Claim Your Offer</a></p><p>This offer expires in 7 days.</p>",
+        "options": {}
+      },
+      "id": "node-048",
+      "name": "Send 30-Day Special Offer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1500
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO reengagement_log (user_id, email_type, days_inactive, sent_at)\nVALUES ({{ $json.id }}, '{{ $json.emailType }}', {{ $json.daysInactive }}, NOW())",
+        "options": {}
+      },
+      "id": "node-049",
+      "name": "Log Re-engagement",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-request",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-050",
+      "name": "Support Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1800
+      ],
+      "webhookId": "support-request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    request_id: body.request_id || 'req_' + Date.now(),\n    email: body.email,\n    name: body.name,\n    message: body.message,\n    type: body.type || 'general',\n    org_id: body.org_id,\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-051",
+      "name": "Parse Support Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "output": 0,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "technical",
+                    "operation": "equals",
+                    "id": "bcf537f8-8689-5be2-8b62-a5ecf501f4d5"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 1,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "billing",
+                    "operation": "equals",
+                    "id": "322dbb2c-2896-5c19-a378-280183cfaf71"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 2,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "general",
+                    "operation": "equals",
+                    "id": "1ccba647-b724-52f2-bcfb-1504716d04f5"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            }
+          ]
+        },
+        "dataType": "string",
+        "value": "={{$json.type}}"
+      },
+      "id": "node-052",
+      "name": "Route by Support Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        440,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT f.question, f.answer, f.category\nFROM faq f\nWHERE f.active = true\nAND similarity(f.question, '{{ $json.message }}') > 0.3\nORDER BY similarity(f.question, '{{ $json.message }}') DESC\nLIMIT 3",
+        "options": {}
+      },
+      "id": "node-053",
+      "name": "Search FAQ Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.plan, s.status, s.current_period_end\nFROM subscriptions s\nWHERE s.org_id = '{{ $json.org_id }}'\nAND s.status = 'active'\nLIMIT 1",
+        "options": {}
+      },
+      "id": "node-054",
+      "name": "Check Subscription Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO support_tickets (request_id, email, name, message, type, org_id, status, created_at)\nVALUES ('{{ $json.request_id }}', '{{ $json.email }}', '{{ $json.name }}', '{{ $json.message }}', '{{ $json.type }}', '{{ $json.org_id }}', 'open', NOW())\nRETURNING id",
+        "options": {}
+      },
+      "id": "node-055",
+      "name": "Create Support Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst faqResults = input.faqResults || [];\nconst message = input.message.toLowerCase();\n\nconst faqDatabase = [\n  {\n    question: 'How do I reset my password?',\n    answer: 'Go to Settings > Security > Change Password. You can also use the Forgot Password link on the login page.',\n    category: 'account'\n  },\n  {\n    question: 'How do I create a portfolio?',\n    answer: 'Navigate to Portfolios > New Portfolio. Follow the guided wizard to set up your sovereign debt portfolio.',\n    category: 'portfolio'\n  },\n  {\n    question: 'How do I run an optimization?',\n    answer: 'Go to Optimizations > New Optimization. Select your portfolio and choose your optimization strategy.',\n    category: 'optimization'\n  },\n  {\n    question: 'How do I import CSV data?',\n    answer: 'Go to Portfolios > Import. Download our CSV template, fill in your data, and upload.',\n    category: 'data'\n  },\n  {\n    question: 'How do I cancel my subscription?',\n    answer: 'Go to Billing > Subscription > Cancel. You can continue using the service until the end of your billing period.',\n    category: 'billing'\n  }\n];\n\nlet bestMatch = null;\nlet bestScore = 0;\n\nfor (const faq of faqDatabase) {\n  const faqLower = faq.question.toLowerCase();\n  let score = 0;\n  const words = message.split(' ');\n  for (const word of words) {\n    if (faqLower.includes(word)) score++;\n  }\n  const normalizedScore = score / words.length;\n  if (normalizedScore > bestScore) {\n    bestScore = normalizedScore;\n    bestMatch = faq;\n  }\n}\n\nreturn [{\n  json: {\n    ...input,\n    bestMatch,\n    confidence: bestScore,\n    response: bestMatch ? bestMatch.answer : 'Thank you for your question. Our support team will get back to you shortly.',\n    escalated: bestScore < 0.8\n  }\n}];"
+      },
+      "id": "node-056",
+      "name": "Generate AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.confidence > 0.8}}",
+              "operation": "equal",
+              "value2": true,
+              "id": "6ce43943-3cbe-50a3-9f68-9e10cc21de95"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "node-057",
+      "name": "IF High Confidence",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $env.QUANTIVE_BASE_URL }}/api/support/respond",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "value": "={{$json.request_id}}"
+            },
+            {
+              "name": "response",
+              "value": "={{$json.response}}"
+            },
+            {
+              "name": "automated",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-058",
+      "name": "Send Automated Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        1700
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_QUANTIVE_CREDENTIAL_ID",
+          "name": "Quantive API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $env.QUANTIVE_BASE_URL }}/api/support/escalate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "value": "={{$json.request_id}}"
+            },
+            {
+              "name": "reason",
+              "value": "low_confidence"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-059",
+      "name": "Escalate to Human Support",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        1900
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_QUANTIVE_CREDENTIAL_ID",
+          "name": "Quantive API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO faq_matches (request_id, confidence, matched_faq, escalated, logged_at)\nVALUES ('{{ $json.request_id }}', {{ $json.confidence }}, '{{ $json.bestMatch ? $json.bestMatch.question : null }}', {{ $json.escalated }}, NOW())",
+        "options": {}
+      },
+      "id": "node-060",
+      "name": "Log FAQ Match",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        1800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ticket-created",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-061",
+      "name": "Ticket Created Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        2100
+      ],
+      "webhookId": "ticket-created"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    ticket_id: body.ticket_id,\n    subject: body.subject,\n    description: body.description,\n    email: body.email,\n    org_id: body.org_id,\n    tier: body.tier || 'free',\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-062",
+      "name": "Extract Ticket Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "output": 0,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "critical",
+                    "operation": "equals",
+                    "id": "f12bcacc-432d-5485-a5f8-0b65a067c772"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 1,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "high",
+                    "operation": "equals",
+                    "id": "34f22bad-9cd1-5277-9c17-38fd28f491d9"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 2,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "medium",
+                    "operation": "equals",
+                    "id": "c8a8a54b-910b-536f-ab70-00f2a3416003"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 3,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "low",
+                    "operation": "equals",
+                    "id": "104f15a5-7cfd-5543-b8f8-44905e400d33"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            }
+          ]
+        },
+        "dataType": "string",
+        "value": "={{$json.priority || 'medium'}}"
+      },
+      "id": "node-063",
+      "name": "Classify by Urgency",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        440,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst subject = (input.subject || '').toLowerCase();\nconst description = (input.description || '').toLowerCase();\nconst text = subject + ' ' + description;\n\nlet category = 'question';\nif (text.includes('bug') || text.includes('error') || text.includes('crash') || text.includes('broken')) {\n  category = 'bug';\n} else if (text.includes('feature') || text.includes('request') || text.includes('suggestion')) {\n  category = 'feature';\n} else if (text.includes('billing') || text.includes('charge') || text.includes('payment') || text.includes('invoice')) {\n  category = 'billing';\n}\n\nreturn [{\n  json: {\n    ...input,\n    category\n  }\n}];"
+      },
+      "id": "node-064",
+      "name": "Classify by Category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tickets\nSET priority = '{{ $json.priority }}',\n    category = '{{ $json.category }}'\nWHERE id = '{{ $json.ticket_id }}'",
+        "options": {}
+      },
+      "id": "node-065",
+      "name": "Update Ticket Classification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        880,
+        2100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#support-urgent",
+        "text": "=URGENT: Ticket {{$json.ticket_id}} ({{$json.tier}} tier)\nSubject: {{$json.subject}}\n@support-team Please handle immediately.",
+        "otherOptions": {}
+      },
+      "id": "node-066",
+      "name": "Slack Alert Critical",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        2000
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#support",
+        "text": "=High priority: Ticket {{$json.ticket_id}} ({{$json.tier}} tier)\nSubject: {{$json.subject}}",
+        "otherOptions": {}
+      },
+      "id": "node-067",
+      "name": "Slack Alert High",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        2200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bug-report",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-068",
+      "name": "Bug Report Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        2400
+      ],
+      "webhookId": "bug-report"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    bug_id: body.bug_id || 'bug_' + Date.now(),\n    title: body.title,\n    description: body.description,\n    steps_to_reproduce: body.steps_to_reproduce || [],\n    expected_behavior: body.expected_behavior,\n    actual_behavior: body.actual_behavior,\n    severity: body.severity || 'medium',\n    reporter_email: body.reporter_email,\n    reporter_name: body.reporter_name,\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-069",
+      "name": "Parse Bug Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        2400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO bugs (title, description, steps_to_reproduce, expected_behavior, actual_behavior, severity, reporter_email, reporter_name, status, created_at)\nVALUES ('{{ $json.title }}', '{{ $json.description }}', '{{ JSON.stringify($json.steps_to_reproduce) }}', '{{ $json.expected_behavior }}', '{{ $json.actual_behavior }}', '{{ $json.severity }}', '{{ $json.reporter_email }}', '{{ $json.reporter_name }}', 'open', '{{ $json.created_at }}')\nRETURNING id",
+        "options": {}
+      },
+      "id": "node-070",
+      "name": "Insert Bug Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        440,
+        2400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst title = input.title.toLowerCase();\nconst description = (input.description || '').toLowerCase();\n\n// Simple duplicate detection based on title similarity\nconst keywords = title.split(' ').filter(w => w.length > 3);\n\nreturn [{\n  json: {\n    ...input,\n    isDuplicate: false,\n    searchTerms: keywords.join(' | ')\n  }\n}];"
+      },
+      "id": "node-071",
+      "name": "Check for Duplicates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isDuplicate}}",
+              "operation": "equal",
+              "value2": true,
+              "id": "f266b6b4-19a4-5eac-acc0-75b641e1c645"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "node-072",
+      "name": "IF Duplicate Bug",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        880,
+        2400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_REPO }}/issues",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "={{$json.title}}"
+            },
+            {
+              "name": "body",
+              "value": "=## Bug Report\n\n**Description:** {{$json.description}}\n\n**Steps to Reproduce:**\n{{$json.steps_to_reproduce.join('\n')}}\n\n**Expected:** {{$json.expected_behavior}}\n\n**Actual:** {{$json.actual_behavior}}\n\n**Severity:** {{$json.severity}}\n\n**Reporter:** {{$json.reporter_email}}"
+            },
+            {
+              "name": "labels",
+              "value": "=bug,{{$json.severity}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-073",
+      "name": "Create GitHub Issue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        2300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_GITHUB_CREDENTIAL_ID",
+          "name": "GitHub API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.reporter_email}}",
+        "subject": "Bug Report Received - {{$json.title}}",
+        "html": "<h1>Bug Report Received</h1><p>Hi {{$json.reporter_name}},</p><p>We've received your bug report and our team is investigating.</p><p><strong>Issue:</strong> {{$json.title}}</p><p><strong>Status:</strong> Open</p><p>We'll keep you updated on the progress.</p>",
+        "options": {}
+      },
+      "id": "node-074",
+      "name": "Send Bug Confirmation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        2300
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment-support",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "node-075",
+      "name": "Payment Support Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        2700
+      ],
+      "webhookId": "payment-support"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{\n  json: {\n    request_id: body.request_id || 'pay_' + Date.now(),\n    type: body.type || 'question',\n    email: body.email,\n    name: body.name,\n    org_id: body.org_id,\n    amount: body.amount,\n    reason: body.reason,\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-076",
+      "name": "Extract Payment Issue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "output": 0,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "refund",
+                    "operation": "equals",
+                    "id": "65bbeda1-ed74-5d4f-b042-36c16c6dfa28"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 1,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "dispute",
+                    "operation": "equals",
+                    "id": "117dba66-dadd-566f-a040-cace669842c7"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 2,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "upgrade",
+                    "operation": "equals",
+                    "id": "c7aa4a95-fdab-5d26-8cb0-d64de6c8fc1e"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            },
+            {
+              "output": 3,
+              "conditions": {
+                "conditions": [
+                  {
+                    "value": "question",
+                    "operation": "equals",
+                    "id": "24bf96ca-82bc-56cc-b70d-b0eebc45baaf"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and"
+              },
+              "renameOutput": false
+            }
+          ]
+        },
+        "dataType": "string",
+        "value": "={{$json.type}}"
+      },
+      "id": "node-077",
+      "name": "Route by Payment Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        440,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst eligible = input.amount <= 100 && input.reason;\n\nreturn [{\n  json: {\n    ...input,\n    eligible,\n    refundAmount: eligible ? input.amount : 0\n  }\n}];"
+      },
+      "id": "node-078",
+      "name": "Check Refund Eligibility",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.stripe.com/v1/refunds",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "payment_intent",
+              "value": "={{$json.payment_intent_id}}"
+            },
+            {
+              "name": "amount",
+              "value": "={{Math.round($json.refundAmount * 100)}}"
+            },
+            {
+              "name": "reason",
+              "value": "requested_by_customer"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-079",
+      "name": "Process Refund via Stripe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        880,
+        2500
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_STRIPE_CREDENTIAL_ID",
+          "name": "Stripe API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{\n  json: {\n    ...input,\n    evidence: {\n      customer_email: input.email,\n      reason: input.reason,\n      dispute_date: new Date().toISOString()\n    }\n  }\n}];"
+      },
+      "id": "node-080",
+      "name": "Gather Dispute Evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.stripe.com/v1/disputes/{{ $json.dispute_id }}/submit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "evidence[customer_email]",
+              "value": "={{$json.email}}"
+            },
+            {
+              "name": "evidence[reason]",
+              "value": "={{$json.reason}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-081",
+      "name": "Respond to Stripe Dispute",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        880,
+        2700
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_STRIPE_CREDENTIAL_ID",
+          "name": "Stripe API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst currentPlanPrice = 49;\nconst newPlanPrice = 99;\nconst daysRemaining = 15;\nconst proration = ((newPlanPrice - currentPlanPrice) / 30) * daysRemaining;\n\nreturn [{\n  json: {\n    ...input,\n    proration: Math.round(proration * 100) / 100,\n    currentPlanPrice,\n    newPlanPrice,\n    daysRemaining\n  }\n}];"
+      },
+      "id": "node-082",
+      "name": "Calculate Proration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.stripe.com/v1/subscriptions/{{ $json.subscription_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "items[0][price]",
+              "value": "={{$json.new_price_id}}"
+            },
+            {
+              "name": "proration_behavior",
+              "value": "always_invoice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-083",
+      "name": "Process Upgrade via Stripe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        880,
+        2800
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_STRIPE_CREDENTIAL_ID",
+          "name": "Stripe API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{\n  json: {\n    ...input,\n    billingSummary: {\n      currentPlan: 'Pro',\n      nextBillingDate: '2024-02-01',\n      amount: 99.00,\n      paymentMethod: 'Visa ending in 4242'\n    }\n  }\n}];"
+      },
+      "id": "node-084",
+      "name": "Get Billing Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2900
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Payment Resolution - {{$json.type}}",
+        "html": "<h1>Payment Resolution</h1><p>Hi {{$json.name}},</p><p>Your {{$json.type}} request has been processed.</p><p><strong>Status:</strong> Resolved</p><p>If you have any questions, please contact billing@quantive.io</p>",
+        "options": {}
+      },
+      "id": "node-085",
+      "name": "Send Resolution Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        2700
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst now = new Date();\nconst ticketAge = now - new Date(input.created_at);\nconst hoursOld = ticketAge / (1000 * 60 * 60);\n\nconst shouldEscalate = (\n  (hoursOld > 24 && input.priority === 'high') ||\n  (input.tier === 'enterprise') ||\n  (input.type === 'payment')\n);\n\nlet urgency = 'normal';\nif (hoursOld > 24 && input.priority === 'high') urgency = 'time-sensitive';\nif (input.tier === 'enterprise') urgency = 'enterprise-priority';\nif (input.type === 'payment') urgency = 'payment-urgent';\n\nreturn [{\n  json: {\n    ...input,\n    shouldEscalate,\n    urgency,\n    hoursOld: Math.round(hoursOld)\n  }\n}];"
+      },
+      "id": "node-086",
+      "name": "Check Escalation Conditions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        220,
+        3000
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.shouldEscalate}}",
+              "operation": "equal",
+              "value2": true,
+              "id": "2f7def33-89e8-515f-9c32-3816f5d53f09"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "node-087",
+      "name": "IF Should Escalate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        440,
+        3000
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#support-escalations",
+        "text": "=ESCALATION ALERT: {{$json.urgency}}\nTicket: {{$json.ticket_id}}\nAge: {{$json.hoursOld}}h\nTier: {{$json.tier}}\nPriority: {{$json.priority}}\n@support-lead Please review immediately.",
+        "otherOptions": {}
+      },
+      "id": "node-088",
+      "name": "Slack Escalation Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        660,
+        2900
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tickets SET escalated = true, escalated_at = NOW() WHERE id = '{{ $json.ticket_id }}'",
+        "options": {}
+      },
+      "id": "node-089",
+      "name": "Mark Ticket Escalated",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        880,
+        3000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CREDENTIAL_ID",
+          "name": "Quantive Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Account Created Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract User Data": {
+      "main": [
+        [
+          {
+            "node": "Create Stripe Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Stripe Customer": {
+      "main": [
+        [
+          {
+            "node": "Insert Customer Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Customer Record": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend Account Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Backend Account Created": {
+      "main": [
+        [
+          {
+            "node": "Generate Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Log Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Generate Login Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Login Instructions": {
+      "main": [
+        [
+          {
+            "node": "Send Login Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Login Instructions": {
+      "main": [
+        [
+          {
+            "node": "Log Login Instructions Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tier Change Webhook": {
+      "main": [
+        [
+          {
+            "node": "Determine Tier Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Tier Features": {
+      "main": [
+        [
+          {
+            "node": "Route by Tier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Tier": {
+      "main": [
+        [
+          {
+            "node": "Update Free Features",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Pro Features",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Enterprise Features",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Free Features": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend Tier Change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Pro Features": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend Tier Change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Enterprise Features": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend Tier Change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Onboarding Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Onboarding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Onboarding": {
+      "main": [
+        [
+          {
+            "node": "Check Onboarding Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Onboarding Step": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Route by Onboarding Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Onboarding Step": {
+      "main": [
+        [
+          {
+            "node": "Step 1: Portfolio Guide",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Step 2: Import Guide",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Step 3: Optimize Guide",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Step 4: Analytics Guide",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Step 5: Reports Guide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 1: Portfolio Guide": {
+      "main": [
+        [
+          {
+            "node": "Update Onboarding Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 2: Import Guide": {
+      "main": [
+        [
+          {
+            "node": "Update Onboarding Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 3: Optimize Guide": {
+      "main": [
+        [
+          {
+            "node": "Update Onboarding Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 4: Analytics Guide": {
+      "main": [
+        [
+          {
+            "node": "Update Onboarding Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 5: Reports Guide": {
+      "main": [
+        [
+          {
+            "node": "Update Onboarding Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Onboarding Step": {
+      "main": [
+        [
+          {
+            "node": "Check Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Completion": {
+      "main": [
+        [
+          {
+            "node": "IF Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Completed": {
+      "main": [
+        [
+          {
+            "node": "Mark Onboarding Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usage Tracking Schedule": {
+      "main": [
+        [
+          {
+            "node": "Fetch Portfolios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Portfolios": {
+      "main": [
+        [
+          {
+            "node": "Fetch Optimizations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Optimizations": {
+      "main": [
+        [
+          {
+            "node": "Calculate Usage Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Usage Metrics": {
+      "main": [
+        [
+          {
+            "node": "Insert Usage Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Usage Metrics": {
+      "main": [
+        [
+          {
+            "node": "IF Usage Over Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Usage Over Limit": {
+      "main": [
+        [
+          {
+            "node": "Send Upgrade Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Re-engagement Schedule": {
+      "main": [
+        [
+          {
+            "node": "Find Inactive Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Inactive Users": {
+      "main": [
+        [
+          {
+            "node": "Check Engagement Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Engagement Level": {
+      "main": [
+        [
+          {
+            "node": "IF Inactive 30+ Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Inactive 30+ Days": {
+      "main": [
+        [
+          {
+            "node": "Send 30-Day Special Offer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Inactive 14+ Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Inactive 14+ Days": {
+      "main": [
+        [
+          {
+            "node": "Send 14-Day Features Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send 7-Day Miss You Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 30-Day Special Offer": {
+      "main": [
+        [
+          {
+            "node": "Log Re-engagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 14-Day Features Email": {
+      "main": [
+        [
+          {
+            "node": "Log Re-engagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 7-Day Miss You Email": {
+      "main": [
+        [
+          {
+            "node": "Log Re-engagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Support Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Support Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Support Request": {
+      "main": [
+        [
+          {
+            "node": "Route by Support Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Support Type": {
+      "main": [
+        [
+          {
+            "node": "Search FAQ Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Subscription Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Support Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search FAQ Database": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Subscription Status": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Support Ticket": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Response": {
+      "main": [
+        [
+          {
+            "node": "IF High Confidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF High Confidence": {
+      "main": [
+        [
+          {
+            "node": "Send Automated Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate to Human Support",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Automated Response": {
+      "main": [
+        [
+          {
+            "node": "Log FAQ Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate to Human Support": {
+      "main": [
+        [
+          {
+            "node": "Log FAQ Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ticket Created Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Ticket Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Ticket Data": {
+      "main": [
+        [
+          {
+            "node": "Classify by Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify by Urgency": {
+      "main": [
+        [
+          {
+            "node": "Classify by Category",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Alert Critical",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Alert High",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Classify by Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify by Category": {
+      "main": [
+        [
+          {
+            "node": "Update Ticket Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bug Report Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Bug Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Bug Report": {
+      "main": [
+        [
+          {
+            "node": "Insert Bug Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Bug Record": {
+      "main": [
+        [
+          {
+            "node": "Check for Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Duplicates": {
+      "main": [
+        [
+          {
+            "node": "IF Duplicate Bug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Duplicate Bug": {
+      "main": [
+        [
+          {
+            "node": "Send Bug Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create GitHub Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create GitHub Issue": {
+      "main": [
+        [
+          {
+            "node": "Send Bug Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment Support Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Payment Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Payment Issue": {
+      "main": [
+        [
+          {
+            "node": "Route by Payment Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Payment Type": {
+      "main": [
+        [
+          {
+            "node": "Check Refund Eligibility",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gather Dispute Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Proration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Billing Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Refund Eligibility": {
+      "main": [
+        [
+          {
+            "node": "Process Refund via Stripe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gather Dispute Evidence": {
+      "main": [
+        [
+          {
+            "node": "Respond to Stripe Dispute",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Proration": {
+      "main": [
+        [
+          {
+            "node": "Process Upgrade via Stripe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Refund via Stripe": {
+      "main": [
+        [
+          {
+            "node": "Send Resolution Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Stripe Dispute": {
+      "main": [
+        [
+          {
+            "node": "Send Resolution Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Upgrade via Stripe": {
+      "main": [
+        [
+          {
+            "node": "Send Resolution Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Billing Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Resolution Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Escalation Conditions": {
+      "main": [
+        [
+          {
+            "node": "IF Should Escalate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Should Escalate": {
+      "main": [
+        [
+          {
+            "node": "Slack Escalation Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Escalation Alert": {
+      "main": [
+        [
+          {
+            "node": "Mark Ticket Escalated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionSessionId": "quantive-onboarding-support-session",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "",
+    "timezone": "UTC"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "onboarding"
+    },
+    {
+      "name": "support"
+    },
+    {
+      "name": "quantive"
+    }
+  ],
+  "triggerCount": 5
+}

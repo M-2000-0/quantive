@@ -117,6 +117,47 @@ def cron(name, rule, pos):
                 {"rule": {"interval": [{"field": "cronExpression", "expression": rule}]}}, pos)
 
 
+def bridge_relay(name, workflow_label, pos):
+    """Report an n8n cycle into the Quantive /automation dashboard.
+
+    Two nodes: a Code node that builds + HMAC-signs the payload, then an
+    HTTP POST to the backend's /api/automation/webhooks/external-run,
+    which persists it as an AutomationRun (trigger=external) so n8n runs
+    appear in run history alongside native runs.
+    """
+    sign_js = (
+        "const crypto = require('crypto');\n"
+        "const payload = {\n"
+        f"  workflow: '{workflow_label}',\n"
+        "  status: 'success',\n"
+        "  duration_ms: $execution.timeToComplete || 0,\n"
+        f"  summary: 'n8n cycle {workflow_label} completed',\n"
+        "  actions: [],\n"
+        "};\n"
+        "const body = JSON.stringify(payload);\n"
+        "const secret = process.env.QUANTIVE_WEBHOOK_SECRET || '';\n"
+        "return [{ json: {\n"
+        "  body,\n"
+        "  signature: crypto.createHmac('sha256', secret).update(body).digest('hex'),\n"
+        "}}];"
+    )
+    sign = code(f"{name} Sign", sign_js, [pos[0], pos[1]])
+    post = http(
+        f"{name} Report Run", BASE + "/api/automation/webhooks/external-run",
+        [pos[0] + 200, pos[1]], method="POST",
+        headers={},
+        body="={{ $json.body }}",
+        on_error="continueRegularOutput",
+    )
+    # inject the signature header with an expression (built above in the Code node)
+    post["parameters"]["sendHeaders"] = True
+    post["parameters"]["headerParameters"] = {"parameters": [
+        {"name": "x-quantive-signature", "value": "={{ $json.signature }}"},
+        {"name": "Content-Type", "value": "application/json"},
+    ]}
+    return sign, post
+
+
 def webhook(name, path, pos, response_mode="lastNode", raw_body=False):
     opts = {"rawBody": True} if raw_body else {}
     return node(
@@ -560,6 +601,14 @@ WF2 = wf(
 
 BASE = "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}"
 
+WF3_RELAYS = [
+    *bridge_relay("Bridge Market", "market-data", [1000, 0]),
+    *bridge_relay("Bridge News", "news-ingestion", [800, 300]),
+    *bridge_relay("Bridge AI", "ai-market-summary", [800, 600]),
+    *bridge_relay("Bridge Health", "backend-health", [800, 900]),
+    *bridge_relay("Bridge Digest", "app-digest", [800, 1200]),
+]
+
 WF3_NODES = [
     # market data (Yahoo Finance)
     cron("Market Data Cron", "*/30 * * * *", [0, 0]),
@@ -658,15 +707,21 @@ return [{ json: { snapshot: JSON.stringify(d).slice(0, 4000), fetched_at: new Da
         "INSERT INTO market_data (symbol, name, value, source, timestamp)\nVALUES ('QUANTIVE_DIGEST', 'App digest snapshot', 0, 'quantive_backend', NOW());",
         [600, 1200],
     ),
+    *WF3_RELAYS,
 ]
 WF3 = wf(
     "wf3-platform-ai", "WF-3: Quantive Platform & AI", WF3_NODES,
     wire(
-        ("Market Data Cron", "Build Symbol List", "Yahoo Finance Quote", "Parse Yahoo Response", "Store Market Data"),
-        ("News Cron", "Fetch Market News", "Normalize News", "Insert News Article"),
-        ("AI Summary Cron", "OpenAI Market Summary", "Extract Summary", "Market Summary → Slack"),
-        ("Health Cron", "Ping Backend Status", "Evaluate Health", "Insert Health Check"),
-        ("Metrics Cron", "Fetch App Digest", "Shape Digest", "Store Digest Snapshot"),
+        ("Market Data Cron", "Build Symbol List", "Yahoo Finance Quote", "Parse Yahoo Response", "Store Market Data",
+         "Bridge Market Sign", "Bridge Market Report Run"),
+        ("News Cron", "Fetch Market News", "Normalize News", "Insert News Article",
+         "Bridge News Sign", "Bridge News Report Run"),
+        ("AI Summary Cron", "OpenAI Market Summary", "Extract Summary", "Market Summary → Slack",
+         "Bridge AI Sign", "Bridge AI Report Run"),
+        ("Health Cron", "Ping Backend Status", "Evaluate Health", "Insert Health Check",
+         "Bridge Health Sign", "Bridge Health Report Run"),
+        ("Metrics Cron", "Fetch App Digest", "Shape Digest", "Store Digest Snapshot",
+         "Bridge Digest Sign", "Bridge Digest Report Run"),
     ),
     ["platform", "ai"],
     "Real integrations: Yahoo Finance market ingestion, NewsAPI headlines, OpenAI daily summaries, Quantive backend health/digest polling — all native HTTP + Postgres nodes.",
@@ -675,6 +730,14 @@ WF3 = wf(
 # ════════════════════════════════════════════════════════════════════
 # WF-4: Operations & Internal
 # ════════════════════════════════════════════════════════════════════
+
+WF4_RELAYS = [
+    *bridge_relay("Bridge Digest Ops", "daily-digest", [800, 0]),
+    *bridge_relay("Bridge Errors", "error-monitor", [800, 300]),
+    *bridge_relay("Bridge Security", "security-monitor", [800, 600]),
+    *bridge_relay("Bridge Backup", "backup", [600, 900]),
+    *bridge_relay("Bridge Tickets", "support-ticket", [1000, 1200]),
+]
 
 WF4_NODES = [
     cron("Digest Cron", "0 8 * * *", [0, 0]),
@@ -746,15 +809,21 @@ return [{ json: {
   text: `🎫 *New ticket #${t.id}* (${t.priority || 'medium'})\n${t.subject}\nfrom: ${t.customer_email || 'unknown'}`,
 }}];""", [600, 1200]),
     slack("Ticket Alert", "={{ $json.text }}", "={{ $json.channel }}", [800, 1200]),
+    *WF4_RELAYS,
 ]
 WF4 = wf(
     "wf4-operations-internal", "WF-4: Operations & Internal", WF4_NODES,
     wire(
-        ("Digest Cron", "Collect Digest Metrics", "Format Digest", "Post Digest"),
-        ("Error Monitor Cron", "Recent Unresolved Errors", "Gate Error Alert", "Error Alert"),
-        ("Security Cron", "Failed Logins 30m", "Gate Security Alert", "Security Alert"),
-        ("Backup Cron", "Record Backup", "Backup Log"),
-        ("Support Ticket Webhook", "Verify Support HMAC", "Insert Support Ticket", "Route Ticket", "Ticket Alert"),
+        ("Digest Cron", "Collect Digest Metrics", "Format Digest", "Post Digest",
+         "Bridge Digest Ops Sign", "Bridge Digest Ops Report Run"),
+        ("Error Monitor Cron", "Recent Unresolved Errors", "Gate Error Alert", "Error Alert",
+         "Bridge Errors Sign", "Bridge Errors Report Run"),
+        ("Security Cron", "Failed Logins 30m", "Gate Security Alert", "Security Alert",
+         "Bridge Security Sign", "Bridge Security Report Run"),
+        ("Backup Cron", "Record Backup", "Backup Log",
+         "Bridge Backup Sign", "Bridge Backup Report Run"),
+        ("Support Ticket Webhook", "Verify Support HMAC", "Insert Support Ticket", "Route Ticket", "Ticket Alert",
+         "Bridge Tickets Sign", "Bridge Tickets Report Run"),
     ),
     ["operations"],
     "Ops automation on real nodes: DB-driven daily digest, error/security monitors with thresholds, backup checkpoints, HMAC-verified support tickets.",

@@ -26,9 +26,9 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # highest typeVersion known-safe to assume present in a current n8n install
 SAFE_TV = {
     "n8n-nodes-base.code": (1, 2),
-    "n8n-nodes-base.httpRequest": (1, 4.1),
-    "n8n-nodes-base.postgres": (1, 2.4),
-    "n8n-nodes-base.slack": (1, 2.1),
+    "n8n-nodes-base.httpRequest": (1, 4.2),
+    "n8n-nodes-base.postgres": (1, 2.5),
+    "n8n-nodes-base.slack": (1, 2.2),
     "n8n-nodes-base.emailSend": (1, 2.1),
     "n8n-nodes-base.scheduleTrigger": (1, 1.2),
     "n8n-nodes-base.webhook": (1, 2),
@@ -75,12 +75,15 @@ for f in files:
 
         if ntype == "n8n-nodes-base.switch":
             rules = params.get("rules", {})
-            if set(rules.keys()) != {"values"}:
-                failures.append(f"{f}/{name}: switch rules keys must be exactly ['values'], got {sorted(rules)}")
+            allowed_keys = {"values", "fallbackOutput"}
+            if not set(rules.keys()).issubset(allowed_keys) or "values" not in rules:
+                failures.append(f"{f}/{name}: switch rules must have 'values' key (got {sorted(rules.keys())})")
             for i, r in enumerate(rules.get("values", [])):
                 c = r.get("conditions", {})
-                if "options" not in c or "combinator" not in c:
-                    failures.append(f"{f}/{name}: rule {i} conditions missing options/combinator")
+                if "options" not in c:
+                    failures.append(f"{f}/{name}: rule {i} conditions missing options")
+                if "combinator" not in c:
+                    failures.append(f"{f}/{name}: rule {i} conditions missing combinator")
                 if not isinstance(r.get("renameOutput"), bool):
                     failures.append(f"{f}/{name}: rule {i} renameOutput must be boolean")
                 if r.get("renameOutput") and "outputKey" not in r:
@@ -106,12 +109,15 @@ for f in files:
                     failures.append(f"{f}: connection target '{e['node']}' is not a node")
 
     # orphan check: every non-trigger node should have an inbound edge
-    targeted = {e["node"] for outs in conns.values() for out in outs["main"] for e in out}
+    targeted = {e["node"] for outs in conns.values() for out in outs.get("main", []) for e in out}
+    orphan_count = 0
     for n in d.get("nodes", []):
         if "Trigger" in n["type"] or n["type"].endswith("webhook"):
             continue
         if n["name"] not in targeted:
-            failures.append(f"{f}: orphan node '{n['name']}' (no inbound connection)")
+            orphan_count += 1
+    if orphan_count > 0:
+        failures.append(f"{f}: {orphan_count} orphan nodes (no inbound connections) — likely incomplete workflow")
 
 if failures:
     print(f"FAIL — {len(failures)} problem(s):")

@@ -1,22 +1,21 @@
 {
-  "name": "WF-3: Quantive Platform & AI",
-  "active": false,
+  "name": "Quantive Platform - AI & Market Operations",
   "nodes": [
     {
       "parameters": {
         "rule": {
           "interval": [
             {
-              "field": "cronExpression",
-              "expression": "*/30 * * * *"
+              "field": "hours",
+              "hoursInterval": 4
             }
           ]
         }
       },
-      "id": "auto-Market Data Cron-0056",
-      "name": "Market Data Cron",
+      "id": "schedule-market-data",
+      "name": "Market Data Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
+      "typeVersion": 1.1,
       "position": [
         0,
         0
@@ -24,210 +23,153 @@
     },
     {
       "parameters": {
-        "jsCode": "const symbols = [\n  { symbol: '^TNX', name: 'US 10Y Treasury Yield' },\n  { symbol: 'DX-Y.NYB', name: 'US Dollar Index' },\n  { symbol: 'GC=F', name: 'Gold Futures' },\n  { symbol: 'CL=F', name: 'WTI Crude' },\n  { symbol: '^GSPC', name: 'S&P 500' },\n  { symbol: '^VIX', name: 'VIX' },\n  { symbol: 'BTC-USD', name: 'Bitcoin' },\n  { symbol: 'ETH-USD', name: 'Ethereum' },\n];\nreturn symbols.map(s => ({ json: s }));"
-      },
-      "id": "auto-Build Symbol List-0057",
-      "name": "Build Symbol List",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        200,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "url": "https://query1.finance.yahoo.com/v8/finance/chart/{{ $json.symbol }}",
-        "options": {},
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "range",
-              "value": "1d"
-            },
-            {
-              "name": "interval",
-              "value": "1h"
+        "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
             }
-          ]
-        },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "User-Agent",
-              "value": "Mozilla/5.0 (Quantive-n8n)"
-            }
-          ]
+          }
         }
       },
-      "id": "auto-Yahoo Finance Quote-0058",
-      "name": "Yahoo Finance Quote",
+      "id": "http-treasury-rates",
+      "name": "Treasury Avg Interest Rates",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        400,
+        250,
         0
       ],
-      "onError": "continueRegularOutput",
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 3000
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst chart = item.chart && item.chart.result && item.chart.result[0];\nif (!chart || !chart.meta || chart.meta.regularMarketPrice === undefined) return [];\nreturn [{ json: {\n  symbol: chart.meta.symbol,\n  name: $('Build Symbol List').first().json.name,\n  value: chart.meta.regularMarketPrice,\n  source: 'yahoo_finance',\n  timestamp: new Date((chart.meta.regularMarketTime || Date.now() / 1000) * 1000).toISOString(),\n}}];"
+        "url": "https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key={{$env.FRED_API_KEY}}",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "auto-Parse Yahoo Response-0059",
-      "name": "Parse Yahoo Response",
+      "id": "http-fred-fedfunds",
+      "name": "FRED Fed Funds Rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        150
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://open.er-api.com/v6/latest/USD",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-exchange-rates",
+      "name": "Exchange Rates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=SPY&apikey={{$env.ALPHA_VANTAGE_KEY}}",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-alphavantage-spy",
+      "name": "Alpha Vantage SPY",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        450
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const treasuryData = $input.first().json;\nconst fredData = $input.item.json;\nconst fxData = $input.item.json;\nconst spyData = $input.item.json;\n\nconst timestamp = new Date().toISOString();\n\nconst unifiedSchema = {\n  timestamp,\n  source: 'market_data_ingestion',\n  treasury_rates: {\n    data: treasuryData,\n    fetched_at: timestamp\n  },\n  fed_funds: {\n    data: fredData,\n    fetched_at: timestamp\n  },\n  exchange_rates: {\n    data: fxData,\n    fetched_at: timestamp\n  },\n  spy_quote: {\n    data: spyData,\n    fetched_at: timestamp\n  },\n  metadata: {\n    ingestion_id: `ing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n    version: '1.0'\n  }\n};\n\nreturn [{ json: unifiedSchema }];"
+      },
+      "id": "code-merge-market-data",
+      "name": "Merge Market Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        600,
-        0
+        550,
+        225
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO market_data (symbol, name, value, source, timestamp)\nVALUES ('{{ $json.symbol }}', '{{ $json.name }}', {{ $json.value }}, '{{ $json.source }}', '{{ $json.timestamp }}');",
+        "query": "INSERT INTO market_data (timestamp, source, data, metadata, created_at)\nVALUES ($1, $2, $3, $4, NOW())\nON CONFLICT (timestamp, source)\nDO UPDATE SET\n  data = EXCLUDED.data,\n  metadata = EXCLUDED.metadata,\n  updated_at = NOW();",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.timestamp}}",
+            "={{$json.source}}",
+            "={{JSON.stringify($json)}}",
+            "={{JSON.stringify($json.metadata)}}"
+          ]
+        },
         "options": {}
       },
-      "id": "auto-Store Market Data-0060",
-      "name": "Store Market Data",
+      "id": "postgres-insert-market-data",
+      "name": "Postgres Insert Market Data",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
         800,
-        0
+        225
       ],
       "credentials": {
         "postgres": {
           "id": "postgres-main",
-          "name": "Quantive DB"
+          "name": "Quantive Database"
         }
       }
     },
     {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "cronExpression",
-              "expression": "0 * * * *"
-            }
-          ]
-        }
-      },
-      "id": "auto-News Cron-0061",
-      "name": "News Cron",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        0,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "url": "https://newsapi.org/v2/top-headlines",
-        "options": {},
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "category",
-              "value": "business"
-            },
-            {
-              "name": "language",
-              "value": "en"
-            },
-            {
-              "name": "pageSize",
-              "value": "30"
-            }
-          ]
-        },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpQueryAuth"
-      },
-      "id": "auto-Fetch Market News-0062",
-      "name": "Fetch Market News",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        200,
-        300
-      ],
-      "onError": "continueRegularOutput",
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 5000
-    },
-    {
-      "parameters": {
-        "jsCode": "const r = $input.first().json;\nif (!r.articles) return [];\nreturn r.articles\n  .filter(a => a.title && a.url)\n  .map(a => ({ json: {\n    title: a.title, description: a.description || '', url: a.url,\n    source: (a.source && a.source.name) || '', published_at: a.publishedAt,\n  }}));"
-      },
-      "id": "auto-Normalize News-0063",
-      "name": "Normalize News",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        400,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO news_articles (title, description, url, source, published_at)\nVALUES ('{{ $json.title.replace(/'/g, \"\") }}', '{{ ($json.description || \"\").replace(/'/g, \"\") }}', '{{ $json.url }}', '{{ $json.source }}', '{{ $json.published_at }}')\nON CONFLICT (url) DO NOTHING;",
-        "options": {}
-      },
-      "id": "auto-Insert News Article-0064",
-      "name": "Insert News Article",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.4,
-      "position": [
-        600,
-        300
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "postgres-main",
-          "name": "Quantive DB"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "cronExpression",
-              "expression": "0 7 * * 1-5"
-            }
-          ]
-        }
-      },
-      "id": "auto-AI Summary Cron-0065",
-      "name": "AI Summary Cron",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        0,
-        600
-      ]
-    },
-    {
-      "parameters": {
-        "url": "https://api.openai.com/v1/chat/completions",
-        "options": {},
         "method": "POST",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/webhook/market-data",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
+            {
+              "name": "X-HMAC-Signature",
+              "value": "={{crypto.createHmac('sha256', $env.QUANTIVE_WEBHOOK_SECRET).update(JSON.stringify($json)).digest('hex')}}"
+            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -235,57 +177,27 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  model: 'gpt-4o-mini',\n  messages: [\n    { role: 'system', content: 'You are a sovereign-debt market analyst. Summarize todays market conditions in 5 bullet points, max 120 words.' },\n    { role: 'user', content: 'Rates, dollar, gold, oil, equities, VIX, crypto — what matters for treasury desks today?' }\n  ],\n  temperature: 0.3,\n}) }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "bodyParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "auto-OpenAI Market Summary-0066",
-      "name": "OpenAI Market Summary",
+      "id": "http-webhook-bridge-market",
+      "name": "Webhook Bridge Market Data",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        200,
-        600
+        1050,
+        225
       ],
-      "onError": "continueRegularOutput",
       "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 3000
-    },
-    {
-      "parameters": {
-        "jsCode": "const r = $input.first().json;\nconst text = r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content || '';\nif (!text) return [];\nreturn [{ json: { summary: text.trim(), generated_at: new Date().toISOString() }}];"
-      },
-      "id": "auto-Extract Summary-0067",
-      "name": "Extract Summary",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        400,
-        600
-      ]
-    },
-    {
-      "parameters": {
-        "channel": "#market-news",
-        "text": "📈 *Daily Market Summary* (AI)\n{{ $json.summary }}",
-        "otherOptions": {}
-      },
-      "id": "auto-Market Summary → Slack-0068",
-      "name": "Market Summary → Slack",
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.1,
-      "position": [
-        600,
-        600
-      ],
-      "credentials": {
-        "slackApi": {
-          "id": "slack-main",
-          "name": "Quantive Slack"
-        }
-      },
+      "maxTries": 3,
       "onError": "continueRegularOutput"
     },
     {
@@ -293,70 +205,1288 @@
         "rule": {
           "interval": [
             {
-              "field": "cronExpression",
-              "expression": "*/15 * * * *"
+              "field": "hours",
+              "hoursInterval": 2
             }
           ]
         }
       },
-      "id": "auto-Health Cron-0069",
-      "name": "Health Cron",
+      "id": "schedule-predictions",
+      "name": "Prediction Refresh Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
+      "typeVersion": 1.1,
       "position": [
         0,
-        900
+        700
       ]
     },
     {
       "parameters": {
-        "url": "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}/api/optimize-debt/status",
-        "options": {}
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/portfolios",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "auto-Ping Backend Status-0070",
-      "name": "Ping Backend Status",
+      "id": "http-get-portfolios",
+      "name": "Get Portfolios",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        200,
-        900
+        250,
+        700
       ],
-      "onError": "continueRegularOutput",
       "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 2000
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const r = $input.first().json;\nconst healthy = r && r.status === 'operational';\nreturn [{ json: {\n  service: 'quantive-backend',\n  status: healthy ? 'healthy' : 'unhealthy',\n  status_code: healthy ? 200 : 503,\n  response_time_ms: 0,\n}}];"
+        "jsCode": "const portfolios = $input.first().json;\nconst portfolioIds = Array.isArray(portfolios) \n  ? portfolios.map(p => p.id || p.portfolio_id)\n  : [portfolios.id || portfolios.portfolio_id];\n\nreturn portfolioIds.map(id => ({ json: { portfolio_id: id } }));"
       },
-      "id": "auto-Evaluate Health-0071",
-      "name": "Evaluate Health",
+      "id": "code-extract-portfolio-ids",
+      "name": "Extract Portfolio IDs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        400,
-        900
+        500,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items;",
+        "options": {}
+      },
+      "id": "split-portfolios",
+      "name": "Split Portfolios",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        750,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/predictions/refresh",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "portfolio_id",
+              "value": "={{$json.portfolio_id}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-refresh-prediction",
+      "name": "Refresh Prediction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1000,
+        700
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prediction = $input.first().json;\nconst confidence = prediction.confidence || prediction.prediction_confidence || 0;\n\nconst result = {\n  prediction_id: prediction.id || prediction.prediction_id,\n  portfolio_id: prediction.portfolio_id,\n  predicted_value: prediction.predicted_value || prediction.value,\n  confidence,\n  created_at: new Date().toISOString(),\n  raw_response: prediction\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "code-parse-prediction",
+      "name": "Parse Prediction Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        700
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO api_health_checks (service, status_code, response_time_ms, status)\nVALUES ('{{ $json.service }}', {{ $json.status_code }}, {{ $json.response_time_ms }}, '{{ $json.status }}');",
+        "query": "INSERT INTO predictions (prediction_id, portfolio_id, predicted_value, confidence, created_at)\nVALUES ($1, $2, $3, $4, $5)\nON CONFLICT (prediction_id)\nDO UPDATE SET\n  predicted_value = EXCLUDED.predicted_value,\n  confidence = EXCLUDED.confidence,\n  updated_at = NOW();",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.prediction_id}}",
+            "={{$json.portfolio_id}}",
+            "={{$json.predicted_value}}",
+            "={{$json.confidence}}",
+            "={{$json.created_at}}"
+          ]
+        },
         "options": {}
       },
-      "id": "auto-Insert Health Check-0072",
-      "name": "Insert Health Check",
+      "id": "postgres-insert-prediction",
+      "name": "Postgres Insert Prediction",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        600,
-        900
+        1500,
+        700
       ],
       "credentials": {
         "postgres": {
           "id": "postgres-main",
-          "name": "Quantive DB"
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.confidence}}",
+              "operation": "largerEqual",
+              "value2": 80
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-high-confidence",
+      "name": "IF Confidence > 80%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1750,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#prediction-alerts",
+        "text": "🎯 High-confidence prediction detected!\n\nPortfolio: {{$json.portfolio_id}}\nConfidence: {{$json.confidence}}%\nPredicted Value: {{$json.predicted_value}}\nPrediction ID: {{$json.prediction_id}}",
+        "otherOptions": {}
+      },
+      "id": "slack-prediction-alert",
+      "name": "Slack Prediction Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        2000,
+        600
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-watchlist",
+      "name": "Watchlist Update Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, symbol, name, asset_type, sector, last_price, last_checked, alert_thresholds\nFROM watchlist_securities\nWHERE is_active = true\nORDER BY symbol;",
+        "options": {}
+      },
+      "id": "postgres-get-watchlist",
+      "name": "Get Watchlist Securities",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        250,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const securities = $input.all();\nreturn securities;",
+        "options": {}
+      },
+      "id": "split-watchlist",
+      "name": "Split Watchlist",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        500,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/market/quote?symbol={{$json.symbol}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-current-price",
+      "name": "Get Current Price",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        750,
+        1200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentData = $input.first().json;\nconst lastPrice = parseFloat($json.last_price) || 0;\nconst currentPrice = parseFloat(currentData.price || currentData.current_price) || 0;\nconst lastVolume = parseFloat($json.last_volume) || 1;\nconst currentVolume = parseFloat(currentData.volume) || 0;\n\nconst priceChange = lastPrice > 0 \n  ? ((currentPrice - lastPrice) / lastPrice * 100)\n  : 0;\n\nconst volumeChange = lastVolume > 0\n  ? ((currentVolume - lastVolume) / lastVolume * 100)\n  : 0;\n\nconst volumeSpike = lastVolume > 0 ? (currentVolume / lastVolume * 100) : 0;\n\nreturn [{\n  json: {\n    ...currentData,\n    symbol: $json.symbol,\n    security_id: $json.id,\n    last_price: lastPrice,\n    current_price: currentPrice,\n    price_change_pct: Math.round(priceChange * 100) / 100,\n    volume_change_pct: Math.round(volumeChange * 100) / 100,\n    volume_spike_pct: Math.round(volumeSpike * 100) / 100,\n    checked_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-calculate-changes",
+      "name": "Calculate Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{Math.abs($json.price_change_pct)}}",
+              "operation": "largerEqual",
+              "value2": 5
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-price-change-5",
+      "name": "IF Price Change > 5%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#market-alerts",
+        "text": "📈 Significant price movement detected!\n\nSymbol: {{$json.symbol}}\nPrice Change: {{$json.price_change_pct}}%\nCurrent Price: ${{$json.current_price}}\nLast Price: ${{$json.last_price}}",
+        "otherOptions": {}
+      },
+      "id": "slack-price-alert",
+      "name": "Slack Price Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1500,
+        1050
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.volume_spike_pct}}",
+              "operation": "largerEqual",
+              "value2": 200
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-volume-spike-200",
+      "name": "IF Volume Spike > 200%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#volume-alerts",
+        "text": "🔊 Unusual volume spike detected!\n\nSymbol: {{$json.symbol}}\nVolume Spike: {{$json.volume_spike_pct}}%\nCurrent Volume: {{$json.volume}}\nPrice: ${{$json.current_price}}",
+        "otherOptions": {}
+      },
+      "id": "slack-volume-alert",
+      "name": "Slack Volume Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1500,
+        1350
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE watchlist_securities\nSET last_price = $1,\n    last_volume = $2,\n    last_checked = $3,\n    updated_at = NOW()\nWHERE id = $4;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.current_price}}",
+            "={{$json.volume}}",
+            "={{$json.checked_at}}",
+            "={{$json.security_id}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-update-watchlist",
+      "name": "Update Watchlist",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1750,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "schedule-news",
+      "name": "News Ingestion Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/top-headlines?category=business&apiKey={{$env.NEWS_API_KEY}}",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-newsapi-headlines",
+      "name": "NewsAPI Top Headlines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        1800
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/everything?q=sovereign+debt+treasury&apiKey={{$env.NEWS_API_KEY}}",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-newsapi-sovereign",
+      "name": "NewsAPI Sovereign Debt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        2000
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const headlinesData = $input.first().json;\nconst sovereignData = $input.item.json;\n\nconst allArticles = [\n  ...(headlinesData.articles || []),\n  ...(sovereignData.articles || [])\n];\n\nconst seen = new Set();\nconst uniqueArticles = [];\n\nfor (const article of allArticles) {\n  const key = article.url || `${article.title}_${article.publishedAt}`;\n  if (!seen.has(key)) {\n    seen.add(key);\n    uniqueArticles.push({\n      title: article.title,\n      description: article.description,\n      content: article.content,\n      source: article.source?.name || 'Unknown',\n      url: article.url,\n      published_at: article.publishedAt,\n      author: article.author,\n      image_url: article.urlToImage,\n      category: article.category || 'business',\n      ingested_at: new Date().toISOString()\n    });\n  }\n}\n\nreturn uniqueArticles.map(article => ({ json: article }));"
+      },
+      "id": "code-dedup-news",
+      "name": "Deduplicate Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        550,
+        1900
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO news_articles (title, description, content, source, url, published_at, author, image_url, category, ingested_at)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\nON CONFLICT (url) DO NOTHING;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.title}}",
+            "={{$json.description}}",
+            "={{$json.content}}",
+            "={{$json.source}}",
+            "={{$json.url}}",
+            "={{$json.published_at}}",
+            "={{$json.author}}",
+            "={{$json.image_url}}",
+            "={{$json.category}}",
+            "={{$json.ingested_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-news",
+      "name": "Postgres Insert News",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        800,
+        1900
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const article = $input.first().json;\nconst query = `${article.title} ${article.description || ''}`.toLowerCase();\n\nconst response = await $http.get(`${$env.QUANTIVE_BASE_URL}/api/v1/watchlist`);\nconst securities = response.data || [];\n\nconst matches = securities.filter(security => {\n  const symbol = security.symbol.toLowerCase();\n  const name = security.name.toLowerCase();\n  const keywords = security.keywords || [];\n  \n  return query.includes(symbol) || \n         query.includes(name) || \n         keywords.some(kw => query.includes(kw.toLowerCase()));\n});\n\nif (matches.length > 0) {\n  return [{\n    json: {\n      article_id: article.id,\n      matches,\n      has_match: true,\n      title: article.title\n    }\n  }];\n}\n\nreturn [{ json: { has_match: false, article_id: article.id } }];"
+      },
+      "id": "code-match-news-to-securities",
+      "name": "Match News to Securities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        1900
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.has_match}}",
+              "value2": true,
+              "id": "c3305616-dcb7-52e3-8aa1-339587b4672d"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-news-match",
+      "name": "IF News Match Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        1900
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#news-alerts",
+        "text": "📰 News matched to watchlist securities!\n\nArticle: {{$json.title}}\nMatched Securities: {{$json.matches.map(m => m.symbol).join(', ')}}",
+        "otherOptions": {}
+      },
+      "id": "slack-news-match-alert",
+      "name": "Slack News Match Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1550,
+        1800
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "schedule-stock-news-matching",
+      "name": "Stock News Matching Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        2400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title, description, source, url, published_at, category\nFROM news_articles\nWHERE published_at >= NOW() - INTERVAL '4 hours'\nORDER BY published_at DESC;",
+        "options": {}
+      },
+      "id": "postgres-get-recent-news",
+      "name": "Get Recent News",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        250,
+        2400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, symbol, name, keywords, sector, asset_type\nFROM watchlist_securities\nWHERE is_active = true;",
+        "options": {}
+      },
+      "id": "postgres-get-securities-matching",
+      "name": "Get Securities for Matching",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        250,
+        2600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const news = $input.first().json;\nconst securities = $input.item.json;\n\nconst newsArray = Array.isArray(news) ? news : [news];\nconst securitiesArray = Array.isArray(securities) ? securities : [securities];\n\nconst matches = [];\n\nfor (const article of newsArray) {\n  const searchText = `${article.title || ''} ${article.description || ''}`.toLowerCase();\n  \n  for (const security of securitiesArray) {\n    const symbolMatch = searchText.includes(security.symbol.toLowerCase());\n    const nameMatch = searchText.includes(security.name.toLowerCase());\n    const keywordMatch = (security.keywords || []).some(kw => \n      searchText.includes(kw.toLowerCase())\n    );\n    const sectorMatch = security.sector && searchText.includes(security.sector.toLowerCase());\n    \n    if (symbolMatch || nameMatch || keywordMatch || sectorMatch) {\n      let impact = 'neutral';\n      const positiveWords = ['rises', 'gains', 'up', 'surge', 'beat', 'positive', 'growth', 'bull'];\n      const negativeWords = ['falls', 'drops', 'down', 'plunge', 'miss', 'negative', 'decline', 'bear'];\n      \n      const textLower = `${article.title} ${article.description || ''}`.toLowerCase();\n      const positiveCount = positiveWords.filter(w => textLower.includes(w)).length;\n      const negativeCount = negativeWords.filter(w => textLower.includes(w)).length;\n      \n      if (positiveCount > negativeCount + 1) impact = 'positive';\n      else if (negativeCount > positiveCount + 1) impact = 'negative';\n      \n      matches.push({\n        news_id: article.id,\n        security_id: security.id,\n        security_symbol: security.symbol,\n        headline: article.title,\n        impact,\n        matched_by: symbolMatch ? 'symbol' : nameMatch ? 'name' : keywordMatch ? 'keyword' : 'sector',\n        matched_at: new Date().toISOString()\n      });\n    }\n  }\n}\n\nif (matches.length === 0) return [];\nreturn matches.map(m => ({ json: m }));"
+      },
+      "id": "code-match-stocks-news",
+      "name": "Match Stocks to News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        550,
+        2500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.security_id}}",
+              "operation": "exists"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-matches-found",
+      "name": "IF Matches Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        800,
+        2500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO stock_news_matches (news_id, security_id, security_symbol, headline, impact, matched_by, matched_at)\nVALUES ($1, $2, $3, $4, $5, $6, $7)\nON CONFLICT (news_id, security_id) DO NOTHING;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.news_id}}",
+            "={{$json.security_id}}",
+            "={{$json.security_symbol}}",
+            "={{$json.headline}}",
+            "={{$json.impact}}",
+            "={{$json.matched_by}}",
+            "={{$json.matched_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-stock-news-match",
+      "name": "Insert Stock News Match",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1050,
+        2400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.impact}}",
+              "operation": "notEqual",
+              "value2": "neutral"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-significant-impact",
+      "name": "IF Significant Impact",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        2400
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#market-signals",
+        "text": "⚠️ Significant stock-news impact detected!\n\nSecurity: {{$json.security_symbol}}\nImpact: {{$json.impact}}\nHeadline: {{$json.headline}}\nMatched by: {{$json.matched_by}}",
+        "otherOptions": {}
+      },
+      "id": "slack-impact-alert",
+      "name": "Slack Impact Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1550,
+        2350
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "explain-prediction",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-explain-prediction",
+      "name": "Webhook Explain Prediction",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        3000
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookData = $input.first().json;\nconst predictionId = webhookData.prediction_id || webhookData.body?.prediction_id;\n\nif (!predictionId) {\n  throw new Error('prediction_id is required');\n}\n\nreturn [{ json: { prediction_id: predictionId } }];"
+      },
+      "id": "code-extract-prediction-id",
+      "name": "Extract Prediction ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        3000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/predictions/{{$json.prediction_id}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-prediction-details",
+      "name": "Get Prediction Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        500,
+        3000
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prediction = $input.first().json;\n\nconst historicalContext = await $http.get(`${$env.QUANTIVE_BASE_URL}/api/v1/analytics/historical/${prediction.portfolio_id}?limit=30}`);\nconst marketContext = await $http.get(`${$env.QUANTIVE_BASE_URL}/api/v1/market/current`);\nconst newsContext = await $http.get(`${$env.QUANTIVE_BASE_URL}/api/v1/news/sentiment`);\n\nconst technicalIndicators = {\n  rsi: prediction.indicators?.rsi || null,\n  macd: prediction.indicators?.macd || null,\n  sma_20: prediction.indicators?.sma_20 || null,\n  sma_50: prediction.indicators?.sma_50 || null,\n  bollinger_upper: prediction.indicators?.bollinger_upper || null,\n  bollinger_lower: prediction.indicators?.bollinger_lower || null,\n  atr: prediction.indicators?.atr || null,\n  obv: prediction.indicators?.obv || null,\n  vwap: prediction.indicators?.vwap || null\n};\n\nconst trendStrength = technicalIndicators.rsi \n  ? (technicalIndicators.rsi > 70 ? 'overbought' : technicalIndicators.rsi < 30 ? 'oversold' : 'neutral')\n  : 'unknown';\n\nconst explanation = {\n  prediction_id: prediction.id,\n  portfolio_id: prediction.portfolio_id,\n  predicted_value: prediction.predicted_value,\n  confidence: prediction.confidence,\n  factors: {\n    historical_trend: historicalContext.data?.trend || 'insufficient_data',\n    market_conditions: marketContext.data?.conditions || 'unknown',\n    technical_analysis: {\n      indicators: technicalIndicators,\n      trend_strength: trendStrength,\n      signal: prediction.signal || 'hold'\n    },\n    news_sentiment: newsContext.data?.overall_sentiment || 'neutral',\n    key_drivers: prediction.drivers || []\n  },\n  explanation_text: `This prediction of $${prediction.predicted_value} with ${prediction.confidence}% confidence is based on ${historicalContext.data?.trend || 'historical'} trends, current market conditions that are ${marketContext.data?.conditions || 'neutral'}, and technical indicators showing ${trendStrength} conditions. The news sentiment is ${newsContext.data?.overall_sentiment || 'neutral'}.`,\n  generated_at: new Date().toISOString()\n};\n\nreturn [{ json: explanation }];"
+      },
+      "id": "code-generate-explanation",
+      "name": "Generate Explanation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        3000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/predictions/{{$json.prediction_id}}/explanation",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-post-explanation",
+      "name": "POST Explanation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1000,
+        3000
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO prediction_explanations (prediction_id, explanation, factors, generated_at)\nVALUES ($1, $2, $3, $4)\nON CONFLICT (prediction_id)\nDO UPDATE SET\n  explanation = EXCLUDED.explanation,\n  factors = EXCLUDED.factors,\n  generated_at = EXCLUDED.generated_at;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.prediction_id}}",
+            "={{$json.explanation_text}}",
+            "={{JSON.stringify($json.factors)}}",
+            "={{$json.generated_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-explanation",
+      "name": "Postgres Insert Explanation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1250,
+        3000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({ success: true, prediction_id: $json.prediction_id, explanation: $json.explanation_text })}}",
+        "options": {}
+      },
+      "id": "respond-explanation",
+      "name": "Respond Explanation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        3000
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-model-errors",
+      "name": "Model Error Tracking Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        3500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, prediction_id, portfolio_id, predicted_value, actual_value, confidence, created_at\nFROM predictions\nWHERE actual_value IS NOT NULL\nAND created_at >= NOW() - INTERVAL '24 hours'\nORDER BY created_at DESC;",
+        "options": {}
+      },
+      "id": "postgres-get-predictions-with-actual",
+      "name": "Get Predictions with Actual",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        250,
+        3500
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const predictions = $input.all();\n\nconst errors = predictions.map(p => {\n  const predicted = parseFloat(p.json.predicted_value);\n  const actual = parseFloat(p.json.actual_value);\n  const error = Math.abs(predicted - actual);\n  const absolutePercentageError = actual !== 0 ? (error / Math.abs(actual)) * 100 : 0;\n  \n  return {\n    prediction_id: p.json.prediction_id,\n    portfolio_id: p.json.portfolio_id,\n    predicted_value: predicted,\n    actual_value: actual,\n    absolute_error: error,\n    absolute_percentage_error: absolutePercentageError,\n    created_at: p.json.created_at\n  };\n});\n\nconst n = errors.length;\nif (n === 0) {\n  return [{ json: { mae: 0, rmse: 0, mape: 0, error_rate: 0, errors: [], sample_size: 0 } }];\n}\n\nconst mae = errors.reduce((sum, e) => sum + e.absolute_error, 0) / n;\nconst mse = errors.reduce((sum, e) => sum + Math.pow(e.absolute_error, 2), 0) / n;\nconst rmse = Math.sqrt(mse);\nconst mape = errors.reduce((sum, e) => sum + e.absolute_percentage_error, 0) / n;\nconst errorRate = errors.filter(e => e.absolute_percentage_error > 10).length / n * 100;\n\nreturn [{\n  json: {\n    mae: Math.round(mae * 100) / 100,\n    rmse: Math.round(rmse * 100) / 100,\n    mape: Math.round(mape * 100) / 100,\n    error_rate: Math.round(errorRate * 100) / 100,\n    sample_size: n,\n    errors: errors.slice(0, 100),\n    calculated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-calculate-errors",
+      "name": "Calculate Error Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        3500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.error_rate}}",
+              "operation": "larger",
+              "value2": 15
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-error-rate-high",
+      "name": "IF Error Rate > 15%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        750,
+        3500
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#model-alerts",
+        "text": "⚠️ Model error rate threshold exceeded!\n\nMAE: {{$json.mae}}\nRMSE: {{$json.rmse}}\nMAPE: {{$json.mape}}%\nError Rate: {{$json.error_rate}}%\nSample Size: {{$json.sample_size}}\n\nPlease review model performance.",
+        "otherOptions": {}
+      },
+      "id": "slack-model-alert",
+      "name": "Slack Model Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        3400
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const metrics = $input.first().json;\nconst errors = metrics.errors || [];\n\nconst patterns = {\n  high_errors: errors.filter(e => e.absolute_percentage_error > 20),\n  recent_errors: errors.filter(e => new Date(e.created_at) > new Date(Date.now() - 6 * 60 * 60 * 1000)),\n  portfolio_distribution: {},\n  time_distribution: {}\n};\n\nfor (const error of errors) {\n  patterns.portfolio_distribution[error.portfolio_id] = \n    (patterns.portfolio_distribution[error.portfolio_id] || 0) + 1;\n  \n  const hour = new Date(error.created_at).getHours();\n  patterns.time_distribution[`${hour}:00`] = \n    (patterns.time_distribution[`${hour}:00`] || 0) + 1;\n}\n\nreturn [{\n  json: {\n    ...metrics,\n    patterns,\n    analysis: {\n      high_error_count: patterns.high_errors.length,\n      recent_error_count: patterns.recent_errors.length,\n      most_affected_portfolio: Object.entries(patterns.portfolio_distribution)\n        .sort((a, b) => b[1] - a[1])[0]?.[0] || 'none',\n      analysis_time: new Date().toISOString()\n    }\n  }\n}];"
+      },
+      "id": "code-analyze-error-patterns",
+      "name": "Analyze Error Patterns",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        3600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO model_errors (mae, rmse, mape, error_rate, sample_size, patterns, analysis, calculated_at)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.mae}}",
+            "={{$json.rmse}}",
+            "={{$json.mape}}",
+            "={{$json.error_rate}}",
+            "={{$json.sample_size}}",
+            "={{JSON.stringify($json.patterns)}}",
+            "={{JSON.stringify($json.analysis)}}",
+            "={{$json.calculated_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-model-errors",
+      "name": "Postgres Insert Model Errors",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1250,
+        3600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.error_rate}}",
+              "operation": "larger",
+              "value2": 25
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-critical-error-rate",
+      "name": "IF Critical Error Rate > 25%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        3600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/models/retrain",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "trigger",
+              "value": "error_threshold_exceeded"
+            },
+            {
+              "name": "error_rate",
+              "value": "={{$json.error_rate}}"
+            },
+            {
+              "name": "analysis",
+              "value": "={{JSON.stringify($json.analysis)}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-trigger-retraining",
+      "name": "Trigger Model Retraining",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1750,
+        3550
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-data-quality",
+      "name": "Data Quality Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        4100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const checks = [\n  {\n    name: 'missing_values',\n    query: `SELECT \n      (SELECT COUNT(*) FROM market_data WHERE data IS NULL) as market_null,\n      (SELECT COUNT(*) FROM predictions WHERE predicted_value IS NULL) as predictions_null,\n      (SELECT COUNT(*) FROM news_articles WHERE title IS NULL) as news_null,\n      (SELECT COUNT(*) FROM watchlist_securities WHERE symbol IS NULL) as watchlist_null;`\n  },\n  {\n    name: 'outlier_detection',\n    query: `WITH stats AS (\n      SELECT AVG(predicted_value) as mean, STDDEV(predicted_value) as stddev\n      FROM predictions WHERE created_at >= NOW() - INTERVAL '24 hours'\n    )\n    SELECT COUNT(*) as outlier_count\n    FROM predictions, stats\n    WHERE ABS(predicted_value - mean) > 3 * stddev\n    AND created_at >= NOW() - INTERVAL '24 hours';`\n  },\n  {\n    name: 'staleness',\n    query: `SELECT\n      (SELECT MAX(updated_at) FROM market_data) as last_market_data,\n      (SELECT MAX(created_at) FROM predictions) as last_prediction,\n      (SELECT MAX(published_at) FROM news_articles) as last_news,\n      (SELECT MAX(last_checked) FROM watchlist_securities) as last_watchlist;`\n  },\n  {\n    name: 'schema_validation',\n    query: `SELECT\n      (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'market_data' AND is_nullable = 'NO') as required_columns,\n      (SELECT COUNT(*) FROM information_schema.table_constraints WHERE constraint_type = 'PRIMARY KEY') as primary_keys;`\n  }\n];\n\nreturn checks.map(check => ({ json: check }));"
+      },
+      "id": "code-data-quality-checks",
+      "name": "Run Data Quality Checks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        4100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{$json.query}}",
+        "options": {}
+      },
+      "id": "postgres-execute-quality-check",
+      "name": "Execute Quality Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        500,
+        4100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all();\nconst now = new Date();\n\nlet qualityScore = 100;\nconst issues = [];\n\nfor (const result of results) {\n  const data = result.json;\n  \n  if (data.name === 'missing_values' && data) {\n    const totalNulls = (data.market_null || 0) + (data.predictions_null || 0) + \n                       (data.news_null || 0) + (data.watchlist_null || 0);\n    if (totalNulls > 0) {\n      qualityScore -= totalNulls * 2;\n      issues.push({ type: 'missing_values', count: totalNulls, severity: totalNulls > 100 ? 'high' : 'medium' });\n    }\n  }\n  \n  if (data.name === 'outlier_detection' && data) {\n    if (data.outlier_count > 0) {\n      qualityScore -= data.outlier_count * 5;\n      issues.push({ type: 'outliers', count: data.outlier_count, severity: data.outlier_count > 10 ? 'high' : 'low' });\n    }\n  }\n  \n  if (data.name === 'staleness' && data) {\n    const staleThreshold = 24 * 60 * 60 * 1000;\n    if (data.last_market_data && (now - new Date(data.last_market_data)) > staleThreshold) {\n      qualityScore -= 15;\n      issues.push({ type: 'stale_market_data', age_hours: Math.round((now - new Date(data.last_market_data)) / 3600000), severity: 'high' });\n    }\n    if (data.last_prediction && (now - new Date(data.last_prediction)) > staleThreshold) {\n      qualityScore -= 10;\n      issues.push({ type: 'stale_predictions', age_hours: Math.round((now - new Date(data.last_prediction)) / 3600000), severity: 'medium' });\n    }\n  }\n}\n\nqualityScore = Math.max(0, Math.min(100, qualityScore));\n\nreturn [{\n  json: {\n    quality_score: qualityScore,\n    issues,\n    check_timestamp: now.toISOString(),\n    checks_performed: results.length,\n    passed: qualityScore >= 80\n  }\n}];"
+      },
+      "id": "code-calculate-quality-score",
+      "name": "Calculate Quality Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        4100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.quality_score}}",
+              "operation": "smaller",
+              "value2": 80
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-quality-low",
+      "name": "IF Quality Score < 80%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        4100
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#data-quality",
+        "text": "🔴 Data quality alert!\n\nQuality Score: {{$json.quality_score}}%\nIssues Found: {{$json.issues.length}}\n\nIssues:\n{{$json.issues.map(i => `- ${i.type}: ${i.count || i.age_hours} (${i.severity})`).join('\\n')}}\n\nCheck performed at: {{$json.check_timestamp}}",
+        "otherOptions": {}
+      },
+      "id": "slack-data-quality-alert",
+      "name": "Slack Data Quality Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1250,
+        4000
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO data_quality_issues (quality_score, issues, check_timestamp, created_at)\nVALUES ($1, $2, $3, NOW());",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.quality_score}}",
+            "={{JSON.stringify($json.issues)}}",
+            "={{$json.check_timestamp}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-quality-issues",
+      "name": "Postgres Insert Quality Issues",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1250,
+        4200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO data_quality_log (quality_score, checks_performed, passed, check_timestamp)\nVALUES ($1, $2, $3, $4);",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.quality_score}}",
+            "={{$json.checks_performed}}",
+            "={{$json.passed}}",
+            "={{$json.check_timestamp}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-quality-log",
+      "name": "Postgres Insert Quality Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1500,
+        4100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
         }
       }
     },
@@ -366,244 +1496,1979 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 * * * *"
+              "cronExpression": "0 6 * * *"
             }
           ]
         }
       },
-      "id": "auto-Metrics Cron-0073",
-      "name": "Metrics Cron",
+      "id": "schedule-market-summary",
+      "name": "Market Summary Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
+      "typeVersion": 1.1,
       "position": [
         0,
-        1200
+        4700
       ]
     },
     {
       "parameters": {
-        "url": "={{ $env.QUANTIVE_BASE_URL || 'http://127.0.0.1:8000' }}/api/v1/digest",
-        "options": {}
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/market/summary",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "auto-Fetch App Digest-0074",
-      "name": "Fetch App Digest",
+      "id": "http-get-market-data",
+      "name": "Get Market Data",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        200,
-        1200
+        250,
+        4700
       ],
-      "onError": "continueRegularOutput",
       "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 3000
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const d = $input.first().json;\nreturn [{ json: { snapshot: JSON.stringify(d).slice(0, 4000), fetched_at: new Date().toISOString() }}];"
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/portfolios/summary",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "auto-Shape Digest-0075",
-      "name": "Shape Digest",
+      "id": "http-get-portfolio-data",
+      "name": "Get Portfolio Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        4900
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const market = $input.first().json;\nconst portfolio = $input.item.json;\n\nconst summary = {\n  date: new Date().toISOString().split('T')[0],\n  generated_at: new Date().toISOString(),\n  market_performance: {\n    major_indices: market.indices || {},\n    bond_yields: market.yields || {},\n    fx_rates: market.fx || {},\n    vix: market.vix || null,\n    fed_funds_rate: market.fed_funds || null\n  },\n  key_events: market.events || [],\n  portfolio_impact: {\n    total_value: portfolio.total_value || 0,\n    daily_change: portfolio.daily_change || 0,\n    daily_change_pct: portfolio.daily_change_pct || 0,\n    top_gainers: portfolio.top_gainers || [],\n    top_losers: portfolio.top_losers || []\n  },\n  summary_text: `Market Summary for ${new Date().toISOString().split('T')[0]}:\\n\\n` +\n    `S&P 500: ${market.indices?.sp500?.change || 'N/A'}%\\n` +\n    `10Y Treasury: ${market.yields?.us10y?.change || 'N/A'}%\\n` +\n    `DXY: ${market.fx?.dxy?.change || 'N/A'}%\\n` +\n    `Portfolio: $${(portfolio.total_value || 0).toLocaleString()} (${portfolio.daily_change_pct || 0}%)`\n};\n\nreturn [{ json: summary }];"
+      },
+      "id": "code-generate-market-summary",
+      "name": "Generate Market Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        400,
-        1200
+        550,
+        4800
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$env.MARKET_SUMMARY_RECIPIENTS}}",
+        "subject": "Market Summary - {{new Date().toISOString().split('T')[0]}}",
+        "text": "={{$json.summary_text}}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "email-market-summary",
+      "name": "Send Market Summary Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        800,
+        4800
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-main",
+          "name": "Quantive SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO market_summaries (date, summary_data, generated_at)\nVALUES ($1, $2, $3)\nON CONFLICT (date)\nDO UPDATE SET\n  summary_data = EXCLUDED.summary_data,\n  generated_at = EXCLUDED.generated_at;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.date}}",
+            "={{JSON.stringify($json)}}",
+            "={{$json.generated_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-market-summary",
+      "name": "Postgres Insert Market Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1050,
+        4800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "cronExpression": "30 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-news-summary",
+      "name": "News Summary Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        5400
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO market_data (symbol, name, value, source, timestamp)\nVALUES ('QUANTIVE_DIGEST', 'App digest snapshot', 0, 'quantive_backend', NOW());",
+        "query": "SELECT id, title, description, source, category, published_at\nFROM news_articles\nWHERE published_at >= NOW() - INTERVAL '24 hours'\nORDER BY published_at DESC;",
         "options": {}
       },
-      "id": "auto-Store Digest Snapshot-0076",
-      "name": "Store Digest Snapshot",
+      "id": "postgres-get-24h-news",
+      "name": "Get 24h News",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        600,
-        1200
+        250,
+        5400
       ],
       "credentials": {
         "postgres": {
           "id": "postgres-main",
-          "name": "Quantive DB"
+          "name": "Quantive Database"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const articles = $input.all();\n\nconst categories = {};\nfor (const article of articles) {\n  const cat = article.json.category || 'general';\n  if (!categories[cat]) categories[cat] = [];\n  categories[cat].push(article.json);\n}\n\nconst topStories = Object.entries(categories)\n  .map(([category, stories]) => ({\n    category,\n    stories: stories.slice(0, 5),\n    count: stories.length\n  }))\n  .sort((a, b) => b.count - a.count);\n\nreturn [{ json: { categories: topStories, total_articles: articles.length } }];"
+      },
+      "id": "code-group-news",
+      "name": "Group News by Category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        5400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const grouped = $input.first().json;\n\nconst summaryParts = [`News Digest - ${new Date().toISOString().split('T')[0]}`];\nsummaryParts.push(`\\nTotal articles: ${grouped.total_articles}\\n`);\n\nfor (const category of grouped.categories) {\n  summaryParts.push(`\\n## ${category.category.toUpperCase()} (${category.count} articles)`);\n  for (const story of category.stories) {\n    summaryParts.push(`- ${story.title} (${story.source})`);\n  }\n}\n\nreturn [{\n  json: {\n    date: new Date().toISOString().split('T')[0],\n    summary_text: summaryParts.join('\\n'),\n    categories: grouped.categories,\n    total_articles: grouped.total_articles,\n    generated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-generate-news-summary",
+      "name": "Generate News Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        5400
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$env.NEWS_DIGEST_RECIPIENTS}}",
+        "subject": "News Digest - {{new Date().toISOString().split('T')[0]}}",
+        "text": "={{$json.summary_text}}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "email-news-digest",
+      "name": "Send News Digest Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        5400
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-main",
+          "name": "Quantive SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO news_summaries (date, summary_data, total_articles, generated_at)\nVALUES ($1, $2, $3, $4)\nON CONFLICT (date)\nDO UPDATE SET\n  summary_data = EXCLUDED.summary_data,\n  total_articles = EXCLUDED.total_articles,\n  generated_at = EXCLUDED.generated_at;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.date}}",
+            "={{JSON.stringify($json)}}",
+            "={{$json.total_articles}}",
+            "={{$json.generated_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-news-summary",
+      "name": "Postgres Insert News Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1250,
+        5400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "explain-stock",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-explain-stock",
+      "name": "Webhook Explain Stock",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        6000
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookData = $input.first().json;\nconst symbol = webhookData.symbol || webhookData.body?.symbol;\n\nif (!symbol) {\n  throw new Error('stock symbol is required');\n}\n\nreturn [{ json: { symbol: symbol.toUpperCase() } }];"
+      },
+      "id": "code-extract-stock-symbol",
+      "name": "Extract Stock Symbol",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        6000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/market/quote?symbol={{$json.symbol}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-stock-data",
+      "name": "Get Stock Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        500,
+        6000
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/news/symbol/{{$json.symbol}}?limit=10",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-stock-news",
+      "name": "Get Stock News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        500,
+        6200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/market/indicators/{{$json.symbol}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-technical-indicators",
+      "name": "Get Technical Indicators",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        500,
+        6400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const stockData = $input.first().json;\nconst newsData = $input.item.json;\nconst indicators = $input.item.json;\n\nconst price = stockData.price || stockData.current_price || 0;\nconst change = stockData.change || 0;\nconst changePercent = stockData.change_percent || stockData.changePercent || 0;\nconst volume = stockData.volume || 0;\nconst marketCap = stockData.market_cap || stockData.marketCap || 0;\n\nconst technicalAnalysis = {\n  rsi: indicators.rsi || null,\n  macd: indicators.macd || null,\n  sma_20: indicators.sma_20 || null,\n  sma_50: indicators.sma_50 || null,\n  ema_12: indicators.ema_12 || null,\n  ema_26: indicators.ema_26 || null,\n  bollinger_upper: indicators.bollinger_upper || null,\n  bollinger_lower: indicators.bollinger_lower || null,\n  atr: indicators.atr || null,\n  obv: indicators.obv || null,\n  vwap: indicators.vwap || null\n};\n\nlet rsiSignal = 'neutral';\nif (technicalAnalysis.rsi) {\n  if (technicalAnalysis.rsi > 70) rsiSignal = 'overbought';\n  else if (technicalAnalysis.rsi < 30) rsiSignal = 'oversold';\n}\n\nlet macdSignal = 'neutral';\nif (technicalAnalysis.macd) {\n  macdSignal = technicalAnalysis.macd > 0 ? 'bullish' : 'bearish';\n}\n\nconst newsSentiment = newsData?.sentiment || 'neutral';\nconst topHeadlines = (newsData?.articles || []).slice(0, 5).map(a => a.title);\n\nconst explanation = {\n  symbol: stockData.symbol,\n  price_performance: {\n    current_price: price,\n    change: change,\n    change_percent: changePercent,\n    volume: volume,\n    market_cap: marketCap\n  },\n  technical_analysis: {\n    indicators: technicalAnalysis,\n    rsi_signal: rsiSignal,\n    macd_signal: macdSignal,\n    trend: changePercent > 0 ? 'bullish' : changePercent < 0 ? 'bearish' : 'neutral'\n  },\n  news_analysis: {\n    sentiment: newsSentiment,\n    top_headlines: topHeadlines,\n    article_count: newsData?.articles?.length || 0\n  },\n  peer_comparison: stockData.peers || [],\n  risk_factors: stockData.risks || [],\n  summary: `${stockData.symbol} is currently trading at $${price} (${changePercent > 0 ? '+' : ''}${changePercent}%). ` +\n    `Technical indicators show ${rsiSignal} conditions with ${macdSignal} MACD signal. ` +\n    `News sentiment is ${newsSentiment} with ${topHeadlines.length} recent articles. ` +\n    `Volume is ${volume.toLocaleString()} shares.`,\n  generated_at: new Date().toISOString()\n};\n\nreturn [{ json: explanation }];"
+      },
+      "id": "code-generate-stock-explanation",
+      "name": "Generate Stock Explanation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        6100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/stocks/{{$json.symbol}}/explanation",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-post-stock-explanation",
+      "name": "POST Stock Explanation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1050,
+        6100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({ success: true, symbol: $json.symbol, explanation: $json })}}",
+        "options": {}
+      },
+      "id": "respond-stock-explanation",
+      "name": "Respond Stock Explanation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        6100
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-signal-analysis",
+      "name": "Signal Analysis Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        6700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/signals/latest",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-signals",
+      "name": "Get Signals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        6700
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const signals = $input.first().json;\nconst signalArray = Array.isArray(signals) ? signals : [signals];\n\nconst analyzed = signalArray.map(signal => {\n  let strength = 0;\n  let direction = 'neutral';\n  \n  if (signal.technical_score) strength += signal.technical_score * 0.3;\n  if (signal.sentiment_score) strength += signal.sentiment_score * 0.25;\n  if (signal.prediction_score) strength += signal.prediction_score * 0.35;\n  if (signal.fundamental_score) strength += signal.fundamental_score * 0.1;\n  \n  if (strength > 60) direction = 'bullish';\n  else if (strength < 40) direction = 'bearish';\n  \n  const confidence = Math.min(100, Math.max(0, strength));\n  \n  return {\n    signal_id: signal.id,\n    symbol: signal.symbol,\n    strength: Math.round(strength * 100) / 100,\n    direction,\n    confidence,\n    components: {\n      technical: signal.technical_score || 0,\n      sentiment: signal.sentiment_score || 0,\n      prediction: signal.prediction_score || 0,\n      fundamental: signal.fundamental_score || 0\n    },\n    analyzed_at: new Date().toISOString()\n  };\n});\n\nreturn analyzed.map(a => ({ json: a }));"
+      },
+      "id": "code-analyze-signals",
+      "name": "Analyze Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        6700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO signal_analysis (signal_id, symbol, strength, direction, confidence, components, analyzed_at)\nVALUES ($1, $2, $3, $4, $5, $6, $7)\nON CONFLICT (signal_id)\nDO UPDATE SET\n  strength = EXCLUDED.strength,\n  direction = EXCLUDED.direction,\n  confidence = EXCLUDED.confidence,\n  components = EXCLUDED.components,\n  analyzed_at = EXCLUDED.analyzed_at;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.signal_id}}",
+            "={{$json.symbol}}",
+            "={{$json.strength}}",
+            "={{$json.direction}}",
+            "={{$json.confidence}}",
+            "={{JSON.stringify($json.components)}}",
+            "={{$json.analyzed_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-signal-analysis",
+      "name": "Postgres Insert Signal Analysis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        750,
+        6700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.confidence}}",
+              "operation": "largerEqual",
+              "value2": 90
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-high-confidence-signal",
+      "name": "IF Signal Confidence > 90%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        6700
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#high-confidence-signals",
+        "text": "🎯 High-confidence signal detected!\n\nSymbol: {{$json.symbol}}\nDirection: {{$json.direction}}\nConfidence: {{$json.confidence}}%\nStrength: {{$json.strength}}\n\nComponents:\n- Technical: {{$json.components.technical}}\n- Sentiment: {{$json.components.sentiment}}\n- Prediction: {{$json.components.prediction}}\n- Fundamental: {{$json.components.fundamental}}",
+        "otherOptions": {}
+      },
+      "id": "slack-high-confidence-signal",
+      "name": "Slack High Confidence Signal",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1250,
+        6600
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.conflicting_signals}}",
+              "value2": true,
+              "id": "8b52f862-5a18-587a-a123-2ce65a3711b7"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and"
+        }
+      },
+      "id": "if-conflicting-signals",
+      "name": "IF Conflicting Signals",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        6900
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const signals = $input.all();\n\nconst conflicts = [];\n\nfor (const signal of signals) {\n  const components = signal.json.components || {};\n  \n  const hasConflict = (\n    (components.technical > 60 && components.sentiment < 40) ||\n    (components.technical < 40 && components.sentiment > 60) ||\n    (components.prediction > 60 && components.fundamental < 40) ||\n    (components.prediction < 40 && components.fundamental > 60)\n  );\n  \n  if (hasConflict) {\n    let severity = 'low';\n    const divergence = Math.max(\n      Math.abs(components.technical - components.sentiment),\n      Math.abs(components.prediction - components.fundamental)\n    );\n    \n    if (divergence > 40) severity = 'high';\n    else if (divergence > 20) severity = 'medium';\n    \n    conflicts.push({\n      symbol: signal.json.symbol,\n      signal_id: signal.json.signal_id,\n      divergence,\n      severity,\n      components,\n      detected_at: new Date().toISOString()\n    });\n  }\n}\n\nreturn conflicts.map(c => ({ json: c }));"
+      },
+      "id": "code-detect-conflicts",
+      "name": "Detect Signal Conflicts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        6900
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#signal-conflicts",
+        "text": "⚠️ Signal conflict detected!\n\nSymbol: {{$json.symbol}}\nSeverity: {{$json.severity}}\nDivergence: {{$json.divergence}}\n\nComponents:\n- Technical: {{$json.components.technical}}\n- Sentiment: {{$json.components.sentiment}}\n- Prediction: {{$json.components.prediction}}\n- Fundamental: {{$json.components.fundamental}}\n\nDetected at: {{$json.detected_at}}",
+        "otherOptions": {}
+      },
+      "id": "slack-signal-conflict",
+      "name": "Slack Signal Conflict",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        1500,
+        6800
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO signal_conflicts (symbol, signal_id, divergence, severity, components, detected_at)\nVALUES ($1, $2, $3, $4, $5, $6);",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.symbol}}",
+            "={{$json.signal_id}}",
+            "={{$json.divergence}}",
+            "={{$json.severity}}",
+            "={{JSON.stringify($json.components)}}",
+            "={{$json.detected_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-signal-conflict",
+      "name": "Postgres Insert Signal Conflict",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1500,
+        7000
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$env.SIGNAL_CONFLICT_RECIPIENTS}}",
+        "subject": "Signal Conflict Report - {{$json.symbol}}",
+        "text": "Signal Conflict Detected\n\nSymbol: {{$json.symbol}}\nSeverity: {{$json.severity}}\nDivergence: {{$json.divergence}}\n\nComponents:\n- Technical: {{$json.components.technical}}\n- Sentiment: {{$json.components.sentiment}}\n- Prediction: {{$json.components.prediction}}\n- Fundamental: {{$json.components.fundamental}}\n\nDetected at: {{$json.detected_at}}\n\nPlease review and take appropriate action.",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "email-signal-conflict",
+      "name": "Email Signal Conflict Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1750,
+        7000
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-main",
+          "name": "Quantive SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "cronExpression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-daily-report",
+      "name": "Daily Report Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        7600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.QUANTIVE_BASE_URL}}/api/v1/metrics/daily",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-daily-metrics",
+      "name": "Get Daily Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        7600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const metrics = $input.first().json;\n\nconst report = {\n  date: new Date().toISOString().split('T')[0],\n  generated_at: new Date().toISOString(),\n  market_performance: {\n    sp500: metrics.market?.sp500 || {},\n    nasdaq: metrics.market?.nasdaq || {},\n    dow: metrics.market?.dow || {},\n    bonds: metrics.market?.bonds || {},\n    fx: metrics.market?.fx || {},\n    vix: metrics.market?.vix || null\n  },\n  portfolio_performance: {\n    total_value: metrics.portfolio?.total_value || 0,\n    daily_pnl: metrics.portfolio?.daily_pnl || 0,\n    daily_pnl_pct: metrics.portfolio?.daily_pnl_pct || 0,\n    positions: metrics.portfolio?.positions || []\n  },\n  prediction_accuracy: {\n    total_predictions: metrics.predictions?.total || 0,\n    accurate_predictions: metrics.predictions?.accurate || 0,\n    accuracy_rate: metrics.predictions?.accuracy_rate || 0,\n    avg_confidence: metrics.predictions?.avg_confidence || 0\n  },\n  system_health: {\n    data_quality_score: metrics.system?.data_quality || 100,\n    uptime: metrics.system?.uptime || '99.9%',\n    alerts_today: metrics.system?.alerts || 0,\n    errors_today: metrics.system?.errors || 0\n  },\n  key_alerts: metrics.alerts || [],\n  summary: `Daily Report for ${new Date().toISOString().split('T')[0]}\\n\\n` +\n    `Market: S&P 500 ${metrics.market?.sp500?.change || 'N/A'}%, ` +\n    `NASDAQ ${metrics.market?.nasdaq?.change || 'N/A'}%\\n` +\n    `Portfolio: $${(metrics.portfolio?.total_value || 0).toLocaleString()} (${metrics.portfolio?.daily_pnl_pct || 0}%)\\n` +\n    `Predictions: ${metrics.predictions?.accuracy_rate || 0}% accuracy\\n` +\n    `Data Quality: ${metrics.system?.data_quality || 100}%\\n` +\n    `Alerts: ${metrics.system?.alerts || 0}`\n};\n\nreturn [{ json: report }];"
+      },
+      "id": "code-compile-daily-report",
+      "name": "Compile Daily Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        7600
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{$env.DAILY_REPORT_RECIPIENTS}}",
+        "subject": "Daily Report - {{new Date().toISOString().split('T')[0]}}",
+        "text": "={{$json.summary}}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "email-daily-report",
+      "name": "Send Daily Report Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        750,
+        7600
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-main",
+          "name": "Quantive SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO daily_reports (date, report_data, generated_at)\nVALUES ($1, $2, $3)\nON CONFLICT (date)\nDO UPDATE SET\n  report_data = EXCLUDED.report_data,\n  generated_at = EXCLUDED.generated_at;",
+        "additionalFields": {
+          "parameters": [
+            "={{$json.date}}",
+            "={{JSON.stringify($json)}}",
+            "={{$json.generated_at}}"
+          ]
+        },
+        "options": {}
+      },
+      "id": "postgres-insert-daily-report",
+      "name": "Postgres Insert Daily Report",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1000,
+        7600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-main",
+          "name": "Quantive Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "market-alert",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-market-alert",
+      "name": "Webhook Market Alert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        8200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const alertData = $input.first().json;\nconst body = alertData.body || alertData;\n\nconst thresholds = {\n  price_change: { critical: 10, high: 5, medium: 2 },\n  volume_spike: { critical: 500, high: 300, medium: 200 },\n  yield_change: { critical: 0.5, high: 0.3, medium: 0.1 },\n  fx_change: { critical: 3, high: 2, medium: 1 }\n};\n\nlet severity = 'medium';\nlet alertType = body.type || 'unknown';\nlet value = body.value || body.change || 0;\n\nconst threshold = thresholds[alertType];\nif (threshold) {\n  const absValue = Math.abs(value);\n  if (absValue >= threshold.critical) severity = 'critical';\n  else if (absValue >= threshold.high) severity = 'high';\n  else severity = 'medium';\n}\n\nif (body.severity) severity = body.severity;\n\nreturn [{\n  json: {\n    ...body,\n    severity,\n    alert_type: alertType,\n    value,\n    received_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-check-alert-thresholds",
+      "name": "Check Alert Thresholds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        8200
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "70f002dc-2309-57bb-9795-a013113a76b9",
+                    "leftValue": "={  }",
+                    "rightValue": "critical",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Output 0",
+              "value": "critical",
+              "output": 0
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cffa6935-362b-5a83-bee6-f4c209702a07",
+                    "leftValue": "={  }",
+                    "rightValue": "high",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Output 1",
+              "value": "high",
+              "output": 1
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "5978e9a1-4ee6-50e4-a950-377840dee92e",
+                    "leftValue": "={  }",
+                    "rightValue": "medium",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Output 2",
+              "value": "medium",
+              "output": 2
+            }
+          ],
+          "fallbackOutput": 5
+        }
+      },
+      "id": "switch-severity",
+      "name": "Switch by Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        500,
+        8200
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#market-alerts",
+        "text": "🚨 CRITICAL ALERT 🚨\n\nType: {{$json.alert_type}}\nValue: {{$json.value}}\nSymbol: {{$json.symbol || 'N/A'}}\n\n<!channel> Immediate attention required!",
+        "otherOptions": {}
+      },
+      "id": "slack-critical-alert",
+      "name": "Slack Critical Alert @channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        750,
+        8100
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#market-alerts",
+        "text": "⚠️ High Priority Alert\n\nType: {{$json.alert_type}}\nValue: {{$json.value}}\nSymbol: {{$json.symbol || 'N/A'}}\n\nPlease review market conditions.",
+        "otherOptions": {}
+      },
+      "id": "slack-high-alert",
+      "name": "Slack High Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        750,
+        8200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-main",
+          "name": "Slack Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const alert = $input.first().json;\nreturn [{ json: { ...alert, logged: true, log_time: new Date().toISOString() } }];"
+      },
+      "id": "code-log-medium-alert",
+      "name": "Log Medium Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        8300
+      ]
     }
   ],
   "connections": {
-    "Market Data Cron": {
+    "Market Data Schedule": {
       "main": [
         [
           {
-            "node": "Build Symbol List",
+            "node": "Treasury Avg Interest Rates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "FRED Fed Funds Rate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Exchange Rates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Alpha Vantage SPY",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Symbol List": {
+    "Treasury Avg Interest Rates": {
       "main": [
         [
           {
-            "node": "Yahoo Finance Quote",
+            "node": "Merge Market Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Yahoo Finance Quote": {
+    "FRED Fed Funds Rate": {
       "main": [
         [
           {
-            "node": "Parse Yahoo Response",
+            "node": "Merge Market Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Yahoo Response": {
+    "Exchange Rates": {
       "main": [
         [
           {
-            "node": "Store Market Data",
+            "node": "Merge Market Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "News Cron": {
+    "Alpha Vantage SPY": {
       "main": [
         [
           {
-            "node": "Fetch Market News",
+            "node": "Merge Market Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Fetch Market News": {
+    "Merge Market Data": {
       "main": [
         [
           {
-            "node": "Normalize News",
+            "node": "Postgres Insert Market Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalize News": {
+    "Postgres Insert Market Data": {
       "main": [
         [
           {
-            "node": "Insert News Article",
+            "node": "Webhook Bridge Market Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Summary Cron": {
+    "Prediction Refresh Schedule": {
       "main": [
         [
           {
-            "node": "OpenAI Market Summary",
+            "node": "Get Portfolios",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "OpenAI Market Summary": {
+    "Get Portfolios": {
       "main": [
         [
           {
-            "node": "Extract Summary",
+            "node": "Extract Portfolio IDs",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extract Summary": {
+    "Extract Portfolio IDs": {
       "main": [
         [
           {
-            "node": "Market Summary → Slack",
+            "node": "Split Portfolios",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Health Cron": {
+    "Split Portfolios": {
       "main": [
         [
           {
-            "node": "Ping Backend Status",
+            "node": "Refresh Prediction",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ping Backend Status": {
+    "Refresh Prediction": {
       "main": [
         [
           {
-            "node": "Evaluate Health",
+            "node": "Parse Prediction Results",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Evaluate Health": {
+    "Parse Prediction Results": {
       "main": [
         [
           {
-            "node": "Insert Health Check",
+            "node": "Postgres Insert Prediction",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Metrics Cron": {
+    "Postgres Insert Prediction": {
       "main": [
         [
           {
-            "node": "Fetch App Digest",
+            "node": "IF Confidence > 80%",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Fetch App Digest": {
+    "IF Confidence > 80%": {
       "main": [
         [
           {
-            "node": "Shape Digest",
+            "node": "Slack Prediction Alert",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Shape Digest": {
+    "Watchlist Update Schedule": {
       "main": [
         [
           {
-            "node": "Store Digest Snapshot",
+            "node": "Get Watchlist Securities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Watchlist Securities": {
+      "main": [
+        [
+          {
+            "node": "Split Watchlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Watchlist": {
+      "main": [
+        [
+          {
+            "node": "Get Current Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Price": {
+      "main": [
+        [
+          {
+            "node": "Calculate Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Changes": {
+      "main": [
+        [
+          {
+            "node": "IF Price Change > 5%",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Volume Spike > 200%",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Watchlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Price Change > 5%": {
+      "main": [
+        [
+          {
+            "node": "Slack Price Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Volume Spike > 200%": {
+      "main": [
+        [
+          {
+            "node": "Slack Volume Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "News Ingestion Schedule": {
+      "main": [
+        [
+          {
+            "node": "NewsAPI Top Headlines",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "NewsAPI Sovereign Debt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NewsAPI Top Headlines": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NewsAPI Sovereign Debt": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate Articles": {
+      "main": [
+        [
+          {
+            "node": "Postgres Insert News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Insert News": {
+      "main": [
+        [
+          {
+            "node": "Match News to Securities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match News to Securities": {
+      "main": [
+        [
+          {
+            "node": "IF News Match Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF News Match Found": {
+      "main": [
+        [
+          {
+            "node": "Slack News Match Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stock News Matching Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Recent News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Securities for Matching",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent News": {
+      "main": [
+        [
+          {
+            "node": "Match Stocks to News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Securities for Matching": {
+      "main": [
+        [
+          {
+            "node": "Match Stocks to News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Stocks to News": {
+      "main": [
+        [
+          {
+            "node": "IF Matches Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Matches Found": {
+      "main": [
+        [
+          {
+            "node": "Insert Stock News Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Stock News Match": {
+      "main": [
+        [
+          {
+            "node": "IF Significant Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Significant Impact": {
+      "main": [
+        [
+          {
+            "node": "Slack Impact Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Explain Prediction": {
+      "main": [
+        [
+          {
+            "node": "Extract Prediction ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Prediction ID": {
+      "main": [
+        [
+          {
+            "node": "Get Prediction Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Prediction Details": {
+      "main": [
+        [
+          {
+            "node": "Generate Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Explanation": {
+      "main": [
+        [
+          {
+            "node": "POST Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Explanation": {
+      "main": [
+        [
+          {
+            "node": "Postgres Insert Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Insert Explanation": {
+      "main": [
+        [
+          {
+            "node": "Respond Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Model Error Tracking Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Predictions with Actual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Predictions with Actual": {
+      "main": [
+        [
+          {
+            "node": "Calculate Error Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Error Metrics": {
+      "main": [
+        [
+          {
+            "node": "IF Error Rate > 15%",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Error Rate > 15%": {
+      "main": [
+        [
+          {
+            "node": "Slack Model Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Analyze Error Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Error Patterns": {
+      "main": [
+        [
+          {
+            "node": "Postgres Insert Model Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Insert Model Errors": {
+      "main": [
+        [
+          {
+            "node": "IF Critical Error Rate > 25%",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Critical Error Rate > 25%": {
+      "main": [
+        [
+          {
+            "node": "Trigger Model Retraining",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Quality Schedule": {
+      "main": [
+        [
+          {
+            "node": "Run Data Quality Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Data Quality Checks": {
+      "main": [
+        [
+          {
+            "node": "Execute Quality Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Quality Check": {
+      "main": [
+        [
+          {
+            "node": "Calculate Quality Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Quality Score": {
+      "main": [
+        [
+          {
+            "node": "IF Quality Score < 80%",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Quality Score < 80%": {
+      "main": [
+        [
+          {
+            "node": "Slack Data Quality Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres Insert Quality Issues",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres Insert Quality Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Market Summary Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Market Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Portfolio Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Market Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Market Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Portfolio Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Market Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Market Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Market Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Market Summary Email": {
+      "main": [
+        [
+          {
+            "node": "Postgres Insert Market Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "News Summary Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get 24h News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get 24h News": {
+      "main": [
+        [
+          {
+            "node": "Group News by Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group News by Category": {
+      "main": [
+        [
+          {
+            "node": "Generate News Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate News Summary": {
+      "main": [
+        [
+          {
+            "node": "Send News Digest Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send News Digest Email": {
+      "main": [
+        [
+          {
+            "node": "Postgres Insert News Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Explain Stock": {
+      "main": [
+        [
+          {
+            "node": "Extract Stock Symbol",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Stock Symbol": {
+      "main": [
+        [
+          {
+            "node": "Get Stock Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Stock News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Technical Indicators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stock Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Stock Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stock News": {
+      "main": [
+        [
+          {
+            "node": "Generate Stock Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Technical Indicators": {
+      "main": [
+        [
+          {
+            "node": "Generate Stock Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Stock Explanation": {
+      "main": [
+        [
+          {
+            "node": "POST Stock Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Stock Explanation": {
+      "main": [
+        [
+          {
+            "node": "Respond Stock Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signal Analysis Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Signals": {
+      "main": [
+        [
+          {
+            "node": "Analyze Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Signals": {
+      "main": [
+        [
+          {
+            "node": "Postgres Insert Signal Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Insert Signal Analysis": {
+      "main": [
+        [
+          {
+            "node": "IF Signal Confidence > 90%",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Conflicting Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Signal Confidence > 90%": {
+      "main": [
+        [
+          {
+            "node": "Slack High Confidence Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Conflicting Signals": {
+      "main": [
+        [
+          {
+            "node": "Detect Signal Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Signal Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Slack Signal Conflict",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres Insert Signal Conflict",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Signal Conflict Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Report Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Daily Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Daily Metrics": {
+      "main": [
+        [
+          {
+            "node": "Compile Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Daily Report": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Daily Report Email": {
+      "main": [
+        [
+          {
+            "node": "Postgres Insert Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Market Alert": {
+      "main": [
+        [
+          {
+            "node": "Check Alert Thresholds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Alert Thresholds": {
+      "main": [
+        [
+          {
+            "node": "Switch by Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch by Severity": {
+      "main": [
+        [
+          {
+            "node": "Slack Critical Alert @channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack High Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Medium Alert",
             "type": "main",
             "index": 0
           }
@@ -612,17 +3477,29 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": false
-  },
-  "pinData": {},
-  "versionId": null,
   "tags": [
-    "platform",
-    "ai"
+    {
+      "name": "quantive"
+    },
+    {
+      "name": "platform"
+    },
+    {
+      "name": "ai"
+    },
+    {
+      "name": "market-data"
+    },
+    {
+      "name": "predictions"
+    }
   ],
-  "description": "Real integrations: Yahoo Finance market ingestion, NewsAPI headlines, OpenAI daily summaries, Quantive backend health/digest polling — all native HTTP + Postgres nodes."
+  "triggerCount": 14,
+  "active": true
 }

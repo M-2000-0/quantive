@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
     details JSONB DEFAULT '{}',
     ip_address INET,
     user_agent TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+) PARTITION BY RANGE (created_at);
 
 CREATE TABLE IF NOT EXISTS approval_workflows (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -141,8 +141,43 @@ CREATE TRIGGER update_instruments_updated_at BEFORE UPDATE ON instruments
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Create audit log partitioning (monthly)
-CREATE TABLE IF NOT EXISTS audit_log_2026_08 PARTITION OF audit_log
-    FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+-- Auto-create the current month's partition plus one for the next month.
+CREATE OR REPLACE FUNCTION create_audit_partition(target_date DATE)
+RETURNS VOID AS $$
+DECLARE
+    partition_name TEXT;
+    start_date DATE;
+    end_date DATE;
+BEGIN
+    start_date := DATE_TRUNC('month', target_date);
+    end_date := start_date + INTERVAL '1 month';
+    partition_name := 'audit_log_' || TO_CHAR(start_date, 'YYYY_MM');
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_class WHERE relname = partition_name
+    ) THEN
+        EXECUTE format(
+            'CREATE TABLE %I PARTITION OF audit_log FOR VALUES FROM (%L) TO (%L)',
+            partition_name, start_date, end_date
+        );
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT create_audit_partition(CURRENT_DATE);
+SELECT create_audit_partition(CURRENT_DATE + INTERVAL '1 month');
+
+-- Auto-create the partition for any row whose month has no partition yet.
+CREATE OR REPLACE FUNCTION audit_log_partition_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM create_audit_partition(NEW.created_at::DATE);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_audit_log_auto_partition
+BEFORE INSERT ON audit_log
+    FOR EACH ROW EXECUTE FUNCTION audit_log_partition_trigger();
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO quantive;
