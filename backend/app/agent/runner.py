@@ -10,6 +10,8 @@ Audit: every step completion/failure writes an AuditEvent.
 """
 from __future__ import annotations
 
+import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from datetime import datetime, timezone
@@ -17,9 +19,34 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+import app.database as database_module
 from app.agent import builtin_tools  # noqa: F401  (register built-ins)
 from app.agent.models import AgentRun, AgentStep
 from app.agent.tools import NEEDS_APPROVAL, ToolContext, registry
+
+logger = logging.getLogger("quantive.agent")
+
+# Tracked for tests/teardown joins (same pattern as optimizations._job_threads).
+_agent_threads: set = set()
+
+
+def spawn_run(run_id: str) -> None:
+    """Drive a run in a daemon thread with its own DB session."""
+    _session_factory = database_module.SessionLocal
+
+    def _run():
+        db = _session_factory()
+        try:
+            execute_run(db, run_id)
+        except Exception:
+            logger.exception("agent run %s failed", run_id)
+        finally:
+            db.close()
+            _agent_threads.discard(threading.current_thread())
+
+    thread = threading.Thread(target=_run, daemon=True)
+    _agent_threads.add(thread)
+    thread.start()
 
 
 def _now() -> datetime:
@@ -48,7 +75,8 @@ def _audit(db: Session, user: Any, run_id: str, step: AgentStep, decision: str) 
         pass  # audit must never break execution
 
 
-def create_run(db: Session, user: Any, goal: str, steps: list[dict]) -> AgentRun:
+def create_run(db: Session, user: Any, goal: str, steps: list[dict],
+               project_id: str | None = None) -> AgentRun:
     if not goal or not goal.strip():
         raise ValueError("goal is required")
     if not steps or len(steps) > 25:
@@ -57,8 +85,16 @@ def create_run(db: Session, user: Any, goal: str, steps: list[dict]) -> AgentRun
         if "tool" not in s:
             raise ValueError("each step needs a 'tool' key")
         registry.get(s["tool"])  # validates name now
+    if project_id is not None:
+        from app.models.project import Project
 
-    run = AgentRun(org_id=user.org_id, actor_id=user.id, goal=goal.strip(), status="queued", plan=steps)
+        p = db.query(Project).filter(
+            Project.id == project_id, Project.org_id == user.org_id).first()
+        if not p:
+            raise ValueError("project not found")
+
+    run = AgentRun(org_id=user.org_id, actor_id=user.id, goal=goal.strip(),
+                   status="queued", plan=steps, project_id=project_id)
     db.add(run)
     db.flush()
     for i, s in enumerate(steps):

@@ -77,6 +77,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.VIEWER)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -355,4 +356,27 @@ from app.models.automation import (  # noqa: E402, F401
     Lead,
     MrrEvent,
     OnboardingSequence,
+)
+from app.models.billing import (  # noqa: E402, F401
+    SubscriptionRow,
+    UsageRow,
+)
+from app.models.discovery import (  # noqa: E402, F401
+    AssetClass,
+    AssetRiskBand,
+    DiscoveryAsset,
+    DiscoveryFeedback,
+    DiscoveryPreference,
+    FeedbackAction,
+)
+from app.models.sso import (  # noqa: E402, F401
+    SSOProvider,
+    SSOSession,
+    SSOUserLink,
+    SSOProviderStatus,
+    SSOProviderType,
+)
+from app.models.project import (  # noqa: E402, F401
+    Project,
+    ProjectDocument,
 )

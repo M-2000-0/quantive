@@ -8,15 +8,13 @@ GET /runs/{id} for terminal state (completed/failed/cancelled).
 from __future__ import annotations
 
 import logging
-import threading
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-import app.database as database_module
 from app.agent.models import AgentRun, AgentStep
-from app.agent.runner import approve_step, cancel_run, create_run, execute_run
+from app.agent.runner import approve_step, cancel_run, create_run, spawn_run
 from app.database import get_db
 from app.models import User
 from app.security import get_current_user
@@ -24,9 +22,6 @@ from app.security import get_current_user
 logger = logging.getLogger("quantive.agent_api")
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
-
-# Tracked for tests/teardown joins (same pattern as optimizations._job_threads).
-_agent_threads: set = set()
 
 
 class PlanStep(BaseModel):
@@ -82,22 +77,7 @@ def _load(run_id: str, db: Session) -> tuple[AgentRun, list[AgentStep]]:
 
 
 def _spawn(run_id: str) -> None:
-    """Drive a run in a daemon thread with its own DB session."""
-    _session_factory = database_module.SessionLocal
-
-    def _run():
-        db = _session_factory()
-        try:
-            execute_run(db, run_id)
-        except Exception:
-            logger.exception("agent run %s failed", run_id)
-        finally:
-            db.close()
-            _agent_threads.discard(threading.current_thread())
-
-    thread = threading.Thread(target=_run, daemon=True)
-    _agent_threads.add(thread)
-    thread.start()
+    spawn_run(run_id)
 
 
 @router.get("/tools")

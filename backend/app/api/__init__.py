@@ -135,7 +135,9 @@ from app.api import (
     workflows,
     sso,
     agent_api,
+    projects_api,
 )
+from app.personal.api import router as personal_router
 from app.database import get_db
 from app.security.threats import router as threats_router
 
@@ -278,6 +280,8 @@ router.include_router(discovery_api.router)
 router.include_router(workflows.router)
 router.include_router(sso.router)
 router.include_router(agent_api.router)
+router.include_router(projects_api.router)
+router.include_router(personal_router)
 
 
 @router.get("/api/health")

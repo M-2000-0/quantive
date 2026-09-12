@@ -32,6 +32,9 @@ class AgentRun(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     org_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     actor_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    project_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     goal: Mapped[str] = mapped_column(Text, nullable=False)
     # queued | running | waiting_approval | completed | failed | cancelled
     status: Mapped[str] = mapped_column(String(20), default="queued", index=True)

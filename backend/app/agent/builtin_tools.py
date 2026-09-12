@@ -160,3 +160,58 @@ def request_external_action(ctx: ToolContext, action_type: str, payload: dict | 
         "payload": payload or {},
         "note": "Requires human approval before any real-world effect.",
     }
+
+
+@quantive_tool("project_summary", "Summarize a project workspace: runs + documents", risk="read")
+def project_summary(ctx: ToolContext, project_id: str) -> dict:
+    from app.agent.models import AgentRun
+    from app.models.project import Project, ProjectDocument
+
+    p = (
+        ctx.db.query(Project)
+        .filter(Project.id == project_id, Project.org_id == ctx.org_id)
+        .first()
+    )
+    if not p:
+        return {"ok": False, "error": "project not found"}
+    runs = ctx.db.query(AgentRun).filter(AgentRun.project_id == p.id).all()
+    docs = ctx.db.query(ProjectDocument).filter(ProjectDocument.project_id == p.id).all()
+    by_status: dict[str, int] = {}
+    for r in runs:
+        by_status[r.status] = by_status.get(r.status, 0) + 1
+    return {
+        "ok": True,
+        "project_id": p.id,
+        "name": p.name,
+        "status": p.status,
+        "runs": len(runs),
+        "runs_by_status": by_status,
+        "documents": len(docs),
+    }
+
+
+@quantive_tool(
+    "save_note",
+    "Save a note into a project folder (default: meeting_notes)",
+    risk="write_internal",
+    min_role="analyst",
+)
+def save_note(ctx: ToolContext, project_id: str, title: str, body_text: str = "",
+              folder: str = "meeting_notes") -> dict:
+    from app.models.project import DOC_FOLDERS, Project, ProjectDocument
+
+    if folder not in DOC_FOLDERS:
+        return {"ok": False, "error": f"folder must be one of {list(DOC_FOLDERS)}"}
+    p = (
+        ctx.db.query(Project)
+        .filter(Project.id == project_id, Project.org_id == ctx.org_id)
+        .first()
+    )
+    if not p:
+        return {"ok": False, "error": "project not found"}
+    d = ProjectDocument(project_id=p.id, org_id=ctx.org_id, folder=folder,
+                        title=title[:255], body_text=body_text, uploaded_by=ctx.user.id)
+    ctx.db.add(d)
+    ctx.db.commit()
+    ctx.db.refresh(d)
+    return {"ok": True, "document_id": d.id, "folder": folder}
