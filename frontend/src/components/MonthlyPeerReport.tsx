@@ -29,7 +29,7 @@ export default function MonthlyPeerReport({ month }: MonthlyPeerReportProps) {
 
  const topConsensus = getTopConsensus(3);
  const increasingTrends = getIncreasingTrends();
- const benchmarksAboveMedian = [].filter((b) => b.percentile >= 50);
+ const benchmarksAboveMedian = ([] as PeerBenchmark[]).filter((b) => b.percentile >= 50);
 
  const toggleSection = (section: string) => {
  setExpandedSection(expandedSection === section ? null : section);
@@ -73,7 +73,7 @@ export default function MonthlyPeerReport({ month }: MonthlyPeerReportProps) {
  <p className="text-sm text-slate-600 mt-4 leading-relaxed">
  This month saw continued momentum in duration extension ({topConsensus[0]?.consensusPercentage}% of peers),
  with {increasingTrends.length} of {0} tracked trends showing upward movement.
- Credit concerns remain elevated as {[].find((c) => c.category === 'credit')?.consensusPercentage}% of peers
+ Credit concerns remain elevated as {([] as ConsensusIndicator[]).find((c) => c.category === 'credit')?.consensusPercentage}% of peers
  reduce high-yield exposure. Green bond allocation continues to grow, reflecting the secular shift toward ESG integration.
  </p>
  </div>
@@ -95,7 +95,7 @@ export default function MonthlyPeerReport({ month }: MonthlyPeerReportProps) {
 
  {expandedSection === 'consensus' && (
  <div className="p-4 pt-0 space-y-3">
- {[].map((indicator) => (
+ {([] as ConsensusIndicator[]).map((indicator) => (
  <div key={indicator.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/30">
  <span className="text-lg">{getCategoryIcon(indicator.category)}</span>
  <div className="flex-1">
@@ -146,7 +146,7 @@ export default function MonthlyPeerReport({ month }: MonthlyPeerReportProps) {
  </tr>
  </thead>
  <tbody>
- {[].map((b) => (
+ {([] as PeerBenchmark[]).map((b) => (
  <tr key={b.id} className="border-b border-white/10">
  <td className="py-2 px-3 text-slate-700">{b.metric}</td>
  <td className="py-2 px-3 text-right font-medium text-slate-900">{b.userValue}{b.unit}</td>
@@ -182,7 +182,7 @@ export default function MonthlyPeerReport({ month }: MonthlyPeerReportProps) {
 
  {expandedSection === 'sentiment' && (
  <div className="p-4 pt-0 space-y-3">
- {[].map((sentiment) => (
+ {([] as MarketSentiment[]).map((sentiment) => (
  <div key={sentiment.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/30">
  <span className="text-lg">{getSentimentIcon(sentiment.sentiment)}</span>
  <div className="flex-1">
@@ -230,16 +230,16 @@ export default function MonthlyPeerReport({ month }: MonthlyPeerReportProps) {
 
  {expandedSection === 'actions' && (
  <div className="p-4 pt-0 space-y-2">
- {[].map((action) => (
+ {([] as PeerAction[]).map((action) => (
  <div key={action.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/30">
  <div className="text-lg font-bold text-blue-600">{action.percentage}%</div>
  <div className="flex-1">
  <div className="text-sm font-medium text-slate-900">{action.action}</div>
- <div className="text-xs text-slate-500">{action.instrumentType} • {action.peerCount.toLocaleString()} peers</div>
- </div>
- <div className="text-right">
- {action.avgSavings > 0 && (
- <div className="text-sm font-bold text-emerald-600">+${action.avgSavings.toLocaleString()}</div>
+  <div className="text-xs text-slate-500">{action.instrumentType} • {action.peerCount!.toLocaleString()} peers</div>
+  </div>
+  <div className="text-right">
+  {action.avgSavings! > 0 && (
+  <div className="text-sm font-bold text-emerald-600">+${action.avgSavings!.toLocaleString()}</div>
  )}
  <div className="text-[10px] text-slate-500">{action.riskChange}</div>
  </div>

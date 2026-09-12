@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Activity, AlertTriangle, BarChart, BarChart3, BookOpenCheck, BrainCircuit, Bug, Building2, Calculator, Calendar, CheckCircle2, CheckSquare, ChevronDown, CircleAlert, ClipboardList, Coins, Cpu, DollarSign, Eye, FileSearch, FileText, Flag, GitBranch, Heart, HelpCircle, Landmark, Layers, Lightbulb, LineChart, Lock, Mail, MessageCircle, Monitor, Newspaper, Radio, Scale, Settings, ShieldAlert, ShieldCheck, Target, Ticket, TrendingUp, Users, Workflow, Zap } from 'lucide-react';
-import LanguageSwitcher from '../LanguageSwitcher';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -297,7 +296,6 @@ export default function Sidebar({ collapsed, onClose, currentPath }: SidebarProp
             />
             <span>Local-first · Online</span>
           </div>
-          <div className="mt-1"><LanguageSwitcher /></div>
         </div>
       </aside>
     </>

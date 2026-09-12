@@ -57,22 +57,19 @@ export default function RiskDashboard() {
     if (!entityId) return;
     setLoading(true);
     try {
-      const endpoints = [
-        '/risk/cyber/summary',
-        '/risk/fiscal/summary',
-        '/risk/climate/summary',
-        '/risk/infrastructure/summary',
-        '/risk/geopolitical/summary',
-        '/risk/supply-chain/summary',
-      ];
-      const results = await Promise.all(
-        endpoints.map((ep) => api.risk[ep.split('/')[2]](entityId))
-      );
+      const results = await Promise.all([
+        api.risk.cyberSummary(entityId),
+        api.risk.fiscalSummary(entityId),
+        api.risk.climateSummary(entityId),
+        api.risk.infrastructureSummary(entityId),
+        api.risk.geopoliticalSummary(entityId),
+        api.risk.supplyChainSummary(entityId),
+      ]);
       const data: RiskSummaryData[] = results.map((r) => ({
-        overall: r.overall_score || 0,
+        overall: r.overall || 0,
         by_category: r.by_category || {},
         category_counts: r.category_counts || {},
-        entityId,
+        entity_id: entityId,
         entity_type: 'government' }));
       setPanels(data);
     } catch (err) {

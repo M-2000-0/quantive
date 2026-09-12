@@ -44,7 +44,7 @@ export default function GlassBubbleChart({
           <ZAxis dataKey="z" range={[20, 400]} />
           <Tooltip
             contentStyle={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, backdropFilter: 'blur(20px)' }}
-            formatter={(value: number, name: string) => [value, name]}
+            formatter={(value: any, name: any) => [value, name]}
           />
           <Scatter data={data} fillOpacity={0.6}>
             {data.map((item, idx) => (

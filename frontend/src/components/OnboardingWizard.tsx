@@ -99,7 +99,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
         const portfolio = await api.portfolios.create({
           name: 'Onboarding Demo Portfolio',
           description: 'Portfolio created during onboarding wizard',
-          instruments: [].map((inst) => ({
+          instruments: DEMO_INSTRUMENTS.map((inst) => ({
             name: inst.name,
             instrument_type: inst.type.toLowerCase().replace(/ /g, '_'),
             currency: inst.currency,
@@ -382,7 +382,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete: () => voi
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {[].map((inst) => (
+                      {DEMO_INSTRUMENTS.map((inst) => (
                         <tr key={inst.name} className="hover:bg-slate-50">
                           <td className="py-2.5">
                             <p className="font-medium text-slate-900">{inst.name}</p>

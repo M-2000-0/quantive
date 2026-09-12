@@ -122,7 +122,7 @@ export default function SovereignDSA() {
 
       {/* Framework Selector */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[].map(f => (
+        {MOCK_DSA.map(f => (
           <button
             key={f.framework}
             onClick={() => setSelectedFramework(f)}

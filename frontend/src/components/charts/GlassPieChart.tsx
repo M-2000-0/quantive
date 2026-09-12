@@ -58,7 +58,7 @@ export default function GlassPieChart({
               color: '#ececef',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
             }}
-            formatter={formatValue ? (value: number) => [formatValue(value)] : undefined}
+            formatter={formatValue ? (value: any) => [formatValue(value)] : undefined}
           />
           {showLegend && (
             <Legend

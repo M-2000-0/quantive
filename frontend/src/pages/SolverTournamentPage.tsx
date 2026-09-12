@@ -95,7 +95,7 @@ export default function SolverTournamentPage() {
     );
   }
 
-  const selected = solvers.find((s) => s.solver_name === selectedSolver);
+  const selected = solvers.find((s) => s.solver === selectedSolver);
 
   return (
     <div>
@@ -131,7 +131,7 @@ export default function SolverTournamentPage() {
           <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
             {[
               { value: `${solvers.length}`, label: 'Solvers compared', icon: <Trophy size={16} /> },
-              { value: solvers[0]?.solver_name || '—', label: 'Top performer', icon: <Zap size={16} /> },
+              { value: solvers[0]?.solver || '—', label: 'Top performer', icon: <Zap size={16} /> },
               { value: formatTime(solvers[0]?.runtime || 0), label: 'Fastest time', icon: <Clock size={16} /> },
               { value: `${solvers.filter((s) => s.feasible).length}/${solvers.length}`, label: 'Feasible solutions', icon: <AlertTriangle size={16} /> },
             ].map(({ value, label, icon }) => (
@@ -169,14 +169,14 @@ export default function SolverTournamentPage() {
                 <tbody>
                   {solvers.map((solver) => (
                     <tr
-                      key={solver.solver_name}
-                      onClick={() => setSelectedSolver(solver.solver_name === selectedSolver ? null : solver.solver_name)}
-                      style={{ cursor: 'pointer', background: solver.solver_name === selectedSolver ? 'rgba(37,99,235,0.05)' : undefined }}
+                      key={solver.solver}
+                      onClick={() => setSelectedSolver(solver.solver === selectedSolver ? null : solver.solver)}
+                      style={{ cursor: 'pointer', background: solver.solver === selectedSolver ? 'rgba(37,99,235,0.05)' : undefined }}
                     >
                       <td style={{ fontWeight: 700, color: solver.rank === 1 ? '#d97706' : '#6b7280' }}>
                         {solver.rank === 1 ? '🏆' : solver.rank}
                       </td>
-                      <td style={{ fontWeight: 600 }}>{solver.solver_name}</td>
+                      <td style={{ fontWeight: 600 }}>{solver.solver}</td>
                       <td>
                         <span style={{
                           display: 'inline-block', padding: '2px 8px', borderRadius: 6,
@@ -238,7 +238,7 @@ export default function SolverTournamentPage() {
           {selected && (
             <article className="panel" style={{ marginTop: 20 }}>
               <div className="panel-header">
-                <h2>{selected} — Details</h2>
+                <h2>{selected?.solver || '—'} — Details</h2>
                 <button className="soft-button" onClick={() => setSelectedSolver(null)}>Close</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, padding: '0 16px 16px' }}>

@@ -66,16 +66,16 @@ export default function AntiCorruptionMode() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
 
-  const filtered = filter === 'all' ? MOCK_ANOMALIES : [].filter((a) => a.severity === filter);
-  const openCount = [].filter((a) => a.status === 'open').length;
+  const filtered = filter === 'all' ? MOCK_ANOMALIES : ([] as Anomaly[]).filter((a) => a.severity === filter);
+  const openCount = ([] as Anomaly[]).filter((a) => a.status === 'open').length;
 
   return (
     <div className="space-y-6">
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card><div className="p-4 text-center"><p className="text-2xl font-bold text-red-600">{openCount}</p><p className="text-xs text-slate-500">Open Anomalies</p></div></Card>
-        <Card><div className="p-4 text-center"><p className="text-2xl font-bold text-amber-600">{[].filter((a) => a.status === 'investigating').length}</p><p className="text-xs text-slate-500">Investigating</p></div></Card>
-        <Card><div className="p-4 text-center"><p className="text-2xl font-bold text-emerald-600">{[].filter((a) => a.status === 'resolved').length}</p><p className="text-xs text-slate-500">Resolved</p></div></Card>
+        <Card><div className="p-4 text-center"><p className="text-2xl font-bold text-amber-600">{([] as Anomaly[]).filter((a) => a.status === 'investigating').length}</p><p className="text-xs text-slate-500">Investigating</p></div></Card>
+        <Card><div className="p-4 text-center"><p className="text-2xl font-bold text-emerald-600">{([] as Anomaly[]).filter((a) => a.status === 'resolved').length}</p><p className="text-xs text-slate-500">Resolved</p></div></Card>
         <Card><div className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{0}</p><p className="text-xs text-slate-500">Total Detected</p></div></Card>
       </div>
 

@@ -32,10 +32,10 @@ export default function InteroperabilityPage() {
     try {
       const result = await api.interoperability.convert({
         content: inputContent,
-        source_format: sourceFormat,
-        target_format: targetFormat,
+        from_format: sourceFormat,
+        to_format: targetFormat,
       });
-      setOutputContent(result.converted_content || result.content || JSON.stringify(result, null, 2));
+      setOutputContent(result.result || JSON.stringify(result, null, 2));
     } catch (e: any) {
       setError(e.message || 'Conversion failed');
     } finally {

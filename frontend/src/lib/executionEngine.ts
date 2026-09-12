@@ -139,7 +139,7 @@ function runRiskChecks(
   const checks: RiskCheck[] = [];
 
   // Trade size check
-  const tradeSize = recommendation.estimatedSavings * 20; // rough estimate
+  const tradeSize = recommendation.estimatedSavings! * 20; // rough estimate
   checks.push({
     name: 'Trade Size Limit',
     passed: tradeSize <= config.maxTradeSize,
@@ -150,9 +150,9 @@ function runRiskChecks(
   // Risk impact check
   checks.push({
     name: 'Risk Impact Assessment',
-    passed: Math.abs(recommendation.riskChange) <= 20,
-    details: `Risk change: ${recommendation.riskChange >= 0 ? '+' : ''}${recommendation.riskChange}bps ${Math.abs(recommendation.riskChange) <= 20 ? 'within acceptable range' : 'exceeds threshold'}`,
-    severity: Math.abs(recommendation.riskChange) <= 10 ? 'info' : Math.abs(recommendation.riskChange) <= 20 ? 'warning' : 'critical',
+    passed: Math.abs(recommendation.riskChange!) <= 20,
+    details: `Risk change: ${recommendation.riskChange! >= 0 ? '+' : ''}${recommendation.riskChange!}bps ${Math.abs(recommendation.riskChange!) <= 20 ? 'within acceptable range' : 'exceeds threshold'}`,
+    severity: Math.abs(recommendation.riskChange!) <= 10 ? 'info' : Math.abs(recommendation.riskChange!) <= 20 ? 'warning' : 'critical',
   });
 
   // Confidence check
@@ -314,7 +314,7 @@ export class ExecutionEngine {
     const trades: TradeRecord[] = [];
     const now = new Date().toISOString();
 
-    recommendation.instruments.forEach((instrument, idx) => {
+    recommendation.instruments!.forEach((instrument, idx) => {
       const principal = Math.min(
         snapshot.totalPrincipal * 0.15,
         this.config.maxTradeSize,
@@ -323,9 +323,9 @@ export class ExecutionEngine {
       trades.push({
         id: `trade-${Date.now()}-${idx}`,
         instrument,
-        action: recommendation.type === 'refinance' ? 'refinance' :
-                recommendation.type === 'credit_hedge' ? 'hedge' :
-                recommendation.type === 'cost_optimization' ? 'sell' : 'buy',
+        action: recommendation.type! === 'refinance' ? 'refinance' :
+                recommendation.type! === 'credit_hedge' ? 'hedge' :
+                recommendation.type! === 'cost_optimization' ? 'sell' : 'buy',
         principal,
         yield: snapshot.weightedAvgYield + (Math.random() - 0.5) * 0.5,
         maturity: `${3 + Math.floor(Math.random() * 7)}Y`,
@@ -342,15 +342,15 @@ export class ExecutionEngine {
     pre: PortfolioSnapshot,
     recommendation: Recommendation,
   ): PortfolioSnapshot {
-    const savingsRate = recommendation.estimatedSavings / pre.totalPrincipal;
+    const savingsRate = recommendation.estimatedSavings! / pre.totalPrincipal;
     return {
       timestamp: new Date().toISOString(),
       totalPrincipal: pre.totalPrincipal,
       weightedAvgYield: pre.weightedAvgYield - savingsRate * 100 * 0.3,
-      avgDuration: pre.avgDuration + (recommendation.type === 'duration_adjustment' ? -0.5 : 0),
+      avgDuration: pre.avgDuration + (recommendation.type! === 'duration_adjustment' ? -0.5 : 0),
       avgRating: pre.avgRating,
-      riskScore: Math.max(0, pre.riskScore + recommendation.riskChange),
-      unrealizedPnl: pre.unrealizedPnl + recommendation.estimatedSavings * 0.1,
+      riskScore: Math.max(0, pre.riskScore + recommendation.riskChange!),
+      unrealizedPnl: pre.unrealizedPnl + recommendation.estimatedSavings! * 0.1,
       instrumentCount: pre.instrumentCount,
       currencyExposure: { ...pre.currencyExposure },
       sectorExposure: { ...pre.sectorExposure },
@@ -358,7 +358,7 @@ export class ExecutionEngine {
   }
 
   private calculateOutcome(record: ExecutionRecord): ExecutionOutcome {
-    const projected = record.recommendation.estimatedSavings;
+    const projected = record.recommendation.estimatedSavings!;
     // Simulate slight deviation from projection
     const deviation = 1 + (Math.random() - 0.5) * 0.1;
     const realized = projected * deviation;
@@ -368,9 +368,9 @@ export class ExecutionEngine {
       realizedSavings: realized,
       projectedSavings: projected,
       savingsAccuracy: (1 - Math.abs(realized - projected) / projected) * 100,
-      riskChange: record.recommendation.riskChange,
+      riskChange: record.recommendation.riskChange!,
       ratingChange: 'stable',
-      durationChange: record.recommendation.type === 'duration_adjustment' ? -0.5 : 0,
+      durationChange: record.recommendation.type! === 'duration_adjustment' ? -0.5 : 0,
       peerAlignmentChange: Math.floor(Math.random() * 10) + 5,
       executionCost: execCost,
       netBenefit: realized - execCost,

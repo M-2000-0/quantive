@@ -4,16 +4,7 @@ import {
   ExternalLink, Download
 } from 'lucide-react';
 import { api } from '../api';
-
-interface EscrowAgreement {
-  agreement_id: string;
-  status: string;
-  depositor: string;
-  beneficiary: string;
-  software: string;
-  version: string;
-  effective_date: string;
-}
+import type { EscrowAgreement } from '../types';
 
 export default function EscrowPage() {
   const [agreements, setAgreements] = useState<EscrowAgreement[]>([]);
@@ -41,7 +32,7 @@ export default function EscrowPage() {
     setLoading(true);
     try {
       const data = await api.escrow.listAgreements();
-      setAgreements(data.agreements || []);
+      setAgreements(data || []);
     } catch (e) {
       console.error('Failed to load agreements:', e);
     } finally {
@@ -56,30 +47,9 @@ export default function EscrowPage() {
   const createAgreement = async () => {
     try {
       await api.escrow.createAgreement({
-        depositor: {
-          name: formData.depositor_name,
-          role: 'depositor',
-          address: formData.depositor_address,
-          contact_name: formData.depositor_contact_name,
-          contact_email: formData.depositor_contact_email,
-        },
-        beneficiary: {
-          name: formData.beneficiary_name,
-          role: 'beneficiary',
-          address: formData.beneficiary_address,
-          contact_name: formData.beneficiary_contact_name,
-          contact_email: formData.beneficiary_contact_email,
-        },
-        escrow_agent: {
-          name: formData.escrow_agent_name,
-          role: 'escrow_agent',
-          address: formData.escrow_agent_address,
-          contact_name: formData.escrow_agent_contact_name,
-          contact_email: formData.escrow_agent_contact_email,
-        },
-        software_description: formData.software_description,
-        version: formData.version,
-        repository_url: formData.repository_url,
+        name: formData.software_description || 'Unnamed Agreement',
+        source_code_url: formData.repository_url || undefined,
+        version: formData.version || undefined,
       });
       setShowCreateForm(false);
       void loadAgreements();
@@ -224,16 +194,16 @@ export default function EscrowPage() {
           ) : (
             <div className="divide-y divide-slate-200">
               {agreements.map(agreement => (
-                <div key={agreement.agreement_id} className="p-4 hover:bg-slate-50">
+                <div key={agreement.id} className="p-4 hover:bg-slate-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <div className="font-medium text-slate-900">{agreement.software}</div>
+                        <div className="font-medium text-slate-900">{agreement.name}</div>
                         <div className="text-sm text-slate-500">
-                          v{agreement.version} • {agreement.depositor} → {agreement.beneficiary}
+                          {agreement.version ? `v${agreement.version}` : 'No version'}
                         </div>
                       </div>
                     </div>
@@ -243,7 +213,7 @@ export default function EscrowPage() {
                       </span>
                       <div className="text-right">
                         <div className="text-xs text-slate-500">
-                          Effective: {new Date(agreement.effective_date).toLocaleDateString()}
+                          Created: {new Date(agreement.created_at).toLocaleDateString()}
                         </div>
                       </div>
                     </div>

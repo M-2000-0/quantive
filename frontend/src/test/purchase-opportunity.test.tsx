@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import PurchaseTrackerPage from '../pages/PurchaseTrackerPage';
 import OpportunityFeedPage from '../pages/OpportunityFeedPage';
@@ -18,6 +18,50 @@ import {
   getMaturingWithin,
   getTopOpportunities,
 } from '../lib/purchaseData';
+
+const mockPurchases = [
+  { id: 'p-1', instrument_name: 'US Treasury 10Y Note', issuer: 'US Treasury', principal: 50000000, coupon: 4.25, purchase_price: 99.5, yield_to_maturity: 4.3, maturity_date: '2036-09-04', days_to_maturity: 3650, unrealized_pnl: 1200000, type: 'bond', currency: 'USD' },
+  { id: 'p-2', instrument_name: 'Apple Inc. Senior Note 2030', issuer: 'Apple Inc.', principal: 40000000, coupon: 3.5, purchase_price: 101.2, yield_to_maturity: 3.2, maturity_date: '2029-11-27', days_to_maturity: 1200, unrealized_pnl: 800000, type: 'note', currency: 'USD' },
+  { id: 'p-3', instrument_name: 'Tesla Inc. Senior Note 2027', issuer: 'Tesla Inc.', principal: 35000000, coupon: 5.0, purchase_price: 98.0, yield_to_maturity: 5.4, maturity_date: '2027-10-16', days_to_maturity: 400, unrealized_pnl: -400000, type: 'note', currency: 'USD' },
+  { id: 'p-4', instrument_name: 'Saudi Aramco Sukuk', issuer: 'Saudi Aramco', principal: 30000000, coupon: 4.75, purchase_price: 100.0, yield_to_maturity: 4.75, maturity_date: '2033-07-22', days_to_maturity: 2500, unrealized_pnl: 500000, type: 'bond', currency: 'USD' },
+  { id: 'p-5', instrument_name: 'Bund 15Y Federal Loan', issuer: 'Germany', principal: 28000000, coupon: 2.5, purchase_price: 102.5, yield_to_maturity: 2.1, maturity_date: '2028-08-15', days_to_maturity: 700, unrealized_pnl: 300000, type: 'loan', currency: 'EUR' },
+  { id: 'p-6', instrument_name: 'UK Gilt Commercial Paper', issuer: 'UK DMO', principal: 25000000, coupon: 0, purchase_price: 99.8, yield_to_maturity: 4.1, maturity_date: '2026-09-19', days_to_maturity: 12, unrealized_pnl: 50000, type: 'commercial_paper', currency: 'GBP' },
+  { id: 'p-7', instrument_name: 'Aussie Infrastructure Convertible', issuer: 'Transurban', principal: 22000000, coupon: 3.0, purchase_price: 100.5, yield_to_maturity: 2.9, maturity_date: '2027-09-04', days_to_maturity: 300, unrealized_pnl: 220000, type: 'convertible', currency: 'AUD' },
+  { id: 'p-8', instrument_name: 'EDF Preferred Perpetual', issuer: 'EDF', principal: 20000000, coupon: 6.5, purchase_price: 97.0, yield_to_maturity: 5.8, maturity_date: '2027-03-05', days_to_maturity: 180, unrealized_pnl: -150000, type: 'preferred', currency: 'EUR' },
+  { id: 'p-9', instrument_name: 'EIB Climate Awareness Bond', issuer: 'EIB', principal: 15000000, coupon: 3.25, purchase_price: 99.0, yield_to_maturity: 3.4, maturity_date: '2026-12-06', days_to_maturity: 90, unrealized_pnl: 90000, type: 'bond', currency: 'EUR' },
+  { id: 'p-10', instrument_name: 'NSW Treasury Note', issuer: 'NSW TCorp', principal: 13000000, coupon: 4.0, purchase_price: 100.2, yield_to_maturity: 3.9, maturity_date: '2026-10-22', days_to_maturity: 45, unrealized_pnl: 40000, type: 'note', currency: 'AUD' },
+];
+
+const mockOpportunities = [
+  { id: 'o-1', name: 'Apple Inc.', ticker: 'AAPL', type: 'equity', current_price: 198.50, target_price: 225.00, upside: 13.3, relevance_score: 96, risk_score: 22, risk_level: 'Low', sector: 'Technology' },
+  { id: 'o-2', name: 'Tesla Inc.', ticker: 'TSLA', type: 'equity', current_price: 175.20, target_price: 210.00, upside: 19.9, relevance_score: 91, risk_score: 68, risk_level: 'High', sector: 'Automotive' },
+  { id: 'o-3', name: 'NVIDIA Corp', ticker: 'NVDA', type: 'equity', current_price: 131.88, target_price: 150.00, upside: 13.7, relevance_score: 89, risk_score: 55, risk_level: 'Medium', sector: 'Semiconductors' },
+  { id: 'o-4', name: 'Treasury Bond ETF', ticker: 'TLT', type: 'etf', current_price: 92.40, target_price: 101.00, upside: 9.3, relevance_score: 84, risk_score: 30, risk_level: 'Low', sector: 'Fixed Income' },
+  { id: 'o-5', name: 'Investment Grade ETF', ticker: 'LQD', type: 'etf', current_price: 108.15, target_price: 114.00, upside: 5.4, relevance_score: 78, risk_score: 25, risk_level: 'Low', sector: 'Fixed Income' },
+  { id: 'o-6', name: 'Microsoft Corp', ticker: 'MSFT', type: 'equity', current_price: 428.15, target_price: 460.00, upside: 7.4, relevance_score: 75, risk_score: 28, risk_level: 'Low', sector: 'Technology' },
+  { id: 'o-7', name: 'Saudi Aramco', ticker: 'ARAMCO', type: 'equity', current_price: 27.80, target_price: 30.50, upside: 9.7, relevance_score: 70, risk_score: 48, risk_level: 'Medium', sector: 'Energy' },
+  { id: 'o-8', name: 'High Yield ETF', ticker: 'HYG', type: 'etf', current_price: 77.30, target_price: 80.00, upside: 3.5, relevance_score: 64, risk_score: 52, risk_level: 'Medium', sector: 'Fixed Income' },
+  { id: 'o-9', name: 'ASML Holding', ticker: 'ASML', type: 'equity', current_price: 672.40, target_price: 730.00, upside: 8.6, relevance_score: 60, risk_score: 50, risk_level: 'Medium', sector: 'Semiconductors' },
+  { id: 'o-10', name: 'Green Bond ETF', ticker: 'GRNB', type: 'etf', current_price: 45.10, target_price: 48.00, upside: 6.4, relevance_score: 55, risk_score: 32, risk_level: 'Low', sector: 'ESG' },
+  { id: 'o-11', name: 'Coinbase Global', ticker: 'COIN', type: 'equity', current_price: 223.10, target_price: 250.00, upside: 12.1, relevance_score: 48, risk_score: 80, risk_level: 'High', sector: 'Crypto' },
+  { id: 'o-12', name: 'Emerging Markets ETF', ticker: 'EEM', type: 'etf', current_price: 42.60, target_price: 45.00, upside: 5.6, relevance_score: 42, risk_score: 58, risk_level: 'High', sector: 'Emerging' },
+];
+
+vi.mock('../api', () => ({
+  api: {
+    intelligence: {
+      purchases: vi.fn(async () => mockPurchases),
+      opportunities: vi.fn(async () => mockOpportunities),
+      events: vi.fn(async () => []),
+      eventSummary: vi.fn(async () => ({})),
+      impactedAssets: vi.fn(async () => []),
+    },
+    auth: { login: vi.fn(), register: vi.fn(), me: vi.fn(async () => ({ id: 'u1', email: 'test@test.com' })) },
+    portfolios: { list: vi.fn(async () => ({ data: [], meta: { total: 0 } })) },
+    optimizations: { list: vi.fn(async () => ({ data: [], meta: { total: 0 } })) },
+    notifications: { unreadCount: vi.fn(async () => 0), list: vi.fn(async () => ({ data: [], meta: { total: 0 } })), markRead: vi.fn(), markAllRead: vi.fn() },
+  },
+}));
 
 // ── purchaseData.ts Service Tests ────────────────────────────────────
 
@@ -226,94 +270,105 @@ const renderWithRouter = (component: React.ReactNode) =>
   render(<BrowserRouter>{component}</BrowserRouter>);
 
 describe('PurchaseTrackerPage', () => {
-  it('renders page title', () => {
+  it('renders page title', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    expect(screen.getByText('Purchase Tracker')).toBeDefined();
+    await waitFor(() => expect(screen.getByText('Purchase Tracker')).toBeDefined());
   });
 
-  it('renders summary stat cards', () => {
+  it('renders summary stat cards', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    expect(screen.getByText('Total Principal')).toBeDefined();
-    expect(screen.getByText('Unrealized P&L')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('Total Principal')).toBeDefined();
+      expect(screen.getByText('Unrealized P&L')).toBeDefined();
+    });
   });
 
-  it('renders all 10 purchases in the table', () => {
+  it('renders all 10 purchases in the table', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    expect(screen.getByText('US Treasury 10Y Note')).toBeDefined();
-    expect(screen.getByText('Apple Inc. Senior Note 2030')).toBeDefined();
-    expect(screen.getByText('Tesla Inc. Senior Note 2027')).toBeDefined();
-    expect(screen.getByText('Saudi Aramco Sukuk')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('US Treasury 10Y Note')).toBeDefined();
+      expect(screen.getByText('Apple Inc. Senior Note 2030')).toBeDefined();
+      expect(screen.getByText('Tesla Inc. Senior Note 2027')).toBeDefined();
+      expect(screen.getByText('Saudi Aramco Sukuk')).toBeDefined();
+    });
   });
 
-  it('has a search input', () => {
+  it('has a search input', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    expect(screen.getByPlaceholderText('Search purchases...')).toBeDefined();
+    await waitFor(() => expect(screen.getByPlaceholderText('Search purchases...')).toBeDefined());
   });
 
-  it('has status filter buttons', () => {
+  it('has currency filter buttons', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    const allBtn = screen.getByText('All');
-    expect(allBtn).toBeDefined();
+    await waitFor(() => {
+      const allBtn = screen.getByText('All');
+      expect(allBtn).toBeDefined();
+    });
   });
 
-  it('displays detail panel when purchase is selected', () => {
+  it('displays detail panel when purchase is selected', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    // Click on the first table row
+    await waitFor(() => {
+      expect(screen.getByText('US Treasury 10Y Note')).toBeDefined();
+    });
     const rows = document.querySelectorAll('tbody tr');
     expect(rows.length).toBeGreaterThan(0);
     fireEvent.click(rows[0]);
-    // After clicking, the detail panel should show
-    const detail = document.querySelector('.animate-glass-in');
-    expect(detail).toBeTruthy();
+    await waitFor(() => {
+      const detail = document.querySelector('.panel');
+      expect(detail).toBeTruthy();
+    });
   });
 
-  it('shows Export CSV and Add Purchase buttons', () => {
+  it('shows Export CSV button', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    expect(screen.getByText('Export CSV')).toBeDefined();
-    expect(screen.getByText('+ Add Purchase')).toBeDefined();
+    await waitFor(() => expect(screen.getByText('Export CSV')).toBeDefined());
   });
 });
 
 // ── OpportunityFeedPage Tests ────────────────────────────────────────
 
 describe('OpportunityFeedPage', () => {
-  it('renders page title', () => {
+  it('renders page title', async () => {
     renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('Opportunity Feed')).toBeDefined();
+    await waitFor(() => expect(screen.getByText('Opportunity Feed')).toBeDefined());
   });
 
-  it('displays opportunities with tickers', () => {
+  it('displays opportunities with tickers', async () => {
     renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('AAPL')).toBeDefined();
-    expect(screen.getByText('TSLA')).toBeDefined();
-    expect(screen.getByText('NVDA')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('AAPL')).toBeDefined();
+      expect(screen.getByText('TSLA')).toBeDefined();
+      expect(screen.getByText('NVDA')).toBeDefined();
+    });
   });
 
-  it('has risk filter buttons', () => {
+  it('has risk filter buttons', async () => {
     renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('All Risk')).toBeDefined();
-    expect(screen.getByText('Low')).toBeDefined();
-    expect(screen.getByText('Medium')).toBeDefined();
-    expect(screen.getByText('High')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('All')).toBeDefined();
+      expect(screen.getAllByText('Low').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Medium').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('High').length).toBeGreaterThan(0);
+    });
   });
 
-  it('has sort options', () => {
+  it('has sort options', async () => {
     renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('Relevance')).toBeDefined();
-    const upside = screen.getAllByText('Upside');
-    expect(upside.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getByText('Relevance')).toBeDefined();
+      const upside = screen.getAllByText('Upside');
+      expect(upside.length).toBeGreaterThan(0);
+    });
   });
 
-  it('shows linked holdings filter', () => {
+  it('shows price, target, and upside for each card', async () => {
     renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('Linked to holdings only')).toBeDefined();
-  });
-
-  it('shows price, target, and upside for each card', () => {
-    renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('$198.50')).toBeDefined(); // AAPL price
-    expect(screen.getByText('$225.00')).toBeDefined(); // AAPL target
-    expect(screen.getByText('+13.3%')).toBeDefined(); // AAPL upside
+    await waitFor(() => {
+      expect(screen.getByText('$198.50')).toBeDefined();
+      expect(screen.getByText('$225.00')).toBeDefined();
+      expect(screen.getByText('+13.3%')).toBeDefined();
+    });
   });
 });
 

@@ -77,7 +77,7 @@ export default function GlassCandlestickChart({
           <YAxis domain={['auto', 'auto']} stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.5)' }} tickFormatter={formatValue} />
           <Tooltip
             contentStyle={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, backdropFilter: 'blur(20px)' }}
-            formatter={(value: number, name: string) => [formatValue ? formatValue(value) : value, name]}
+            formatter={(value: any, name: any) => [formatValue ? formatValue(value) : value, name]}
           />
           <ReferenceLine y={avgClose} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
           <Bar dataKey="range" shape={<CandlestickBar />} />

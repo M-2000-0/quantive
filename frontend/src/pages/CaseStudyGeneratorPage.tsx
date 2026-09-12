@@ -1,31 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FileText, Download, Edit3, CheckCircle, Clock, Users, TrendingUp } from 'lucide-react';
 import { api } from '../api';
-
-interface Pilot {
-  id: string;
-  country_code: string;
-  country_name: string;
-  government_entity: string;
-  entity_type: string;
-  total_debt_outstanding: number;
-  financing_cost_reduction_bps: number;
-  risk_score_improvement_pct: number;
-  user_adoption_rate_pct: number;
-  status: string;
-}
-
-interface CaseStudy {
-  id: string;
-  pilot_id: string;
-  title: string;
-  subtitle: string;
-  executive_summary: string;
-  challenge: string;
-  solution: string;
-  results: Record<string, number>;
-  status: string;
-}
+import type { PilotProgram } from '../types';
 
 function formatCurrency(value: number): string {
   if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
@@ -34,9 +10,9 @@ function formatCurrency(value: number): string {
 }
 
 export default function CaseStudyGeneratorPage() {
-  const [pilots, setPilots] = useState<Pilot[]>([]);
-  const [selectedPilot, setSelectedPilot] = useState<Pilot | null>(null);
-  const [caseStudy, setCaseStudy] = useState<CaseStudy | null>(null);
+  const [pilots, setPilots] = useState<PilotProgram[]>([]);
+  const [selectedPilot, setSelectedPilot] = useState<PilotProgram | null>(null);
+  const [caseStudy, setCaseStudy] = useState<{ title: string; summary: string; metrics: Record<string, unknown>; lessons: string[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +21,8 @@ export default function CaseStudyGeneratorPage() {
   const loadPilots = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.pilotProgram.list({ status: 'active' });
-      setPilots(data.pilots || []);
+      const data = await api.pilotProgram.list();
+      setPilots((data.programs || []).filter(p => p.status === 'active'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load pilots');
     } finally {
@@ -58,12 +34,12 @@ export default function CaseStudyGeneratorPage() {
     void loadPilots();
   }, [loadPilots]);
 
-  const generateCaseStudy = useCallback(async (pilot: Pilot) => {
+  const generateCaseStudy = useCallback(async (pilot: PilotProgram) => {
     setGenerating(true);
     setError(null);
     try {
-      const data = await api.pilotProgram.generateCaseStudy(pilot.id);
-      setCaseStudy(data.case_study);
+      const data = await api.pilotProgram.caseStudy(pilot.id);
+      setCaseStudy(data);
       setSelectedPilot(pilot);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to generate case study');
@@ -74,10 +50,8 @@ export default function CaseStudyGeneratorPage() {
 
   const sections = [
     { id: 'summary', label: 'Executive Summary', icon: FileText },
-    { id: 'challenge', label: 'Challenge', icon: Edit3 },
-    { id: 'solution', label: 'Solution', icon: CheckCircle },
     { id: 'results', label: 'Results', icon: TrendingUp },
-    { id: 'testimonial', label: 'Testimonial', icon: Users },
+    { id: 'lessons', label: 'Lessons', icon: Users },
   ];
 
   if (loading) {
@@ -144,19 +118,14 @@ export default function CaseStudyGeneratorPage() {
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">
-                          {pilot.country_code === 'KE' ? '🇰🇪' :
-                           pilot.country_code === 'PE' ? '🇵🇪' :
-                           pilot.country_code === 'ID' ? '🇮🇩' :
-                           pilot.country_code === 'GE' ? '🇬🇪' :
-                           pilot.country_code === 'JO' ? '🇯🇴' :
-                           '🏳️'}
-                        </span>
+                        <span className="text-2xl">🏛️</span>
                         <div className="flex-1">
-                          <div className="font-medium text-slate-900">{pilot.country_name}</div>
-                          <div className="text-sm text-slate-500">{pilot.government_entity}</div>
+                          <div className="font-medium text-slate-900">{pilot.name}</div>
+                          <div className="text-sm text-slate-500">
+                            {pilot.participants} participants
+                          </div>
                           <div className="text-xs text-slate-400">
-                            {formatCurrency(pilot.total_debt_outstanding)} portfolio
+                            {pilot.start_date}
                           </div>
                         </div>
                       </div>
@@ -172,21 +141,21 @@ export default function CaseStudyGeneratorPage() {
                 <h3 className="font-semibold text-slate-900 mb-4">Pilot Metrics</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Financing Cost Reduction</span>
-                    <span className="font-bold text-emerald-600">
-                      {selectedPilot.financing_cost_reduction_bps} bps
+                    <span className="text-slate-600">Status</span>
+                    <span className="font-bold text-emerald-600 capitalize">
+                      {selectedPilot.status}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Risk Score Improvement</span>
+                    <span className="text-slate-600">Participants</span>
                     <span className="font-bold text-emerald-600">
-                      {selectedPilot.risk_score_improvement_pct}%
+                      {selectedPilot.participants}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">User Adoption</span>
+                    <span className="text-slate-600">End Date</span>
                     <span className="font-bold text-emerald-600">
-                      {selectedPilot.user_adoption_rate_pct}%
+                      {selectedPilot.end_date || 'Ongoing'}
                     </span>
                   </div>
                 </div>
@@ -233,23 +202,7 @@ export default function CaseStudyGeneratorPage() {
                   {activeSection === 'summary' && (
                     <div>
                       <h2 className="text-xl font-bold text-slate-900 mb-2">{caseStudy.title}</h2>
-                      <p className="text-slate-500 mb-6">{caseStudy.subtitle}</p>
-                      <h3 className="font-semibold text-slate-900 mb-3">Executive Summary</h3>
-                      <p className="text-slate-700 leading-relaxed">{caseStudy.executive_summary}</p>
-                    </div>
-                  )}
-
-                  {activeSection === 'challenge' && (
-                    <div>
-                      <h3 className="font-semibold text-slate-900 mb-3">The Challenge</h3>
-                      <p className="text-slate-700 leading-relaxed">{caseStudy.challenge}</p>
-                    </div>
-                  )}
-
-                  {activeSection === 'solution' && (
-                    <div>
-                      <h3 className="font-semibold text-slate-900 mb-3">Our Solution</h3>
-                      <p className="text-slate-700 leading-relaxed">{caseStudy.solution}</p>
+                      <p className="text-slate-700 leading-relaxed">{caseStudy.summary}</p>
                     </div>
                   )}
 
@@ -257,19 +210,13 @@ export default function CaseStudyGeneratorPage() {
                     <div>
                       <h3 className="font-semibold text-slate-900 mb-4">Results</h3>
                       <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(caseStudy.results).map(([key, value]) => (
+                        {Object.entries(caseStudy.metrics).map(([key, value]) => (
                           <div key={key} className="p-4 bg-emerald-50 rounded-lg">
                             <div className="text-sm text-emerald-600 capitalize">
                               {key.replace(/_/g, ' ')}
                             </div>
                             <div className="text-2xl font-bold text-emerald-700">
-                              {typeof value === 'number' && key.includes('bps')
-                                ? `${value} bps`
-                                : typeof value === 'number' && key.includes('pct')
-                                ? `${value}%`
-                                : typeof value === 'number' && value > 1000000
-                                ? formatCurrency(value)
-                                : value}
+                              {String(value)}
                             </div>
                           </div>
                         ))}
@@ -277,20 +224,16 @@ export default function CaseStudyGeneratorPage() {
                     </div>
                   )}
 
-                  {activeSection === 'testimonial' && (
+                  {activeSection === 'lessons' && (
                     <div>
-                      <h3 className="font-semibold text-slate-900 mb-3">Testimonial</h3>
-                      <div className="p-6 bg-slate-50 rounded-lg border-l-4 border-blue-500">
-                        <p className="text-slate-700 italic text-lg">
-                          "Quantive has transformed how we manage our sovereign debt portfolio. 
-                          The optimization recommendations have directly contributed to lower 
-                          financing costs and better risk management."
-                        </p>
-                        <div className="mt-4 text-slate-600">
-                          <div className="font-medium">— DMO Director</div>
-                          <div className="text-sm">{selectedPilot?.country_name}</div>
-                        </div>
-                      </div>
+                      <h3 className="font-semibold text-slate-900 mb-3">Lessons Learned</h3>
+                      <ul className="space-y-3">
+                        {caseStudy.lessons.map((lesson, idx) => (
+                          <li key={idx} className="p-4 bg-slate-50 rounded-lg border-l-4 border-blue-500 text-slate-700">
+                            {lesson}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>

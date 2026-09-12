@@ -5,28 +5,13 @@ import {
   Clock, CheckCircle, AlertTriangle, Search
 } from 'lucide-react';
 import { api } from '../api';
-
-interface PilotProgram {
-  program_id: string;
-  country: string;
-  status: string;
-  debt_profile: {
-    total_outstanding_usd: number;
-    currency: string;
-  };
-  estimated_savings_usd: number;
-  success_fee_usd: number;
-  created_at: string;
-}
+import type { PilotProgram } from '../types';
 
 interface PilotSummary {
-  total_pilots: number;
-  active_pilots: number;
-  completed_pilots: number;
-  converted_pilots: number;
-  conversion_rate: number;
-  total_debt_managed: number;
-  total_savings: number;
+  total_programs: number;
+  active: number;
+  completed: number;
+  metrics: Record<string, number>;
 }
 
 export default function GovernmentPilotPage() {
@@ -44,7 +29,7 @@ export default function GovernmentPilotPage() {
         api.pilotProgram.list().catch(() => ({ programs: [] })),
       ]);
 
-      if (dashData?.summary) setSummary(dashData.summary);
+      if (dashData) setSummary(dashData);
       if (pilotList?.programs) setPilots(pilotList.programs);
     } catch (e) {
       console.error('Failed to load pilots:', e);
@@ -59,7 +44,7 @@ export default function GovernmentPilotPage() {
 
   const filteredPilots = pilots.filter(p => {
     if (filter !== 'all' && p.status !== filter) return false;
-    if (search && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -128,7 +113,7 @@ export default function GovernmentPilotPage() {
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Active Pilots</div>
-                  <div className="text-2xl font-bold text-slate-900">{summary.active_pilots}</div>
+                  <div className="text-2xl font-bold text-slate-900">{summary.active}</div>
                 </div>
               </div>
             </div>
@@ -138,8 +123,8 @@ export default function GovernmentPilotPage() {
                   <TrendingUp className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
-                  <div className="text-sm text-slate-500">Conversion Rate</div>
-                  <div className="text-2xl font-bold text-slate-900">{summary.conversion_rate}%</div>
+                  <div className="text-sm text-slate-500">Total Programs</div>
+                  <div className="text-2xl font-bold text-slate-900">{summary.total_programs}</div>
                 </div>
               </div>
             </div>
@@ -149,8 +134,8 @@ export default function GovernmentPilotPage() {
                   <DollarSign className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
-                  <div className="text-sm text-slate-500">Total Savings</div>
-                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(summary.total_savings)}</div>
+                  <div className="text-sm text-slate-500">Completed</div>
+                  <div className="text-2xl font-bold text-slate-900">{summary.completed}</div>
                 </div>
               </div>
             </div>
@@ -160,8 +145,8 @@ export default function GovernmentPilotPage() {
                   <Calendar className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <div className="text-sm text-slate-500">Debt Managed</div>
-                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(summary.total_debt_managed)}</div>
+                  <div className="text-sm text-slate-500">Metrics</div>
+                  <div className="text-2xl font-bold text-slate-900">{Object.keys(summary.metrics).length}</div>
                 </div>
               </div>
             </div>
@@ -217,7 +202,7 @@ export default function GovernmentPilotPage() {
           <div className="space-y-4">
             {filteredPilots.map(pilot => (
               <div
-                key={pilot.program_id}
+                key={pilot.id}
                 className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between">
@@ -226,23 +211,17 @@ export default function GovernmentPilotPage() {
                       🏛️
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900">{pilot.country}</h3>
+                      <h3 className="font-semibold text-slate-900">{pilot.name}</h3>
                       <div className="text-sm text-slate-500">
-                        {formatCurrency(pilot.debt_profile.total_outstanding_usd)} debt outstanding
+                        {pilot.participants} participants
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="text-sm text-slate-500">Est. Savings</div>
+                      <div className="text-sm text-slate-500">Start Date</div>
                       <div className="font-bold text-emerald-600">
-                        {formatCurrency(pilot.estimated_savings_usd)}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-slate-500">Success Fee</div>
-                      <div className="font-bold text-blue-600">
-                        {formatCurrency(pilot.success_fee_usd)}
+                        {pilot.start_date}
                       </div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[pilot.status] || 'bg-slate-100 text-slate-700'}`}>

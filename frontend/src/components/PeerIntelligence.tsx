@@ -202,9 +202,9 @@ export default function PeerIntelligence() {
 
  const filteredConsensus = selectedCategory === 'all'
  ? MOCK_CONSENSUS_INDICATORS
- : [].filter((c) => c.category === selectedCategory);
+ : MOCK_CONSENSUS_INDICATORS.filter((c) => c.category === selectedCategory);
 
- const categories = ['all', ...new Set([].map((c) => c.category))];
+ const categories = ['all', ...new Set(MOCK_CONSENSUS_INDICATORS.map((c) => c.category))];
 
  return (
  <div className="space-y-6 animate-glass-in">
@@ -228,11 +228,11 @@ export default function PeerIntelligence() {
  <div className="text-[10px] text-slate-500">Top Consensus</div>
  </div>
  <div className="glass p-3 rounded-xl text-center">
- <div className="text-lg font-bold text-emerald-600">{[].filter((s) => s.sentiment === 'bullish').length}</div>
+ <div className="text-lg font-bold text-emerald-600">{([] as MarketSentiment[]).filter((s) => s.sentiment === 'bullish').length}</div>
  <div className="text-[10px] text-slate-500">Bullish Signals</div>
  </div>
  <div className="glass p-3 rounded-xl text-center">
- <div className="text-lg font-bold text-amber-600">{[].filter((b) => b.percentile >= 50).length}/{0}</div>
+ <div className="text-lg font-bold text-amber-600">{([] as PeerBenchmark[]).filter((b) => b.percentile >= 50).length}/{MOCK_CONSENSUS_INDICATORS.length}</div>
  <div className="text-[10px] text-slate-500">Above Median</div>
  </div>
  <div className="glass p-3 rounded-xl text-center">
@@ -292,7 +292,7 @@ export default function PeerIntelligence() {
  {/* Benchmarks Tab */}
  {activeTab === 'benchmarks' && (
  <div className="space-y-4">
- {[].map((benchmark) => (
+ {([] as PeerBenchmark[]).map((benchmark) => (
  <BenchmarkRow key={benchmark.id} benchmark={benchmark} />
  ))}
  </div>
@@ -301,7 +301,7 @@ export default function PeerIntelligence() {
  {/* Sentiment Tab */}
  {activeTab === 'sentiment' && (
  <div className="space-y-4">
- {[].map((sentiment) => (
+ {([] as MarketSentiment[]).map((sentiment) => (
  <SentimentCard key={sentiment.id} sentiment={sentiment} />
  ))}
  </div>
@@ -323,7 +323,7 @@ export default function PeerIntelligence() {
  </tr>
  </thead>
  <tbody>
- {[].map((action) => (
+ {([] as PeerAction[]).map((action) => (
  <tr key={action.id} className="border-b border-white/10 hover:bg-white/30 transition-colors">
  <td className="px-4 py-3">
  <div className="font-medium text-slate-900">{action.action}</div>
@@ -335,12 +335,12 @@ export default function PeerIntelligence() {
  </td>
  <td className="px-4 py-3 text-right">
  <div className="text-sm font-bold text-slate-900">{action.percentage}%</div>
- <div className="text-[10px] text-slate-500">{action.peerCount.toLocaleString()}</div>
- </td>
- <td className="px-4 py-3 text-right">
- {action.avgSavings > 0 ? (
- <span className="text-sm font-bold text-emerald-600">
- +${action.avgSavings.toLocaleString()}
+  <div className="text-[10px] text-slate-500">{action.peerCount!.toLocaleString()}</div>
+  </td>
+  <td className="px-4 py-3 text-right">
+  {action.avgSavings! > 0 ? (
+  <span className="text-sm font-bold text-emerald-600">
+  +${action.avgSavings!.toLocaleString()}
  </span>
  ) : (
  <span className="text-sm text-slate-400">—</span>

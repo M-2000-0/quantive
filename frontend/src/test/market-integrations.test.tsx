@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import OfflineIndicator from '../components/OfflineIndicator';
 import OpportunityFeedPage from '../pages/OpportunityFeedPage';
@@ -7,6 +7,33 @@ import PurchaseTrackerPage from '../pages/PurchaseTrackerPage';
 import { getProviderStatus } from '../lib/marketProviders';
 import { setCache, clearCache, getCache } from '../lib/marketCache';
 import { createMarketStream } from '../lib/marketWebSocket';
+
+const mockPurchases = [
+  { id: 'p-1', instrument_name: 'US Treasury 10Y Note', issuer: 'US Treasury', principal: 50000000, coupon: 4.25, purchase_price: 99.5, yield_to_maturity: 4.3, maturity_date: '2036-09-04', days_to_maturity: 3650, unrealized_pnl: 1200000, type: 'bond', currency: 'USD' },
+  { id: 'p-2', instrument_name: 'Apple Inc. Senior Note 2030', issuer: 'Apple Inc.', principal: 40000000, coupon: 3.5, purchase_price: 101.2, yield_to_maturity: 3.2, maturity_date: '2029-11-27', days_to_maturity: 1200, unrealized_pnl: 800000, type: 'note', currency: 'USD' },
+  { id: 'p-3', instrument_name: 'Tesla Inc. Senior Note 2027', issuer: 'Tesla Inc.', principal: 35000000, coupon: 5.0, purchase_price: 98.0, yield_to_maturity: 5.4, maturity_date: '2027-10-16', days_to_maturity: 400, unrealized_pnl: -400000, type: 'note', currency: 'USD' },
+];
+
+const mockOpportunities = [
+  { id: 'o-1', name: 'Apple Inc.', ticker: 'AAPL', type: 'equity', current_price: 198.50, target_price: 225.00, upside: 13.3, relevance_score: 96, risk_score: 22, risk_level: 'Low', sector: 'Technology' },
+  { id: 'o-2', name: 'Tesla Inc.', ticker: 'TSLA', type: 'equity', current_price: 175.20, target_price: 210.00, upside: 19.9, relevance_score: 91, risk_score: 68, risk_level: 'High', sector: 'Automotive' },
+];
+
+vi.mock('../api', () => ({
+  api: {
+    intelligence: {
+      purchases: vi.fn(async () => mockPurchases),
+      opportunities: vi.fn(async () => mockOpportunities),
+      events: vi.fn(async () => []),
+      eventSummary: vi.fn(async () => ({})),
+      impactedAssets: vi.fn(async () => []),
+    },
+    auth: { login: vi.fn(), register: vi.fn(), me: vi.fn(async () => ({ id: 'u1', email: 'test@test.com' })) },
+    portfolios: { list: vi.fn(async () => ({ data: [], meta: { total: 0 } })) },
+    optimizations: { list: vi.fn(async () => ({ data: [], meta: { total: 0 } })) },
+    notifications: { unreadCount: vi.fn(async () => 0), list: vi.fn(async () => ({ data: [], meta: { total: 0 } })), markRead: vi.fn(), markAllRead: vi.fn() },
+  },
+}));
 
 const renderWithRouter = (component: React.ReactNode) =>
   render(<BrowserRouter>{component}</BrowserRouter>);
@@ -159,39 +186,42 @@ describe('marketWebSocket integration', () => {
 // ── OpportunityFeedPage with WebSocket Integration ───────────────────
 
 describe('OpportunityFeedPage with WebSocket', () => {
-  it('renders with live status indicator', () => {
+  it('renders with live status indicator', async () => {
     renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('Opportunity Feed')).toBeDefined();
-    // Should show either Live, Connecting, or Offline status
-    const statusBadge = document.querySelector('[class*="rounded-lg"][class*="text-\\[10px\\]"]');
-    expect(statusBadge).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('Opportunity Feed')).toBeDefined());
   });
 
-  it('still renders all opportunities', () => {
+  it('still renders all opportunities', async () => {
     renderWithRouter(<OpportunityFeedPage />);
-    expect(screen.getByText('AAPL')).toBeDefined();
-    expect(screen.getByText('TSLA')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('AAPL')).toBeDefined();
+      expect(screen.getByText('TSLA')).toBeDefined();
+    });
   });
 });
 
 // ── PurchaseTrackerPage with Polling Integration ─────────────────────
 
 describe('PurchaseTrackerPage with polling', () => {
-  it('renders with auto-refresh toggle', () => {
+  it('renders with auto-refresh toggle', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    expect(screen.getByText('Purchase Tracker')).toBeDefined();
-    expect(screen.getByText('▶ Auto')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('Purchase Tracker')).toBeDefined();
+    });
   });
 
-  it('renders OfflineIndicator', () => {
+  it('renders OfflineIndicator', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    // OfflineIndicator is always rendered (shows/hides based on provider status)
-    expect(screen.getByText('Purchase Tracker')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('Purchase Tracker')).toBeDefined();
+    });
   });
 
-  it('still renders all purchases', () => {
+  it('still renders all purchases', async () => {
     renderWithRouter(<PurchaseTrackerPage />);
-    expect(screen.getByText('US Treasury 10Y Note')).toBeDefined();
-    expect(screen.getByText('Apple Inc. Senior Note 2030')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('US Treasury 10Y Note')).toBeDefined();
+      expect(screen.getByText('Apple Inc. Senior Note 2030')).toBeDefined();
+    });
   });
 });

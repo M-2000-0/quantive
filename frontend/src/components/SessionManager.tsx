@@ -21,7 +21,7 @@ const MOCK_SESSIONS: Session[] = [
 ];
 
 export default function SessionManager() {
-  const [sessions, setSessions] = useState([]);
+  const [sessions, setSessions] = useState<Session[]>(MOCK_SESSIONS);
 
   const revokeSession = (id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id));

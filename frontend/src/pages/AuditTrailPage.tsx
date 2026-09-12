@@ -4,20 +4,10 @@ import {
   Clock, ExternalLink, RefreshCw, FileText
 } from 'lucide-react';
 import { api } from '../api';
-
-interface AuditEvent {
-  event_id: string;
-  timestamp: string;
-  event_type: string;
-  actor_id: string;
-  resource_type: string;
-  resource_id: string;
-  action: string;
-  integrity_valid: boolean;
-}
+import type { ImmutableAuditEvent } from '../types';
 
 export default function AuditTrailPage() {
-  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [events, setEvents] = useState<ImmutableAuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     event_type: '',
@@ -25,7 +15,7 @@ export default function AuditTrailPage() {
     start_date: '',
     end_date: '',
   });
-  const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ImmutableAuditEvent | null>(null);
   const [verifyResult, setVerifyResult] = useState<any>(null);
 
   const loadEvents = useCallback(async () => {
@@ -38,7 +28,7 @@ export default function AuditTrailPage() {
       if (filters.end_date) params.end_date = filters.end_date;
 
       const data = await api.immutableAudit.query(params);
-      setEvents(data.events || []);
+      setEvents(data || []);
     } catch (e) {
       console.error('Failed to load audit events:', e);
     } finally {
@@ -54,7 +44,7 @@ export default function AuditTrailPage() {
     try {
       const result = await api.immutableAudit.verify(eventId);
       setVerifyResult(result);
-      setSelectedEvent(events.find(e => e.event_id === eventId) || null);
+      setSelectedEvent(events.find(e => e.id === eventId) || null);
     } catch (e) {
       console.error('Verification failed:', e);
     }
@@ -161,7 +151,7 @@ export default function AuditTrailPage() {
             <div className="divide-y divide-slate-200">
               {events.map(event => (
                 <div
-                  key={event.event_id}
+                  key={event.id}
                   className="p-4 hover:bg-slate-50 cursor-pointer"
                   onClick={() => setSelectedEvent(event)}
                 >
@@ -171,9 +161,9 @@ export default function AuditTrailPage() {
                         {event.event_type}
                       </div>
                       <div>
-                        <div className="font-medium text-slate-900 text-sm">{event.action}</div>
+                        <div className="font-medium text-slate-900 text-sm">{event.event_type}</div>
                         <div className="text-xs text-slate-500">
-                          {event.resource_type}/{event.resource_id}
+                          {String((event.data as Record<string, unknown>)?.resource_type || '')}{(event.data as Record<string, unknown>)?.resource_type ? `/${(event.data as Record<string, unknown>)?.resource_id}` : ''}
                         </div>
                       </div>
                     </div>
@@ -187,12 +177,12 @@ export default function AuditTrailPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          verifyEvent(event.event_id);
+                          verifyEvent(event.id);
                         }}
                         className="p-2 hover:bg-slate-100 rounded-lg"
                         title="Verify integrity"
                       >
-                        {event.integrity_valid ? (
+                        {event.verified ? (
                           <CheckCircle className="w-4 h-4 text-emerald-500" />
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-red-500" />

@@ -24,7 +24,7 @@ const MOCK_SCHEDULES: Schedule[] = [
 const TYPE_BADGES: Record<string, string> = { report: 'success', optimization: 'info', data_sync: 'warning', notification: 'danger' };
 
 export default function ScheduleManager() {
-  const [schedules, setSchedules] = useState([]);
+  const [schedules, setSchedules] = useState<Schedule[]>(MOCK_SCHEDULES);
   const [showCreate, setShowCreate] = useState(false);
   const [newSchedule, setNewSchedule] = useState({ name: '', type: 'report' as Schedule['type'], frequency: 'weekly' as Schedule['frequency'], time: '' });
 

@@ -122,7 +122,7 @@ const CATEGORY_INFO: Record<string, { icon: string; color: string }> = {
  security: { icon: '🚨', color: 'red' } };
 
 export default function ImmutableAuditLog() {
- const [entries] = useState([]);
+ const [entries] = useState<AuditEntry[]>(MOCK_ENTRIES);
  const [selectedEntry, setSelectedEntry] = useState<AuditEntry | null>(null);
  const [filterCategory, setFilterCategory] = useState<string>('all');
 

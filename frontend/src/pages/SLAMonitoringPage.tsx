@@ -4,20 +4,11 @@ import {
   FileText, Plus, RefreshCw
 } from 'lucide-react';
 import { api } from '../api';
-
-interface SLACompliance {
-  overall_compliance: boolean;
-  uptime_compliance: boolean;
-  response_time_compliance: boolean;
-  current_uptime_percent: number;
-  target_uptime_percent: number;
-  incidents_this_month: number;
-  credits_owed: number;
-}
+import type { SLACompliance as SLAComplianceType, SLABreach } from '../types';
 
 export default function SLAMonitoringPage() {
-  const [compliance, setCompliance] = useState<SLACompliance | null>(null);
-  const [breaches, setBreaches] = useState<any[]>([]);
+  const [compliance, setCompliance] = useState<SLAComplianceType | null>(null);
+  const [breaches, setBreaches] = useState<SLABreach[]>([]);
   const [credits, setCredits] = useState<any>(null);
   const [documentation, setDocumentation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -27,13 +18,13 @@ export default function SLAMonitoringPage() {
     try {
       const [complianceData, breachesData, creditsData, docData] = await Promise.all([
         api.sla.compliance().catch(() => null),
-        api.sla.getBreaches(30).catch(() => ({ breaches: [] })),
+        api.sla.getBreaches(30).catch(() => []),
         api.sla.getCredits().catch(() => null),
         api.sla.documentation().catch(() => null),
       ]);
 
       if (complianceData) setCompliance(complianceData);
-      if (breachesData?.breaches) setBreaches(breachesData.breaches);
+      if (breachesData) setBreaches(Array.isArray(breachesData) ? breachesData : []);
       if (creditsData) setCredits(creditsData);
       if (docData) setDocumentation(docData);
     } catch (e) {
@@ -86,29 +77,29 @@ export default function SLAMonitoringPage() {
         {/* Compliance Status */}
         {compliance && (
           <div className={`rounded-xl p-6 mb-8 ${
-            compliance.overall_compliance
+            compliance.overall_compliance >= 99.9
               ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'
               : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {compliance.overall_compliance ? (
+                {compliance.overall_compliance >= 99.9 ? (
                   <CheckCircle className="w-10 h-10" />
                 ) : (
                   <AlertTriangle className="w-10 h-10" />
                 )}
                 <div>
                   <div className="text-2xl font-bold">
-                    {compliance.overall_compliance ? 'SLA Compliant' : 'SLA Breach'}
+                    {compliance.overall_compliance >= 99.9 ? 'SLA Compliant' : 'SLA Breach'}
                   </div>
                   <div className="text-emerald-100">
-                    {compliance.incidents_this_month} incidents this month
+                    {compliance.breaches} incidents this month
                   </div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-4xl font-bold">
-                  {compliance.current_uptime_percent.toFixed(2)}%
+                  {compliance.uptime_pct.toFixed(2)}%
                 </div>
                 <div className="text-emerald-100">Current Uptime</div>
               </div>
@@ -122,23 +113,23 @@ export default function SLAMonitoringPage() {
             <div className="text-sm text-slate-500 mb-1">Monthly Uptime</div>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-slate-900">
-                {compliance?.current_uptime_percent.toFixed(2) || '0'}%
+                {compliance?.uptime_pct.toFixed(2) || '0'}%
               </span>
               <span className="text-sm text-slate-500 mb-1">
-                / {compliance?.target_uptime_percent}% target
+                / 99.95% target
               </span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2 mt-3">
               <div
-                className={`h-2 rounded-full ${(compliance?.current_uptime_percent || 0) >= (compliance?.target_uptime_percent || 99.95) ? 'bg-emerald-500' : 'bg-red-500'}`}
-                style={{ width: `${Math.min(compliance?.current_uptime_percent || 0, 100)}%` }}
+                className={`h-2 rounded-full ${(compliance?.uptime_pct || 0) >= 99.95 ? 'bg-emerald-500' : 'bg-red-500'}`}
+                style={{ width: `${Math.min(compliance?.uptime_pct || 0, 100)}%` }}
               ></div>
             </div>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="text-sm text-slate-500 mb-1">Incidents This Month</div>
             <div className="text-3xl font-bold text-slate-900">
-              {compliance?.incidents_this_month || 0}
+              {compliance?.breaches || 0}
             </div>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
@@ -164,14 +155,14 @@ export default function SLAMonitoringPage() {
                     <div className="flex items-center gap-3">
                       <AlertTriangle className="w-4 h-4 text-red-500" />
                       <div>
-                        <div className="font-medium text-slate-900 text-sm">{breach.metric_name}</div>
-                        <div className="text-xs text-slate-500">{breach.incident_id}</div>
+                        <div className="font-medium text-slate-900 text-sm">{breach.type}</div>
+                        <div className="text-xs text-slate-500">{breach.id}</div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-slate-500">{breach.severity}</div>
                       <div className="text-xs text-slate-400">
-                        {new Date(breach.detected_at).toLocaleString()}
+                        {new Date(breach.started_at).toLocaleString()}
                       </div>
                     </div>
                   </div>

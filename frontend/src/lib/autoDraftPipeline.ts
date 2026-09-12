@@ -137,34 +137,34 @@ function generateMemoDraft(
         { label: 'Signal Type', value: signal.type.replace(/_/g, ' ') },
         { label: 'Severity', value: signal.severity.toUpperCase() },
         { label: 'Confidence', value: `${signal.confidence}%` },
-        { label: 'Affected Instruments', value: `${signal.affectedInstruments.length}` },
+        { label: 'Affected Instruments', value: `${signal.affectedInstruments!.length}` },
       ],
     },
     {
       heading: 'Market Context',
-      content: `Current market conditions support this signal. ${signal.marketContext.fedFundsRate > 5 ? 'With elevated rates, ' : ''}Credit spreads are at ${signal.marketContext.creditSpreads}bps and VIX is at ${signal.marketContext.vix}.`,
+      content: `Current market conditions support this signal. ${signal.marketContext!.fedFundsRate > 5 ? 'With elevated rates, ' : ''}Credit spreads are at ${signal.marketContext!.creditSpreads}bps and VIX is at ${signal.marketContext!.vix}.`,
       dataPoints: [
-        { label: 'Fed Funds Rate', value: `${signal.marketContext.fedFundsRate}%` },
-        { label: '10Y Treasury', value: `${signal.marketContext.treasury10Y}%` },
-        { label: 'Credit Spreads', value: `${signal.marketContext.creditSpreads}bps` },
-        { label: 'VIX', value: signal.marketContext.vix.toFixed(1) },
+        { label: 'Fed Funds Rate', value: `${signal.marketContext!.fedFundsRate}%` },
+        { label: '10Y Treasury', value: `${signal.marketContext!.treasury10Y}%` },
+        { label: 'Credit Spreads', value: `${signal.marketContext!.creditSpreads}bps` },
+        { label: 'VIX', value: signal.marketContext!.vix.toFixed(1) },
       ],
     },
     {
       heading: 'Affected Holdings',
-      content: `This signal affects ${signal.affectedInstruments.length} instrument(s) in the portfolio.`,
-      dataPoints: signal.affectedInstruments.map((inst) => ({
+      content: `This signal affects ${signal.affectedInstruments!.length} instrument(s) in the portfolio.`,
+      dataPoints: signal.affectedInstruments!.map((inst) => ({
         label: inst.name,
-        value: `$${(inst.principal / 1e6).toFixed(1)}M — ${inst.type}`,
+        value: `$${(inst.principal! / 1e6).toFixed(1)}M — ${inst.type}`,
       })),
     },
     {
       heading: 'Recommendation',
       content: getRecommendationText(signal),
       dataPoints: [
-        { label: 'Estimated Savings', value: `$${(signal.estimatedSavings / 1e3).toFixed(0)}K/year` },
-        { label: 'Risk Impact', value: signal.riskImpact >= 0 ? `+${signal.riskImpact} bps` : `${signal.riskImpact} bps` },
-        { label: 'Priority', value: signal.priority >= 80 ? 'HIGH' : signal.priority >= 50 ? 'MEDIUM' : 'LOW' },
+        { label: 'Estimated Savings', value: `$${(signal.estimatedSavings! / 1e3).toFixed(0)}K/year` },
+        { label: 'Risk Impact', value: signal.riskImpact! >= 0 ? `+${signal.riskImpact} bps` : `${signal.riskImpact} bps` },
+        { label: 'Priority', value: signal.priority! >= 80 ? 'HIGH' : signal.priority! >= 50 ? 'MEDIUM' : 'LOW' },
       ],
     },
     {
@@ -183,12 +183,12 @@ function generateMemoDraft(
 
   return {
     title: `Auto-Draft: ${formatSignalType(signal.type)} — ${signal.severity.toUpperCase()} Priority`,
-    summary: `The continuous optimization engine detected a ${signal.severity} priority ${signal.type.replace(/_/g, ' ')} signal affecting ${signal.affectedInstruments.length} holding(s) with estimated savings of $${(signal.estimatedSavings / 1e3).toFixed(0)}K/year. Recommended action: ${getShortRecommendation(signal)}.`,
+    summary: `The continuous optimization engine detected a ${signal.severity} priority ${signal.type.replace(/_/g, ' ')} signal affecting ${signal.affectedInstruments!.length} holding(s) with estimated savings of $${(signal.estimatedSavings! / 1e3).toFixed(0)}K/year. Recommended action: ${getShortRecommendation(signal)}.`,
     signalType: signal.type,
     signalDescription: signal.description,
     recommendedAction: getRecommendationText(signal),
-    estimatedSavings: signal.estimatedSavings,
-    riskAssessment: `Risk impact: ${signal.riskImpact >= 0 ? '+' : ''}${signal.riskImpact} bps. Confidence: ${signal.confidence}%.`,
+    estimatedSavings: signal.estimatedSavings!,
+    riskAssessment: `Risk impact: ${signal.riskImpact! >= 0 ? '+' : ''}${signal.riskImpact} bps. Confidence: ${signal.confidence}%.`,
     peerAlignment: `${signal.peerAlignment}% of similar portfolios aligned.`,
     urgency,
     assignees,
@@ -200,17 +200,17 @@ function generateMemoDraft(
 function getRecommendationText(signal: OptimizationSignal): string {
   switch (signal.type) {
     case 'refinance_opportunity':
-      return `Consider refinancing ${signal.affectedInstruments.map((i) => i.name).join(', ')} to capture lower rates. Current rates are ${signal.marketContext.fedFundsRate}% with spreads at ${signal.marketContext.creditSpreads}bps, presenting a favorable refinancing window.`;
+      return `Consider refinancing ${signal.affectedInstruments!.map((i) => i.name).join(', ')} to capture lower rates. Current rates are ${signal.marketContext!.fedFundsRate}% with spreads at ${signal.marketContext!.creditSpreads}bps, presenting a favorable refinancing window.`;
     case 'duration_mismatch':
-      return `Portfolio duration is misaligned with the current yield curve. Consider adjusting maturities by ${signal.affectedInstruments.length > 1 ? 'staggering' : 'extending'} positions to better match liability profile.`;
+      return `Portfolio duration is misaligned with the current yield curve. Consider adjusting maturities by ${signal.affectedInstruments!.length > 1 ? 'staggering' : 'extending'} positions to better match liability profile.`;
     case 'credit_deterioration':
-      return `Credit spreads on ${signal.affectedInstruments.map((i) => i.name).join(', ')} have widened. Consider reducing exposure or adding credit protection. Monitor for further deterioration.`;
+      return `Credit spreads on ${signal.affectedInstruments!.map((i) => i.name).join(', ')} have widened. Consider reducing exposure or adding credit protection. Monitor for further deterioration.`;
     case 'spread_widening':
       return `Credit spread widening detected on portfolio holdings. Consider reviewing credit quality and potentially hedging with CDS or reducing high-yield allocation.`;
     case 'maturity_approaching':
-      return `${signal.affectedInstruments.map((i) => i.name).join(', ')} approaching maturity. Plan reinvestment strategy to maintain yield and duration targets.`;
+      return `${signal.affectedInstruments!.map((i) => i.name).join(', ')} approaching maturity. Plan reinvestment strategy to maintain yield and duration targets.`;
     case 'cost_reduction':
-      return `Opportunity to reduce funding costs by ${signal.affectedInstruments.map((i) => i.name).join(', ')}. Consider alternative instruments or structures for better pricing.`;
+      return `Opportunity to reduce funding costs by ${signal.affectedInstruments!.map((i) => i.name).join(', ')}. Consider alternative instruments or structures for better pricing.`;
     default:
       return `Review the affected holdings and consider the recommended adjustment based on current market conditions.`;
   }
@@ -471,10 +471,10 @@ function generateRecommendation(signal: OptimizationSignal): Recommendation {
           signal.type === 'duration_mismatch' ? 'duration_adjustment' :
           signal.type === 'credit_deterioration' || signal.type === 'spread_widening' ? 'credit_hedge' :
           signal.type === 'maturity_approaching' ? 'reinvestment' : 'cost_optimization',
-    instruments: signal.affectedInstruments.map((i) => i.name),
-    estimatedSavings: signal.estimatedSavings,
-    confidence: signal.confidence,
-    riskChange: signal.riskImpact,
+    instruments: signal.affectedInstruments!.map((i) => i.name),
+    estimatedSavings: signal.estimatedSavings!,
+    confidence: signal.confidence!,
+    riskChange: signal.riskImpact!,
     description: getRecommendationText(signal),
   };
 }

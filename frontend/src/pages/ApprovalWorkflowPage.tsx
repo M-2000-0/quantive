@@ -4,18 +4,7 @@ import {
   Plus, RefreshCw, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { api } from '../api';
-
-interface ApprovalRequest {
-  request_id: string;
-  request_type: string;
-  resource_type: string;
-  resource_id: string;
-  requester_id: string;
-  status: string;
-  required_approvers: number;
-  current_approvers: number;
-  created_at: string;
-}
+import type { ApprovalRequest } from '../types';
 
 export default function ApprovalWorkflowPage() {
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
@@ -27,15 +16,12 @@ export default function ApprovalWorkflowPage() {
   const loadRequests = useCallback(async () => {
     setLoading(true);
     try {
-      if (filter === 'pending') {
-        const data = await api.approvalWorkflow.pending();
-        setRequests(data || []);
-      } else {
-        const data = await api.request('/approval-workflow/history', {
-          params: { status: filter, limit: 50 },
-        });
-        setRequests(data?.requests || []);
-      }
+      const data = await api.approvalWorkflow.pending();
+      setRequests(
+        filter === 'pending'
+          ? (data || [])
+          : (data || []).filter(r => r.status === filter)
+      );
     } catch (e) {
       console.error('Failed to load approval requests:', e);
     } finally {
@@ -49,7 +35,7 @@ export default function ApprovalWorkflowPage() {
 
   const handleApprove = async (requestId: string) => {
     try {
-      await api.approvalWorkflow.approve(requestId, { comment: approveComment || 'Approved' });
+      await api.approvalWorkflow.approve(requestId, { comments: approveComment || 'Approved' });
       setApproveComment('');
       setExpandedRequest(null);
       void loadRequests();
@@ -60,7 +46,7 @@ export default function ApprovalWorkflowPage() {
 
   const handleDeny = async (requestId: string) => {
     try {
-      await api.approvalWorkflow.deny(requestId, { comment: approveComment || 'Denied' });
+      await api.approvalWorkflow.deny(requestId, { reason: approveComment || 'Denied', comments: approveComment || 'Denied' });
       setApproveComment('');
       setExpandedRequest(null);
       void loadRequests();
@@ -128,12 +114,12 @@ export default function ApprovalWorkflowPage() {
           ) : (
             requests.map(req => (
               <div
-                key={req.request_id}
+                key={req.id}
                 className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
               >
                 <div
                   className="p-4 cursor-pointer hover:bg-slate-50"
-                  onClick={() => setExpandedRequest(expandedRequest === req.request_id ? null : req.request_id)}
+                  onClick={() => setExpandedRequest(expandedRequest === req.id ? null : req.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -141,24 +127,20 @@ export default function ApprovalWorkflowPage() {
                         {req.status}
                       </div>
                       <div>
-                        <div className="font-medium text-slate-900">{req.request_type}</div>
+                        <div className="font-medium text-slate-900">{req.type}</div>
                         <div className="text-sm text-slate-500">
-                          {req.resource_type}/{req.resource_id}
+                          {String((req.data as Record<string, unknown>)?.resource_type || req.type)}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <div className="text-sm text-slate-500">Requester: {req.requester_id}</div>
+                        <div className="text-sm text-slate-500">Requester: {req.requested_by}</div>
                         <div className="text-xs text-slate-400">
                           {new Date(req.created_at).toLocaleString()}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-slate-600">
-                        <Users className="w-4 h-4" />
-                        {req.current_approvers}/{req.required_approvers}
-                      </div>
-                      {expandedRequest === req.request_id ? (
+                      {expandedRequest === req.id ? (
                         <ChevronUp className="w-5 h-5 text-slate-400" />
                       ) : (
                         <ChevronDown className="w-5 h-5 text-slate-400" />
@@ -168,7 +150,7 @@ export default function ApprovalWorkflowPage() {
                 </div>
 
                 {/* Expanded Actions */}
-                {expandedRequest === req.request_id && req.status === 'pending' && (
+                {expandedRequest === req.id && req.status === 'pending' && (
                   <div className="border-t border-slate-200 p-4 bg-slate-50">
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-slate-700 mb-1">Comment</label>
@@ -182,14 +164,14 @@ export default function ApprovalWorkflowPage() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleApprove(req.request_id)}
+                        onClick={() => handleApprove(req.id)}
                         className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Approve
                       </button>
                       <button
-                        onClick={() => handleDeny(req.request_id)}
+                        onClick={() => handleDeny(req.id)}
                         className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm"
                       >
                         <XCircle className="w-4 h-4" />

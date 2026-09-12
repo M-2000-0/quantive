@@ -32,7 +32,7 @@ const USAGE_DATA = [
 ];
 
 export default function APIDashboard() {
-  const [keys, setKeys] = useState([]);
+  const [keys, setKeys] = useState<APIKey[]>(MOCK_KEYS);
   const [showNewKey, setShowNewKey] = useState(false);
 
   const totalRequests = keys.reduce((sum, k) => sum + k.requests, 0);

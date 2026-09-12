@@ -59,6 +59,11 @@ export interface PeerAction {
   percentage: number;
   rationale: string;
   timestamp: string;
+  instrumentType?: string;
+  peerCount?: number;
+  avgSavings?: number;
+  riskChange?: string;
+  timeframe?: string;
 }
 
 export const MOCK_CONSENSUS_INDICATORS: ConsensusIndicator[] = [

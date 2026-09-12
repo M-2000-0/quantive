@@ -13,11 +13,10 @@ interface ComplianceStatus {
 }
 
 interface PilotSummary {
-  total_pilots: number;
-  active_pilots: number;
-  converted_pilots: number;
-  conversion_rate: number;
-  total_debt_managed: number;
+  total_programs: number;
+  active: number;
+  completed: number;
+  metrics: Record<string, number>;
 }
 
 interface TransparencyStats {
@@ -52,13 +51,18 @@ export default function ProcurementDashboardPage() {
         api.disasterRecovery.status().catch(() => null),
       ]);
 
-      if (pilotData) setPilots(pilotData.summary);
+      if (pilotData) setPilots({
+        total_programs: pilotData.total_programs || 0,
+        active: pilotData.active || 0,
+        completed: pilotData.completed || 0,
+        metrics: pilotData.metrics || {},
+      });
       if (transparencyData) setTransparency({
         total_countries: transparencyData.total_countries || 0,
-        average_score: transparencyData.average_score || 0,
-        leaders_count: transparencyData.tier_distribution?.leader || 0,
+        average_score: transparencyData.avg_score || 0,
+        leaders_count: transparencyData.top_performers?.length || 0,
       });
-      if (securityData) setSecurityChecklist(securityData.checklist || []);
+      if (securityData) setSecurityChecklist(Array.isArray(securityData.items) ? [{ category: 'Security', items: securityData.items.map((i: any) => ({ item: i.name || i.id, status: i.status })) }] : []);
       if (slaData) setSlaStatus(slaData);
       if (drData) setDrStatus(drData);
     } catch (e) {
@@ -123,7 +127,7 @@ export default function ProcurementDashboardPage() {
               </div>
               <div>
                 <div className="text-sm text-slate-500">Active Pilots</div>
-                <div className="text-2xl font-bold text-slate-900">{pilots?.active_pilots || 0}</div>
+                <div className="text-2xl font-bold text-slate-900">{pilots?.active || 0}</div>
               </div>
             </div>
           </div>
@@ -134,7 +138,7 @@ export default function ProcurementDashboardPage() {
               </div>
               <div>
                 <div className="text-sm text-slate-500">Conversion Rate</div>
-                <div className="text-2xl font-bold text-slate-900">{pilots?.conversion_rate || 0}%</div>
+                <div className="text-2xl font-bold text-slate-900">{pilots?.completed || 0}</div>
               </div>
             </div>
           </div>
@@ -144,9 +148,9 @@ export default function ProcurementDashboardPage() {
                 <BarChart3 className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <div className="text-sm text-slate-500">Debt Managed</div>
+                <div className="text-sm text-slate-500">Metrics</div>
                 <div className="text-2xl font-bold text-slate-900">
-                  ${((pilots?.total_debt_managed || 0) / 1e9).toFixed(0)}B
+                  {Object.keys(pilots?.metrics || {}).length}
                 </div>
               </div>
             </div>
@@ -193,24 +197,30 @@ export default function ProcurementDashboardPage() {
               Security & Compliance
             </h2>
             <div className="space-y-3">
-              {securityChecklist.slice(0, 4).map((category, idx) => {
-                const metCount = category.items.filter(i => i.status === 'met' || i.status === 'required').length;
-                const total = category.items.length;
-                return (
-                  <div key={idx} className="p-3 bg-slate-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-slate-900">{category.category}</span>
-                      <span className="text-sm text-slate-500">{metCount}/{total}</span>
+              {securityChecklist.length > 0 ? (
+                securityChecklist.slice(0, 4).map((category, idx) => {
+                  const metCount = category.items.filter(i => i.status === 'met' || i.status === 'passed').length;
+                  const total = category.items.length;
+                  return (
+                    <div key={idx} className="p-3 bg-slate-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-slate-900">{category.category}</span>
+                        <span className="text-sm text-slate-500">{metCount}/{total}</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div
+                          className="bg-emerald-500 h-2 rounded-full"
+                          style={{ width: `${total > 0 ? (metCount / total) * 100 : 0}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div
-                        className="bg-emerald-500 h-2 rounded-full"
-                        style={{ width: `${(metCount / total) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-lg text-center text-slate-500 text-sm">
+                  No security checklist data available
+                </div>
+              )}
             </div>
           </div>
 

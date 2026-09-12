@@ -24,7 +24,7 @@ class MarketWebSocket {
   private statusListeners = new Set<StatusCallback>();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 10;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | undefined = undefined;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private lastPrices = new Map<string, number>();
   private url: string;
@@ -141,7 +141,7 @@ class MarketWebSocket {
   disconnect(): void {
     this.isIntentionalClose = true;
     this.stopPing();
-    clearTimeout(this.reconnectTimer);
+    clearTimeout(this.reconnectTimer!);
     this.reconnectAttempts = 0;
 
     if (this.ws) {

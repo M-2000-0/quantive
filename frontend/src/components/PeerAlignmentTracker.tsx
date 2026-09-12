@@ -64,13 +64,13 @@ export default function PeerAlignmentTracker({
   hyExposure = 18,
   greenBondPct = 12 }: PeerAlignmentTrackerProps) {
   const dimensions: AlignmentDimension[] = useMemo(() => {
-    const durationConsensus = [].find((c) => c.category === 'duration');
-    const hedgeConsensus = [].find((c) => c.category === 'hedging');
-    const creditConsensus = [].find((c) => c.category === 'credit');
-    const greenConsensus = [].find((c) => c.category === 'allocation');
+    const durationConsensus = ([] as ConsensusIndicator[]).find((c) => c.category === 'duration');
+    const hedgeConsensus = ([] as ConsensusIndicator[]).find((c) => c.category === 'hedging');
+    const creditConsensus = ([] as ConsensusIndicator[]).find((c) => c.category === 'credit');
+    const greenConsensus = ([] as ConsensusIndicator[]).find((c) => c.category === 'allocation');
 
-    const durationBench = [].find((b) => b.metric === 'Average Duration');
-    const hedgeBench = [].find((b) => b.metric === 'Floating Rate Exposure');
+    const durationBench = ([] as PeerBenchmark[]).find((b) => b.metric === 'Average Duration');
+    const hedgeBench = ([] as PeerBenchmark[]).find((b) => b.metric === 'Floating Rate Exposure');
 
     return [
       {

@@ -241,9 +241,9 @@ export default function CollaborationPanel({
         <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
           {members
             .filter((m) => m.currentActivity)
-            .sort((a, b) => new Date(b.currentActivity!.since).getTime() - new Date(a.currentActivity!.since).getTime())
+            .sort((a, b) => new Date(b.currentActivity!.since!).getTime() - new Date(a.currentActivity!.since!).getTime())
             .map((member) => {
-              const elapsed = Math.floor((Date.now() - new Date(member.currentActivity!.since).getTime()) / 60000);
+              const elapsed = Math.floor((Date.now() - new Date(member.currentActivity!.since!).getTime()) / 60000);
               return (
                 <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/20">
                   <span className="text-lg">{member.avatar}</span>

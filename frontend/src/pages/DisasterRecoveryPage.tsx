@@ -4,31 +4,12 @@ import {
   Database, RefreshCw, Plus
 } from 'lucide-react';
 import { api } from '../api';
-
-interface Backup {
-  backup_id: string;
-  type: string;
-  timestamp: string;
-  location: string;
-  size_bytes: number;
-  encrypted: boolean;
-  verified: boolean;
-}
-
-interface DRTest {
-  test_id: string;
-  test_type: string;
-  status: string;
-  rto_achieved_minutes: number;
-  rpo_achieved_minutes: number;
-  started_at: string;
-  completed_at: string;
-}
+import type { DRBackup } from '../types';
 
 export default function DisasterRecoveryPage() {
   const [status, setStatus] = useState<any>(null);
-  const [backups, setBackups] = useState<Backup[]>([]);
-  const [tests, setTests] = useState<DRTest[]>([]);
+  const [backups, setBackups] = useState<DRBackup[]>([]);
+  const [tests, setTests] = useState<any[]>([]);
   const [compliance, setCompliance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [creatingBackup, setCreatingBackup] = useState(false);
@@ -38,12 +19,12 @@ export default function DisasterRecoveryPage() {
     try {
       const [statusData, backupsData, complianceData] = await Promise.all([
         api.disasterRecovery.status().catch(() => null),
-        api.disasterRecovery.listBackups(20).catch(() => ({ backups: [] })),
+        api.disasterRecovery.listBackups(20).catch(() => []),
         api.disasterRecovery.getComplianceChecklist().catch(() => null),
       ]);
 
       if (statusData) setStatus(statusData);
-      if (backupsData?.backups) setBackups(backupsData.backups);
+      if (backupsData) setBackups(Array.isArray(backupsData) ? backupsData : []);
       if (complianceData) setCompliance(complianceData);
     } catch (e) {
       console.error('Failed to load DR data:', e);
@@ -188,16 +169,15 @@ export default function DisasterRecoveryPage() {
                 <div className="p-6 text-center text-slate-500">No backups yet</div>
               ) : (
                 backups.map(backup => (
-                  <div key={backup.backup_id} className="p-4">
+                  <div key={backup.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-slate-900 text-sm">{backup.type} backup</div>
                         <div className="text-xs text-slate-500">
-                          {new Date(backup.timestamp).toLocaleString()} • {formatBytes(backup.size_bytes)}
+                          {new Date(backup.created_at).toLocaleString()} • {formatBytes(backup.size_bytes)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {backup.encrypted && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">Encrypted</span>}
                         {backup.verified ? (
                           <CheckCircle className="w-4 h-4 text-emerald-500" />
                         ) : (
@@ -221,19 +201,19 @@ export default function DisasterRecoveryPage() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-sm text-slate-500">Compliance Score</span>
-                    <span className="font-bold text-lg text-slate-900">{compliance.compliance_score}%</span>
+                    <span className="font-bold text-lg text-slate-900">{compliance.score}%</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-3 mb-6">
                     <div
-                      className={`h-3 rounded-full ${compliance.compliance_score >= 80 ? 'bg-emerald-500' : compliance.compliance_score >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
-                      style={{ width: `${compliance.compliance_score}%` }}
+                      className={`h-3 rounded-full ${compliance.score >= 80 ? 'bg-emerald-500' : compliance.score >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                      style={{ width: `${compliance.score}%` }}
                     ></div>
                   </div>
                   <div className="space-y-2">
-                    {compliance.checklist?.slice(0, 5).map((item: any, idx: number) => (
+                    {compliance.items?.slice(0, 5).map((item: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-2 text-sm">
                         <CheckCircle className="w-4 h-4 text-emerald-500" />
-                        <span className="text-slate-700">{item.item}</span>
+                        <span className="text-slate-700">{item.description}</span>
                       </div>
                     ))}
                   </div>

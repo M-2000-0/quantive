@@ -25,12 +25,9 @@ interface CountryRanking {
 
 interface GlobalStats {
   total_countries: number;
-  average_score: number;
-  median_score: number;
-  highest_score: number;
-  lowest_score: number;
-  tier_distribution: Record<string, number>;
-  regional_averages: Record<string, number>;
+  avg_score: number;
+  top_performers: Array<{ code: string; name: string; score: number }>;
+  bottom_performers: Array<{ code: string; name: string; score: number }>;
 }
 
 interface Methodology {
@@ -105,14 +102,31 @@ export default function TransparencyIndexPage() {
     setLoading(true);
     setError(null);
     try {
-      const [rankingsData, statsData, methodData] = await Promise.all([
-        api.transparencyIndex.rankings({ limit: 100 }),
-        api.transparencyIndex.globalStats(),
-        api.transparencyIndex.methodology(),
+      const [countriesData, statsData] = await Promise.all([
+        api.transparencyIndex.allCountries().catch(() => []),
+        api.transparencyIndex.globalStats().catch(() => null),
       ]);
-      setRankings(rankingsData.rankings || []);
+      setRankings((countriesData || []).map((c, idx) => ({
+        rank: c.rank || idx + 1,
+        country_code: c.code,
+        country_name: c.name,
+        region: '',
+        income_group: '',
+        overall_score: c.overall_score,
+        tier: c.overall_score >= 80 ? 'leader' : c.overall_score >= 60 ? 'advanced' : c.overall_score >= 40 ? 'developing' : c.overall_score >= 20 ? 'emerging' : 'laggard',
+        category_scores: {
+          disclosure: 0,
+          data_access: 0,
+          institutional: 0,
+          reporting_freq: 0,
+          audit_trail: 0,
+          digital_infra: 0,
+          compliance: 0,
+          stakeholder: 0,
+        },
+      })));
       setStats(statsData);
-      setMethodology(methodData);
+      setMethodology(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -214,20 +228,20 @@ export default function TransparencyIndexPage() {
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
               <div className="text-sm text-slate-500">Global Average</div>
-              <div className="text-2xl font-bold text-blue-600">{formatScore(stats.average_score)}</div>
+              <div className="text-2xl font-bold text-blue-600">{formatScore(stats.avg_score)}</div>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
               <div className="text-sm text-slate-500">Highest Score</div>
-              <div className="text-2xl font-bold text-emerald-600">{formatScore(stats.highest_score)}</div>
+              <div className="text-2xl font-bold text-emerald-600">{stats.top_performers?.[0]?.score ? formatScore(stats.top_performers[0].score) : 'N/A'}</div>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
               <div className="text-sm text-slate-500">Lowest Score</div>
-              <div className="text-2xl font-bold text-red-600">{formatScore(stats.lowest_score)}</div>
+              <div className="text-2xl font-bold text-red-600">{stats.bottom_performers?.[0]?.score ? formatScore(stats.bottom_performers[0].score) : 'N/A'}</div>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-              <div className="text-sm text-slate-500">Leaders</div>
+              <div className="text-sm text-slate-500">Top Performers</div>
               <div className="text-2xl font-bold text-emerald-600">
-                {stats.tier_distribution?.leader || 0}
+                {stats.top_performers?.length || 0}
               </div>
             </div>
           </div>
@@ -236,14 +250,13 @@ export default function TransparencyIndexPage() {
         {/* Tier Distribution */}
         {stats && (
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 mb-8">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Tier Distribution</h2>
-            <div className="flex gap-4">
-              {Object.entries(TIER_LABELS).map(([tier, label]) => (
-                <div key={tier} className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${TIER_COLORS[tier]}`}>
-                    {stats.tier_distribution?.[tier] || 0}
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Top Performers</h2>
+            <div className="flex flex-wrap gap-4">
+              {stats.top_performers?.slice(0, 5).map((country) => (
+                <div key={country.code} className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+                    {country.name}: {formatScore(country.score)}
                   </span>
-                  <span className="text-sm text-slate-600">{label.split(' (')[0]}</span>
                 </div>
               ))}
             </div>

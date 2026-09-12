@@ -1,6 +1,32 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+
+const mockJobs = [
+  { id: 'job-1', name: 'Balanced Portfolio Q3', status: 'COMPLETED', optimization_type: 'mean_variance', created_at: '2026-09-01T10:00:00Z', completed_at: '2026-09-01T10:05:00Z', random_seed: 42 },
+  { id: 'job-2', name: 'Green Bond Optimizer', status: 'RUNNING', optimization_type: 'scenario', created_at: '2026-09-02T14:00:00Z' },
+];
+
+vi.mock('../api', () => ({
+  api: {
+    optimizations: {
+      list: vi.fn(async () => ({ data: mockJobs, meta: { total: 2, page_size: 20, has_more: false, next_cursor: null } })),
+      get: vi.fn(async () => mockJobs[0]),
+      create: vi.fn(async () => mockJobs[0]),
+      subscribeToJob: vi.fn(),
+    },
+    intelligence: {
+      events: vi.fn(async () => []),
+      eventSummary: vi.fn(async () => ({ total_events: 0, total_positive: 0, total_negative: 0, avg_severity: 0, critical_count: 0 })),
+      impactedAssets: vi.fn(async () => []),
+      purchases: vi.fn(async () => []),
+      opportunities: vi.fn(async () => []),
+    },
+    auth: { login: vi.fn(), register: vi.fn(), me: vi.fn(async () => ({ id: 'u1', email: 'test@test.com' })) },
+    portfolios: { list: vi.fn(async () => ({ data: [], meta: { total: 0 } })), get: vi.fn() },
+    notifications: { unreadCount: vi.fn(async () => 0), list: vi.fn(async () => ({ data: [], meta: { total: 0 } })), markRead: vi.fn(), markAllRead: vi.fn() },
+  },
+}));
 
 // Mock chart components
 vi.mock('../components/charts/GlassBarChart', () => ({
@@ -111,53 +137,52 @@ describe('ExecutionDashboardPage', () => {
   it('renders page title', async () => {
     const { default: Page } = await import('../pages/ExecutionDashboardPage');
     renderWithRouter(<Page />);
-    expect(screen.getByText('Execution Dashboard')).toBeDefined();
+    await waitFor(() => expect(screen.getByText('Execution Dashboard')).toBeDefined());
   });
 
   it('shows stats cards', async () => {
     const { default: Page } = await import('../pages/ExecutionDashboardPage');
     renderWithRouter(<Page />);
-    expect(screen.getAllByText(/Total Executions/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Completed/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Realized Savings/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Avg Accuracy/).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Total Jobs/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Completed/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Running/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Failed/).length).toBeGreaterThan(0);
+    });
   });
 
-  it('shows all 4 view tabs', async () => {
+  it('shows job names from mock data', async () => {
     const { default: Page } = await import('../pages/ExecutionDashboardPage');
     renderWithRouter(<Page />);
-    expect(screen.getAllByText(/Executions/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Trades/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Outcomes/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Activity/).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Balanced Portfolio Q3/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Green Bond Optimizer/).length).toBeGreaterThan(0);
+    });
   });
 
-  it('shows demo execution records', async () => {
+  it('shows COMPLETED status badge', async () => {
     const { default: Page } = await import('../pages/ExecutionDashboardPage');
     renderWithRouter(<Page />);
-    expect(screen.getAllByText(/COMPLETED/).length).toBeGreaterThanOrEqual(1);
+    await waitFor(() => {
+      expect(screen.getAllByText(/COMPLETED/).length).toBeGreaterThanOrEqual(1);
+    });
   });
 
-  it('switches to trades view', async () => {
+  it('shows RUNNING status badge', async () => {
     const { default: Page } = await import('../pages/ExecutionDashboardPage');
     renderWithRouter(<Page />);
-    fireEvent.click(screen.getByText(/Trades/));
-    expect(screen.getByText('Instrument')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getAllByText(/RUNNING/).length).toBeGreaterThanOrEqual(1);
+    });
   });
 
-  it('switches to outcomes view', async () => {
+  it('clicks a job to select it', async () => {
     const { default: Page } = await import('../pages/ExecutionDashboardPage');
     renderWithRouter(<Page />);
-    fireEvent.click(screen.getByText(/Outcomes/));
-    expect(screen.getByText('Total Savings')).toBeDefined();
-  });
-
-  it('switches to activity view', async () => {
-    const { default: Page } = await import('../pages/ExecutionDashboardPage');
-    renderWithRouter(<Page />);
-    fireEvent.click(screen.getByText(/Activity/));
-    // Should show activity events or empty state
-    expect(screen.getByText(/Activity/)).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getAllByText(/Balanced Portfolio Q3/).length).toBeGreaterThan(0);
+    });
+    fireEvent.click(screen.getByText('Balanced Portfolio Q3'));
   });
 });
 

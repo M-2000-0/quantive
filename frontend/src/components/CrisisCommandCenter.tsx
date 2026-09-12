@@ -79,8 +79,8 @@ const SEVERITY_COLORS: Record<string, string> = {
  low: 'bg-green-500/20 text-green-400 border-green-500/30' };
 
 export default function CrisisCommandCenter() {
- const [alerts, setAlerts] = useState([]);
- const [plans] = useState([]);
+ const [alerts, setAlerts] = useState<CrisisAlert[]>(MOCK_ALERTS);
+ const [plans] = useState<EmergencyPlan[]>(MOCK_PLANS);
  const [activeTab, setActiveTab] = useState<'alerts' | 'liquidity' | 'plans' | 'scenarios'>('alerts');
  const [showWarRoom, setShowWarRoom] = useState(true);
  const [pulse, setPulse] = useState(true);

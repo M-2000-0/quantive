@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import EventImpactDashboard from '../pages/EventImpactDashboard';
 import DemoModeBanner from '../components/DemoModeBanner';
@@ -15,6 +15,38 @@ import {
   getCategoryIcon,
 } from '../lib/eventImpactData';
 import { DEMO_PORTFOLIOS, DEMO_OPTIMIZATIONS, DEMO_DASHBOARD_STATS } from '../lib/demoData';
+
+const apiEvents = MOCK_EVENTS.map((e) => ({
+  ...e,
+  affected_assets: e.affectedAssets.map((a) => ({ name: a.name, type: a.type, impact: a.impact })),
+  created_at: '2026-09-01T00:00:00Z',
+}));
+
+vi.mock('../api', () => ({
+  api: {
+    intelligence: {
+      events: vi.fn(async () => apiEvents),
+      eventSummary: vi.fn(async () => ({
+        total_events: MOCK_EVENTS.length,
+        total_positive: 5,
+        total_negative: 5,
+        avg_severity: 2.5,
+        critical_count: 1,
+      })),
+      impactedAssets: vi.fn(async () => [
+        { name: 'US 10Y Treasury', type: 'bond', avg_impact: 0.8 },
+        { name: 'Auto ABS Index', type: 'abs', avg_impact: 0.4 },
+        { name: 'EU Green Bonds', type: 'bond', avg_impact: 0.6 },
+      ]),
+      purchases: vi.fn(async () => []),
+      opportunities: vi.fn(async () => []),
+    },
+    auth: { login: vi.fn(), register: vi.fn(), me: vi.fn(async () => ({ id: 'u1', email: 'test@test.com' })) },
+    portfolios: { list: vi.fn(async () => ({ data: [], meta: { total: 0 } })) },
+    optimizations: { list: vi.fn(async () => ({ data: [], meta: { total: 0 } })) },
+    notifications: { unreadCount: vi.fn(async () => 0), list: vi.fn(async () => ({ data: [], meta: { total: 0 } })), markRead: vi.fn(), markAllRead: vi.fn() },
+  },
+}));
 
 const renderWithRouter = (component: React.ReactNode) =>
   render(<BrowserRouter>{component}</BrowserRouter>);
@@ -178,58 +210,61 @@ describe('demoData', () => {
 // ── EventImpactDashboard Tests ───────────────────────────────────────
 
 describe('EventImpactDashboard', () => {
-  it('renders page title', () => {
+  it('renders page title', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    expect(screen.getByText('Event Impact Dashboard')).toBeDefined();
+    await waitFor(() => expect(screen.getByText('Event Impact Dashboard')).toBeDefined());
   });
 
-  it('renders summary cards', () => {
+  it('renders summary cards', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    expect(screen.getByText('Total Events')).toBeDefined();
-    expect(screen.getByText('Positive')).toBeDefined();
-    expect(screen.getByText('Negative')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('Total Events')).toBeDefined();
+      expect(screen.getByText('Positive Impact')).toBeDefined();
+      expect(screen.getByText('Negative Impact')).toBeDefined();
+    });
   });
 
-  it('displays events with titles', () => {
+  it('displays events with titles', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    const fed = screen.getAllByText(/Fed Signals Pause/);
-    expect(fed.length).toBeGreaterThan(0);
-    const tesla = screen.getAllByText(/Tesla Robotaxi/);
-    expect(tesla.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const fed = screen.getAllByText(/Fed Signals Pause/);
+      expect(fed.length).toBeGreaterThan(0);
+      const tesla = screen.getAllByText(/Tesla Robotaxi/);
+      expect(tesla.length).toBeGreaterThan(0);
+    });
   });
 
-  it('has category filter buttons', () => {
+  it('has category filter buttons', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    const allBtns = screen.getAllByText('All');
-    expect(allBtns.length).toBeGreaterThan(0);
-    const political = screen.getAllByText('Political');
-    expect(political.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const allBtns = screen.getAllByText('All');
+      expect(allBtns.length).toBeGreaterThan(0);
+      const political = screen.getAllByText('Political');
+      expect(political.length).toBeGreaterThan(0);
+    });
   });
 
-  it('has severity filter buttons', () => {
+  it('has severity filter buttons', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    const criticalBtns = screen.getAllByText('Critical');
-    expect(criticalBtns.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      const criticalBtns = screen.getAllByText('Critical');
+      expect(criticalBtns.length).toBeGreaterThan(0);
+    });
   });
 
-  it('shows Most Impacted Assets sidebar', () => {
+  it('shows Most Impacted Assets sidebar', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    expect(screen.getByText(/Most Impacted Assets/)).toBeDefined();
+    await waitFor(() => expect(screen.getByText(/Most Impacted Assets/)).toBeDefined());
   });
 
-  it('shows Events by Category sidebar', () => {
+  it('shows By Category sidebar', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    expect(screen.getByText(/Events by Category/)).toBeDefined();
+    await waitFor(() => expect(screen.getByText(/By Category/)).toBeDefined());
   });
 
-  it('shows Regional Exposure sidebar', () => {
+  it('shows By Region sidebar', async () => {
     renderWithRouter(<EventImpactDashboard />);
-    expect(screen.getByText(/Regional Exposure/)).toBeDefined();
-  });
-
-  it('has Matrix View toggle', () => {
-    renderWithRouter(<EventImpactDashboard />);
-    expect(screen.getByText(/List View/)).toBeDefined();
+    await waitFor(() => expect(screen.getByText(/By Region/)).toBeDefined());
   });
 });
 

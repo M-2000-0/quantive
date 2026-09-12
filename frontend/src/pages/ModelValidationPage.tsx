@@ -4,17 +4,7 @@ import {
   TrendingUp, BarChart3, Activity, RefreshCw
 } from 'lucide-react';
 import { api } from '../api';
-
-interface ValidationResult {
-  validation_id: string;
-  solution_id: string;
-  validation_type: string;
-  status: string;
-  passed: boolean;
-  score: number;
-  details: Record<string, any>;
-  executed_at: string;
-}
+import type { ValidationResult } from '../types';
 
 export default function ModelValidationPage() {
   const [solutionId, setSolutionId] = useState('');
@@ -29,7 +19,7 @@ export default function ModelValidationPage() {
       let result;
       switch (type) {
         case 'feasibility':
-          result = await api.modelValidation.validate({ solution_id: solutionId });
+          result = await api.modelValidation.validate({ strategy_id: solutionId, portfolio_data: {} });
           break;
         case 'optimality':
           result = await api.modelValidation.validateOptimality(solutionId);
@@ -38,7 +28,7 @@ export default function ModelValidationPage() {
           result = await api.modelValidation.validateStability(solutionId);
           break;
         default:
-          result = await api.modelValidation.validate({ solution_id: solutionId });
+          result = await api.modelValidation.validate({ strategy_id: solutionId, portfolio_data: {} });
       }
       setValidations(prev => [result, ...prev]);
     } catch (e) {

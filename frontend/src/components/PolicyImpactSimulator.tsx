@@ -128,7 +128,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function PolicyImpactSimulator() {
  const [selectedScenario, setSelectedScenario] = useState(POLICY_SCENARIOS[0]);
- const [impacts, setImpacts] = useState([]);
+ const [impacts, setImpacts] = useState<Record<string, Record<string, { current: number; simulated: number }>>>(MOCK_IMPACTS);
  const [isSimulating, setIsSimulating] = useState(false);
  const [hasSimulated, setHasSimulated] = useState(false);
 

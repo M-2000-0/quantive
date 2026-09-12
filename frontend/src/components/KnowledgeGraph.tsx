@@ -245,8 +245,8 @@ export default function KnowledgeGraph() {
         // Update graph data with search results
         setData(prev => ({
           ...prev,
-          nodes: result.data.nodes,
-          edges: result.data.edges }));
+          nodes: result.data!.nodes,
+          edges: result.data!.edges }));
       } else {
         const message = !result.success && 'error' in result && result.error
           ? result.error
@@ -284,8 +284,8 @@ export default function KnowledgeGraph() {
       // Repulsion from other nodes
       for (let j = 0; j < nodes.length; j++) {
         if (i === j) continue;
-        const dx = nodes[i].x - nodes[j].x;
-        const dy = nodes[i].y - nodes[j].y;
+        const dx = nodes[i].x! - nodes[j].x!;
+        const dy = nodes[i].y! - nodes[j].y!;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         const force = repulsion / (dist * dist);
         fx += (dx / dist) * force;
@@ -301,23 +301,23 @@ export default function KnowledgeGraph() {
           other = nodes.find(n => n.id === edge.source) || null;
         }
         if (other) {
-          const dx = other.x - nodes[i].x;
-          const dy = other.y - nodes[i].y;
+          const dx = other.x! - nodes[i].x!;
+          const dy = other.y! - nodes[i].y!;
           fx += dx * attraction * edge.weight;
           fy += dy * attraction * edge.weight;
         }
       }
 
       // Center gravity
-      fx += (centerX - nodes[i].x) * centerGravity;
-      fy += (centerY - nodes[i].y) * centerGravity;
+      fx += (centerX - nodes[i].x!) * centerGravity;
+      fy += (centerY - nodes[i].y!) * centerGravity;
 
       // Apply forces (skip dragged node)
       if (isDragging !== nodes[i].id) {
-        nodes[i].vx = (nodes[i].vx + fx * alpha) * 0.9;
-        nodes[i].vy = (nodes[i].vy + fy * alpha) * 0.9;
-        nodes[i].x += nodes[i].vx;
-        nodes[i].y += nodes[i].vy;
+        nodes[i].vx = (nodes[i].vx! + fx * alpha) * 0.9;
+        nodes[i].vy = (nodes[i].vy! + fy * alpha) * 0.9;
+        nodes[i].x = nodes[i].x! + nodes[i].vx!;
+        nodes[i].y = nodes[i].y! + nodes[i].vy!;
       }
     }
   }, [data, isDragging]);
@@ -347,8 +347,8 @@ export default function KnowledgeGraph() {
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     setDragOffset({
-      x: (e.clientX - rect.left) / zoom - pan.x - node.x,
-      y: (e.clientY - rect.top) / zoom - pan.y - node.y });
+      x: (e.clientX - rect.left) / zoom - pan.x - node.x!,
+      y: (e.clientY - rect.top) / zoom - pan.y - node.y! });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -506,10 +506,10 @@ export default function KnowledgeGraph() {
                 return (
                   <g key={i}>
                     <line
-                      x1={source.x}
-                      y1={source.y}
-                      x2={target.x}
-                      y2={target.y}
+                      x1={source.x!}
+                      y1={source.y!}
+                      x2={target.x!}
+                      y2={target.y!}
                       stroke={EDGE_COLORS[edge.type]}
                       strokeWidth={edge.weight * (isActive ? 2 : 1)}
                       strokeOpacity={isActive ? 0.8 : 0.2}
@@ -517,8 +517,8 @@ export default function KnowledgeGraph() {
                     />
                     {isActive && (
                       <text
-                        x={(source.x + target.x) / 2}
-                        y={(source.y + target.y) / 2}
+                        x={(source.x! + target.x!) / 2}
+                        y={(source.y! + target.y!) / 2}
                         fill={EDGE_COLORS[edge.type]}
                         fontSize="9"
                         textAnchor="middle"
@@ -541,7 +541,7 @@ export default function KnowledgeGraph() {
                 return (
                   <g
                     key={node.id}
-                    transform={`translate(${node.x}, ${node.y})`}
+                    transform={`translate(${node.x!}, ${node.y!})`}
                     onMouseDown={(e) => handleMouseDown(node.id, e)}
                     onMouseEnter={() => setHoveredNode(node.id)}
                     onMouseLeave={() => setHoveredNode(null)}
@@ -551,7 +551,7 @@ export default function KnowledgeGraph() {
                     {/* Glow ring */}
                     {(isSelected || isHovered) && (
                       <circle
-                        r={node.radius + 8}
+                        r={node.radius! + 8}
                         fill="none"
                         stroke={node.color}
                         strokeWidth="2"
@@ -561,16 +561,16 @@ export default function KnowledgeGraph() {
                     )}
                     {/* Main circle */}
                     <circle
-                      r={node.radius}
+                      r={node.radius!}
                       fill={`${node.color}30`}
                       stroke={node.color}
                       strokeWidth={isSelected ? 3 : 1.5}
                     />
                     {/* Inner highlight */}
-                    <circle r={node.radius * 0.7} fill="url(#nodeGlow)" />
+                    <circle r={node.radius! * 0.7} fill="url(#nodeGlow)" />
                     {/* Icon */}
                     <text
-                      fontSize={node.radius * 0.7}
+                      fontSize={node.radius! * 0.7}
                       textAnchor="middle"
                       dominantBaseline="middle"
                     >
@@ -578,7 +578,7 @@ export default function KnowledgeGraph() {
                     </text>
                     {/* Label */}
                     <text
-                      y={node.radius + 14}
+                      y={node.radius! + 14}
                       fill="white"
                       fontSize="10"
                       textAnchor="middle"

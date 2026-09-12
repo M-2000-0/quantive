@@ -34,6 +34,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [marketFetchedAt, setMarketFetchedAt] = useState<Date | null>(null);
+  const [marketStale, setMarketStale] = useState(false);
   const [showChartTable, setShowChartTable] = useState(false);
   const [params] = useSearchParams();
   const searchQuery = (params.get('q') ?? '').trim().toLowerCase();
@@ -47,6 +49,19 @@ export default function DashboardPage() {
       setSummary(summaryData);
       setTasks(Array.isArray(tasksData) ? tasksData : []);
       setLastSync(new Date());
+      // Freshness: fetch market snapshot for "as of" timestamp; tolerate failure (cached fallback)
+      try {
+        const snap = (await api.market.snapshot()) as unknown as Record<string, unknown>;
+        const raw = (snap['fetched_at'] ?? snap['snapshot_time']) as string | undefined;
+        if (raw) {
+          const dt = new Date(raw);
+          setMarketFetchedAt(dt);
+          setMarketStale(Date.now() - dt.getTime() > 60 * 60 * 1000);
+        }
+      } catch {
+        // Market feed unavailable — dashboard still shows cached portfolio data
+        setMarketStale(true);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load dashboard');
     } finally {
@@ -132,6 +147,16 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {marketStale && (
+        <div role="status" style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: '#fef3c7', border: '1px solid #fcd34d', fontSize: 13, color: '#92400e' }}>
+          Market data {marketFetchedAt ? `as of ${marketFetchedAt.toLocaleString()}` : 'unavailable'} — showing cached portfolio data.
+        </div>
+      )}
+      {!marketStale && marketFetchedAt && (
+        <div role="status" style={{ marginBottom: 12, fontSize: 12, color: '#6b7280' }}>
+          Market data as of {marketFetchedAt.toLocaleString()}
+        </div>
+      )}
       <section className="hero-card">
         <div>
           <p className="eyebrow">Good morning</p>

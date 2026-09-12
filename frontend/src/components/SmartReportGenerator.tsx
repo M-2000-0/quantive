@@ -40,25 +40,25 @@ function generateReportFromDecision(decision: DecisionEntry): GeneratedReport {
  id: 'market_context',
  title: 'Market Context',
  type: 'metrics',
- content: `As of the recommendation date, the federal funds rate stood at ${marketSnapshot.fedFundsRate}%, with the 10-year Treasury at ${marketSnapshot.treasury10Y}%. Credit spreads were at ${marketSnapshot.igSpread}bps (IG) and ${marketSnapshot.hySpread}bps (HY). The yield curve slope of ${marketSnapshot.yieldCurveSlope}bps indicated a ${marketSnapshot.yieldCurveSlope > 0 ? 'normal' : 'inverted'} term structure.`,
- data: {
- fedFundsRate: marketSnapshot.fedFundsRate,
- treasury10Y: marketSnapshot.treasury10Y,
- igSpread: marketSnapshot.igSpread,
- hySpread: marketSnapshot.hySpread,
- yieldCurveSlope: marketSnapshot.yieldCurveSlope,
- vix: marketSnapshot.vix } },
+  content: `As of the recommendation date, the federal funds rate stood at ${marketSnapshot!.fedFundsRate}%, with the 10-year Treasury at ${marketSnapshot!.treasury10Y}%. Credit spreads were at ${marketSnapshot!.igSpread}bps (IG) and ${marketSnapshot!.hySpread}bps (HY). The yield curve slope of ${marketSnapshot!.yieldCurveSlope}bps indicated a ${marketSnapshot!.yieldCurveSlope > 0 ? 'normal' : 'inverted'} term structure.`,
+  data: {
+  fedFundsRate: marketSnapshot!.fedFundsRate,
+  treasury10Y: marketSnapshot!.treasury10Y,
+  igSpread: marketSnapshot!.igSpread,
+  hySpread: marketSnapshot!.hySpread,
+  yieldCurveSlope: marketSnapshot!.yieldCurveSlope,
+  vix: marketSnapshot!.vix } },
  {
  id: 'recommendation_detail',
  title: 'Recommendation Detail',
  type: 'recommendation',
- content: recommendation.description,
- data: {
- type: recommendation.type,
- instruments: recommendation.instruments,
- estimatedSavings: recommendation.estimatedSavings,
- riskImpact: recommendation.riskImpact,
- confidence: recommendation.confidence } },
+  content: recommendation!.description!,
+  data: {
+  type: recommendation!.type!,
+  instruments: recommendation!.instruments!,
+  estimatedSavings: recommendation!.estimatedSavings!,
+  riskImpact: recommendation!.riskImpact!,
+  confidence: recommendation!.confidence } },
  {
  id: 'financial_impact',
  title: 'Financial Impact Analysis',
@@ -66,10 +66,10 @@ function generateReportFromDecision(decision: DecisionEntry): GeneratedReport {
  content: 'Projected financial impact of the recommended action.',
  data: {
  headers: ['Metric', 'Current', 'Projected', 'Change'],
- rows: [
- ['Estimated Annual Savings', '$0', `$${recommendation.estimatedSavings.toLocaleString()}`, `+$${recommendation.estimatedSavings.toLocaleString()}`],
- ['Risk Impact', 'Baseline', recommendation.riskImpact, recommendation.riskImpact],
- ['Confidence Level', '—', `${recommendation.confidence}%`, `${recommendation.confidence > 70 ? 'High' : recommendation.impactScore > 50 ? 'Medium' : 'Low'}`],
+  rows: [
+  ['Estimated Annual Savings', '$0', `$${recommendation!.estimatedSavings!.toLocaleString()}`, `+$${recommendation!.estimatedSavings!.toLocaleString()}`],
+  ['Risk Impact', 'Baseline', recommendation!.riskImpact!, recommendation!.riskImpact!],
+  ['Confidence Level', '—', `${recommendation!.confidence}%`, `${recommendation!.confidence > 70 ? 'High' : recommendation!.impactScore! > 50 ? 'Medium' : 'Low'}`],
  ] } },
  ];
 
@@ -101,20 +101,20 @@ function generateReportFromDecision(decision: DecisionEntry): GeneratedReport {
  }
 
  const keyRecommendations = [
- `Execute ${recommendation.type.replace(/_/g, ' ')} for ${recommendation.instruments.join(', ')}`,
- `Target completion within: ${recommendation.timeframe || '30 days'}`,
+  `Execute ${recommendation!.type!.replace(/_/g, ' ')} for ${recommendation!.instruments!.join(', ')}`,
+  `Target completion within: ${recommendation!.timeframe || '30 days'}`,
  `Review with credit analyst before execution`,
  ];
 
  return {
  id: `report-${decision.id}`,
- title: `Investment Committee Memo: ${recommendation.title}`,
+  title: `Investment Committee Memo: ${recommendation!.title!}`,
  subtitle: `Prepared ${new Date().toLocaleDateString()} | Classification: Confidential`,
  generatedAt: Date.now(),
  author: decision.decision.decidedBy || 'System Generated',
  classification: 'confidential',
  sections,
- executiveSummary: `This memo recommends ${recommendation.type.replace(/_/g, ' ')} for ${recommendation.instruments.join(', ')}. ${recommendation.description}. Estimated savings: $${recommendation.estimatedSavings.toLocaleString()}. Risk impact: ${recommendation.riskImpact}. Confidence: ${recommendation.confidence}%.`,
+  executiveSummary: `This memo recommends ${recommendation!.type!.replace(/_/g, ' ')} for ${recommendation!.instruments!.join(', ')}. ${recommendation!.description!}. Estimated savings: $${recommendation!.estimatedSavings!.toLocaleString()}. Risk impact: ${recommendation!.riskImpact}. Confidence: ${recommendation!.confidence}%.`,
  keyRecommendations,
  riskDisclosure: 'This analysis is based on current market conditions and historical patterns. Past performance does not guarantee future results. All recommendations should be reviewed by qualified investment professionals before execution.' };
 }

@@ -43,7 +43,8 @@ export default function TrustDashboard({ optimizationId }: TrustDashboardProps =
   const [loading, setLoading] = useState(true);
 
   // Optional: link a specific optimization run; defaults to none.
-  const currentOptimization: { id: string } | null = null;
+  // eslint-disable-next-line -- currentOptimization is always null, kept for future use
+  const currentOptimization: { id: string } | null = null as { id: string } | null;
 
   // Load trust metrics
   useEffect(() => {
@@ -51,7 +52,7 @@ export default function TrustDashboard({ optimizationId }: TrustDashboardProps =
     setMetrics(dashboard.getMetrics());
 
     // Compute recommendation trust score if we have an optimization
-    if (optimizationId || currentOptimization?.id) {
+    if (optimizationId || (currentOptimization && currentOptimization.id)) {
       const recId = optimizationId || (currentOptimization as { id: string }).id;
       const opt = (currentOptimization || { id: optimizationId, status: 'unknown' }) as any;
 
@@ -85,7 +86,7 @@ export default function TrustDashboard({ optimizationId }: TrustDashboardProps =
     setCorruptionRisks(risks);
 
     setLoading(false);
-  }, [optimizationId, currentOptimization?.id]);
+  }, [optimizationId]);
 
   // Load assumption registry bias reports
   useEffect(() => {

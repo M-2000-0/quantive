@@ -102,7 +102,7 @@ const STATUS_ICONS: Record<string, string> = {
  expired: 'Clock' };
 
 export default function ApprovalWorkflowSystem() {
- const [workflows, setWorkflows] = useState([]);
+ const [workflows, setWorkflows] = useState<ApprovalWorkflow[]>(MOCK_WORKFLOWS);
  const [selectedWorkflow, setSelectedWorkflow] = useState<ApprovalWorkflow | null>(null);
  const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'all'>('pending');
  const [showApprovalModal, setShowApprovalModal] = useState(false);
