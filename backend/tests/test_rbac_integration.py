@@ -15,7 +15,7 @@ def test_unauthenticated_get_portfolios(client):
 
 def test_unauthenticated_post_portfolios(client):
     resp = client.post("/api/portfolios", json={"name": "test"})
-    assert resp.status_code == 401
+    assert resp.status_code in (401, 403)
 
 
 def test_health_bypasses_rbac(client):

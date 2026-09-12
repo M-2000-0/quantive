@@ -5,7 +5,13 @@ workflows pretended to do, visible and runnable in the app.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+import hashlib
+import hmac
+import json
+import os
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
@@ -173,3 +179,62 @@ def lead_webhook(data: LeadCreate, db: Session = Depends(get_db)):
     db.commit()
     automation_engine.run_automation("lead_capture_score", db, trigger="manual")
     return {"id": lead.id, "score": lead.score, "stage": lead.stage}
+
+
+# ── Webhook: n8n → automation run bridge ──────────────────────────────────
+
+class ExternalRunIn(BaseModel):
+    """One completed execution of an external (n8n) workflow."""
+    workflow: str = Field(..., min_length=1, max_length=58)
+    status: str = Field("success", pattern="^(success|failed)$")
+    duration_ms: int = Field(0, ge=0, le=86_400_000)
+    summary: str = Field("", max_length=500)
+    actions: list[dict] = Field(default_factory=list, max_length=200)
+
+
+def _verify_bridge_signature(raw: bytes, header_sig: str) -> None:
+    """HMAC-SHA256 over the raw body, matching the n8n HMAC Code node.
+
+    Enforced only when QUANTIVE_WEBHOOK_SECRET is set; unset means local
+    dev, where we accept and log (mirrors the Stripe webhook policy).
+    """
+    secret = os.environ.get("QUANTIVE_WEBHOOK_SECRET", "")
+    if not secret:
+        return
+    expected = hmac.new(secret.encode("utf-8"), raw, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, (header_sig or "").strip().lower()):
+        raise HTTPException(status_code=401, detail="Invalid bridge signature")
+
+
+@router.post("/webhooks/external-run", status_code=201)
+async def external_run_webhook(request: Request, db: Session = Depends(get_db)):
+    """Record an n8n workflow execution as a real AutomationRun.
+
+    The n8n workflows call this after every scheduled cycle, so n8n runs
+    appear in the /automation dashboard run history alongside native runs.
+    HMAC-verified via x-quantive-signature when a secret is configured.
+    """
+    raw = await request.body()
+    _verify_bridge_signature(raw, request.headers.get("x-quantive-signature", ""))
+    try:
+        data = ExternalRunIn.model_validate_json(raw)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Invalid payload: {e}")
+
+    now = datetime.now(timezone.utc)
+    run = AutomationRun(
+        automation_key=f"n8n:{data.workflow}",
+        status=data.status,
+        trigger="external",
+        started_at=now - timedelta(milliseconds=data.duration_ms),
+        finished_at=now,
+        duration_ms=data.duration_ms,
+        items_scanned=len(data.actions),
+        actions_taken=len(data.actions),
+        summary=data.summary or f"n8n workflow {data.workflow} {data.status}",
+        log=json.dumps(data.actions)[:10000],
+        error="" if data.status == "success" else (data.summary or "n8n reported failure"),
+    )
+    db.add(run)
+    db.commit()
+    return {"id": run.id, "recorded": True}

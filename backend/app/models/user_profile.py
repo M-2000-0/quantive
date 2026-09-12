@@ -48,6 +48,7 @@ class UserProfile(Base):
     liquidity_needs: Mapped[str] = mapped_column(String(20), default="medium")  # low/medium/high
     compliance_constraints: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     focus_sectors: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # ["sovereign", "corporate"]
+    exclusions: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)  # tickers / instruments the user never wants to see
 
     # Behavioral weights (learned over time)
     risk_insight_weight: Mapped[float] = mapped_column(Float, default=1.0)

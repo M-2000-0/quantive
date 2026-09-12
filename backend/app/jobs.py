@@ -53,13 +53,21 @@ def request_cancel(job_id: str):
         event.set()
 
 
-def _check_cancelled(job_id: str):
+def _check_cancelled(job_id: str, db=None):
     # Check both job store and legacy events
     if _job_store.is_cancelled(job_id):
         raise InterruptedError(f"Job {job_id} was cancelled")
     event = _cancel_events.get(job_id)
     if event and event.is_set():
         raise InterruptedError(f"Job {job_id} was cancelled")
+    # Cross-worker safety: the authoritative cancel flag is the DB row set by
+    # optimizations.cancel_optimization (status=CANCELLED, committed) before
+    # request_cancel. Worker-local memory/Redis flags are invisible to other
+    # uvicorn workers, so poll the DB status too.
+    if db is not None:
+        status = db.query(JobModel.status).filter(JobModel.id == job_id).scalar()
+        if status == JobStatus.CANCELLED:
+            raise InterruptedError(f"Job {job_id} was cancelled")
 
 
 def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
@@ -124,7 +132,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
 
         n_scenarios = scenarios_data["num_scenarios"]
         for i in range(min(100, n_scenarios)):
-            _check_cancelled(job_id)
+            _check_cancelled(job_id, db)
             scenario = Scenario(
                 job_id=job_id,
                 name=f"Scenario {i + 1}",
@@ -138,7 +146,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
             db.add(scenario)
         db.commit()
 
-        _check_cancelled(job_id)
+        _check_cancelled(job_id, db)
 
         # Phase 2: Run solvers
         job.status = JobStatus.SOLVING
@@ -150,7 +158,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         solver_names = job.solver_config.get("solvers", ["greedy", "mean_variance", "scenario_based"])
         all_results = {}
         for solver_name in solver_names:
-            _check_cancelled(job_id)
+            _check_cancelled(job_id, db)
             solver = get_solver(solver_name)
             result = solver.solve(instruments_data, job.objectives, job.constraints, scenarios_data, seed)
             all_results[solver_name] = result
@@ -166,7 +174,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         _job_store.update_job_progress(job_id, "benchmarking", 0.7)
         logger.info(f"Job {job_id}: Benchmarking solvers")
 
-        _check_cancelled(job_id)
+        _check_cancelled(job_id, db)
         benchmark_runner = BenchmarkRunner()
         benchmarks = benchmark_runner.run_benchmarks(instruments_data, job.objectives, job.constraints, scenarios_data, seed)
         benchmarks = _to_native(benchmarks)
@@ -189,7 +197,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         _job_store.update_job_progress(job_id, "benchmarking", 0.8)
         logger.info(f"Job {job_id}: Generating strategies")
 
-        _check_cancelled(job_id)
+        _check_cancelled(job_id, db)
         strategy_gen = StrategyGenerator()
         strategies_data = strategy_gen.generate_strategies(instruments_data, benchmarks, scenarios_data, seed)
 
@@ -202,7 +210,7 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
 
         stress_runner = StressTestRunner()
         for strat_data in strategies_data:
-            _check_cancelled(job_id)
+            _check_cancelled(job_id, db)
             stress_results = stress_runner.run_stress_test(instruments_data, strat_data["allocations"], scenarios_data, seed)
             strat_data["stress_test_results"] = stress_results
             strat_data = _to_native(strat_data)
@@ -236,6 +244,10 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
         )
         db.add(result_record)
 
+        # Close the cancel window between the last phase check and the
+        # terminal COMPLETED write.
+        _check_cancelled(job_id, db)
+
         job.status = JobStatus.COMPLETED
         job.progress = 1.0
         job.completed_at = datetime.now(timezone.utc)
@@ -252,14 +264,20 @@ def run_optimization_job(job_id: str, db_factory, timeout_seconds: int = 300):
             db.commit()
         _job_store.complete_job(job_id, error="Cancelled")
     except Exception as e:
+        # A worker-local cancel may have raced with this failure; never
+        # overwrite an authoritative CANCELLED status with FAILED.
         logger.exception(f"Job {job_id}: Failed with error")
+        cancelled = db.query(JobModel.status).filter(JobModel.id == job_id).scalar() == JobStatus.CANCELLED
         job = db.query(JobModel).filter(JobModel.id == job_id).first()
-        if job:
+        if job and not cancelled:
             job.status = JobStatus.FAILED
             job.error_message = str(e)[:2000]
             job.completed_at = datetime.now(timezone.utc)
             db.commit()
-        _job_store.complete_job(job_id, error=str(e)[:2000])
+        if cancelled:
+            _job_store.complete_job(job_id, error="Cancelled")
+        else:
+            _job_store.complete_job(job_id, error=str(e)[:2000])
     finally:
         _cancel_events.pop(job_id, None)
         db.close()

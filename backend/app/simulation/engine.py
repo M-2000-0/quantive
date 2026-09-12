@@ -1,3 +1,127 @@
+import math
+import random
+import statistics
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+@dataclass
+class CorrelationMatrix:
+    rho_rate_fx: float = 0.3
+    rho_rate_growth: float = -0.2
+    rho_rate_pb: float = 0.1
+    rho_fx_growth: float = 0.15
+    rho_fx_pb: float = 0.05
+    rho_growth_pb: float = 0.4
+
+    def cholesky(self):
+        R = [
+            [1.0, self.rho_rate_fx, self.rho_rate_growth, self.rho_rate_pb],
+            [self.rho_rate_fx, 1.0, self.rho_fx_growth, self.rho_fx_pb],
+            [self.rho_rate_growth, self.rho_fx_growth, 1.0, self.rho_growth_pb],
+            [self.rho_rate_pb, self.rho_fx_pb, self.rho_growth_pb, 1.0],
+        ]
+        n = len(R)
+        L = [[0.0] * n for _ in range(n)]
+        for i in range(n):
+            for j in range(i + 1):
+                s = sum(L[i][k] * L[j][k] for k in range(j))
+                if i == j:
+                    L[i][j] = math.sqrt(max(R[i][i] - s, 1e-12))
+                else:
+                    L[i][j] = (R[i][j] - s) / L[j][j] if L[j][j] > 1e-12 else 0.0
+        return L
+
+
+def correlated_draws(n, chol, use_student_t=False, nu=4.0):
+    draws = []
+    for _ in range(n):
+        zs = [random.gauss(0, 1) for _ in range(len(chol))]
+        correlated = [sum(chol[i][j] * zs[j] for j in range(len(chol))) for i in range(len(chol))]
+        if use_student_t and nu > 2:
+            chi2 = sum(random.gauss(0, 1) ** 2 for _ in range(int(nu)))
+            scale = math.sqrt((nu - 2) / chi2) if chi2 > 0 else 1.0
+            correlated = [z * scale for z in correlated]
+        draws.append(correlated)
+    return draws
+
+
+class StudentTInnovations:
+    def __init__(self, nu=4.0):
+        self.nu = nu
+
+
+class VasicekModel:
+    def __init__(self, kappa=0.15, theta=0.04, sigma=0.01, r0=0.04):
+        self.kappa = kappa
+        self.theta = theta
+        self.sigma = sigma
+        self.r0 = r0
+
+    def simulate(self, steps=252, n_paths=100):
+        dt = 1.0 / 252
+        paths = []
+        for _ in range(n_paths):
+            r = self.r0
+            path = [r]
+            for _ in range(steps):
+                dr = self.kappa * (self.theta - r) * dt + self.sigma * math.sqrt(max(r, 0)) * random.gauss(0, 1) * math.sqrt(dt)
+                r = max(r + dr, -0.05)
+                path.append(r)
+            paths.append(path)
+        return paths
+
+
+class CIRModel:
+    def __init__(self, kappa=0.15, theta=0.04, sigma=0.01, r0=0.04):
+        self.kappa = kappa
+        self.theta = theta
+        self.sigma = sigma
+        self.r0 = r0
+
+    def simulate(self, steps=252, n_paths=100):
+        dt = 1.0 / 252
+        paths = []
+        for _ in range(n_paths):
+            r = self.r0
+            path = [r]
+            for _ in range(steps):
+                r_pos = max(r, 0)
+                dr = self.kappa * (self.theta - r_pos) * dt + self.sigma * math.sqrt(r_pos) * random.gauss(0, 1) * math.sqrt(dt)
+                r = max(r + dr, 0)
+                path.append(r)
+            paths.append(path)
+        return paths
+
+
+def fit_nss(maturities, yields_obs):
+    try:
+        from scipy.optimize import minimize
+
+        def nss_obj(params):
+            fitted = [nss_rate(m, params) for m in maturities]
+            return sum((f - o) ** 2 for f, o in zip(fitted, yields_obs))
+
+        x0 = [yields_obs[0], -0.01, 0.01, 0.01, 1.0, 5.0]
+        result = minimize(nss_obj, x0, method='Nelder-Mead', options={'maxiter': 10000})
+        return result.x if result.success else x0
+    except ImportError:
+        b0 = yields_obs[0] if yields_obs else 0.04
+        return [b0, -0.01, 0.01, 0.01, 1.0, 5.0]
+
+
+def nss_rate(t, params):
+    b0, b1, b2, b3, tau1, tau2 = params[0], params[1], params[2], params[3], params[4], params[5]
+    tau1 = max(tau1, 0.01)
+    tau2 = max(tau2, 0.01)
+    exp1 = 1 - math.exp(-t / tau1)
+    exp2 = 1 - math.exp(-t / tau2)
+    return (b0
+            + b1 * (exp1 / (t / tau1))
+            + b2 * (exp1 / (t / tau1) - math.exp(-t / tau1))
+            + b3 * (exp2 / (t / tau2) - math.exp(-t / tau2)))
+
+
 @dataclass
 class SimulationConfig:
     """Configuration for Monte Carlo simulation."""
@@ -216,7 +340,7 @@ class MonteCarloEngine:
                     fx_ef = (fx_at_t[j] - self.config.fx_s0) / self.config.fx_s0 * 0.3
                     dtg = init_dg * (1 + r_at_t - real_g + fx_ef * 0.1) ** (i * dt if i > 0 else 1)
                     dg_vals.append(dtg)
-                    ds_vals.append(r_at_t * init_pr * (1 + r_at_t) ** (i * dt if i > 0 else 1) / 100
+                    ds_vals.append(r_at_t * init_pr * (1 + r_at_t) ** (i * dt if i > 0 else 1) / 100)
                     nom_g = real_g + r_at_t / 4
                     rev_t = init_dr * (1 + nom_g) ** i if i > 0 else init_dr
                     if rev_t > 0: dr_vals.append(dtg / (rev_t / 100 * 100))

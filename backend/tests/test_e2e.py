@@ -8,6 +8,7 @@ DEMO_PATH = os.path.join(os.path.dirname(__file__), "..", "demo", "synthetic_por
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(not os.path.exists(DEMO_PATH), reason="demo/synthetic_portfolio.json not found")
 def test_e2e_full_workflow(client):
     resp = client.post("/api/auth/register", json={
         "email": "analyst@treasury.gov",

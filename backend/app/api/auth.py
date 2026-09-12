@@ -4,7 +4,10 @@ from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
+
+settings = get_settings()
 from app.models import Organization, User
 from app.schemas import PasswordChange, TokenRefresh, TokenResponse, UserCreate, UserLogin, UserResponse, UserUpdate
 from app.security import (
@@ -95,8 +98,16 @@ def register(data: UserCreate, request: Request, response: Response, db: Session
         user=UserResponse.model_validate(user),
     )
     # SECURITY: Set tokens as httpOnly cookies (not accessible via JavaScript)
-    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="strict", max_age=1800)
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="strict", max_age=604800)
+    response.set_cookie(
+        "access_token", access,
+        httponly=True, secure=settings.SECURE_COOKIES,
+        samesite="strict", max_age=1800,
+    )
+    response.set_cookie(
+        "refresh_token", refresh,
+        httponly=True, secure=settings.SECURE_COOKIES,
+        samesite="strict", max_age=604800,
+    )
     return resp
 
 
@@ -132,8 +143,16 @@ def login(data: UserLogin, request: Request, response: Response, db: Session = D
         user=UserResponse.model_validate(user),
     )
     # SECURITY: Set tokens as httpOnly cookies (not accessible via JavaScript)
-    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="strict", max_age=1800)
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="strict", max_age=604800)
+    response.set_cookie(
+        "access_token", access,
+        httponly=True, secure=settings.SECURE_COOKIES,
+        samesite="strict", max_age=1800,
+    )
+    response.set_cookie(
+        "refresh_token", refresh,
+        httponly=True, secure=settings.SECURE_COOKIES,
+        samesite="strict", max_age=604800,
+    )
     return resp
 
 

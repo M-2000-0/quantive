@@ -371,7 +371,8 @@ def test_simulation_engine():
     yields_obs = [4.2, 4.0, 3.8, 3.9, 4.1, 4.3, 4.4]
     params = fit_nss(maturities, yields_obs)
     assert_test("NSS fitting returns parameters", params is not None)
-    if params:
+    if params is not None:
+        params = [float(p) for p in params]
         fitted = [nss_rate(m, params) for m in maturities]
         avg_error = sum(abs(f - o) for f, o in zip(fitted, yields_obs)) / len(yields_obs)
         assert_test(f"NSS avg error < 50bp (got {avg_error*100:.1f}bp)", avg_error < 0.05,

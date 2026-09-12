@@ -304,6 +304,29 @@ async def send_password_reset_email(to: str, reset_token: str) -> EmailDeliveryR
     ))
 
 
+async def send_verification_email(to: str, verify_token: str) -> EmailDeliveryRecord:
+    """Send an email address verification email."""
+    verify_url = f"https://quantive.io/verify-email?token={verify_token}"
+    return await send_email(EmailMessage(
+        to=[to],
+        subject="Confirm Your Quantive Email",
+        body_html=f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #059669; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h1 style="margin: 0;">Verify Your Email</h1>
+            </div>
+            <div style="background: #f0fdf4; padding: 20px; border: 1px solid #bbf7d0; border-top: none;">
+                <p>Thank you for signing up for Quantive. Confirm your email address to activate your account:</p>
+                <a href="{verify_url}" style="display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 15px 0;">Verify Email →</a>
+                <p style="color: #6b7280; font-size: 12px;">This link expires in 60 minutes. If you didn't create an account, you can ignore this email.</p>
+            </div>
+        </div>
+        """,
+        body_text=f"Confirm your email: {verify_url} (expires in 60 minutes)",
+        tags={"type": "email_verification"},
+    ))
+
+
 async def send_optimization_complete_email(
     to: str, job_name: str, strategy_count: int, view_url: str
 ) -> EmailDeliveryRecord:

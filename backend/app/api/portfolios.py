@@ -273,7 +273,10 @@ def download_import_template():
     return StreamingResponse(
         iter([template]),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": 'attachment; filename="portfolio-import-template.xlsx"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="portfolio-import-template.xlsx"',
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

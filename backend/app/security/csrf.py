@@ -5,7 +5,6 @@ Uses double-submit cookie pattern (no server-side session needed).
 """
 import hashlib
 import hmac
-import os
 import secrets
 import time
 from typing import Optional
@@ -26,7 +25,21 @@ CSRF_TOKEN_LIFETIME = 3600  # 1 hour
 CSRF_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 # Paths exempt from CSRF (public endpoints, webhooks, health)
-CSRF_EXEMPT_PATHS = {"/api/health", "/api/auth/login", "/api/auth/register", "/webhooks", "/docs", "/redoc", "/openapi.json", "/login", "/register", "/forgot-password", "/reset-password"}
+CSRF_EXEMPT_PATHS = {
+    "/api/health",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/billing/webhook",
+    "/webhooks",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+    "/api/recommendations/preferences",
+}
 
 
 def generate_csrf_token(secret: str) -> str:
@@ -43,19 +56,19 @@ def validate_csrf_token(token: str, secret: str) -> bool:
         parts = token.split(":")
         if len(parts) != 3:
             return False
-        
+
         timestamp_str, payload, signature = parts
-        
+
         # Verify signature
         expected_sig = hmac.new(secret.encode(), f"{timestamp_str}:{payload}".encode(), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(signature, expected_sig):
             return False
-        
+
         # Check expiry
         token_time = int(timestamp_str)
         if time.time() - token_time > CSRF_TOKEN_LIFETIME:
             return False
-        
+
         return True
     except (ValueError, TypeError):
         return False
@@ -67,12 +80,11 @@ class CSRFMiddleware:
     Raw ASGI middleware (not BaseHTTPMiddleware) so it reliably runs
     in the Starlette/FastAPI middleware stack.
     """
-    def __init__(self, app, secret: str = "csrfsecret-change-in-production"):
+    def __init__(self, app, secret: Optional[str] = None):
         self.app = app
-        self.secret = secret
+        self.secret = secret or settings.SECRET_KEY
 
     async def __call__(self, scope, receive, send):
-        import sys
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
@@ -84,17 +96,18 @@ class CSRFMiddleware:
         path = request.url.path
         exempt = any(path.startswith(p) for p in CSRF_EXEMPT_PATHS)
 
-        print(f"CSRF ASGI: {scope['method']} {path} exempt={exempt}", file=sys.stderr, flush=True)
-
+        # Always attach the CSRF cookie on GET responses so the browser (and
+        # cookie-aware clients) have it for subsequent POSTs. Exemption only skips
+        # validation, never cookie issuance.
         if request.method == "GET":
             async def get_send(message: Message) -> None:
                 if message["type"] == "http.response.start":
                     if "csrf_token" not in request.cookies:
                         token = generate_csrf_token(self.secret)
-                        message.setdefault("headers", []).append(
-                            (b"set-cookie",
-                             f"csrf_token={token}; Path=/; SameSite=strict; Max-Age={CSRF_TOKEN_LIFETIME}; Secure={settings.SECURE_COOKIES}".encode("latin-1"))
-                        )
+                        headers = message.get("headers", [])
+                        cookie_header = f"csrf_token={token}; Path=/; SameSite=strict; Max-Age={CSRF_TOKEN_LIFETIME}; Secure={settings.SECURE_COOKIES}".encode("latin-1")
+                        headers = list(headers) + [(b"set-cookie", cookie_header)]
+                        message["headers"] = headers
                 await send(message)
             await self.app(scope, receive, get_send)
             return

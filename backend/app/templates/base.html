@@ -52,6 +52,10 @@
         </a>
 
         <div class="sidebar-section">Advisor</div>
+        <a href="/recommendations" class="sidebar-link {% if active_page == 'recommendations' %}active{% endif %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3l9 4.5v11L12 21l-9-4.5v-11L12 3z"/></svg>
+          Opportunity Discovery
+        </a>
         <a href="/copilot" class="sidebar-link {% if active_page == 'copilot' %}active{% endif %}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5"/></svg>
           AI Advisor
@@ -144,5 +148,6 @@
     overlay.classList.toggle('active');
   }
   </script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

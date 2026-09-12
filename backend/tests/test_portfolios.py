@@ -80,6 +80,7 @@ def test_portfolios_isolated_by_org(auth_client, sample_portfolio_data):
 
     client2 = __import__("fastapi.testclient", fromlist=["TestClient"]).TestClient(auth_client.app)
     from app.database import get_db
+    from app.main import fastapi_app
     from tests.conftest import TestingSessionLocal
     def override2():
         db = TestingSessionLocal()
@@ -87,7 +88,7 @@ def test_portfolios_isolated_by_org(auth_client, sample_portfolio_data):
             yield db
         finally:
             db.close()
-    auth_client.app.dependency_overrides[get_db] = override2
+    fastapi_app.dependency_overrides[get_db] = override2
 
     resp2 = client2.post("/api/auth/register", json={
         "email": "other@example.com",
@@ -102,4 +103,4 @@ def test_portfolios_isolated_by_org(auth_client, sample_portfolio_data):
     assert resp.json()["meta"]["total"] == 0
 
     from tests.conftest import override_get_db
-    auth_client.app.dependency_overrides[get_db] = override_get_db
+    fastapi_app.dependency_overrides[get_db] = override_get_db

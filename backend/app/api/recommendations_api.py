@@ -6,6 +6,8 @@ Generates personalized investment recommendations based on
 user profile, portfolio data, and market conditions.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -16,6 +18,102 @@ from app.security import get_current_user
 from app.services.recommendation_engine import RecommendationEngine
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
+
+
+# ── Explicit user preferences (Phase 1: user input) ─────────────────────────
+
+class PreferencesUpdate(BaseModel):
+    risk_tolerance: str | None = None            # conservative | moderate | aggressive
+    investment_horizon_years: int | None = None  # years
+    currency_preferences: list[str] | None = None
+    liquidity_needs: str | None = None           # low | medium | high
+    focus_sectors: list[str] | None = None
+    compliance_constraints: dict | None = None
+    exclusions: list[str] | None = None          # tickers / instruments the user never wants to see
+
+
+def _apply_preferences(profile: 'UserProfile', prefs: PreferencesUpdate) -> 'UserProfile':
+    """Write explicit preferences onto the profile, preserving everything else."""
+    if prefs.risk_tolerance is not None:
+        profile.risk_tolerance = prefs.risk_tolerance
+    if prefs.investment_horizon_years is not None:
+        profile.investment_horizon_years = prefs.investment_horizon_years
+    if prefs.currency_preferences is not None:
+        profile.currency_preferences = prefs.currency_preferences
+    if prefs.liquidity_needs is not None:
+        profile.liquidity_needs = prefs.liquidity_needs
+    if prefs.focus_sectors is not None:
+        profile.focus_sectors = prefs.focus_sectors
+    if prefs.compliance_constraints is not None:
+        profile.compliance_constraints = prefs.compliance_constraints
+    if prefs.exclusions is not None:
+        profile.exclusions = prefs.exclusions
+    profile.updated_at = datetime.now(timezone.utc)
+    return profile
+
+
+@router.put("/preferences")
+def update_preferences(
+    body: PreferencesUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Save explicit investment preferences for the current user.
+
+    This is the Phase 1 input surface: risk posture, horizon, currency focus,
+    liquidity needs, sector focus, compliance constraints, and explicit exclusions.
+    Missing fields are left untouched so the user can update one piece at a time.
+    """
+    from app.models.user_profile import UserProfile
+
+    profile = (
+        db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+        or UserProfile(user_id=user.id)
+    )
+    if not db.query(UserProfile).filter(UserProfile.user_id == user.id).first():
+        db.add(profile)
+
+    _apply_preferences(profile, body)
+    db.commit()
+    db.refresh(profile)
+
+    return {
+        "status": "updated",
+        "preferences": {
+            "risk_tolerance": profile.risk_tolerance,
+            "investment_horizon_years": profile.investment_horizon_years,
+            "currency_preferences": profile.currency_preferences,
+            "liquidity_needs": profile.liquidity_needs,
+            "focus_sectors": profile.focus_sectors,
+            "compliance_constraints": profile.compliance_constraints,
+            "exclusions": profile.exclusions,
+        },
+    }
+
+
+@router.get("/preferences")
+def get_preferences(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Return the current user's explicit preferences and exclusions."""
+    from app.models.user_profile import UserProfile
+
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+    if not profile:
+        return {"preferences": None, "exclusions": []}
+
+    return {
+        "preferences": {
+            "risk_tolerance": profile.risk_tolerance,
+            "investment_horizon_years": profile.investment_horizon_years,
+            "currency_preferences": profile.currency_preferences,
+            "liquidity_needs": profile.liquidity_needs,
+            "focus_sectors": profile.focus_sectors,
+            "compliance_constraints": profile.compliance_constraints,
+        },
+        "exclusions": profile.exclusions or [],
+    }
 
 
 class RecommendationResponse(BaseModel):
@@ -139,17 +237,26 @@ def get_personalized_recommendations(
         limit=7,
     )
 
+    def _to_rec(r: dict) -> dict:
+        score_val = r.get("relevance") or r.get("fit") or 0
+        try:
+            score_num = float(score_val)
+        except (TypeError, ValueError):
+            score_num = 0.0
+        return {
+            "type": r.get("type") or "opportunity",
+            "title": r.get("name") or r.get("symbol") or "Opportunity",
+            "text": r.get("reason") or r.get("why_this") or r.get("description") or "",
+            "score": round(max(0.0, min(1.0, score_num)), 3),
+            "relevance_explanation": (
+                f"Scored {round(score_num*100)}% relevance based on your portfolio profile and behavioral history."
+                if score_num
+                else "Relevance scoring pending data."
+            ),
+        }
+
     return {
-        "recommendations": [
-            {
-                "type": r["type"],
-                "title": r["title"],
-                "text": r["text"],
-                "score": r["score"],
-                "relevance_explanation": f"Scored {r['score']:.0%} relevance based on your portfolio profile and behavioral history.",
-            }
-            for r in recommendations
-        ],
+        "recommendations": [_to_rec(r) for r in recommendations],
         "portfolio_summary": {
             "total_debt": portfolio_data["total_debt"],
             "avg_maturity": portfolio_data["avg_maturity"],

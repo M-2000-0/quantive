@@ -127,6 +127,27 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not create market monitor tables: %s", e)
 
+    # Ensure user_profiles has the columns added by later model revisions
+    # (checkfirst only creates missing tables, not missing columns).
+    try:
+        with engine.connect() as conn:
+            # Reflect current columns on user_profiles
+            cols = {r[1] for r in conn.execute(
+                text("PRAGMA table_info(user_profiles)"
+            )).fetchall()}
+            if "exclusions" not in cols:
+                conn.execute(text(
+                    "ALTER TABLE user_profiles ADD COLUMN exclusions JSON NULL"
+                ))
+                conn.commit()
+                print("[OK] user_profiles.exclusions column added")
+            else:
+                print("[OK] user_profiles.exclusions column present")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning(
+            "Could not ensure user_profiles columns: %s", e
+        )
+
     # Start background alert checker
     try:
         from app.api.price_alerts import start_alert_checker
@@ -177,6 +198,23 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not create billing tables: %s", e)
 
+    # Ensure discovery tables exist (personalized opportunity engine) and
+    # seed the reference universe so cold-start returns useful suggestions.
+    try:
+        from app.models.discovery import DiscoveryAsset, DiscoveryFeedback, DiscoveryPreference
+        for _t in (DiscoveryAsset, DiscoveryPreference, DiscoveryFeedback):
+            _t.__table__.create(engine, checkfirst=True)
+        from app.database import SessionLocal as _SeedSession
+        _seed = _SeedSession()
+        try:
+            from app.services.discovery_engine import DiscoveryEngine
+            DiscoveryEngine(_seed).seed_universe()
+        finally:
+            _seed.close()
+        print("[OK] Discovery tables ready + universe seeded")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create discovery tables: %s", e)
+
     # Ensure automation tables exist + start automation scheduler (native workflow engine)
     try:
         from app.database import Base
@@ -191,8 +229,33 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start automation engine: %s", e)
 
+    # Ensure Quantive Personal tables exist in SEPARATE database (never in sovereign DB)
+    try:
+        from app.personal.database import PersonalBase, personal_engine
+        from app.personal import models as _pm  # noqa: F401
+        PersonalBase.metadata.create_all(bind=personal_engine, checkfirst=True)
+        print("[OK] Quantive Personal tables ready (separate DB)")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create Personal tables: %s", e)
+
     yield
-    print("[OK] Quantive shutting down gracefully")
+
+    # ── Graceful Shutdown ──────────────────────────────────────────────
+    logger = logging.getLogger("quantive.shutdown")
+    logger.info("Starting graceful shutdown — cancelling background tasks...")
+
+    # Cancel any running background threads
+    shutdown_event = threading.Event()
+    shutdown_event.set()
+
+    # Dispose database engine to release connections
+    try:
+        engine.dispose()
+        logger.info("Database connections released")
+    except Exception as e:
+        logger.warning("Error disposing database engine: %s", e)
+
+    logger.info("Quantive shut down gracefully")
 
 
 app = FastAPI(
@@ -300,7 +363,6 @@ app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_PER_MINUTE)
 app.add_middleware(ThreatDetectionMiddleware)
 app.add_middleware(RBACMiddleware)
-app.add_middleware(CSRFMiddleware, secret=settings.SECRET_KEY)
 app.add_middleware(IdempotencyMiddleware)
 app.add_middleware(CompressionMiddleware)
 app.add_middleware(PageAuthMiddleware)
@@ -611,6 +673,15 @@ async def optimizations_page(request: Request):
 @app.get("/optimizations/{optimization_id}", response_class=HTMLResponse)
 async def optimization_detail_page(request: Request, optimization_id: str):
     return templates.TemplateResponse("pages/optimization-detail.html", {"request": request, "active_page": "optimize", "optimization_id": optimization_id, **page_ctx()})
+
+
+@app.get("/recommendations", response_class=HTMLResponse)
+async def recommendations_page(request: Request):
+    return templates.TemplateResponse("pages/recommendations.html", {
+        "request": request,
+        "active_page": "recommendations",
+        **page_ctx(),
+    })
 
 
 # ── Market Pages ─────────────────────────────────────────────────────
@@ -1346,3 +1417,15 @@ async def fallback(request: Request, path: str):
 
 
 print("[OK] Python frontend loaded — Jinja2 templates active")
+
+# Keep a reference to the unwrapped FastAPI instance so tests can register
+# dependency_overrides and inspect the middleware stack even though the
+# served `app` below is wrapped by the CSRF ASGI middleware.
+fastapi_app = app
+
+# Wrap the fully-built FastAPI app with the CSRF ASGI middleware as the
+# outermost non-CORS layer. add_middleware does not reliably invoke this
+# Starlette version's raw-ASGI middlewares, so we compose the app directly.
+# This must happen AFTER all @app.get/@app.post decorators and route mounts.
+app = CSRFMiddleware(app)
+print("[OK] CSRF ASGI middleware wrapped around app")

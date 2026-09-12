@@ -30,6 +30,9 @@ class PlanTier(str, Enum):
     FREE = "free"
     PRO = "pro"
     ENTERPRISE = "enterprise"
+    PERSONAL = "personal"  # Quantive Personal — $5,000/yr annual access (separate product, shared engine)
+    PERSONAL_2K = "personal_2k"  # Personal Starter — $2,000/yr, tax write-off only with limits, no Gov Quantive
+    PERSONAL_10K = "personal_10k"  # Personal Sovereign — $10,000/yr, Gov-grade Quantive for individuals
 
 
 PLAN_DETAILS = {
@@ -108,6 +111,85 @@ PLAN_DETAILS = {
             "max_scenarios": -1,
             "max_users": -1,
             "data_retention_days": -1,
+        },
+    },
+    PlanTier.PERSONAL: {
+        "name": "Quantive Personal",
+        "price_monthly": 500,
+        "price_yearly": 5000,  # annual access — not per-message
+        "stripe_price_monthly": os.environ.get("STRIPE_PERSONAL_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_PERSONAL_YEARLY_PRICE_ID", ""),
+        "features": [
+            "Continuous financial profile",
+            "Year-round tax intelligence",
+            "Opportunity identification",
+            "Document organization",
+            "Personalized analysis",
+            "Annual intelligence report",
+        ],
+        "limits": {
+            "max_portfolios": 0,
+            "max_instruments": 0,
+            "optimizations_per_day": 0,
+            "max_scenarios": 0,
+            "max_users": 1,
+            "data_retention_days": 365 * 7,
+        },
+    },
+    PlanTier.PERSONAL_2K: {
+        "name": "Personal Starter",
+        "price_monthly": 200,
+        "price_yearly": 2000,  # tax write-off only, intentionally limited
+        "stripe_price_monthly": os.environ.get("STRIPE_PERSONAL_2K_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_PERSONAL_2K_YEARLY_PRICE_ID", ""),
+        "features": [
+            "Tax write-off detector only",
+            "Up to 3 opportunities tracked",
+            "10 documents",
+            "20 intelligence questions / month",
+            "No Gov-grade Quantive market access",
+            "No annual intelligence report (summary only)",
+        ],
+        "limits": {
+            "max_portfolios": 0,
+            "max_instruments": 0,
+            "optimizations_per_day": 0,
+            "max_scenarios": 0,
+            "max_users": 1,
+            "data_retention_days": 365,
+            "personal_opportunities": 3,
+            "personal_documents": 10,
+            "personal_asks_per_month": 20,
+            "personal_gov_access": 0,
+            "personal_annual_report": 0,
+        },
+    },
+    PlanTier.PERSONAL_10K: {
+        "name": "Personal Sovereign",
+        "price_monthly": 1000,
+        "price_yearly": 10000,  # Gov-grade Quantive for individuals
+        "stripe_price_monthly": os.environ.get("STRIPE_PERSONAL_10K_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_PERSONAL_10K_YEARLY_PRICE_ID", ""),
+        "features": [
+            "Everything in Quantive Personal",
+            "Gov-grade Quantive market access (aggregated Qubo trends)",
+            "Sovereign-mode insights for individuals",
+            "Unlimited opportunities + documents",
+            "Priority intelligence + annual report",
+            "CPA-ready export",
+        ],
+        "limits": {
+            "max_portfolios": 0,
+            "max_instruments": 0,
+            "optimizations_per_day": 0,
+            "max_scenarios": 0,
+            "max_users": 1,
+            "data_retention_days": 365 * 7,
+            "personal_opportunities": -1,
+            "personal_documents": -1,
+            "personal_asks_per_month": -1,
+            "personal_gov_access": 1,
+            "personal_annual_report": 1,
         },
     },
 }
@@ -423,6 +505,11 @@ def verify_stripe_webhook(payload: bytes, signature: str) -> bool:
     5-minute tolerance.
     """
     if not STRIPE_WEBHOOK_SECRET:
+        # Without a webhook secret we cannot authenticate the sender. Fall
+        # closed in production so a forged payload cannot grant paid tiers.
+        if os.environ.get("ENVIRONMENT", "development") == "production":
+            logger.error("Stripe webhook rejected: STRIPE_WEBHOOK_SECRET is unset in production")
+            return False
         return True  # In dev, accept all webhooks
 
     elements: dict = {}
@@ -466,6 +553,11 @@ def handle_stripe_event(event_type: str, data: dict) -> Optional[dict]:
             # Idempotency guard: without org metadata there is nothing to
             # fulfill — likely a checkout created outside this system.
             logger.warning("checkout.session.completed without org metadata; skipping")
+            return None
+        # Never fulfill an unpaid checkout. Stripe's own simulator honours the
+        # same paid/np_required gate; the webhook must too.
+        if obj.get("payment_status") not in ("paid", "no_payment_required"):
+            logger.warning(f"checkout.session.completed with unpaid status {obj.get('payment_status')!r}; skipping")
             return None
         sub = create_subscription(
             org_id=org_id,

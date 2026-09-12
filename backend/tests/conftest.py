@@ -6,8 +6,11 @@ from sqlalchemy.pool import StaticPool
 
 import app.database as database_module
 from app.database import Base, get_db
-from app.main import app
+from app.main import app, fastapi_app
+from app.security.csrf import generate_csrf_token
+from app.config import get_settings
 
+settings = get_settings()
 TEST_DATABASE_URL = "sqlite://"
 engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -21,20 +24,28 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
+fastapi_app.dependency_overrides[get_db] = override_get_db
 
 
 def _clear_rate_limits():
-    for middleware in [app.middleware_stack]:
-        pass
     try:
         from app.security.middleware import RateLimitMiddleware
-        for attr_name in dir(app):
-            attr = getattr(app, attr_name, None)
-            if isinstance(attr, RateLimitMiddleware):
-                attr._requests.clear()
+        stack = fastapi_app.middleware_stack
+        if stack is not None:
+            _clear_middleware_rate_limits(stack)
     except Exception:
         pass
+
+
+def _clear_middleware_rate_limits(middleware):
+    from app.security.middleware import RateLimitMiddleware
+    if isinstance(middleware, RateLimitMiddleware):
+        middleware._requests.clear()
+        return
+    if hasattr(middleware, "app"):
+        _clear_middleware_rate_limits(middleware.app)
+    if hasattr(middleware, "inner"):
+        _clear_middleware_rate_limits(middleware.inner)
 
 
 @pytest.fixture(autouse=True)
@@ -58,7 +69,11 @@ def setup_db():
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    c = TestClient(app)
+    token = generate_csrf_token(settings.SECRET_KEY)
+    c.headers["X-CSRF-Token"] = token
+    c.cookies.set("csrf_token", token)
+    return c
 
 
 @pytest.fixture

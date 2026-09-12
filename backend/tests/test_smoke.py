@@ -119,8 +119,8 @@ def test_backtest_strategies(client):
     assert len(body["strategies"]) == 4
 
 
-def test_backtest_run(client):
-    resp = client.post(
+def test_backtest_run(auth_client):
+    resp = auth_client.post(
         "/api/backtest/run",
         json={"symbol": "SPY", "strategy": "sma_crossover", "days": 180, "initial_capital": 10000},
     )

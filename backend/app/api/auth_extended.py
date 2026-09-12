@@ -1,4 +1,5 @@
 """Password reset and email verification endpoints."""
+import asyncio
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -8,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.email_service import send_password_reset_email, send_verification_email
 from app.models import User
 from app.models.password_reset import EmailVerificationToken, PasswordResetToken
 from app.security import hash_password, log_audit_event, validate_password_policy
@@ -79,8 +81,14 @@ def forgot_password(data: ForgotPasswordRequest, request: Request, db: Session =
         db.add(reset_token)
         db.commit()
 
-        # TODO: Send email with raw_token via email service
-        # NEVER log tokens — use logger.info(f"Password reset requested for {email}") instead
+        # Deliver the reset link to the user's inbox.
+        try:
+            asyncio.run(send_password_reset_email(email, raw_token))
+        except Exception as exc:  # pragma: no cover - email provider failures
+            import logging
+            logger = logging.getLogger("quantive.auth")
+            logger.warning(f"Password reset email failed to send for {email}: {exc}")
+
         import logging
         logger = logging.getLogger("quantive.auth")
         logger.info(f"Password reset requested for {email}")
@@ -137,7 +145,7 @@ def verify_email(data: VerifyEmailRequest, request: Request, db: Session = Depen
         raise HTTPException(status_code=400, detail="Invalid verification token")
 
     verify_token.used = True
-    # TODO: Set email_verified flag on user when that column exists
+    user.email_verified = True
     db.commit()
 
     ip = request.client.host if request.client else None
@@ -172,6 +180,14 @@ def resend_verification(data: ResendVerificationRequest, request: Request, db: S
         )
         db.add(verify_token)
         db.commit()
+
+        # Deliver the verification link to the user's inbox.
+        try:
+            asyncio.run(send_verification_email(email, raw_token))
+        except Exception as exc:  # pragma: no cover - email provider failures
+            import logging
+            logger = logging.getLogger("quantive.auth")
+            logger.warning(f"Verification email failed to send for {email}: {exc}")
 
         import logging
         logger = logging.getLogger("quantive.auth")

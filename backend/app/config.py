@@ -28,6 +28,7 @@ MIN_SECRET_KEY_LENGTH = 32  # NIST SP 800-132 minimum
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./quantive.db"
+    PERSONAL_DATABASE_URL: str = "sqlite:///./quantive_personal.db"
     SECRET_KEY: str = DEFAULT_SECRET_KEY
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

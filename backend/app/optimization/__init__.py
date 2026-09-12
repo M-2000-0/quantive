@@ -93,7 +93,7 @@ class GreedySolver(BaseSolver):
         if not instruments:
             return {"allocations": {}, "objective_value": 0.0, "feasible": True, "iterations": 0}
 
-        total_principal = sum(inst.get("principal_outstanding", 0) for inst in instruments)
+        total_principal = float(sum(inst.get("principal_outstanding", 0) for inst in instruments))
         if total_principal == 0:
             return {"allocations": {}, "objective_value": 0.0, "feasible": True, "iterations": 0}
 
@@ -111,7 +111,7 @@ class GreedySolver(BaseSolver):
 
         remaining = total_principal
         for inst in scored:
-            alloc = min(inst.get("principal_outstanding", 0), remaining)
+            alloc = float(min(inst.get("principal_outstanding", 0), remaining))
             if alloc > 0:
                 allocations[inst["id"]] = alloc
                 remaining -= alloc
@@ -119,7 +119,7 @@ class GreedySolver(BaseSolver):
                 break
 
         total_cost = sum(
-            allocations.get(inst["id"], 0) * inst.get("coupon_rate", 0)
+            float(allocations.get(inst["id"], 0)) * float(inst.get("coupon_rate", 0))
             for inst in instruments if inst["id"] in allocations
         )
         avg_duration = np.mean([self._duration_years(inst) for inst in instruments if inst["id"] in allocations]) if allocations else 0
@@ -127,12 +127,12 @@ class GreedySolver(BaseSolver):
         return {
             "allocations": allocations,
             "objective_value": total_cost,
-            "feasible": remaining <= 0.01 * total_principal,
+            "feasible": remaining <= 0.01 * float(total_principal),
             "iterations": len(instruments),
             "metrics": {
                 "total_cost": total_cost,
                 "avg_duration": float(avg_duration),
-                "utilization": 1.0 - (remaining / total_principal if total_principal > 0 else 0),
+                "utilization": float(1.0 - (remaining / total_principal if total_principal > 0 else 0)),
             },
         }
 
@@ -158,9 +158,9 @@ class MeanVarianceSolver(BaseSolver):
         if n == 0:
             return {"allocations": {}, "objective_value": 0.0, "feasible": True, "iterations": 0}
 
-        coupons = np.array([inst.get("coupon_rate", 0) for inst in instruments])
-        spreads = np.array([inst.get("spread_bps", 0) / 10000 for inst in instruments])
-        principals = np.array([inst.get("principal_outstanding", 0) for inst in instruments])
+        coupons = np.array([float(inst.get("coupon_rate", 0)) for inst in instruments])
+        spreads = np.array([float(inst.get("spread_bps", 0)) / 10000 for inst in instruments])
+        principals = np.array([float(inst.get("principal_outstanding", 0)) for inst in instruments])
 
         expected_returns = coupons - spreads
         cov_matrix = np.diag(spreads ** 2 + 0.001)
@@ -208,8 +208,8 @@ class ScenarioBasedSolver(BaseSolver):
         if n == 0:
             return {"allocations": {}, "objective_value": 0.0, "feasible": True, "iterations": 0}
 
-        principals = np.array([inst.get("principal_outstanding", 0) for inst in instruments])
-        coupons = np.array([inst.get("coupon_rate", 0) for inst in instruments])
+        principals = np.array([float(inst.get("principal_outstanding", 0)) for inst in instruments])
+        coupons = np.array([float(inst.get("coupon_rate", 0)) for inst in instruments])
         total = principals.sum()
         if total == 0:
             return {"allocations": {}, "objective_value": 0.0, "feasible": True, "iterations": 0}
@@ -321,13 +321,13 @@ class StressTestRunner:
                     rate_impact = shock.get("rate_change", 0) * alloc * 0.3
                     inflation_impact = shock.get("inflation_change", 0) * alloc * 0.2
                     fx_impact = shock.get("fx_shock", 0) * alloc * 0.1 if inst.get("currency", "USD") != "USD" else 0
-                    total_cost_impact += coupon * alloc + rate_impact + inflation_impact + fx_impact
+                    total_cost_impact += float(coupon) * float(alloc) + rate_impact + inflation_impact + fx_impact
 
             results[scenario_name] = {
                 "cost_impact": round(total_cost_impact, 2),
                 "severity": "high" if abs(total_cost_impact) > sum(
-                    allocations.get(inst["id"], 0) * inst.get("coupon_rate", 0)
-                    for inst in instruments if allocations.get(inst["id"], 0) > 0
+                    float(allocations.get(inst["id"], 0)) * float(inst.get("coupon_rate", 0))
+                    for inst in instruments if float(allocations.get(inst["id"], 0)) > 0
                 ) * 0.1 else "medium" if abs(total_cost_impact) > 0 else "low",
             }
 
