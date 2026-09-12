@@ -80,6 +80,8 @@ from app.api import (
     exports,
     frontend_ui,
     immutable_audit_api,
+    knowledge_graph,
+    intelligence,
     market_data,
     market_health,
     maturity,
@@ -129,6 +131,10 @@ from app.api import (
     pilot_program,
     government_relations,
     solvers,
+    discovery_api,
+    workflows,
+    sso,
+    agent_api,
 )
 from app.database import get_db
 from app.security.threats import router as threats_router
@@ -142,6 +148,8 @@ router.include_router(portfolio_detail.router)
 router.include_router(portfolio_access.router)
 router.include_router(optimizations.router)
 router.include_router(solvers.router)
+router.include_router(knowledge_graph.router)
+router.include_router(intelligence.router)
 router.include_router(audit.router)
 router.include_router(analytics.router)
 router.include_router(progress.router)
@@ -266,6 +274,10 @@ router.include_router(interoperability_api.router)
 router.include_router(disaster_recovery_api.router)
 router.include_router(sla_api.router)
 router.include_router(escrow_api.router)
+router.include_router(discovery_api.router)
+router.include_router(workflows.router)
+router.include_router(sso.router)
+router.include_router(agent_api.router)
 
 
 @router.get("/api/health")
