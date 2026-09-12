@@ -288,3 +288,25 @@ def notify_owner(ctx: ToolContext, title: str, message: str = "") -> dict:
     ctx.db.add(n)
     ctx.db.commit()
     return {"ok": True, "notification_id": n.id}
+
+
+@quantive_tool("market_snapshot", "Latest persisted market snapshot for a source", risk="read")
+def market_snapshot(ctx: ToolContext, source: str = "treasury_yields") -> dict:
+    from app.models.market import SOURCES, MarketSnapshot
+
+    if source not in SOURCES:
+        return {"ok": False, "error": f"source must be one of {list(SOURCES)}"}
+    snap = (
+        ctx.db.query(MarketSnapshot).filter(MarketSnapshot.source == source)
+        .order_by(MarketSnapshot.fetched_at.desc()).first()
+    )
+    if not snap:
+        return {"ok": False, "error": "no snapshot yet; market_refresh has not run"}
+    return {
+        "ok": True,
+        "source": source,
+        "status": snap.status,
+        "records": snap.record_count,
+        "fetched_at": snap.fetched_at.isoformat() if snap.fetched_at else None,
+        "payload": snap.payload,
+    }

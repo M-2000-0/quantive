@@ -111,6 +111,15 @@ BUILTIN_AUTOMATIONS = [
         "category": "ops",
         "interval_minutes": 15,
     },
+    {
+        "key": "market_refresh",
+        "name": "Market Data Refresh",
+        "description": "Fetches Treasury yields + FX rates, persists snapshots "
+                       "with live/fallback classification, prunes history "
+                       "older than 30 days.",
+        "category": "ops",
+        "interval_minutes": 60,
+    },
 ]
 
 
@@ -568,8 +577,20 @@ def _run_health_check(db: Session, ctx: RunContext) -> None:
     ctx.scanned = len(HEALTH_TARGETS)
 
 
-# ── Shared email helper ─────────────────────────────────────────────────
+def _run_market_refresh(db: Session, ctx: RunContext) -> None:
+    from app.services.market_refresh import refresh_market_data
 
+    outcomes = refresh_market_data(db)
+    for source, result in outcomes.items():
+        if source.startswith("_"):
+            continue
+        ctx.log(result["status"], f"{source}: {result['status']} ({result['records']} records)")
+    ctx.scanned = len([k for k in outcomes if not k.startswith("_")])
+    if outcomes.get("_pruned"):
+        ctx.log("pruned", f"removed {outcomes['_pruned']} snapshots older than 30d")
+
+
+# ── Shared email helper ─────────────────────────────────────────────────
 def _send_automation_email(subject: str, body_text: str, to_email: str) -> None:
     """Fire-and-forget email; never raises. Logs when no provider configured."""
     if not to_email:
@@ -603,4 +624,5 @@ _RUNNERS = {
     "mrr_tracker": _run_mrr_tracker,
     "support_triage": _run_support_triage,
     "health_check": _run_health_check,
+    "market_refresh": _run_market_refresh,
 }

@@ -380,3 +380,6 @@ from app.models.project import (  # noqa: E402, F401
     Project,
     ProjectDocument,
 )
+from app.models.market import (  # noqa: E402, F401
+    MarketSnapshot,
+)

@@ -14,6 +14,7 @@ from app.models.social import *  # noqa: ensure social models
 from app.models.integrations import *  # noqa: ensure integration models
 from app.agent.models import *  # noqa: ensure agent run/step models imported
 from app.models.project import *  # noqa: ensure project/workspace models imported
+from app.models.market import *  # noqa: ensure market snapshot models imported
 
 config = context.config
 if config.config_file_name is not None:
