@@ -202,7 +202,7 @@ def execute_run(db: Session, run_id: str, max_cost: int = 50) -> AgentRun:
     return run
 
 
-def approve_step(db: Session, run_id: str, seq: int, approved: bool) -> AgentRun:
+def approve_step(db: Session, run_id: str, seq: int, approved: bool, start: bool = True) -> AgentRun:
     run = db.query(AgentRun).filter(AgentRun.id == run_id).first()
     if not run:
         raise KeyError(f"Unknown run: {run_id}")
@@ -220,7 +220,10 @@ def approve_step(db: Session, run_id: str, seq: int, approved: bool) -> AgentRun
         step.status = "pending"
         run.status = "queued"
         db.commit()
-        return execute_run(db, run_id)
+        if start:
+            return execute_run(db, run_id)
+        db.refresh(run)
+        return run
     step.approval_status = "rejected"
     step.status = "rejected"
     step.finished_at = _now()

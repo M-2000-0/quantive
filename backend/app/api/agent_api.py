@@ -1,17 +1,32 @@
-"""Agent execution API — runs, approvals, audit trail."""
+"""Agent execution API — runs, approvals, audit trail.
+
+Execution is asynchronous: POST returns 202 immediately with a run snapshot
+(queued/running/waiting_approval) and a daemon worker thread drives the
+plan→execute→verify loop, mirroring app/api/optimizations.py. Clients poll
+GET /runs/{id} for terminal state (completed/failed/cancelled).
+"""
 from __future__ import annotations
+
+import logging
+import threading
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+import app.database as database_module
 from app.agent.models import AgentRun, AgentStep
 from app.agent.runner import approve_step, cancel_run, create_run, execute_run
 from app.database import get_db
 from app.models import User
 from app.security import get_current_user
 
+logger = logging.getLogger("quantive.agent_api")
+
 router = APIRouter(prefix="/api/agent", tags=["agent"])
+
+# Tracked for tests/teardown joins (same pattern as optimizations._job_threads).
+_agent_threads: set = set()
 
 
 class PlanStep(BaseModel):
@@ -63,6 +78,25 @@ def _load(run_id: str, db: Session) -> tuple[AgentRun, list[AgentStep]]:
     return run, steps
 
 
+def _spawn(run_id: str) -> None:
+    """Drive a run in a daemon thread with its own DB session."""
+    _session_factory = database_module.SessionLocal
+
+    def _run():
+        db = _session_factory()
+        try:
+            execute_run(db, run_id)
+        except Exception:
+            logger.exception("agent run %s failed", run_id)
+        finally:
+            db.close()
+            _agent_threads.discard(threading.current_thread())
+
+    thread = threading.Thread(target=_run, daemon=True)
+    _agent_threads.add(thread)
+    thread.start()
+
+
 @router.get("/tools")
 def agent_tools(user: User = Depends(get_current_user)):
     from app.agent.tools import registry
@@ -70,7 +104,7 @@ def agent_tools(user: User = Depends(get_current_user)):
     return {"tools": registry.describe()}
 
 
-@router.post("/runs")
+@router.post("/runs", status_code=202)
 def start_run(body: CreateRunBody, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Org isolation: runner scopes every tool to user.org_id.
     if user.org_id is None:
@@ -79,8 +113,9 @@ def start_run(body: CreateRunBody, user: User = Depends(get_current_user), db: S
         run = create_run(db, user, body.goal, [s.model_dump() for s in body.steps])
     except (ValueError, KeyError) as e:
         raise HTTPException(400, str(e))
-    run = execute_run(db, run.id)
-    run, steps = _load(run.id, db)
+    run_id = run.id
+    _spawn(run_id)
+    run, steps = _load(run_id, db)
     return _run_dict(run, steps)
 
 
@@ -115,9 +150,13 @@ def approve(run_id: str, seq: int, body: ApproveBody,
     if run.org_id != user.org_id:
         raise HTTPException(404, "run not found")
     try:
-        run = approve_step(db, run_id, seq, body.approved)
+        run = approve_step(db, run_id, seq, body.approved, start=False)
     except (KeyError, ValueError) as e:
         raise HTTPException(400, str(e))
+    if body.approved and run.status == "queued":
+        _spawn(run_id)
+        run, steps = _load(run_id, db)
+        return _run_dict(run, steps)
     run, steps = _load(run_id, db)
     return _run_dict(run, steps)
 
