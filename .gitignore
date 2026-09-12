@@ -90,6 +90,9 @@ backend/debug.err
 backend/server.log
 backend/backend_out.log
 backend/quantive.db.bak-*
+backend/quantive.db.bak
+*_err.txt
+*_err.log
 /5.md
 /6.md
 /work.md
