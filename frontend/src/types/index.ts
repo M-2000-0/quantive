@@ -521,6 +521,352 @@ export type WasteType = 'overpayment' | 'duplicate' | 'uncompetitive' | 'scope_c
 
 export type BottleneckType = 'approval' | 'vendor' | 'budget' | 'compliance' | 'other';
 
+// ── Intelligence Feed Types ──────────────────────────────────────────
+
+export interface AffectedAsset {
+  name: string;
+  type: string;
+  impact: number;
+}
+
+export interface ImpactEvent {
+  id: string;
+  title: string;
+  description: string;
+  category: 'economic' | 'political' | 'commercial' | 'geopolitical' | 'regulatory' | 'environmental';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  region: string;
+  affected_assets: AffectedAsset[];
+  created_at: string;
+}
+
+export interface EventImpactSummary {
+  total_events: number;
+  total_positive: number;
+  total_negative: number;
+  avg_severity: number;
+  critical_count: number;
+}
+
+export interface ImpactedAsset {
+  name: string;
+  type: string;
+  avg_impact: number;
+}
+
+export interface Opportunity {
+  id: string;
+  name: string;
+  ticker: string;
+  type: string;
+  current_price: number;
+  target_price: number;
+  upside: number;
+  relevance_score: number;
+  risk_score: number;
+  risk_level: 'Low' | 'Medium' | 'High';
+  sector: string;
+}
+
+export interface PurchaseRecord {
+  id: string;
+  instrument_name: string;
+  issuer: string;
+  principal: number;
+  coupon: number;
+  purchase_price: number;
+  yield_to_maturity: number;
+  maturity_date: string;
+  days_to_maturity: number;
+  unrealized_pnl: number;
+  type: string;
+  currency: string;
+}
+
+// ── News Types ───────────────────────────────────────────────────────
+
+export interface NewsSource {
+  id: string;
+  name: string;
+  source_type: string;
+  url: string | null;
+  is_active: boolean;
+  last_fetched_at: string | null;
+  article_count: number;
+  config_json: Record<string, unknown> | null;
+}
+
+export interface NewsArticle {
+  id: string;
+  source_id: string;
+  title: string;
+  summary: string;
+  content: string;
+  url: string;
+  published_at: string;
+  category: string;
+  tickers: string[];
+  sentiment: number;
+  is_read: boolean;
+  is_starred: boolean;
+}
+
+export interface NewsDigest {
+  period_hours: number;
+  total_articles: number;
+  categories: Record<string, number>;
+  top_tickers: string[];
+  avg_sentiment: number;
+  articles: NewsArticle[];
+}
+
+export interface NewsStats {
+  total_articles: number;
+  unread_count: number;
+  starred_count: number;
+  by_category: Record<string, number>;
+  by_source: Record<string, number>;
+  avg_sentiment: number;
+}
+
+// ── Task Types ───────────────────────────────────────────────────────
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string | null;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assigned_to: string | null;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  content: string;
+  created_by: string;
+  created_at: string;
+}
+
+// ── Management / CRM Types ──────────────────────────────────────────
+
+export interface Deal {
+  id: string;
+  name: string;
+  company: string | null;
+  value: number;
+  stage: string;
+  probability: number;
+  expected_close_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PipelineSummary {
+  total_deals: number;
+  total_value: number;
+  by_stage: Record<string, { count: number; value: number }>;
+  weighted_value: number;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  status: string;
+  sent_count: number;
+  open_count: number;
+  click_count: number;
+  created_at: string;
+}
+
+export interface Revenue {
+  mrr: number;
+  arr: number;
+  growth_rate: number;
+  by_plan: Record<string, number>;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  plan: string;
+  status: string;
+  mrr: number;
+  created_at: string;
+}
+
+export interface ChurnData {
+  rate: number;
+  total_customers: number;
+  churned_customers: number;
+  by_reason: Record<string, number>;
+}
+
+// ── Webhook Types ────────────────────────────────────────────────────
+
+export interface Webhook {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+}
+
+// ── Backup Types ─────────────────────────────────────────────────────
+
+export interface BackupStatus {
+  last_backup: string | null;
+  backup_count: number;
+  next_scheduled: string | null;
+  storage_used_bytes: number;
+}
+
+// ── Pricing Types ────────────────────────────────────────────────────
+
+export interface PricingResult {
+  base_price: number;
+  discount: number;
+  final_price: number;
+  optimization_type: string;
+  debt_outstanding: number;
+}
+
+// ── Pilot Program Types ──────────────────────────────────────────────
+
+export interface PilotProgram {
+  id: string;
+  name: string;
+  status: string;
+  start_date: string;
+  end_date: string | null;
+  participants: number;
+  metrics: Record<string, unknown>;
+}
+
+// ── Government Relations Types ───────────────────────────────────────
+
+export interface GovernmentOpportunity {
+  id: string;
+  title: string;
+  agency: string;
+  value: number;
+  status: string;
+  deadline: string | null;
+  created_at: string;
+}
+
+export interface RFP {
+  id: string;
+  title: string;
+  agency: string;
+  status: string;
+  deadline: string | null;
+  created_at: string;
+}
+
+export interface GovernmentContact {
+  id: string;
+  name: string;
+  title: string;
+  agency: string;
+  email: string;
+  phone: string | null;
+}
+
+// ── Immutable Audit Types ────────────────────────────────────────────
+
+export interface ImmutableAuditEvent {
+  id: string;
+  event_type: string;
+  actor_id: string;
+  data: Record<string, unknown>;
+  hash: string;
+  previous_hash: string | null;
+  timestamp: string;
+  verified: boolean;
+}
+
+// ── Approval Workflow Types ──────────────────────────────────────────
+
+export interface ApprovalRequest {
+  id: string;
+  type: string;
+  status: string;
+  requested_by: string;
+  data: Record<string, unknown>;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+// ── Model Validation Types ───────────────────────────────────────────
+
+export interface ValidationResult {
+  id: string;
+  solution_id: string;
+  validation_type: string;
+  passed: boolean;
+  score: number;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+// ── SLA Types ────────────────────────────────────────────────────────
+
+export interface SLACompliance {
+  overall_compliance: number;
+  uptime_pct: number;
+  response_time_pct: number;
+  breaches: number;
+  credits_owed: number;
+}
+
+export interface SLABreach {
+  id: string;
+  type: string;
+  severity: string;
+  started_at: string;
+  resolved_at: string | null;
+  duration_minutes: number;
+  impact: string;
+}
+
+// ── Escrow Types ─────────────────────────────────────────────────────
+
+export interface EscrowAgreement {
+  id: string;
+  name: string;
+  status: string;
+  source_code_url: string | null;
+  version: string | null;
+  created_at: string;
+}
+
+// ── Disaster Recovery Types ──────────────────────────────────────────
+
+export interface DRStatus {
+  status: string;
+  last_backup: string | null;
+  last_test: string | null;
+  rto_hours: number;
+  rpo_hours: number;
+  compliance_score: number;
+}
+
+export interface DRBackup {
+  id: string;
+  type: string;
+  location: string;
+  size_bytes: number;
+  created_at: string;
+  verified: boolean;
+}
+
 // ── Export Types ───────────────────────────────────────────────────
 
 export interface ExportJob {
@@ -535,3 +881,46 @@ export interface ExportJob {
   created_at: string;
   completed_at: string | null;
 }
+
+// Agent runs + projects
+
+export interface AgentStep {
+  seq: number;
+  tool: string;
+  args: Record<string, unknown>;
+  status: string;
+  output: Record<string, unknown> | null;
+  approval_status: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  error: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface AgentRun {
+  id: string;
+  goal: string;
+  status: string;
+  current_step: number;
+  error: string;
+  created_at: string | null;
+  completed_at: string | null;
+  steps: AgentStep[];
+}
+
+export interface AgentTool {
+  name: string;
+  description: string;
+  risk: string;
+  min_role: string;
+  timeout_seconds: number;
+  cost: number;
+}
+
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  status: string;
+}
+

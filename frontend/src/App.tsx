@@ -24,10 +24,15 @@ import {
 import { useAuth } from './stores/auth';
 import { useDemoMode } from './stores/demoMode';
 import DemoModeBanner from './components/DemoModeBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const QuboPage = lazy(() => import('./pages/QuboPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const GovernmentPage = lazy(() => import('./pages/GovernmentPage'));
+const BusinessPage = lazy(() => import('./pages/BusinessPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const EventImpactDashboard = lazy(() => import('./pages/EventImpactDashboard'));
@@ -37,16 +42,29 @@ const TransparencyIndexPage = lazy(() => import('./pages/TransparencyIndexPage')
 const OutcomePricingPage = lazy(() => import('./pages/OutcomePricingPage'));
 const CaseStudyGeneratorPage = lazy(() => import('./pages/CaseStudyGeneratorPage'));
 const PortfolioDetailPage = lazy(() => import('./pages/PortfolioDetailPage'));
+const RiskDashboardPage = lazy(() => import('./pages/RiskDashboardPage'));
+const SolverTournamentPage = lazy(() => import('./pages/SolverTournamentPage'));
 const ProcurementDashboardPage = lazy(() => import('./pages/ProcurementDashboardPage'));
 const GovernmentPilotPage = lazy(() => import('./pages/GovernmentPilotPage'));
 const SovereignModePage = lazy(() => import('./pages/SovereignModePage'));
 const AuditTrailPage = lazy(() => import('./pages/AuditTrailPage'));
 const ApprovalWorkflowPage = lazy(() => import('./pages/ApprovalWorkflowPage'));
+const AgentRunsPage = lazy(() => import('./pages/AgentRunsPage'));
 const ModelValidationPage = lazy(() => import('./pages/ModelValidationPage'));
 const InteroperabilityPage = lazy(() => import('./pages/InteroperabilityPage'));
 const DisasterRecoveryPage = lazy(() => import('./pages/DisasterRecoveryPage'));
 const SLAMonitoringPage = lazy(() => import('./pages/SLAMonitoringPage'));
 const EscrowPage = lazy(() => import('./pages/EscrowPage'));
+const PersonalLayout = lazy(() => import('./personal/PersonalLayout'));
+const PersonalDashboard = lazy(() => import('./personal/pages/DashboardPage'));
+const PersonalOnboarding = lazy(() => import('./personal/pages/OnboardingPage'));
+const PersonalProfile = lazy(() => import('./personal/pages/ProfilePage'));
+const PersonalOpportunities = lazy(() => import('./personal/pages/OpportunitiesPage'));
+const PersonalDocuments = lazy(() => import('./personal/pages/DocumentsPage'));
+const PersonalIntelligence = lazy(() => import('./personal/pages/IntelligencePage'));
+const PersonalReports = lazy(() => import('./personal/pages/ReportsPage'));
+const PersonalPricing = lazy(() => import('./personal/pages/PricingPage'));
+const PersonalGov = lazy(() => import('./personal/pages/GovInsightsPage'));
 
 function isAuthenticated(): boolean {
   try {
@@ -78,16 +96,30 @@ function readStoredUser(): { name: string; role: string } | null {
 }
 
 const NAV_ITEMS = [
+  // ── MVP core loop: Overview -> Optimize -> Risk -> Solvers ──
   { label: 'Overview', to: '/dashboard', icon: LayoutGrid },
-  { label: 'Portfolio', to: '/dashboard', icon: BriefcaseBusiness },
+  { label: 'Optimizations', to: '/optimizations', icon: BriefcaseBusiness },
   { label: 'Insights', to: '/events', icon: Gauge },
   { label: 'Risk', to: '/risk-dashboard', icon: ShieldCheck },
   { label: 'Solvers', to: '/solver-tournament', icon: Sparkles },
+  // ── Extended (defer for MVP, kept for deep-link compat) ──
   { label: 'Transparency Index', to: '/transparency-index', icon: LayoutGrid },
   { label: 'Pricing', to: '/pricing', icon: LayoutGrid },
   { label: 'Case Studies', to: '/case-studies', icon: LayoutGrid },
+  { label: 'Pilots', to: '/pilots', icon: BriefcaseBusiness },
+  { label: 'Procurement', to: '/procurement', icon: BriefcaseBusiness },
+  { label: 'Sovereign Mode', to: '/sovereign-mode', icon: ShieldCheck },
+  { label: 'Audit Trail', to: '/audit-trail', icon: ShieldCheck },
+  { label: 'Approvals', to: '/approvals', icon: ShieldCheck },
+  { label: 'Agent Runs', to: '/agent-runs', icon: Sparkles },
+  { label: 'Model Validation', to: '/model-validation', icon: ShieldCheck },
+  { label: 'Interoperability', to: '/interoperability', icon: BriefcaseBusiness },
+  { label: 'DR', to: '/disaster-recovery', icon: ShieldCheck },
+  { label: 'SLA', to: '/sla', icon: ShieldCheck },
+  { label: 'Escrow', to: '/escrow', icon: BriefcaseBusiness },
   { label: 'Security', to: '/settings', icon: ShieldCheck },
   { label: 'Settings', to: '/settings', icon: Settings },
+  { label: 'Personal ★', to: '/personal', icon: Sparkles },
 ];
 
 function AppLayout() {
@@ -142,6 +174,12 @@ function AppLayout() {
 
   return (
     <div className="apple-shell">
+      <a href="#main-content" className="skip-to-content" style={{
+        position: 'absolute', left: '-9999px', top: 'auto', width: 1, height: 1,
+        overflow: 'hidden', zIndex: 9999,
+      }}>
+        Skip to main content
+      </a>
       <DemoModeBanner />
       <aside className="sidebar">
         <Link to="/dashboard" className="brand-row" style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -182,8 +220,8 @@ function AppLayout() {
         </div>
       </aside>
 
-      <main className="main-panel">
-        <header className="topbar">
+        <main id="main-content" tabIndex={-1} className="main-panel">
+          <header className="topbar">
           <form className="search-box" role="search" onSubmit={submitSearch}>
             <Search size={16} aria-hidden="true" />
             <input
@@ -281,6 +319,14 @@ function AppLayout() {
   );
 }
 
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary>
+      {children}
+    </ErrorBoundary>
+  );
+}
+
 export default function App() {
   return (
     <Suspense fallback={
@@ -289,9 +335,13 @@ export default function App() {
       </div>
     }>
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
+      <Route path="/qubo" element={<PageWrapper><QuboPage /></PageWrapper>} />
+      <Route path="/terms" element={<PageWrapper><TermsPage /></PageWrapper>} />
+      <Route path="/government" element={<PageWrapper><GovernmentPage /></PageWrapper>} />
+      <Route path="/business" element={<PageWrapper><BusinessPage /></PageWrapper>} />
+      <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
+      <Route path="/register" element={<PageWrapper><RegisterPage /></PageWrapper>} />
       <Route
         path="/dashboard"
         element={
@@ -300,8 +350,8 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
-        <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
+        <Route index element={<PageWrapper><DashboardPage /></PageWrapper>} />
+        <Route path="portfolios/:id" element={<PageWrapper><PortfolioDetailPage /></PageWrapper>} />
       </Route>
       <Route
         path="/settings"
@@ -311,7 +361,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<SettingsPage />} />
+        <Route index element={<PageWrapper><SettingsPage /></PageWrapper>} />
       </Route>
       <Route
         path="/events"
@@ -321,7 +371,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<EventImpactDashboard />} />
+        <Route index element={<PageWrapper><EventImpactDashboard /></PageWrapper>} />
       </Route>
       <Route
         path="/risk-dashboard"
@@ -331,7 +381,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<RiskDashboardPage />} />
+        <Route index element={<PageWrapper><RiskDashboardPage /></PageWrapper>} />
       </Route>
       <Route
         path="/solver-tournament"
@@ -341,7 +391,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<SolverTournamentPage />} />
+        <Route index element={<PageWrapper><SolverTournamentPage /></PageWrapper>} />
       </Route>
       <Route
         path="/optimizations"
@@ -351,8 +401,8 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<OptimizationsPage />} />
-        <Route path="new" element={<NewOptimizationPage />} />
+        <Route index element={<PageWrapper><OptimizationsPage /></PageWrapper>} />
+        <Route path="new" element={<PageWrapper><NewOptimizationPage /></PageWrapper>} />
       </Route>
       <Route
         path="/transparency-index"
@@ -362,7 +412,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<TransparencyIndexPage />} />
+        <Route index element={<PageWrapper><TransparencyIndexPage /></PageWrapper>} />
       </Route>
       <Route
         path="/pricing"
@@ -372,7 +422,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<OutcomePricingPage />} />
+        <Route index element={<PageWrapper><OutcomePricingPage /></PageWrapper>} />
       </Route>
       <Route
         path="/case-studies"
@@ -382,7 +432,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<CaseStudyGeneratorPage />} />
+        <Route index element={<PageWrapper><CaseStudyGeneratorPage /></PageWrapper>} />
       </Route>
       <Route
         path="/procurement"
@@ -392,7 +442,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<ProcurementDashboardPage />} />
+        <Route index element={<PageWrapper><ProcurementDashboardPage /></PageWrapper>} />
       </Route>
       <Route
         path="/pilots"
@@ -402,7 +452,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<GovernmentPilotPage />} />
+        <Route index element={<PageWrapper><GovernmentPilotPage /></PageWrapper>} />
       </Route>
       <Route
         path="/sovereign-mode"
@@ -412,7 +462,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<SovereignModePage />} />
+        <Route index element={<PageWrapper><SovereignModePage /></PageWrapper>} />
       </Route>
       <Route
         path="/audit-trail"
@@ -422,7 +472,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<AuditTrailPage />} />
+        <Route index element={<PageWrapper><AuditTrailPage /></PageWrapper>} />
       </Route>
       <Route
         path="/approvals"
@@ -432,7 +482,17 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<ApprovalWorkflowPage />} />
+        <Route index element={<PageWrapper><ApprovalWorkflowPage /></PageWrapper>} />
+      </Route>
+      <Route
+        path="/agent-runs"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><AgentRunsPage /></PageWrapper>} />
       </Route>
       <Route
         path="/model-validation"
@@ -442,7 +502,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<ModelValidationPage />} />
+        <Route index element={<PageWrapper><ModelValidationPage /></PageWrapper>} />
       </Route>
       <Route
         path="/interoperability"
@@ -452,7 +512,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<InteroperabilityPage />} />
+        <Route index element={<PageWrapper><InteroperabilityPage /></PageWrapper>} />
       </Route>
       <Route
         path="/disaster-recovery"
@@ -462,7 +522,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DisasterRecoveryPage />} />
+        <Route index element={<PageWrapper><DisasterRecoveryPage /></PageWrapper>} />
       </Route>
       <Route
         path="/sla"
@@ -472,7 +532,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<SLAMonitoringPage />} />
+        <Route index element={<PageWrapper><SLAMonitoringPage /></PageWrapper>} />
       </Route>
       <Route
         path="/escrow"
@@ -482,9 +542,27 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<EscrowPage />} />
+        <Route index element={<PageWrapper><EscrowPage /></PageWrapper>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/personal"
+        element={
+          <ProtectedRoute>
+            <PageWrapper><PersonalLayout /></PageWrapper>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><PersonalDashboard /></PageWrapper>} />
+        <Route path="onboarding" element={<PageWrapper><PersonalOnboarding /></PageWrapper>} />
+        <Route path="profile" element={<PageWrapper><PersonalProfile /></PageWrapper>} />
+        <Route path="opportunities" element={<PageWrapper><PersonalOpportunities /></PageWrapper>} />
+        <Route path="documents" element={<PageWrapper><PersonalDocuments /></PageWrapper>} />
+        <Route path="intelligence" element={<PageWrapper><PersonalIntelligence /></PageWrapper>} />
+        <Route path="gov" element={<PageWrapper><PersonalGov /></PageWrapper>} />
+        <Route path="reports" element={<PageWrapper><PersonalReports /></PageWrapper>} />
+        <Route path="pricing" element={<PageWrapper><PersonalPricing /></PageWrapper>} />
+      </Route>
     </Routes>
     </Suspense>
   );
