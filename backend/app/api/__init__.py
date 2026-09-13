@@ -136,6 +136,7 @@ from app.api import (
     sso,
     agent_api,
     projects_api,
+    qubo_api,
 )
 from app.personal.api import router as personal_router
 from app.database import get_db
@@ -281,6 +282,7 @@ router.include_router(workflows.router)
 router.include_router(sso.router)
 router.include_router(agent_api.router)
 router.include_router(projects_api.router)
+router.include_router(qubo_api.router)
 router.include_router(personal_router)
 
 

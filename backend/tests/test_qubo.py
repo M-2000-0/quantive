@@ -128,3 +128,14 @@ def test_gov_insights_uses_live_engine_and_bracket(pdb, monkeypatch):
     assert "is_live" in res and "as_of" in res and "contributors_total" in res
     assert res["trends"]  # illustrative fallback still returns rows
     assert "Aggregates only" in res["privacy"]
+
+
+def test_public_qubo_endpoint_needs_no_auth(pdb):
+    from app.api import qubo_api
+    for i in range(5):
+        _opted_user(pdb, f"pub{i}", "45-54", investing="yes")
+    res = qubo_api.public_trends(db=pdb)  # no user arg — public by design
+    assert res["is_live"] is True
+    assert res["contributors_total"] == 5
+    assert res["brackets"] == qubo_mod.AGE_BRACKETS
+    assert any(t["segment"] == "45-54" for t in res["trends"])
