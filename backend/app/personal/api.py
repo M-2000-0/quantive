@@ -17,6 +17,8 @@ from app.personal.models import (
 )
 from app.personal.onboarding_questions import QUESTIONS, visible_questions
 from app.personal.opportunity_engine import detect
+from app.personal import qubo as qubo_engine
+from app.personal.qubo import AGE_BRACKETS
 from app.personal.schemas import FactUpsert, OnboardingAnswer
 from app.personal.scoring import compute_score
 from app.security import get_current_user
@@ -375,6 +377,11 @@ def intelligence_ask(payload: dict, user=Depends(get_current_user),
     gov_note = ("Sovereign context: your bracket's aggregated investing vs spending trend is available in Gov insights."
                 if tier == "personal_10k" else
                 "Sovereign Gov-grade trends are not included in your plan.")
+    seen_refs: list[str] = []
+    for o in opps[:5]:
+        for r in (o.rule_refs or []):
+            if r not in seen_refs:
+                seen_refs.append(r)
     return {
         "answer_kind": "structured_preview",
         "confidence": "potential",
@@ -382,7 +389,7 @@ def intelligence_ask(payload: dict, user=Depends(get_current_user),
         "what_i_know": known,
         "what_i_need": ["applicable tax regime", "whether the expense is attributable to qualifying activity"],
         "related_opportunities": [o.title for o in opps[:5]],
-        "rule_refs": ["GEN-2026-home-office"],
+        "rule_refs": seen_refs[:4] or ["GEN-2026-home-office"],
         "next_step": "Answer 2 questions in onboarding/tax section.",
         "gov_note": gov_note,
         "asks_used_30d": used,
@@ -404,9 +411,14 @@ def report(user=Depends(get_current_user), db: Session = Depends(get_personal_db
     docs = db.query(PersonalDocument).filter(PersonalDocument.user_id == user_id).all()
     full_report = bool((limits or {}).get("personal_annual_report", 1))
     gov = bool((limits or {}).get("personal_gov_access"))
+    from app.personal.tax_packs import normalize_country as _norm
+    juris = _norm(str((answers.get("country") or [""])[0] if isinstance(answers.get("country"), list) else (answers.get("country") or "")))
     base = {
         "tax_year": 2026,
         "tier": tier,
+        "jurisdiction": juris,
+        "jurisdiction_note": ("Country-specific pack" if juris != "GEN"
+                              else "Generic rules only — set your country in onboarding for specific guidance."),
         "summary_only": not full_report,
         "gov_access": gov,
         "profile_completeness": round(100 * len(answers) / max(1, len(vis))),
@@ -427,6 +439,43 @@ def report(user=Depends(get_current_user), db: Session = Depends(get_personal_db
     return base
 
 
+@router.get("/qubo/status")
+def qubo_status(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Current user's Qubo consent + bracket (patterns-not-people contract)."""
+    user_id = _uid(user)
+    return {"opt_in": qubo_engine.is_opted_in(db, user_id),
+            "age_bracket": qubo_engine.get_bracket(db, user_id),
+            "brackets": AGE_BRACKETS,
+            "privacy": qubo_engine.PRIVACY_NOTE}
+
+
+@router.post("/qubo/consent")
+def qubo_consent(payload: dict, user=Depends(get_current_user),
+                 db: Session = Depends(get_personal_db)):
+    """Explicit opt-in/out (+ optional age bracket). Audited, reversible."""
+    user_id = _uid(user)
+    opt_in = bool((payload or {}).get("opt_in", False))
+    bracket = (payload or {}).get("age_bracket")
+    if bracket is not None:
+        bracket = str(bracket)
+    try:
+        out = qubo_engine.set_consent(db, user_id, opt_in, age_bracket=bracket)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    _audit(db, user_id, "qubo.consent", "opt_in", "",
+           {"opt_in": opt_in, "age_bracket": out.get("age_bracket")})
+    return {**out, "brackets": AGE_BRACKETS, "privacy": qubo_engine.PRIVACY_NOTE}
+
+
+@router.get("/qubo/trends")
+def qubo_trends(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Live Qubo aggregates for logged-in users (same engine as public)."""
+    data = qubo_engine.public_trends(db)
+    data["your_bracket"] = qubo_engine.get_bracket(db, _uid(user))
+    data["opt_in"] = qubo_engine.is_opted_in(db, _uid(user))
+    return data
+
+
 @router.get("/gov-insights")
 def gov_insights(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
     """Sovereign-tier Gov-grade market view. Aggregates only — same Qubo contract."""
@@ -434,19 +483,20 @@ def gov_insights(user=Depends(get_current_user), db: Session = Depends(get_perso
     if not (limits or {}).get("personal_gov_access"):
         raise HTTPException(403, "Sovereign plan required ($10k/yr) for Gov-grade market access.")
     user_id = _uid(user)
-    facts = {r.key: r.value for r in db.query(ProfileFact).filter(ProfileFact.user_id == user_id).all()}
-    bracket = facts.get("dependents_count", "unknown")
+    live = qubo_engine.public_trends(db)
+    bracket = qubo_engine.get_bracket(db, user_id) or "unknown"
     _audit(db, user_id, "gov.view")
     return {
         "tier": tier,
         "bracket": bracket,
-        "trends": [
-            {"segment": "25-34", "signal": "investing more in diversified instruments", "direction": "up"},
-            {"segment": "35-44", "signal": "spending more on housing-related costs", "direction": "up"},
-            {"segment": "45-54", "signal": "allocating more toward retirement contributions", "direction": "flat"},
-        ],
+        "your_bracket": bracket,
+        "is_live": live["is_live"],
+        "as_of": live.get("as_of"),
+        "contributors_total": live.get("contributors_total", 0),
+        "trends": live["trends"],
         "how_to_use": "Compare your allocation against your bracket — informational only, not advice.",
-        "privacy": "Aggregates only. No names, conversations, or individual records are ever exposed.",
+        "privacy": live.get("privacy") or "Aggregates only. No names, conversations, or individual records are ever exposed.",
+        "note": live.get("note", ""),
     }
 
 

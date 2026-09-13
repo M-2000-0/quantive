@@ -92,3 +92,39 @@ def test_public_trends_labels_illustrative_when_empty(pdb):
     assert pub["is_live"] is False
     assert pub["trends"] == qubo_mod.ILLUSTRATIVE_TRENDS
     assert "Illustrative" in pub["note"]
+
+
+def _stub_user(uid="qubo_user"):
+    return type("StubUser", (), {"id": uid, "org_id": f"org_{uid}"})()
+
+
+def test_qubo_status_and_consent_routes(pdb):
+    import app.personal.api as personal_api
+    uid = "route_user"
+    st = personal_api.qubo_status(user=_stub_user(uid), db=pdb)
+    assert st["opt_in"] is False and st["age_bracket"] is None
+    assert st["brackets"] == qubo_mod.AGE_BRACKETS
+    out = personal_api.qubo_consent({"opt_in": True, "age_bracket": "25-34"},
+                                    user=_stub_user(uid), db=pdb)
+    assert out["opt_in"] is True and out["age_bracket"] == "25-34"
+    st2 = personal_api.qubo_status(user=_stub_user(uid), db=pdb)
+    assert st2["opt_in"] is True
+    from fastapi import HTTPException
+    import pytest as _pt
+    with _pt.raises(HTTPException) as exc:
+        personal_api.qubo_consent({"opt_in": True, "age_bracket": "nope"},
+                                  user=_stub_user(uid), db=pdb)
+    assert exc.value.status_code == 422
+
+
+def test_gov_insights_uses_live_engine_and_bracket(pdb, monkeypatch):
+    import app.personal.api as personal_api
+    uid = "gov_live_user"
+    qubo_mod.set_consent(pdb, uid, True, age_bracket="35-44")
+    monkeypatch.setattr(personal_api, "_personal_plan",
+                        lambda user: ("personal_10k", {"personal_gov_access": 1}))
+    res = personal_api.gov_insights(user=_stub_user(uid), db=pdb)
+    assert res["bracket"] == "35-44"  # age bracket, not dependents_count
+    assert "is_live" in res and "as_of" in res and "contributors_total" in res
+    assert res["trends"]  # illustrative fallback still returns rows
+    assert "Aggregates only" in res["privacy"]
