@@ -2,8 +2,15 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { personalApi } from '../api';
 
+interface GovData {
+  trends: { segment: string; signal: string; direction: string }[];
+  how_to_use: string; privacy: string;
+  is_live?: boolean; as_of?: string; contributors_total?: number;
+  your_bracket?: string; note?: string;
+}
+
 export default function GovInsightsPage() {
-  const [data, setData] = useState<{ trends: { segment: string; signal: string; direction: string }[]; how_to_use: string; privacy: string } | null>(null);
+  const [data, setData] = useState<GovData | null>(null);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -24,6 +31,12 @@ export default function GovInsightsPage() {
   return (
     <div>
       <h1>Sovereign view</h1>
+      <p className="qp-muted">
+        {data.is_live
+          ? `● Live aggregates · ${data.contributors_total ?? 0} contributors${data.as_of ? ` · as of ${new Date(data.as_of).toLocaleString()}` : ''}`
+          : `○ Illustrative preview${typeof data.contributors_total === 'number' ? ` · ${data.contributors_total} contributors so far` : ''} — live brackets unlock as opt-ins grow`}
+        {data.your_bracket && data.your_bracket !== 'unknown' ? ` · your bracket ${data.your_bracket}` : ''}
+      </p>
       <p className="qp-muted">{data.how_to_use}</p>
       <div className="qp-list">
         {data.trends.map((t) => (
@@ -34,7 +47,11 @@ export default function GovInsightsPage() {
           </div>
         ))}
       </div>
+      {data.note ? <p className="qp-muted" style={{ marginTop: 8 }}>{data.note}</p> : null}
       <p className="qp-muted" style={{ marginTop: 12 }}>{data.privacy}</p>
+      <p className="qp-muted" style={{ marginTop: 8 }}>
+        Want your bracket counted? <Link to="/qubo">Manage Qubo contribution →</Link>
+      </p>
     </div>
   );
 }

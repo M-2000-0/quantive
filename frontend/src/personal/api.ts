@@ -86,5 +86,11 @@ export const personalApi = {
   billing: () => req<PersonalBilling>('/personal/billing'),
   checkout: (tier: string, billing_cycle = 'yearly') =>
     req<any>('/personal/billing/checkout', { method: 'POST', body: JSON.stringify({ tier, billing_cycle }) }),
-  govInsights: () => req<{ tier: string; trends: { segment: string; signal: string; direction: string }[]; how_to_use: string; privacy: string }>('/personal/gov-insights'),
+  govInsights: () => req<{ tier: string; bracket: string; trends: { segment: string; signal: string; direction: string }[]; how_to_use: string; privacy: string; is_live?: boolean; as_of?: string; contributors_total?: number; your_bracket?: string; note?: string }>('/personal/gov-insights'),
+  quboStatus: () => req<{ opt_in: boolean; age_bracket: string | null; brackets: string[]; privacy: string }>('/personal/qubo/status'),
+  quboConsent: (opt_in: boolean, age_bracket?: string) =>
+    req<{ opt_in: boolean; age_bracket: string | null }>('/personal/qubo/consent', {
+      method: 'POST', body: JSON.stringify({ opt_in, age_bracket }),
+    }),
+  quboTrends: () => req<{ is_live: boolean; trends: { segment: string; signal: string; direction: string }[]; contributors_total: number; your_bracket: string | null; opt_in: boolean }>('/personal/qubo/trends'),
 };
