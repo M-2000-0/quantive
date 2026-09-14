@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantive Banking — 0% transaction fees. AI CFO included.</title>
+<meta name="description" content="Free business accounts, free ACH, 0% transaction fees, with instant AI bookkeeping, tax categorization, cash-flow forecasting and an AI CFO. Deposits held with a regulated banking partner.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="quantive-logo.png">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0A0A0B;color:#F5F5F3;line-height:1.5;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+:root{
+  --bg:#0A0A0B;--surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.055);
+  --line:rgba(255,255,255,0.08);--line2:rgba(255,255,255,0.13);--line3:rgba(255,255,255,0.18);
+  --text:#F5F5F3;--muted:#8A8A90;--muted2:#5E5E66;--muted3:#3F3F45;
+  --accent:#4D8DFF;--max:1120px;--ease:cubic-bezier(.16,1,.3,1);
+}
+.nav{position:sticky;top:0;z-index:20;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;max-width:var(--max);margin:0 auto;width:100%;background:rgba(10,10,11,0.78);backdrop-filter:blur(16px) saturate(1.15);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px}
+.mark{width:46px;height:46px;border-radius:12px;background:#0A0A0B;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden}
+.mark img{width:40px;height:40px;object-fit:contain}
+.brand{font-size:17px;font-weight:700;letter-spacing:-0.03em}
+.brand span{font-family:'Instrument Serif',serif;font-weight:400;font-style:italic;color:#A8A8AE;font-size:15px;margin-left:4px}
+.links{display:flex;align-items:center;gap:22px}
+.links a{font-size:13px;font-weight:500;color:var(--muted)}
+.links a:hover{color:var(--text)}
+.pill{font-size:10.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:var(--accent);color:#0A0A0B;padding:3px 8px;border-radius:100px;margin-left:6px;vertical-align:middle}
+.cta{padding:9px 16px;border-radius:100px;background:#F5F5F3;color:#0A0A0B;font-size:13px;font-weight:650;display:inline-flex;align-items:center;gap:6px;transition:all .18s var(--ease)}
+.cta:hover{transform:translateY(-1px)}
+.ghost{padding:9px 14px;border-radius:100px;border:1px solid var(--line2);font-size:13px;font-weight:550;background:rgba(255,255,255,0.03)}
+.ghost:hover{background:rgba(255,255,255,0.07)}
+.hero{max-width:var(--max);margin:0 auto;padding:64px 32px 48px;display:grid;grid-template-columns:1.02fr 0.98fr;gap:48px;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:100px;border:1px solid var(--line);background:rgba(255,255,255,0.04);font-size:12px;color:var(--muted)}
+.badge i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(77,141,255,0.15)}
+.hero h1{margin-top:22px;font-family:'Instrument Serif',serif;font-size:clamp(44px,6vw,74px);font-weight:400;line-height:0.92;letter-spacing:-0.05em}
+.hero h1 em{font-style:italic;color:#C8C8CE}
+.hero h1 .zero{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-0.06em;color:var(--accent)}
+.sub{margin-top:16px;max-width:560px;font-size:17px;line-height:1.65;color:var(--muted)}
+.sub strong{color:var(--text)}
+.actions{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+.btn{padding:12px 20px;border-radius:100px;font-size:14px;font-weight:620;display:inline-flex;align-items:center;gap:7px;border:none;cursor:pointer;transition:all .18s var(--ease);white-space:nowrap}
+.btn-dark{background:#F5F5F3;color:#0A0A0B}
+.btn-dark:hover{transform:translateY(-1px)}
+.btn-line{background:rgba(255,255,255,0.04);color:var(--text);border:1px solid var(--line2)}
+.btn-line:hover{background:rgba(255,255,255,0.07);transform:translateY(-1px)}
+.btn-green{background:var(--accent);color:#0A0A0B;font-weight:700}
+.meta{margin-top:20px;display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--muted2);font-weight:550;letter-spacing:0.02em;text-transform:uppercase}
+.fine{margin-top:14px;font-size:12px;color:var(--muted2);line-height:1.6;max-width:520px}
+/* Dashboard mock */
+.mock{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#08090B;box-shadow:0 20px 50px rgba(0,0,0,0.38)}
+.mock-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,0.02)}
+.dots{display:flex;gap:6px}.dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12)}
+.bar-title{font-size:10.5px;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted2);font-weight:650}
+.preview-img{display:block;width:100%;background:#0A0A0B}
+.preview-img img{display:block;width:100%;height:560px;object-fit:cover;object-position:top center}
+.fee{background:var(--accent);color:#0A0A0B;font-weight:800;font-size:11px;padding:2px 8px;border-radius:100px}
+/* Sections */
+.section{max-width:var(--max);margin:0 auto;padding:80px 32px;border-top:1px solid var(--line)}
+.eyebrow{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-weight:700;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:18px;height:1px;background:var(--line2)}
+.title{margin-top:10px;font-family:'Instrument Serif',serif;font-size:36px;line-height:0.95;letter-spacing:-0.04em;font-weight:400}
+.title em{font-style:italic;color:#C8C8CE}
+.desc{margin-top:10px;max-width:560px;font-size:14px;line-height:1.65;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+.card{padding:22px;border-radius:16px;background:var(--surface);border:1px solid var(--line);transition:all .2s var(--ease)}
+.card:hover{transform:translateY(-2px);border-color:var(--line2);background:var(--surface2)}
+.card.wide{grid-column:span 1}
+.card-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);background:rgba(255,255,255,0.04);font-size:13px;margin-bottom:14px}
+.card h3{font-size:14px;font-weight:680}
+.card h3 .free-tag{font-size:10px;font-weight:800;letter-spacing:0.05em;background:var(--accent);color:#0A0A0B;padding:2px 7px;border-radius:100px;margin-left:6px;vertical-align:middle}
+.card p{margin-top:7px;font-size:13px;line-height:1.6;color:var(--muted)}
+.table-wrap{margin-top:28px;border-radius:16px;border:1px solid var(--line);background:var(--surface);overflow:hidden}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:13.5px}
+.table-wrap thead{background:rgba(255,255,255,0.04)}
+.table-wrap th{padding:14px 20px;text-align:left;font-weight:650;font-size:12px;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.table-wrap td{padding:14px 20px;border-bottom:1px solid var(--line);color:var(--muted)}
+.table-wrap tr:last-child td{border-bottom:none}
+.table-wrap td:first-child{color:var(--text);font-weight:550}
+.money{margin-top:28px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.money-card{padding:22px;border-radius:16px;border:1px solid var(--line);background:var(--surface)}
+.money-card b{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent)}
+.money-card h4{margin-top:8px;font-size:14px;font-weight:700}
+.money-card p{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+.price-card{padding:24px;border-radius:16px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column}
+.price-card.featured{border-color:rgba(77,141,255,0.4);background:rgba(77,141,255,0.04)}
+.price-card h4{font-size:14px;font-weight:700}
+.price-card .amount{margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700}
+.price-card .period{font-size:12px;color:var(--muted2)}
+.price-card p{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.6}
+.price-card ul{margin-top:14px;list-style:none;display:grid;gap:7px;flex:1}
+.price-card li{font-size:12.5px;color:var(--muted);display:flex;gap:7px}
+.price-card li::before{content:"✓";color:var(--accent);font-weight:700;font-size:11px}
+.comply{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:28px}
+.comply-card{padding:22px;border-radius:16px;border:1px solid var(--line);background:var(--surface)}
+.comply-card h4{font-size:14px;font-weight:700}
+.comply-card p{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.65}
+.eco{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+.cta-box{margin-top:28px;padding:32px;border-radius:20px;border:1px solid rgba(77,141,255,0.25);background:rgba(77,141,255,0.04);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.cta-box h3{font-family:'Instrument Serif',serif;font-size:26px;font-weight:400;letter-spacing:-0.03em}
+.cta-box p{margin-top:6px;font-size:13px;color:var(--muted)}
+.form{display:flex;gap:8px}
+.input{width:260px;padding:11px 14px;border-radius:100px;background:rgba(255,255,255,0.05);border:1px solid var(--line2);color:var(--text);outline:none;font-size:13px}
+.input:focus{border-color:rgba(77,141,255,0.5);box-shadow:0 0 0 4px rgba(77,141,255,0.12)}
+.faq{margin-top:28px;display:grid;gap:10px}
+.faq details{padding:18px 20px;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
+.faq summary{font-size:14px;font-weight:650;cursor:pointer}
+.faq p{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.65}
+.footer{max-width:var(--max);margin:0 auto;padding:32px;border-top:1px solid var(--line);font-size:12px;color:var(--muted2)}
+.footer .disclosure{margin-top:12px;font-size:11px;line-height:1.6;color:var(--muted3);max-width:800px}
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .55s var(--ease),transform .55s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+@media (max-width:980px){.hero{grid-template-columns:1fr;gap:32px}.cards,.pricing,.eco{grid-template-columns:1fr}.money{grid-template-columns:1fr 1fr}.comply{grid-template-columns:1fr}.preview-img img{height:420px}}
+@media (max-width:900px){.nav{padding:0 18px}.hero,.section{padding-left:18px;padding-right:18px}.links a:not(.cta):not(.ghost){display:none}.form{flex-direction:column;width:100%}.input{width:100%}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="logo" href="index.html"><div class="mark"><img src="quantive-logo.png" alt="Quantive"></div><span class="brand">Quantive <span>Banking</span></span></a>
+  <div class="links">
+    <a href="#products">Products</a>
+    <a href="#features">Features</a>
+    <a href="#model">How we make money</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#compliance">Compliance</a>
+    <a href="index.html" class="ghost">Quantive Home</a>
+    <a href="#cta" class="cta">Open free account →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <div class="badge reveal"><i></i> New — Quantive Banking · Built on Quantive Finance</div>
+    <h1 class="reveal">Business banking with <span class="zero">0%</span> transaction fees. <em>AI CFO included.</em></h1>
+    <p class="sub reveal">Free business accounts. Free ACH / bank transfers. Instant bookkeeping, tax categorization, and cash-flow forecasting — <strong>without charging you per transaction.</strong></p>
+    <p class="sub reveal" style="font-size:14px;margin-top:10px">We don't charge transaction fees. We earn money by using deposited funds — deposits held with a regulated banking partner that generate interest income we share. Simple, transparent, compliant.</p>
+    <div class="actions reveal">
+      <a href="#cta" class="btn btn-green">Open a free account →</a>
+      <a href="#model" class="btn btn-line">How we make money</a>
+    </div>
+    <div class="meta reveal"><span>◆ 0% transaction fee</span><span>◆ Free ACH</span><span>◆ AI CFO included</span></div>
+    <p class="fine">Quantive Banking is a financial technology product, not a bank. Banking services provided by a licensed partner bank, member FDIC. Funds held at partner bank [Partner name — pending]. Compliance, KYC/KYB, AML monitoring and reporting handled through our banking partner.</p>
+  </div>
+
+  <div class="mock reveal">
+    <div class="mock-bar"><div style="display:flex;align-items:center;gap:10px"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span class="bar-title">Quantive Banking — Live</span></div><span class="bar-title fee">0% FEE</span></div>
+    <div class="preview-img">
+      <img src="QBanking.jpeg" alt="Quantive Banking dashboard — $184,290 available balance, $0.00 fees paid, +$42K forecast, recent movement and AI assistant" loading="eager">
+    </div>
+  </div>
+</section>
+
+<!-- 3 PRODUCTS -->
+<section class="section" id="products">
+  <div class="reveal"><div class="eyebrow">One enterprise — three products</div>
+  <h2 class="title">An AI financial <em>operating system,</em> not just an account.</h2>
+  <p class="desc">Shared login and billing. Separate data boundaries. Banking plugs directly into the tools that already run your money.</p></div>
+  <div class="eco">
+    <div class="card reveal"><div class="card-icon">◈</div><h3>Quantive Finance</h3><p>Business banking dashboard, AI CFO, AI Tax Assistant, payment processing, multi-bank management. The brain behind Banking.</p></div>
+    <div class="card reveal" style="border-color:rgba(77,141,255,0.4);background:rgba(77,141,255,0.04)"><div class="card-icon">◆</div><h3>Quantive Banking <span class="free-tag">NEW</span></h3><p>Free business accounts, 0% transaction fees, free ACH. Deposits held with a regulated partner bank. Earns via deposit interest — not fees.</p></div>
+    <div class="card reveal"><div class="card-icon">◎</div><h3>Open Doorway + ARM</h3><p>Property investment marketplace (Doorway) plus ARM — the customer acquisition and follow-up engine that chases invoices and fills pipelines.</p></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="reveal"><div class="eyebrow">What you get</div>
+  <h2 class="title">Everything Stripe and Mercury charge for. <em>$0.</em></h2>
+  <p class="desc">We compete by removing fees — not by removing regulation.</p></div>
+  <div class="cards">
+    <div class="card reveal"><div class="card-icon">0%</div><h3>0% transaction fee <span class="free-tag">FREE</span></h3><p>Card, transfer, invoice payments — no per-transaction cut. Move $10K or $10M, you pay $0.</p></div>
+    <div class="card reveal"><div class="card-icon">▭</div><h3>Free business accounts <span class="free-tag">FREE</span></h3><p>Open in minutes. No minimums, no monthly account fee, no hidden tiers to "unlock" your own money.</p></div>
+    <div class="card reveal"><div class="card-icon">⇄</div><h3>Free ACH / bank transfers <span class="free-tag">FREE</span></h3><p>Same-day ACH and standard bank transfers included. Payroll, vendors, rent — free.</p></div>
+    <div class="card reveal"><div class="card-icon">◈</div><h3>Instant AI bookkeeping</h3><p>Every transaction categorized the second it lands. Books stay close-ready without data entry.</p></div>
+    <div class="card reveal"><div class="card-icon">◎</div><h3>AI tax categorization</h3><p>Deductions tagged automatically, quarterly set-asides estimated, CPA-ready export at year end.</p></div>
+    <div class="card reveal"><div class="card-icon">〜</div><h3>AI cash-flow forecasting</h3><p>90-day runway, payroll coverage alerts, and yield-pocket suggestions based on real inflows.</p></div>
+  </div>
+  <div class="cards" style="margin-top:12px">
+    <div class="card reveal"><div class="card-icon">◆</div><h3>AI CFO assistant</h3><p>Ask "Can I hire two engineers in June?" — get an answer grounded in your actual cash, pipeline (ARM), and Doorway income.</p></div>
+    <div class="card reveal"><div class="card-icon">⧉</div><h3>Multi-bank management</h3><p>Connect existing accounts. See every balance, move money free, manage it all from Quantive Finance.</p></div>
+    <div class="card reveal"><div class="card-icon">✓</div><h3>Compliant by design</h3><p>KYC/KYB, AML monitoring, audit trails and regulatory reporting via our licensed banking partner. <a href="#compliance" style="text-decoration:underline">How compliance works →</a></p></div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="section" id="comparison">
+  <div class="reveal"><div class="eyebrow">Why switch</div><h2 class="title">The fee math <em>is the pitch.</em></h2></div>
+  <div class="table-wrap reveal">
+    <table>
+      <thead><tr><th></th><th>Stripe / processors</th><th>Mercury / Brex-style</th><th>Quantive Banking</th></tr></thead>
+      <tbody>
+        <tr><td>Transaction fee</td><td>~2.9% + 30¢</td><td>0% on transfers, card fees vary</td><td><strong style="color:var(--accent)">0% — $0</strong></td></tr>
+        <tr><td>Business account</td><td>— (not a bank)</td><td>Free (partner bank)</td><td><strong style="color:var(--accent)">Free (partner bank)</strong></td></tr>
+        <tr><td>ACH / bank transfers</td><td>Extra / capped</td><td>Usually free</td><td><strong style="color:var(--accent)">Free, unlimited standard</strong></td></tr>
+        <tr><td>AI bookkeeping + tax</td><td>Add-on / third-party</td><td>Integrations</td><td><strong style="color:var(--accent)">Built in, instant</strong></td></tr>
+        <tr><td>Cash-flow + AI CFO</td><td>—</td><td>Basic insights</td><td><strong style="color:var(--accent)">Forecasting + AI CFO</strong></td></tr>
+        <tr><td>Compliance</td><td>Regulated / reporting</td><td>Partner-bank model</td><td><strong style="color:var(--accent)">Partner-bank model, fully reported</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="fine reveal">Example: $100K/mo processed via a 2.9% processor costs ~$2,900/mo. With Quantive Banking the transaction fee is $0. Standard network / partner costs, if any, are disclosed — never a Quantive markup.</p>
+</section>
+
+<!-- BUSINESS MODEL -->
+<section class="section" id="model">
+  <div class="reveal"><div class="eyebrow">Radical transparency</div>
+  <h2 class="title">How we make money <em>without fees.</em></h2>
+  <p class="desc">If a bank is free, you should ask how it survives. Here's the exact answer — no "no regulation, no reporting" fiction. We are regulated, we report, and we tell you where every dollar comes from.</p></div>
+  <div class="money">
+    <div class="money-card reveal"><b>01 — CORE</b><h4>Net interest margin</h4><p>Deposits are held with our regulated banking partner and generate interest income. Quantive receives a share of that income. Banks and fintechs commonly earn significant revenue from deposit spreads — we just pass the fee savings to you instead of charging per transaction.</p></div>
+    <div class="money-card reveal"><b>02 — PRO</b><h4>Premium subscriptions</h4><p>Quantive Pro ($49–$499/mo): advanced analytics, tax optimization, AI financial planning. Free covers banking; Pro covers the CFO brain.</p></div>
+    <div class="money-card reveal"><b>03 — CAPITAL</b><h4>Lending</h4><p>Business loans, property investment financing (via Open Doorway), revenue-based financing. Underwritten on real cash-flow data — with full disclosures.</p></div>
+    <div class="money-card reveal"><b>04 — YIELD</b><h4>Treasury products</h4><p>Money-market style cash management and yield optimization. Idle cash works; you keep the upside net of a disclosed spread.</p></div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="reveal"><div class="eyebrow">Pricing</div><h2 class="title">Free to bank. <em>Pay only for intelligence.</em></h2></div>
+  <div class="pricing">
+    <div class="price-card reveal"><h4>Banking</h4><div class="amount">$0</div><div class="period">Free forever — no transaction fees</div><p>For every business that just wants free, compliant banking.</p>
+      <ul><li>Free business account</li><li>0% transaction fees</li><li>Free ACH / bank transfers</li><li>Instant AI bookkeeping</li><li>AI tax categorization</li></ul>
+      <div style="margin-top:16px"><a href="#cta" class="btn btn-line" style="width:100%;justify-content:center">Open free account</a></div>
+    </div>
+    <div class="price-card featured reveal"><h4>Pro</h4><div class="amount">$49–$149</div><div class="period">Per month — most popular</div><p>For operators who want the AI CFO watching cash daily.</p>
+      <ul><li>Everything in Banking</li><li>AI cash-flow forecasting</li><li>AI CFO assistant</li><li>Tax optimization + quarterly planning</li><li>Multi-bank management</li></ul>
+      <div style="margin-top:16px"><a href="#cta" class="btn btn-green" style="width:100%;justify-content:center">Start 14-day Pro trial</a></div>
+    </div>
+    <div class="price-card reveal"><h4>Scale / Enterprise</h4><div class="amount">$499</div><div class="period">Per month — Mint-style for teams + property</div><p>For portfolios, property investors, and finance teams.</p>
+      <ul><li>Everything in Pro</li><li>Lending + treasury / yield pockets</li><li>Open Doorway investor tools</li><li>ARM pipeline + auto follow-up</li><li>Priority support + SLA</li></ul>
+      <div style="margin-top:16px"><a href="#cta" class="btn btn-line" style="width:100%;justify-content:center">Talk to sales</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPLIANCE -->
+<section class="section" id="compliance">
+  <div class="reveal"><div class="eyebrow">Compliance — non-negotiable</div>
+  <h2 class="title">Holding money means <em>following rules.</em></h2>
+  <p class="desc">If you hold customer money, move customer money, issue accounts, or process payments, there are regulatory obligations in most jurisdictions. A fintech cannot opt out. Here's how we handle them:</p></div>
+  <div class="comply">
+    <div class="comply-card reveal"><h4>🏦 Licensed banking partner</h4><p>Funds held at a regulated partner bank (BaaS model). The partner handles chartering, safeguarding, and regulatory responsibility. Quantive provides the software, AI, and experience layer. Partner name disclosed at account opening and in all disclosures.</p></div>
+    <div class="comply-card reveal"><h4>🪪 KYC / KYB + AML</h4><p>Identity verification for individuals and businesses, sanctions screening, transaction monitoring, suspicious-activity reporting. Some legitimate users will be declined or asked for documents — that's the system working.</p></div>
+    <div class="comply-card reveal"><h4>🧾 Reporting + audit trails</h4><p>Tax forms (e.g. 1099 where applicable), transaction records, immutable audit logs, exportable books. Your accountant and our regulators both get clean paper.</p></div>
+    <div class="comply-card reveal"><h4>🔒 Safeguarding + disclosures</h4><p>Segregated client funds, FDIC pass-through insurance via partner (up to applicable limits), clear fee schedule ($0 where $0), living terms and privacy contract. No "no reporting" — full reporting.</p></div>
+  </div>
+</section>
+
+<!-- POSITIONING -->
+<section class="section" id="position">
+  <div class="reveal"><div class="eyebrow">What this is</div><h2 class="title">Not a Stripe clone. <em>A financial OS.</em></h2>
+  <p class="desc">Stripe = payments rail. Mercury/Brex = startup bank account. AI CFO platform = insights without money movement. Quantive Banking combines all three: move money at 0%, see it with AI, grow it via Doorway + ARM.</p></div>
+  <div class="table-wrap reveal"><table>
+    <thead><tr><th>Positioning</th><th>What it means</th><th>Capital need</th></tr></thead>
+    <tbody>
+      <tr><td>Stripe competitor</td><td>Win on fees (0% vs 2.9%), keep compliance identical</td><td>Medium — partner-based, no charter day one</td></tr>
+      <tr><td>Mercury / Brex-style fintech</td><td>Free accounts + partner bank + subscriptions</td><td>Medium — BaaS + lending partners</td></tr>
+      <tr><td>AI CFO platform</td><td>Sell intelligence ($49–$499/mo), banking as wedge</td><td>Low — software margins</td></tr>
+      <tr><td>Full financial OS ✓ (our bet)</td><td>Banking + CFO + Doorway property + ARM growth in one loop</td><td>Higher — but highest valuation + retention</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="reveal"><div class="eyebrow">FAQ</div><h2 class="title">Asked <em>honestly.</em></h2></div>
+  <div class="faq reveal">
+    <details open><summary>Really 0%? What's the catch?</summary><p>No Quantive transaction fee. We earn from net interest margin on deposits held at our partner bank, plus optional Pro subscriptions, lending, and treasury spreads. Any third-party network costs are disclosed — we never mark them up silently.</p></details>
+    <details><summary>Is this a real bank? Is my money safe / reported?</summary><p>Quantive is not a bank. Banking services are provided by a licensed partner bank, member FDIC, with pass-through insurance subject to limits. All required KYC, AML, and tax reporting applies. If anyone promises "no regulation, no reporting" while holding your money — run.</p></details>
+    <details><summary>How is this different from Mercury or Brex?</summary><p>Same compliant BaaS foundation, but with a built-in AI CFO (bookkeeping, tax, forecasting), multi-bank view, and a direct loop into property investing (Open Doorway) and revenue growth (ARM). The account is free; the intelligence compounds.</p></details>
+    <details><summary>What does Pro $49–$499/mo add?</summary><p>Free = bank + auto-books + tax tags. Pro adds forecasting, AI CFO Q&A, tax optimization, advanced analytics and planning. Scale ($499) adds lending access, yield pockets, Doorway investor tooling, ARM automation, and SLA support.</p></details>
+    <details><summary>Can property investors use this?</summary><p>Yes — that's the point of Open Doorway. Rental payouts land with $0 fees, get tax-tagged instantly, and feed your cash forecast and lending profile. Treasury pockets hold reserves between deals.</p></details>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section" id="cta">
+  <div class="cta-box reveal">
+    <div><h3>Stop paying to move your own money.</h3><p>Free account · 0% fees · AI CFO included · Compliant by design. Join the waitlist — 2 minutes.</p></div>
+    <form class="form" onsubmit="event.preventDefault(); const v=this.email.value.trim(); if(v){this.querySelector('button').textContent='✓ You\'re on the list'; this.email.value=''; alert('Welcome to Quantive Banking waitlist: '+v)}">
+      <input class="input" type="email" name="email" placeholder="you@company.com" required>
+      <button class="btn btn-green" type="submit">Join waitlist</button>
+    </form>
+  </div>
+</section>
+
+<footer class="footer">
+  <div style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <span>© 2026 Quantive. All rights reserved. — Quantive Finance · Quantive Banking · Open Doorway · ARM</span>
+    <span style="display:flex;gap:16px"><a href="index.html">Home</a><a href="terms.html">Terms</a><a href="#compliance">Compliance</a><a href="#pricing">Pricing</a></span>
+  </div>
+  <p class="disclosure">Disclosure (placeholder — replace with partner counsel review before launch): Quantive Banking is a financial technology product offered by Quantive Enterprise. Banking services provided by [Partner Bank Name], Member FDIC. Deposits held at partner bank, FDIC-insured up to $250,000 per depositor through pass-through insurance, subject to conditions. Lending and treasury products subject to approval, separate terms, and risks including loss of principal on non-deposit products. Nothing here is tax, legal, or investment advice. "0% transaction fee" means Quantive charges no per-transaction fee; third-party network or partner fees, if any, will be disclosed in the fee schedule.</p>
+</footer>
+
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

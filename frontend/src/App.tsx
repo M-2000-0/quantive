@@ -33,6 +33,7 @@ const QuboPage = lazy(() => import('./pages/QuboPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const GovernmentPage = lazy(() => import('./pages/GovernmentPage'));
 const BusinessPage = lazy(() => import('./pages/BusinessPage'));
+const BankingPage = lazy(() => import('./pages/BankingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const EventImpactDashboard = lazy(() => import('./pages/EventImpactDashboard'));
@@ -183,7 +184,7 @@ function AppLayout() {
       <DemoModeBanner />
       <aside className="sidebar">
         <Link to="/dashboard" className="brand-row" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div className="brand-mark">Q</div>
+          <img className="brand-mark" src="/quantive-logo.png" alt="Quantive" />
           <div>
             <div className="brand-name">Quantive</div>
             <div className="brand-subtitle">workspace</div>
@@ -340,6 +341,7 @@ export default function App() {
       <Route path="/terms" element={<PageWrapper><TermsPage /></PageWrapper>} />
       <Route path="/government" element={<PageWrapper><GovernmentPage /></PageWrapper>} />
       <Route path="/business" element={<PageWrapper><BusinessPage /></PageWrapper>} />
+      <Route path="/banking" element={<PageWrapper><BankingPage /></PageWrapper>} />
       <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
       <Route path="/register" element={<PageWrapper><RegisterPage /></PageWrapper>} />
       <Route

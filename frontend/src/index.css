@@ -550,11 +550,12 @@ tr:hover td { background: var(--hover); }
 }
 .brand-row { display: flex; align-items: center; gap: 10px; }
 .brand-mark {
-  width: 34px; height: 34px; border-radius: 10px;
+  width: 44px; height: 44px; border-radius: 12px;
   background: var(--accent); color: var(--accent-ink);
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 18px;
 }
+img.brand-mark { object-fit: cover; background: transparent; }
 .brand-name { font-weight: 700; font-size: 15px; }
 .brand-subtitle { font-size: 11px; color: var(--text3); }
 .nav { display: flex; flex-direction: column; gap: 4px; }

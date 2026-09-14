@@ -16,6 +16,7 @@ export default function LandingPage() {
       <nav aria-label="Landing" style={{ display: 'flex', gap: 12, margin: '12px 0' }}>
         <Link to="/login">Sign In</Link>
         <Link to="/register">Get Started Free</Link>
+        <Link to="/banking">Banking (New)</Link>
         <Link to="/terms">Terms</Link>
         <Link to="/qubo">Qubo</Link>
       </nav>

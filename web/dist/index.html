@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<link rel="icon" type="image/png" href="logo-osmiridium.png">
+<link rel="icon" type="image/png" href="quantive-logo.png">
 <style>
 /* ── Reset ─────────────────────────────────────────────── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -46,12 +46,12 @@ button{font-family:inherit}
 }
 .logo{display:flex;align-items:center;gap:10px}
 .mark{
-  width:34px;height:34px;border-radius:10px;background:#0A0A0B;border:1px solid var(--line);
+  width:46px;height:46px;border-radius:12px;background:#0A0A0B;border:1px solid var(--line);
   display:grid;place-items:center;overflow:hidden;flex-shrink:0;
   box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 16px rgba(0,0,0,0.35);
 }
-.mark img{width:28px;height:28px;object-fit:contain;display:block}
-.brand{font-size:15px;font-weight:700;letter-spacing:-0.03em}
+.mark img{width:40px;height:40px;object-fit:contain;display:block}
+.brand{font-size:17px;font-weight:700;letter-spacing:-0.03em}
 .brand span{font-family:'Instrument Serif',serif;font-weight:400;font-style:italic;color:#A8A8AE;font-size:15px;margin-left:4px}
 .links{display:flex;align-items:center;gap:26px}
 .links a{font-size:13px;font-weight:500;color:var(--muted);letter-spacing:-0.01em;transition:color .16s var(--ease)}
@@ -269,10 +269,11 @@ button{font-family:inherit}
 <body>
 
 <nav class="nav">
-  <a class="logo" href="#"><div class="mark"><img src="logo-osmiridium.png" alt="Quantive"></div><span class="brand">Quantive</span></a>
+  <a class="logo" href="#"><div class="mark"><img src="quantive-logo.png" alt="Quantive"></div><span class="brand">Quantive</span></a>
   <div class="links">
-    <a href="#capabilities">Capabilities</a>
-    <a href="#comparison">Why Quantive</a>
+    <a href="#government">Government</a>
+    <a href="#business">Businesses</a>
+    <a href="#qubo">Qubo</a>
     <a href="#pricing">Pricing</a>
     <a href="http://localhost:8000/login" class="ghost">Sign in</a>
     <a href="http://localhost:8000/register" class="cta">Schedule a Consultation →</a>
@@ -286,8 +287,8 @@ button{font-family:inherit}
     <h1 class="reveal reveal-d1">Stop guessing with<br>your national<br><em>portfolio.</em></h1>
     <p class="sub reveal reveal-d2">Every quarter your portfolio sits under-managed, you absorb risk you didn't choose. Refinancing cliffs arrive unannounced. Currency exposure compounds. Rate shocks hit before you've modeled the scenario.</p>
     <div class="actions reveal reveal-d2">
-      <a href="http://localhost:8000/register" class="btn btn-dark">Schedule a Consultation →</a>
-      <a href="http://localhost:8000/dashboard" class="btn btn-line">View demo portfolio</a>
+      <a href="#government" class="btn btn-dark">For Government →</a>
+      <a href="#business" class="btn btn-line">For Businesses</a>
     </div>
     <div class="meta reveal reveal-d3">
       <span>◆ SOC 2 Ready</span>
@@ -319,10 +320,10 @@ button{font-family:inherit}
   </div>
 </section>
 
-<!-- ── What Quantive Does ─────────────────────────────── -->
-<section class="section" id="capabilities">
+<!-- ── What Quantive Does (Government) ──────────────── -->
+<section class="section" id="government">
   <div class="reveal">
-    <div class="eyebrow">What Quantive actually does</div>
+    <div class="eyebrow">For government — what Quantive actually does</div>
     <h2 class="title">Straight support for<br>high-stakes <em>decisions.</em></h2>
     <p class="desc">No buzzwords. Just the tools treasuries actually use to test, measure, and protect debt strategy.</p>
   </div>
@@ -392,6 +393,65 @@ button{font-family:inherit}
   </div>
   <div class="prose reveal" style="margin-top:20px">
     <p>If you've ever exported a chart from one platform and spent three hours reformatting it for a ministerial briefing, this is built for you.</p>
+  </div>
+</section>
+
+<!-- ── For Businesses ───────────────────────────────── -->
+<section class="section" id="business">
+  <div class="reveal">
+    <div class="eyebrow">For businesses — and individuals</div>
+    <h2 class="title">One enterprise,<br><em>separate products.</em></h2>
+    <p class="desc">Shared billing and authentication. Separate databases — business data never mixes with government or personal data.</p>
+  </div>
+  <div class="personas">
+    <div class="persona reveal">
+      <h4>Business workspace</h4>
+      <p>Portfolios, optimizations, risk analytics, and market intelligence for teams. Unlimited portfolios on Pro and Enterprise.</p>
+    </div>
+    <div class="persona reveal reveal-d1">
+      <h4>Quantive Personal</h4>
+      <p>Year-round tax intelligence for individuals: financial profile, opportunity detection, document organization, annual report. From $2,000/yr.</p>
+    </div>
+    <div class="persona reveal reveal-d2">
+      <h4>Personal Sovereign</h4>
+      <p>Gov-grade Quantive market access for individuals, powered by aggregated Qubo trends. $10,000/yr.</p>
+    </div>
+  </div>
+  <div class="actions reveal" style="margin-top:20px">
+    <a href="#pricing-personal" class="btn btn-dark">See Personal plans →</a>
+    <a href="http://localhost:8000/dashboard" class="btn btn-line">Open business workspace</a>
+  </div>
+</section>
+
+<!-- ── Qubo ─────────────────────────────────────────── -->
+<section class="section" id="qubo">
+  <div class="reveal">
+    <div class="eyebrow">Qubo — aggregated market intelligence</div>
+    <h2 class="title">Patterns,<br><em>not people.</em></h2>
+    <p class="desc">Qubo compiles market activity into aggregated trends that governments use to decide where to invest.</p>
+  </div>
+  <div class="cards">
+    <div class="card reveal">
+      <div class="card-icon">◈</div>
+      <h3>What government receives</h3>
+      <p>De-identified, time-bucketed aggregates for investment planning.</p>
+      <ul><li>Age group / age bracket</li><li>Investing vs spending trend signals</li></ul>
+    </div>
+    <div class="card reveal reveal-d1">
+      <div class="card-icon">◎</div>
+      <h3>What government never receives</h3>
+      <p>Individual data never leaves the product boundary.</p>
+      <ul><li>No names or contact details</li><li>No conversations or transactions</li></ul>
+    </div>
+    <div class="card reveal reveal-d2">
+      <div class="card-icon">◆</div>
+      <h3>How it flows</h3>
+      <p>Individuals and businesses use Quantive. Qubo aggregates. Planners see only the aggregates.</p>
+      <ul><li>Full contract in the Terms of Service</li></ul>
+    </div>
+  </div>
+  <div class="actions reveal" style="margin-top:20px">
+    <a href="terms.html" class="btn btn-line">Read the privacy contract →</a>
   </div>
 </section>
 
@@ -476,6 +536,52 @@ button{font-family:inherit}
       </ul>
     </div>
   </div>
+  <div class="reveal" id="pricing-personal" style="margin-top:40px">
+    <div class="eyebrow">Personal</div>
+    <h2 class="title">Tax intelligence<br>for <em>individuals.</em></h2>
+    <p class="desc">Annual access to the system — not per-message pricing. Starter is deliberately lean; Sovereign adds Gov-grade market access.</p>
+  </div>
+  <div class="pricing">
+    <div class="price-card reveal">
+      <h4>Starter</h4>
+      <div class="amount">$2,000</div>
+      <div class="period">Per year</div>
+      <p>Tax write-offs with limits. Useful, intentionally incomplete — no Gov-grade access.</p>
+      <ul>
+        <li>Up to 3 opportunities</li>
+        <li>10 documents</li>
+        <li>20 questions / month</li>
+        <li>Summary report only</li>
+      </ul>
+    </div>
+    <div class="price-card featured reveal reveal-d1">
+      <h4>Personal</h4>
+      <div class="amount">$5,000</div>
+      <div class="period">Per year</div>
+      <p>Full tax intelligence: profile, opportunities, documents, personalized analysis, annual report.</p>
+      <ul>
+        <li>Unlimited opportunities</li>
+        <li>Unlimited documents</li>
+        <li>Unlimited intelligence</li>
+        <li>Annual intelligence report</li>
+      </ul>
+    </div>
+    <div class="price-card reveal reveal-d2">
+      <h4>Sovereign</h4>
+      <div class="amount">$10,000</div>
+      <div class="period">Per year</div>
+      <p>Everything in Personal, plus Gov-grade Quantive market access powered by Qubo trends.</p>
+      <ul>
+        <li>Aggregated bracket trends</li>
+        <li>Sovereign-mode insights</li>
+        <li>CPA-ready export</li>
+        <li>Priority intelligence</li>
+      </ul>
+    </div>
+  </div>
+  <div class="actions reveal" style="margin-top:20px">
+    <a href="personal/pricing.html" class="btn btn-dark">Choose a Personal plan →</a>
+  </div>
 </section>
 
 <!-- ── Risk of Waiting ────────────────────────────────── -->
@@ -509,7 +615,7 @@ button{font-family:inherit}
 
 <footer class="footer">
   <span>© 2026 Quantive. All rights reserved.</span>
-  <span style="display:flex;gap:16px"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a><a href="#">Status</a></span>
+  <span style="display:flex;gap:16px"><a href="#">Privacy</a><a href="terms.html">Terms</a><a href="#">Security</a><a href="#">Status</a></span>
 </footer>
 
 <script>

@@ -244,9 +244,7 @@ export default function FirstRunWizard() {
             <X size={18} />
           </button>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={logoStyle}>
-              <Sparkles size={24} color="#fff" />
-            </div>
+            <img src="/quantive-logo.png" alt="Quantive" width={48} height={48} style={{ borderRadius: 12 }} />
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#111827', marginTop: 16, marginBottom: 8 }}>
               Welcome to Quantive
             </h1>
@@ -580,15 +578,6 @@ const featureCardStyle: React.CSSProperties = {
   padding: 16,
   textAlign: 'center',
   border: '1px solid #f3f4f6' };
-
-const logoStyle: React.CSSProperties = {
-  width: 48,
-  height: 48,
-  borderRadius: 12,
-  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center' };
 
 const primaryButtonStyle: React.CSSProperties = {
   display: 'inline-flex',
