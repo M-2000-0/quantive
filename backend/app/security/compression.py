@@ -1,12 +1,12 @@
 """
 GZip Compression Middleware
-============================
+===========================
 Compresses responses for faster page loads.
 Handles HTML, CSS, JS, JSON, and SVG content types.
 """
 
 import gzip
-import io
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -52,37 +52,35 @@ class CompressionMiddleware(BaseHTTPMiddleware):
                 chunk = chunk.encode("utf-8")
             body += chunk
 
-        # Skip if too small
-        if len(body) < MIN_SIZE:
-            return Response(
-                content=body,
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                media_type=content_type,
-            )
-
         # Compress
         compressed = gzip.compress(body, compresslevel=6)
 
         # Only use if actually smaller
-        if len(compressed) >= len(body):
-            return Response(
-                content=body,
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                media_type=content_type,
-            )
+        if len(body) >= MIN_SIZE and len(compressed) < len(body):
+            return self._rebuild(response, compressed, gzipped=True)
 
-        # Build new response with compression headers
-        headers = dict(response.headers)
-        headers["content-encoding"] = "gzip"
-        headers["content-length"] = str(len(compressed))
-        headers["vary"] = "Accept-Encoding"
+        # Too small or not worth compressing — re-emit the original body,
+        # preserving the original headers EXACTLY (including duplicate
+        # Set-Cookie headers). A plain dict(response.headers) collapse would
+        # silently drop the refresh_token cookie from login/register responses.
+        return self._rebuild(response, body, gzipped=False)
 
-        # Remove content-type if not set (it's in the original headers)
-        return Response(
-            content=compressed,
-            status_code=response.status_code,
-            headers=headers,
-            media_type=content_type,
-        )
+    @staticmethod
+    def _rebuild(response: Response, body: bytes, gzipped: bool) -> Response:
+        raw = [(k, v) for k, v in response.raw_headers]
+        if gzipped:
+            raw = [
+                (k, v)
+                for (k, v) in raw
+                if k not in (b"content-length", b"content-encoding", b"vary")
+            ]
+            raw.append((b"content-encoding", b"gzip"))
+            raw.append((b"content-length", str(len(body)).encode("latin-1")))
+            raw.append((b"vary", b"Accept-Encoding"))
+        else:
+            raw = [(k, v) for (k, v) in raw if k != b"content-length"]
+            raw.append((b"content-length", str(len(body)).encode("latin-1")))
+
+        new = Response(content=body, status_code=response.status_code)
+        new.raw_headers = raw
+        return new

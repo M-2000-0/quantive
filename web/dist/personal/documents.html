@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documents — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  var CATS = ['income', 'housing', 'medical', 'education', 'retirement', 'business', 'investments', 'other'];
+  var fname = '', fcat = 'income';
+  function render(msg) {
+    var s = QP.load(), lim = QP.limitsOf(s), el = document.getElementById('app');
+    var counts = {};
+    s.docs.forEach(function (d) { counts[d.category] = (counts[d.category] || 0) + 1; });
+    var capped = lim.documents >= 0;
+    var grid = CATS.map(function (c) {
+      return '<div class="qp-card"><h3>' + c + '</h3><div class="big">' + (counts[c] || 0) + '</div></div>';
+    }).join('');
+    var opts = CATS.map(function (c) {
+      return '<option value="' + c + '"' + (c === fcat ? ' selected' : '') + '>' + c + '</option>';
+    }).join('');
+    var rows = s.docs.map(function (d) {
+      return '<div class="qp-row"><h4>' + QP.esc(d.filename) + '</h4><p>' + QP.esc(d.category) + ' · registered</p></div>';
+    }).join('');
+    el.innerHTML = QP.layout('Documents',
+      '<h1>Document Center</h1><p class="qp-muted">Organize what you have. Quantive never invents extracted content.' +
+      (capped ? ' · ' + s.docs.length + '/' + lim.documents + ' used. <a href="pricing.html">Unlimited with Personal →</a>' : '') + '</p>' +
+      (msg ? '<div class="qp-warn mt">' + QP.esc(msg) + '</div>' : '') +
+      '<div class="qp-grid">' + grid + '</div>' +
+      '<div class="qp-row"><h4>Register a document (metadata only)</h4>' +
+      '<div class="flex mt"><input class="qp-input" id="fn" style="flex:1;min-width:200px" placeholder="filename.pdf" value="' + QP.esc(fname) + '">' +
+      '<select class="qp-select" id="fc">' + opts + '</select><button class="qp-btn" id="add">Add</button></div>' +
+      (capped && s.docs.length >= lim.documents ? '<p class="qp-muted mt">Starter document limit reached. Upgrade keeps everything — nothing is deleted.</p>' : '') + '</div>' +
+      '<div class="qp-list mt">' + rows + '</div>');
+    el.querySelector('#fn').oninput = function (e) { fname = e.target.value; };
+    el.querySelector('#fc').onchange = function (e) { fcat = e.target.value; };
+    el.querySelector('#add').onclick = function () {
+      var st = QP.load(), l = QP.limitsOf(st), name = fname.trim();
+      if (!name) return;
+      if (l.documents >= 0 && st.docs.length >= l.documents) { render('Starter plan limit reached (10 documents). Upgrade for unlimited.'); return; }
+      st.docs.push({ id: 'd' + (st.seq++), filename: name, category: fcat });
+      fname = ''; QP.save(st); render('');
+    };
+  }
+  render('');
+})();
+</script>
+</body>
+</html>

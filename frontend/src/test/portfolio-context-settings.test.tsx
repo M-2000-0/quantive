@@ -19,11 +19,6 @@ vi.mock('../stores/theme', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('../stores/toast', () => ({
-  useToast: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }),
-  ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
 vi.mock('../stores/auth', () => ({
   useAuth: () => ({
     user: { id: 'test', name: 'Test User', email: 'test@test.com', role: 'admin', org_id: 'org1' },

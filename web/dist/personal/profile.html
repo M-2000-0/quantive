@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  function groupOf(id) {
+    var q = QP.QUESTIONS.filter(function (x) { return x.id === id; })[0];
+    return q ? q.group : 'other';
+  }
+  function render() {
+    var s = QP.load(), groups = {}, el = document.getElementById('app');
+    Object.keys(s.answers).forEach(function (k) {
+      var g = groupOf(k);
+      (groups[g] = groups[g] || []).push({ key: k, values: QP.norm(s.answers[k]) });
+    });
+    var html = '<h1>Your Financial Profile</h1><p class="qp-muted">What Quantive believes it knows. You control it — confirm, edit, remove.</p>';
+    var cats = Object.keys(groups);
+    if (!cats.length) html += '<p class="qp-muted">No facts yet — <a href="onboarding.html">start onboarding</a>.</p>';
+    cats.forEach(function (cat) {
+      html += '<section class="qp-card mt"><h3>' + QP.esc(cat) + '</h3>';
+      groups[cat].forEach(function (f) {
+        html += '<div class="qp-row mt"><h4>' + QP.esc(f.key) + '</h4><p>' + QP.esc(f.values.join(', ')) + '</p>' +
+          '<div class="flex"><button class="qp-btn secondary" data-act="edit" data-k="' + QP.esc(f.key) + '">Edit</button>' +
+          '<button class="qp-btn secondary" data-act="del" data-k="' + QP.esc(f.key) + '">Remove</button></div></div>';
+      });
+      html += '</section>';
+    });
+    el.innerHTML = QP.layout('My Profile', html);
+    Array.prototype.forEach.call(el.querySelectorAll('[data-act]'), function (b) {
+      b.onclick = function () {
+        var st = QP.load(), k = b.getAttribute('data-k');
+        if (b.getAttribute('data-act') === 'del') { delete st.answers[k]; }
+        else {
+          var cur = QP.norm(st.answers[k]).join(', ');
+          var v = prompt('Correct value for ' + k + ' (comma-separate for multiple):', cur);
+          if (v === null) return;
+          st.answers[k] = v.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+        }
+        QP.save(st); render();
+      };
+    });
+  }
+  render();
+})();
+</script>
+</body>
+</html>

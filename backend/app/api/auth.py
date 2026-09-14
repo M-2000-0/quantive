@@ -16,7 +16,9 @@ from app.security import (
     decode_token,
     get_current_user,
     hash_password,
+    is_token_revoked,
     log_audit_event,
+    revoke_token,
     validate_password_policy,
     verify_password,
 )
@@ -162,6 +164,10 @@ def refresh_token(data: TokenRefresh, db: Session = Depends(get_db)):
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Invalid token type")
 
+    jti = payload.get("jti")
+    if jti and is_token_revoked(jti, db):
+        raise HTTPException(status_code=401, detail="Token has been revoked")
+
     user = db.query(User).filter(User.id == payload.get("sub"), User.is_active.is_(True)).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
@@ -182,8 +188,11 @@ def logout(request: Request, user: User = Depends(get_current_user), db: Session
     auth_header = request.headers.get("Authorization", "")
     token = auth_header.replace("Bearer ", "")
     if token:
-        from app.security import revoke_token
         revoke_token(token, db)
+    # Also revoke the refresh token so it cannot mint new access tokens
+    refresh_cookie = request.cookies.get("refresh_token", "")
+    if refresh_cookie:
+        revoke_token(refresh_cookie, db)
     log_audit_event(db, user, "user.logout", "user", user.id)
 
 

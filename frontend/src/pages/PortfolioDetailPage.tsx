@@ -139,6 +139,18 @@ export default function PortfolioDetailPage() {
               <p style={{ fontSize: 13, color: '#6b7280', margin: '4px 0 0' }}>{detail.description}</p>
             )}
           </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <a
+            href={api.exports.portfolioExcel(detail.id)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb',
+              background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600,
+              textDecoration: 'none', cursor: 'pointer',
+            }}
+          >
+            Export Excel
+          </a>
           <Link
             to={`/optimizations/new?portfolio=${detail.id}`}
             style={{
@@ -150,6 +162,7 @@ export default function PortfolioDetailPage() {
           >
             <Play size={14} /> Run Optimization
           </Link>
+          </div>
         </div>
       </div>
 

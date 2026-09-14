@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  var s = QP.load(), sel = [], single = '';
+  function current() {
+    var vis = QP.visibleQuestions(s.answers);
+    for (var i = 0; i < vis.length; i++) if (!(vis[i].id in s.answers)) return { q: vis[i], i: i, total: vis.length };
+    return { q: null, i: vis.length, total: vis.length };
+  }
+  function render() {
+    var c = current(), el = document.getElementById('app');
+    if (!c.q) {
+      s.onboarded = true;
+      if (s.tasksClosed.indexOf('t-review') === -1) QP.save(s);
+      QP.save(s);
+      el.innerHTML = QP.layout('Onboarding',
+        '<h1>Profile complete.</h1><p class="qp-muted">Quantive has started working with what you shared. Confirm the important bits.</p>' +
+        '<div class="flex"><a class="qp-btn" href="index.html">See dashboard</a><a class="qp-btn secondary" href="profile.html">Review profile</a></div>');
+      return;
+    }
+    var pct = Math.round(100 * c.i / Math.max(1, c.total));
+    var opts = c.q.options.map(function (o) {
+      var on = c.q.kind === 'multi' ? sel.indexOf(o) !== -1 : single === o;
+      return '<button class="qp-opt' + (on ? ' selected' : '') + '" data-v="' + QP.esc(o) + '">' + QP.esc(o) + '</button>';
+    }).join('');
+    el.innerHTML = QP.layout('Onboarding',
+      '<h1>Let\'s build your financial profile.</h1>' +
+      '<p class="qp-muted">You don\'t need to know the tax rules. That\'s our job. ~8 minutes.</p>' +
+      '<p class="qp-muted">Question ' + Math.min(c.i + 1, c.total) + ' of ' + c.total + ' (baseline max 24) — ' + pct + '%</p>' +
+      '<div class="qp-card"><h3>' + QP.esc(c.q.group) + '</h3><h2>' + QP.esc(c.q.prompt) + '</h2>' +
+      '<div class="qp-list">' + opts + '</div>' +
+      '<div class="flex mt"><button class="qp-btn" id="go">Continue</button><button class="qp-btn secondary" id="skip">Skip</button></div></div>');
+    Array.prototype.forEach.call(el.querySelectorAll('.qp-opt'), function (b) {
+      b.onclick = function () {
+        var v = b.getAttribute('data-v');
+        if (c.q.kind === 'multi') sel = sel.indexOf(v) === -1 ? sel.concat([v]) : sel.filter(function (x) { return x !== v; });
+        else single = v;
+        render();
+      };
+    });
+    el.querySelector('#go').onclick = function () {
+      var ans = c.q.kind === 'multi' ? sel : (single ? [single] : []);
+      if (!ans.length) return;
+      s.answers[c.q.id] = ans; sel = []; single = ''; QP.save(s); render();
+    };
+    el.querySelector('#skip').onclick = function () {
+      s.answers[c.q.id] = ['skipped']; sel = []; single = ''; QP.save(s); render();
+    };
+  }
+  render();
+})();
+</script>
+</body>
+</html>

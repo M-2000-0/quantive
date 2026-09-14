@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  var s = QP.load(), sc = QP.score(s), opps = QP.detect(s), lim = QP.limitsOf(s);
+  var juris = QP.jurisOf(s.answers);
+  var needReview = opps.filter(function (o) { return o.status === 'potentially_relevant'; }).length;
+  var summary = lim.fullReport ? '' :
+    '<div class="qp-warn mt">Starter includes a summary only — full annual intelligence report requires Personal ($5k) or Sovereign ($10k).</div>';
+  var gov = lim.gov ? '<div class="qp-row mt"><h4>Sovereign brief</h4><p>Aggregated Qubo signal: brackets similar to yours are allocating more toward investments vs spending this quarter (aggregates only, no individual data).</p><a href="gov.html">Open Sovereign view →</a></div>' : '';
+  document.getElementById('app').innerHTML = QP.layout('Reports',
+    '<h1>Your Quantive Tax Intelligence Report</h1>' +
+    '<p class="qp-muted">2026 tax year · Jurisdiction: <strong>' + juris + '</strong>' +
+    (juris === 'GEN' ? ' (generic rules — set your country in onboarding for specific guidance)' : '') +
+    ' · Tier: <strong>' + s.plan + '</strong>' +
+    (summary ? '' : '') + '</p>' + summary +
+    '<div class="qp-grid">' +
+    '<div class="qp-card"><h3>Completeness</h3><div class="big">' + sc.completeness + '%</div></div>' +
+    '<div class="qp-card"><h3>Opportunities</h3><div class="big">' + opps.length + '</div></div>' +
+    '<div class="qp-card"><h3>Documents</h3><div class="big">' + s.docs.length + '</div></div>' +
+    '<div class="qp-card"><h3>Need review</h3><div class="big">' + needReview + '</div></div></div>' +
+    '<div class="qp-row"><h4>Opportunities</h4><p>' + QP.esc(opps.map(function (o) { return o.title; }).join(' · ') || 'none yet') + '</p></div>' +
+    '<div class="qp-row mt"><h4>Questions for your CPA</h4><ul class="qp-tight"><li>Confirm applicable tax regime</li><li>Confirm documentation sufficiency</li></ul></div>' +
+    gov +
+    '<p class="qp-muted mt">Counts and readiness only — no savings claimed without verified rules and data.</p>');
+})();
+</script>
+</body>
+</html>

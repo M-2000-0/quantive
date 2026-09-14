@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '../stores/theme';
-import { ToastProvider } from '../stores/toast';
 import { AuthProvider } from '../stores/auth';
 import { DemoModeProvider } from '../stores/demoMode';
 
@@ -48,11 +47,9 @@ function pageWrapper({ children }: { children: React.ReactNode }) {
   return (
     <MemoryRouter>
       <ThemeProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <DemoModeProvider>{children}</DemoModeProvider>
-          </AuthProvider>
-        </ToastProvider>
+        <AuthProvider>
+          <DemoModeProvider>{children}</DemoModeProvider>
+        </AuthProvider>
       </ThemeProvider>
     </MemoryRouter>
   );

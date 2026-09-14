@@ -16,6 +16,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from app.security.ip import get_client_ip
+
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     """Simple sliding-window rate limiter per IP address."""
@@ -28,13 +30,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         self._last_cleanup = time.time()
 
     def _get_client_ip(self, request: Request) -> str:
-        """Extract client IP, respecting X-Forwarded-For."""
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        if request.client:
-            return request.client.host
-        return "unknown"
+        """Extract client IP, honoring X-Forwarded-For only via trusted proxies."""
+        return get_client_ip(request)
 
     def _cleanup_old_entries(self):
         """Periodically remove old entries to prevent memory leak."""

@@ -77,3 +77,22 @@ def test_register_short_password(client):
         "name": "User",
     })
     assert resp.status_code == 422
+
+
+def test_logout_revokes_access_and_refresh_tokens(auth_client):
+    import jose.jwt as jwt
+
+    access = auth_client.headers["Authorization"].replace("Bearer ", "")
+    refresh = auth_client.cookies.get("refresh_token")
+    print("COOKIES:", dict(auth_client.cookies))
+    payload = jwt.get_unverified_claims(access)
+    assert payload.get("jti"), "access token must carry a jti for revocation"
+
+    resp = auth_client.post("/api/auth/logout")
+    assert resp.status_code == 204
+
+    me = auth_client.get("/api/auth/me")
+    assert me.status_code == 401
+
+    refreshed = auth_client.post("/api/auth/refresh", json={"refresh_token": refresh})
+    assert refreshed.status_code == 401, refreshed.text

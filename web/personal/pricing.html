@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  function render(note) {
+    var s = QP.load(), el = document.getElementById('app');
+    var cards = QP.PLANS.map(function (p) {
+      var cur = s.plan === p.tier;
+      var feats = p.features.map(function (f) { return '<li>' + QP.esc(f) + '</li>'; }).join('');
+      var extra = p.tier === 'personal_2k' ? '<p class="qp-muted">Tax write-offs only, with limits. Useful but incomplete.</p>'
+        : p.tier === 'personal_10k' ? '<p class="qp-muted">Gov-grade Quantive for individuals (Qubo trends).</p>' : '';
+      return '<div class="qp-card"' + (cur ? ' style="border-color:#4f46e5;border-width:2px"' : '') + '>' +
+        '<h3>' + QP.esc(p.name) + ' — $' + p.price + '/yr</h3><ul class="qp-tight">' + feats + '</ul>' + extra +
+        '<button class="qp-btn' + (cur ? ' secondary' : '') + '" data-p="' + p.tier + '"' + (cur ? ' disabled' : '') + '>' +
+        (cur ? 'Current plan' : 'Choose ' + QP.esc(p.name)) + '</button></div>';
+    }).join('');
+    el.innerHTML = QP.layout('Pricing',
+      '<h1>Choose your plan</h1><p class="qp-muted">Annual access — not per-message. Demo billing: your choice is saved on this device; real Stripe checkout needs the server.</p>' +
+      (note ? '<div class="qp-ok mt">' + QP.esc(note) + '</div>' : '') +
+      '<div class="qp-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">' + cards + '</div>' +
+      '<div class="flex mt"><button class="qp-btn secondary" id="wipe">Reset demo data</button></div>');
+    Array.prototype.forEach.call(el.querySelectorAll('[data-p]'), function (b) {
+      b.onclick = function () {
+        var st = QP.load(); st.plan = b.getAttribute('data-p'); QP.save(st);
+        render('Switched to ' + st.plan + ' — limits apply immediately in this demo.');
+      };
+    });
+    el.querySelector('#wipe').onclick = function () { QP.reset(); render('Demo data cleared.'); };
+  }
+  render('');
+})();
+</script>
+</body>
+</html>

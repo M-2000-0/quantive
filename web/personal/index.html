@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  var s = QP.load(), sc = QP.score(s), opps = QP.detect(s), lim = QP.limitsOf(s);
+  var open = QP.tasks(s).filter(function (t) { return t.status === 'open'; });
+  var oppCap = lim.opportunities, docCap = lim.documents;
+  var cards = opps.slice(0, 4).map(function (o) {
+    return '<div class="qp-row"><h4>' + QP.esc(o.title) + '</h4>' +
+      '<span class="qp-pill">' + o.relevance + '</span> <span class="qp-muted">Potentially relevant — not guaranteed</span>' +
+      '<p>' + QP.esc(o.why) + '</p></div>';
+  }).join('');
+  if (!opps.length) cards = '<p class="qp-muted">Complete onboarding to surface opportunities. <a href="onboarding.html">Start →</a></p>';
+  var locked = '';
+  if (oppCap >= 0 && sc && opps.length < (function () {
+    var all = QP.detect(Object.assign({}, s, { plan: 'personal' }));
+    return all.length;
+  })()) {
+    var hidden = QP.detect(Object.assign({}, s, { plan: 'personal' })).length - opps.length;
+    if (hidden > 0) locked = '<div class="qp-row" style="opacity:.75"><h4>🔒 ' + hidden + ' more detected</h4><p class="qp-muted">Starter shows ' + opps.length + '. Personal unlocks all + full report.</p><a class="qp-btn secondary" href="pricing.html">Compare plans</a></div>';
+  }
+  var gov = lim.gov ? '' : '<div class="qp-row mt"><h4>Gov-grade market access — Sovereign only</h4><p class="qp-muted">Aggregated Qubo bracket trends (no individual data). $10k/yr.</p><a href="gov.html">Preview locked view →</a></div>';
+  var taskHtml = open.slice(0, 5).map(function (t) {
+    return '<div class="qp-row"><h4>' + QP.esc(t.title) + '</h4><p>' + QP.esc(t.reason) + '</p></div>';
+  }).join('');
+  document.getElementById('app').innerHTML = QP.layout('Dashboard',
+    '<h1>Good morning.</h1><p class="qp-muted">' + QP.esc(sc.message) + '</p>' +
+    '<p class="qp-muted">Plan: <strong>' + s.plan + '</strong></p>' + QP.planBanner(s) +
+    '<div class="qp-grid">' +
+    '<div class="qp-card"><h3>Tax Intelligence Score</h3><div class="big">' + sc.score + '/100</div><p class="qp-muted">Completeness ' + sc.completeness + '% — readiness, not savings.</p></div>' +
+    '<div class="qp-card"><h3>Actions</h3><div class="big">' + sc.open + '</div><p class="qp-muted">Open tasks</p></div>' +
+    '<div class="qp-card"><h3>Opportunities</h3><div class="big">' + opps.length + '</div><p class="qp-muted">Potentially relevant' + (oppCap >= 0 ? ' (plan shows ' + oppCap + ')' : '') + '</p></div>' +
+    '<div class="qp-card"><h3>Documents</h3><div class="big">' + s.docs.length + '</div><p class="qp-muted">' + (docCap >= 0 ? s.docs.length + ' / ' + docCap + ' used' : 'Unlimited') + '</p></div>' +
+    '</div><h2>Opportunities</h2><div class="qp-list">' + cards + locked + '</div>' + gov +
+    '<h2>What needs you</h2><div class="qp-list">' + taskHtml + '</div>');
+})();
+</script>
+</body>
+</html>

@@ -479,6 +479,54 @@ def test_restructuring():
 
 
 # ══════════════════════════════════════════════════════════════════════
+# 9. PROXY-AWARE RATE LIMIT / IP SPOOFING TESTS
+# ══════════════════════════════════════════════════════════════════════
+
+class _FakeClient:
+    def __init__(self, host):
+        self.host = host
+
+
+class _FakeRequest:
+    def __init__(self, peer, forwarded=None):
+        self.client = _FakeClient(peer)
+        self.headers = {}
+        if forwarded:
+            self.headers["X-Forwarded-For"] = forwarded
+
+
+def test_rate_limit_client_ip_no_spoofing(monkeypatch):
+    print("\n=== Proxy-Aware IP Resolution (Spoofing Defense) ===")
+    from types import SimpleNamespace
+
+    import app.security.ip as ip_module
+
+    def _settings(trusted):
+        return SimpleNamespace(TRUSTED_PROXIES=trusted)
+
+    def _resolve(peer, forwarded, trusted):
+        monkeypatch.setattr(ip_module, "get_settings", lambda: _settings(trusted))
+        return ip_module.get_client_ip(_FakeRequest(peer, forwarded))
+
+    # No trusted proxies configured → X-Forwarded-For must be IGNORED.
+    assert _resolve("9.9.9.9", "1.2.3.4", "") == "9.9.9.9"
+    assert _resolve("9.9.9.9", "1.2.3.4, 5.6.7.8", "") == "9.9.9.9"
+    assert_test("Untrusted peers cannot spoof X-Forwarded-For", True)
+
+    # Direct peer is a trusted proxy → honor the forwarded for the real client.
+    assert _resolve("10.0.0.1", "1.2.3.4", "10.0.0.1") == "1.2.3.4"
+    assert_test("Trusted proxy chain resolves real client", True)
+
+    # CIDR-based trust.
+    assert _resolve("10.0.0.9", "8.8.8.8, 10.0.0.1", "10.0.0.0/24") == "8.8.8.8"
+    assert_test("CIDR trusted proxy matches", True)
+
+    # A client that is NOT behind the trusted proxy cannot inject hops.
+    assert _resolve("9.9.9.9", "6.6.6.6, 10.0.0.1", "10.0.0.1") == "9.9.9.9"
+    assert_test("Spoofed intermediate hops from untrusted peer rejected", True)
+
+
+# ══════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════
 

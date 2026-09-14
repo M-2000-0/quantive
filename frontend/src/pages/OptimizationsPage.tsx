@@ -167,13 +167,21 @@ export default function OptimizationsPage() {
                   <span>{isDone ? '100% — complete' : `${pct}%`}{job.error_message ? ` — ${job.error_message}` : ''}</span>
                   <span style={{ display: 'flex', gap: 12 }}>
                     {isDone && (
-                      <button
-                        type="button"
-                        onClick={() => void api.optimizations.report(job.id).then((r) => console.info('report', r)).catch((e: Error) => setError(e.message))}
-                        style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
-                      >
-                        View report
-                      </button>
+                      <>
+                        <a
+                          href={api.exports.optimizationExcel(job.id)}
+                          style={{ color: '#2563eb', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                        >
+                          Excel
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => void api.optimizations.report(job.id).then((r) => console.info('report', r)).catch((e: Error) => setError(e.message))}
+                          style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                        >
+                          View report
+                        </button>
+                      </>
                     )}
                     {isActive && (
                       <button

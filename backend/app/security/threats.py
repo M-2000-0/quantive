@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.models import User, UserRole
 from app.security import require_role
+from app.security.ip import get_client_ip as _resolve_client_ip
 
 router = APIRouter(prefix="/api/security", tags=["security"])
 
@@ -115,11 +116,8 @@ def is_ip_blocked(ip: str) -> bool:
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request, respecting X-Forwarded-For."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    """Extract client IP, honoring X-Forwarded-For only via trusted proxies."""
+    return _resolve_client_ip(request)
 
 
 # ── Admin Security Endpoints ───────────────────────────────────────────

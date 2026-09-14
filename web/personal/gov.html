@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  var s = QP.load(), lim = QP.limitsOf(s), body = '';
+  if (!lim.gov) {
+    body = '<h1>Sovereign view</h1><div class="qp-warn mt">🔒 Sovereign plan required ($10k/yr) for Gov-grade market access.</div>' +
+      '<p class="qp-muted">Aggregated Qubo bracket trends only — never individual data.</p>' +
+      '<a class="qp-btn" href="pricing.html">See Sovereign →</a>';
+  } else {
+    var rows = QP.GOV_TRENDS.map(function (t) {
+      return '<div class="qp-row"><span class="qp-pill">' + t.segment + '</span><h4>' + QP.esc(t.signal) + '</h4><p class="qp-muted">trend: ' + t.direction + '</p></div>';
+    }).join('');
+    body = '<h1>Sovereign view</h1><p class="qp-muted">Compare your allocation against your bracket — informational only, not advice.</p>' +
+      '<div class="qp-list">' + rows + '</div>' +
+      '<p class="qp-muted mt">Aggregates only. No names, conversations, or individual records are ever exposed.</p>';
+  }
+  document.getElementById('app').innerHTML = QP.layout('Sovereign', body);
+})();
+</script>
+</body>
+</html>

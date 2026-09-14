@@ -8,6 +8,8 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.security.ip import get_client_ip
+
 logger = logging.getLogger("quantive.security")
 
 
@@ -99,10 +101,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._lock = threading.Lock()
 
     def _get_client_ip(self, request: Request) -> str:
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.client.host if request.client else "unknown"
+        return get_client_ip(request)
 
     def _get_limit(self, path: str) -> tuple[int, int]:
         for pattern, limit in self.ENDPOINT_LIMITS.items():

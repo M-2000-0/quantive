@@ -47,7 +47,7 @@ QUESTIONS: list[dict] = [
     {"id": "loans", "group": "financial", "prompt": "Do you pay interest on loans (non-mortgage)?",
      "kind": "single", "options": ["yes", "no"]},
     {"id": "country", "group": "tax", "prompt": "What is your country of tax residence?",
-     "kind": "single", "options": ["MX", "US", "other"]},
+     "kind": "single", "options": ["MX", "US", "BD", "other"]},
     {"id": "tax_regime", "group": "tax", "prompt": "Do you know your applicable tax regime?",
      "kind": "single", "options": ["yes", "no", "needs_confirmation"]},
     {"id": "filing_status", "group": "tax", "prompt": "What is your filing status?",

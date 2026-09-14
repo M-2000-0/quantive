@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opportunities — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  function render() {
+    var s = QP.load(), opps = QP.detect(s), lim = QP.limitsOf(s), el = document.getElementById('app');
+    var order = { high: 0, medium: 1, low: 2 };
+    opps.sort(function (a, b) { return order[a.relevance] - order[b.relevance]; });
+    var capNote = lim.opportunities >= 0
+      ? '<p class="qp-muted">Starter shows ' + opps.length + '. <a href="pricing.html">Unlock all →</a></p>' : '';
+    var html = '<h1>Opportunities</h1><p class="qp-muted">Potentially relevant — never guaranteed. Each item says why and what\'s needed.</p>' + capNote + '<div class="qp-list">';
+    if (!opps.length) html += '<p class="qp-muted">No opportunities yet.</p>';
+    opps.forEach(function (o) {
+      var refs = (o.refs || []).map(function (r) { return QP.REFS[r] || r; }).join(' · ');
+      html += '<div class="qp-row"><span class="qp-pill">' + o.relevance + ' priority</span> <span class="qp-muted">' + o.status + '</span>' +
+        '<h4>' + QP.esc(o.title) + '</h4><p><strong>Why?</strong> ' + QP.esc(o.why) + '</p>' +
+        (o.needs.length ? '<p><strong>Needs:</strong> ' + QP.esc(o.needs.join(' · ')) + '</p>' : '') +
+        (o.next ? '<p><strong>Next:</strong> ' + QP.esc(o.next) + '</p>' : '') +
+        (refs ? '<p class="qp-muted">Rules: ' + QP.esc(refs) + '</p>' : '') +
+        '<div class="flex mt"><button class="qp-btn secondary" data-t="' + QP.esc(o.title) + '" data-a="reviewed">Review</button>' +
+        '<button class="qp-btn secondary" data-t="' + QP.esc(o.title) + '" data-a="not_applicable">Not applicable</button>' +
+        '<button class="qp-btn secondary" data-t="' + QP.esc(o.title) + '" data-a="dismissed">Dismiss</button></div></div>';
+    });
+    el.innerHTML = QP.layout('Opportunities', html + '</div>');
+    Array.prototype.forEach.call(el.querySelectorAll('[data-t]'), function (b) {
+      b.onclick = function () {
+        var st = QP.load();
+        st.reviews[b.getAttribute('data-t')] = b.getAttribute('data-a');
+        QP.save(st); render();
+      };
+    });
+  }
+  render();
+})();
+</script>
+</body>
+</html>

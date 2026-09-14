@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligence — Quantive Personal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  var q = 'Can I deduct my home office?', ans = null, err = '';
+  function render() {
+    var s = QP.load(), lim = QP.limitsOf(s), used = QP.asksUsed(s), el = document.getElementById('app');
+    var card = '';
+    if (ans) {
+      var known = ans.known.length ? '<ul class="qp-tight">' + ans.known.map(function (x) { return '<li>' + QP.esc(x) + '</li>'; }).join('') + '</ul>' : '<p class="qp-muted">No profile facts yet — <a href="onboarding.html">build your profile</a>.</p>';
+      var refs = ans.refs.map(function (r) { return '<li>' + QP.esc(QP.REFS[r] || r) + '</li>'; }).join('');
+      card = '<div class="qp-card mt"><span class="qp-pill">potential</span> <span class="qp-muted">· ' + s.plan + '</span>' +
+        '<h2>What I know</h2>' + known + '<h2>What I need</h2>' +
+        '<ul class="qp-tight"><li>Applicable tax regime</li><li>Whether the expense is attributable to qualifying activity</li></ul>' +
+        '<p><strong>Related:</strong> ' + QP.esc(ans.related.join(', ') || 'none yet') + '</p>' +
+        (refs ? '<p><strong>Rules to verify:</strong></p><ul class="qp-tight">' + refs + '</ul>' : '') +
+        '<p class="qp-muted">' + QP.esc(ans.govNote) + '</p>' +
+        '<p><strong>Next:</strong> Answer 2 questions in onboarding/tax section.</p>' +
+        '<p class="qp-muted">General information only — not professional tax advice. Verify against current rules or a qualified professional.</p></div>';
+    }
+    el.innerHTML = QP.layout('Intelligence',
+      '<h1>Quantive Intelligence</h1><p class="qp-muted">Answers cite your profile and rules. Uncertainty is explicit. Not a CPA.</p>' +
+      (err ? '<div class="qp-warn mt">' + QP.esc(err) + ' <a href="pricing.html">Upgrade for unlimited →</a></div>' : '') +
+      '<div class="qp-row"><input class="qp-input" id="qq" value="' + QP.esc(q) + '">' +
+      '<div class="flex mt"><button class="qp-btn" id="ask">Ask</button>' +
+      (lim.asks >= 0 ? '<span class="qp-muted">' + used + '/' + lim.asks + ' this month</span>' : '') + '</div></div>' + card);
+    el.querySelector('#qq').oninput = function (e) { q = e.target.value; };
+    el.querySelector('#qq').onkeydown = function (e) { if (e.key === 'Enter') go(); };
+    el.querySelector('#ask').onclick = go;
+  }
+  function go() {
+    var st = QP.load(), l = QP.limitsOf(st);
+    err = ''; ans = null;
+    if (!q.trim()) { render(); return; }
+    if (l.asks >= 0 && QP.asksUsed(st) >= l.asks) { err = 'Starter plan limit reached (20 questions/month).'; render(); return; }
+    st.asks.push(Date.now()); QP.save(st);
+    var opps = QP.detect(st), known = [];
+    Object.keys(st.answers).slice(0, 12).forEach(function (k) { known.push(k + ' = ' + QP.norm(st.answers[k]).join(', ')); });
+    var refs = [];
+    opps.slice(0, 5).forEach(function (o) { (o.refs || []).forEach(function (r) { if (refs.indexOf(r) === -1) refs.push(r); }); });
+    ans = {
+      known: known, related: opps.slice(0, 5).map(function (o) { return o.title; }),
+      refs: refs.slice(0, 4),
+      govNote: st.plan === 'personal_10k'
+        ? "Sovereign context: your bracket's aggregated investing vs spending trend is in Gov insights."
+        : 'Sovereign Gov-grade trends are not included in your plan.'
+    };
+    render();
+  }
+  render();
+})();
+</script>
+</body>
+</html>

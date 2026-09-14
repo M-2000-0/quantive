@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     CORS_ORIGINS: str = "http://localhost:5173"
     RATE_LIMIT_PER_MINUTE: int = 2000
+    # IPs/CIDRs of trusted reverse proxies (e.g. the LB/nginx in front of the
+    # app). X-Forwarded-For is only honored when the direct TCP peer is
+    # trusted; leave empty when the app is reachable directly so spoofed
+    # headers are ignored.
+    TRUSTED_PROXIES: str = ""
     MAX_UPLOAD_SIZE_MB: int = 50
     MAX_SCENARIO: int = 10000     # Gov-facing cap (was 50000)
     DEFAULT_SCENARIO: int = 1000  # Default for agency use

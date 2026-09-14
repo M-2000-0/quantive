@@ -37,6 +37,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 PUBLIC_PATHS = {
     "/", "/login", "/register", "/forgot-password", "/reset-password",
     "/landing", "/pricing", "/demo", "/logout",
+    "/qubo", "/terms", "/government", "/business",
 }
 PUBLIC_PREFIXES = ("/static", "/api/", "/docs", "/redoc")
 
