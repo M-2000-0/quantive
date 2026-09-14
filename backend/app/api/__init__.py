@@ -69,6 +69,7 @@ from app.api import (
     audit,
     auth,
     auth_extended,
+    banking,
     billing_routes,
     comments,
     compliance,
@@ -192,6 +193,7 @@ router.include_router(ratings.router)
 router.include_router(pdf_reports.router)
 router.include_router(email_routes.router)
 router.include_router(billing_routes.router)
+router.include_router(banking.router)
 router.include_router(websocket_routes.router)
 router.include_router(disclaimer.router)
 router.include_router(soc2_routes.router)

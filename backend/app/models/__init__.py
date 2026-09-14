@@ -361,6 +361,12 @@ from app.models.billing import (  # noqa: E402, F401
     SubscriptionRow,
     UsageRow,
 )
+from app.models.banking import (  # noqa: E402, F401
+    BankAccount,
+    BankTransaction,
+    BankTransfer,
+    BusinessProfile,
+)
 from app.models.discovery import (  # noqa: E402, F401
     AssetClass,
     AssetRiskBand,

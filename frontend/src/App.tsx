@@ -34,6 +34,9 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const GovernmentPage = lazy(() => import('./pages/GovernmentPage'));
 const BusinessPage = lazy(() => import('./pages/BusinessPage'));
 const BankingPage = lazy(() => import('./pages/BankingPage'));
+const BankingDashboardPage = lazy(() => import('./pages/BankingDashboardPage'));
+const BankingTransfersPage = lazy(() => import('./pages/BankingTransfersPage'));
+const BankingOnboardingPage = lazy(() => import('./pages/BankingOnboardingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const EventImpactDashboard = lazy(() => import('./pages/EventImpactDashboard'));
@@ -121,6 +124,7 @@ const NAV_ITEMS = [
   { label: 'Security', to: '/settings', icon: ShieldCheck },
   { label: 'Settings', to: '/settings', icon: Settings },
   { label: 'Personal ★', to: '/personal', icon: Sparkles },
+  { label: 'Banking', to: '/banking/app', icon: BriefcaseBusiness },
 ];
 
 function AppLayout() {
@@ -342,6 +346,36 @@ export default function App() {
       <Route path="/government" element={<PageWrapper><GovernmentPage /></PageWrapper>} />
       <Route path="/business" element={<PageWrapper><BusinessPage /></PageWrapper>} />
       <Route path="/banking" element={<PageWrapper><BankingPage /></PageWrapper>} />
+      <Route
+        path="/banking/app"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><BankingDashboardPage /></PageWrapper>} />
+      </Route>
+      <Route
+        path="/banking/transfers"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><BankingTransfersPage /></PageWrapper>} />
+      </Route>
+      <Route
+        path="/banking/onboarding"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><BankingOnboardingPage /></PageWrapper>} />
+      </Route>
       <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
       <Route path="/register" element={<PageWrapper><RegisterPage /></PageWrapper>} />
       <Route
