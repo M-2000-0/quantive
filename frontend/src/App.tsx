@@ -38,6 +38,7 @@ const BankingPage = lazy(() => import('./pages/BankingPage'));
 const BankingDashboardPage = lazy(() => import('./pages/BankingDashboardPage'));
 const BankingTransfersPage = lazy(() => import('./pages/BankingTransfersPage'));
 const BankingOnboardingPage = lazy(() => import('./pages/BankingOnboardingPage'));
+const BankTransactionPage = lazy(() => import('./pages/BankTransactionPage'));
 const QuboWorkspacePage = lazy(() => import('./pages/QuboWorkspacePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
@@ -400,6 +401,16 @@ export default function App() {
         }
       >
         <Route index element={<PageWrapper><BankingOnboardingPage /></PageWrapper>} />
+      </Route>
+      <Route
+        path="/banking/transactions/:id"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><BankTransactionPage /></PageWrapper>} />
       </Route>
       <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
       <Route path="/register" element={<PageWrapper><RegisterPage /></PageWrapper>} />
