@@ -107,6 +107,109 @@ import type {
   AgentRun, AgentTool, ProjectSummary,
 } from '../types';
 
+// ── Banking Types ────────────────────────────────────────────────────
+export interface BankAccount {
+  id: string;
+  name: string;
+  account_type: 'operating' | 'reserve' | 'yield';
+  currency: string;
+  balance_cents: number;
+  status: string;
+  created_at: string | null;
+}
+
+export interface BankTransaction {
+  id: string;
+  account_id: string;
+  direction: 'in' | 'out';
+  txn_type: string;
+  amount_cents: number;
+  fee_cents: number;
+  counterparty: string;
+  memo: string;
+  category: string;
+  tax_tag: string;
+  status: 'posted' | 'pending';
+  transfer_id: string | null;
+  created_at: string | null;
+}
+
+export interface BankTransfer {
+  id: string;
+  from_account_id: string;
+  to_account_id: string | null;
+  amount_cents: number;
+  fee_cents: number;
+  status: string;
+  counterparty: string;
+  memo: string;
+  idempotency_key: string | null;
+  created_at: string | null;
+  transactions: BankTransaction[];
+}
+
+export interface BankingOverview {
+  total_balance_cents: number;
+  fees_paid_30d_cents: number;
+  moved_30d_cents: number;
+  projected_net_90d_cents: number;
+  forecast_basis: string;
+  pending_count: number;
+  pending_cents: number;
+  accounts: BankAccount[];
+  recent: BankTransaction[];
+}
+
+export interface BankingInsight {
+  id: string;
+  title: string;
+  body: string;
+  severity: 'info' | 'warn';
+}
+
+export interface BankingProfile {
+  org_id: string;
+  legal_name: string;
+  dba: string;
+  entity_type: string;
+  country: string;
+  industry: string;
+  tax_id_last4: string;
+  kyb_status: 'draft' | 'pending' | 'verified' | 'rejected';
+  kyb_notes: string;
+  submitted_at: string | null;
+  decided_at: string | null;
+}
+
+export interface QuboFinding {
+  id: string;
+  org_id: string;
+  account_id: string | null;
+  txn_id: string | null;
+  rule_id: string;
+  jurisdiction: string;
+  tax_year: number;
+  category: string;
+  title: string;
+  detail: string;
+  amount_cents: number;
+  requirements: Record<string, unknown>;
+  status: 'new' | 'accepted' | 'dismissed';
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+// Banking money helpers (integer cents on the wire)
+export function centsToUsd(cents: number): string {
+  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
+export function dollarsToCents(dollars: string): number {
+  const n = Number.parseFloat(dollars);
+  if (!Number.isFinite(n) || n <= 0) throw new Error('Enter an amount greater than $0');
+  return Math.round(n * 100);
+}
+
 export const api = {
   // ── Generic request helper (used by feature components) ─────────
   request: <T,>(path: string, options?: RequestInit & { params?: Record<string, string> }): Promise<T> => {
@@ -1151,6 +1254,52 @@ export const api = {
       documents: number;
       documents_by_folder: Record<string, number>;
     }>(`/projects/${projectId}`),
+  },
+
+  // ── Banking (Q Banking) ───────────────────────────────────────────
+  banking: {
+    overview: () => request<BankingOverview>('/banking/overview'),
+    accounts: () => request<{ accounts: BankAccount[] }>('/banking/accounts'),
+    openAccount: (body: { name: string; account_type: string }) =>
+      request<BankAccount>('/banking/accounts', { method: 'POST', body: JSON.stringify(body) }),
+    accountDetail: (id: string) => request<BankAccount>(`/banking/accounts/${id}`),
+    accountTxns: (id: string, limit = 25) =>
+      request<{ account: BankAccount; transactions: BankTransaction[] }>(
+        `/banking/accounts/${id}/transactions?limit=${limit}`,
+      ),
+    transfers: (limit = 25) =>
+      request<{ transfers: BankTransfer[] }>(`/banking/transfers?limit=${limit}`),
+    createTransfer: (body: {
+      from_account_id: string;
+      to_account_id?: string | null;
+      counterparty?: string;
+      amount_cents: number;
+      memo?: string;
+      idempotency_key?: string;
+    }) => request<BankTransfer>('/banking/transfers', { method: 'POST', body: JSON.stringify(body) }),
+    seed: () => request<BankAccount>('/banking/seed', { method: 'POST' }),
+    profile: () => request<{ profile: BankingProfile | null; kyb_status: string }>('/banking/profile'),
+    saveProfile: (body: Partial<BankingProfile>) =>
+      request<BankingProfile>('/banking/profile', { method: 'PUT', body: JSON.stringify(body) }),
+    submitProfile: () => request<BankingProfile>('/banking/profile/submit', { method: 'POST' }),
+    insights: () => request<{ insights: BankingInsight[]; disclaimer: string }>('/banking/insights'),
+    categorize: (id: string, body: { category: string; tax_tag: string }) =>
+      request<BankTransaction>(`/banking/transactions/${id}/categorize`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    // ── Qubo Business Tax ──────────────────────────────────────────
+    qubo: {
+      overview: () => request<{ findings_count: number; potential_savings_cents: number; rules_version: string; status_counts: Record<string, number> }>('/qubo/business/overview'),
+      scan: () => request<{ scanned: number; new_findings: number; rules_applied: number }>('/qubo/business/scan', { method: 'POST' }),
+      findings: (status?: string) =>
+        request<{ findings: QuboFinding[] }>(`/qubo/business/findings${status ? `?status=${status}` : ''}`),
+      reviewFinding: (id: string, action: 'accept' | 'dismiss') =>
+        request<QuboFinding>(`/qubo/business/findings/${id}/review`, {
+          method: 'POST',
+          body: JSON.stringify({ action }),
+        }),
+    },
   },
 };
 

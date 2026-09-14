@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  bankingApi,
+  api,
   centsToUsd,
   type BankingInsight,
   type BankingOverview,
   type BankTransaction,
-} from '../api/banking';
+} from '../api';
 
 function TxnRow({ txn }: { txn: BankTransaction }) {
   const sign = txn.direction === 'in' ? '+' : '−';
@@ -38,7 +38,7 @@ export default function BankingDashboardPage() {
     setLoading(true);
     setError('');
     try {
-      const [ov, ins] = await Promise.all([bankingApi.overview(), bankingApi.insights()]);
+      const [ov, ins] = await Promise.all([api.banking.overview(), api.banking.insights()]);
       setOverview(ov);
       setInsights(ins.insights);
       setDisclaimer(ins.disclaimer);
@@ -57,7 +57,7 @@ export default function BankingDashboardPage() {
     setSeeding(true);
     setError('');
     try {
-      await bankingApi.seed();
+      await api.banking.seed();
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Seed failed');

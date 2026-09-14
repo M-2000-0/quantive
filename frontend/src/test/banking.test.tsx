@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { centsToUsd, dollarsToCents } from '../api/banking';
+import { centsToUsd, dollarsToCents } from '../api';
 import BankingPage from '../pages/BankingPage';
 
 describe('banking money utils', () => {

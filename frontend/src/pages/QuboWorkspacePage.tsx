@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { centsToUsd } from '../api/banking';
+import { centsToUsd } from '../api';
 import { quboApi, type QuboFinding, type QuboOverview } from '../api/qubo';
 
 export default function QuboWorkspacePage() {

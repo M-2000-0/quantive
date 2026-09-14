@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  bankingApi,
+  api,
   centsToUsd,
   dollarsToCents,
   type BankAccount,
   type BankTransfer,
-} from '../api/banking';
+} from '../api';
 
 export default function BankingTransfersPage() {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -26,7 +26,7 @@ export default function BankingTransfersPage() {
     setLoading(true);
     setError('');
     try {
-      const [a, h] = await Promise.all([bankingApi.accounts(), bankingApi.transfers()]);
+      const [a, h] = await Promise.all([api.banking.accounts(), api.banking.transfers()]);
       setAccounts(a.accounts);
       setHistory(h.transfers);
       if (a.accounts.length > 0 && !fromId) setFromId(a.accounts[0].id);
@@ -55,7 +55,7 @@ export default function BankingTransfersPage() {
     }
     setSending(true);
     try {
-      const transfer = await bankingApi.createTransfer({
+      const transfer = await api.banking.createTransfer({
         from_account_id: fromId,
         to_account_id: mode === 'internal' ? toId || null : null,
         counterparty: mode === 'external' ? counterparty : undefined,
