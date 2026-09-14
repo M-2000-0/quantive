@@ -187,16 +187,36 @@ export interface QuboFinding {
   account_id: string | null;
   txn_id: string | null;
   rule_id: string;
+  rules_version: string;
   jurisdiction: string;
   tax_year: number;
   category: string;
   title: string;
   detail: string;
   amount_cents: number;
-  requirements: Record<string, unknown>;
+  requirements: { requirements: string[]; docs: string[]; sources: string[] };
   status: 'new' | 'accepted' | 'dismissed';
   created_at: string | null;
   updated_at: string | null;
+}
+
+export interface QuboOverview {
+  counts: { new: number; accepted: number; dismissed: number };
+  total: number;
+  potential_new_cents: number;
+  accepted_cents: number;
+  rules_version: string;
+  supported_jurisdictions: string[];
+  note: string;
+}
+
+export interface QuboScanResult {
+  scanned_transactions: number;
+  created: number;
+  total: number;
+  rules_version: string;
+  jurisdiction: string;
+  generic_guidance: boolean;
 }
 
 // Banking money helpers (integer cents on the wire)

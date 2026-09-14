@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { centsToUsd } from '../api';
-import { quboApi, type QuboFinding, type QuboOverview } from '../api/qubo';
+import {
+  api,
+  centsToUsd,
+  type QuboFinding,
+  type QuboOverview,
+} from '../api';
 
 export default function QuboWorkspacePage() {
   const [overview, setOverview] = useState<QuboOverview | null>(null);
@@ -18,8 +22,8 @@ export default function QuboWorkspacePage() {
     setError('');
     try {
       const [ov, list] = await Promise.all([
-        quboApi.overview(),
-        quboApi.findings(status || undefined),
+        api.banking.qubo.overview() as unknown as QuboOverview,
+        api.banking.qubo.findings(status || undefined) as unknown as { findings: QuboFinding[] },
       ]);
       setOverview(ov);
       setFindings(list.findings);
@@ -40,7 +44,7 @@ export default function QuboWorkspacePage() {
     setError('');
     setNotice('');
     try {
-      const res = await quboApi.scan(jurisdiction);
+      const res = await api.banking.qubo.scan() as unknown as { created: number; scanned_transactions: number; rules_version: string };
       setNotice(
         res.created > 0
           ? `Scan complete: ${res.created} new potential deduction${res.created === 1 ? '' : 's'} (${res.rules_version}).`
@@ -57,7 +61,7 @@ export default function QuboWorkspacePage() {
   async function handleReview(id: string, status: 'accepted' | 'dismissed') {
     setError('');
     try {
-      await quboApi.review(id, status);
+      await api.banking.qubo.reviewFinding(id, status);
       await load(filter);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Review failed');
@@ -137,9 +141,9 @@ export default function QuboWorkspacePage() {
             <div className="qp-muted" style={{ fontSize: 12, marginTop: 4 }}>
               Rule <strong>{f.rule_id}</strong> · {f.jurisdiction} {f.tax_year} · {f.category} · status: {f.status}
             </div>
-            {(f.requirements.requirements?.length > 0 || f.requirements.docs?.length > 0) && (
+            {(f.requirements?.requirements?.length > 0 || f.requirements?.docs?.length > 0) && (
               <div className="qp-muted" style={{ fontSize: 12, marginTop: 4 }}>
-                Needs: {[...(f.requirements.requirements ?? []), ...(f.requirements.docs ?? [])].join('; ')}
+                Needs: {[...(f.requirements?.requirements ?? []), ...(f.requirements?.docs ?? [])].join('; ')}
               </div>
             )}
             {f.status === 'new' && (
