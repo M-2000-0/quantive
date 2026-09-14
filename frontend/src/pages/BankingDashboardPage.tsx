@@ -8,6 +8,23 @@ import {
   type BankTransaction,
 } from '../api';
 
+function exportTransactionsCsv(transactions: BankTransaction[]) {
+  const header = 'Date,Counterparty,Type,Direction,Amount,Fee,Category,Tax Tag,Status,Memo\n';
+  const rows = transactions.map((t) => {
+    const date = t.created_at ? new Date(t.created_at).toISOString() : '';
+    const counterparty = `"${(t.counterparty || '').replace(/"/g, '""')}"`;
+    const memo = `"${(t.memo || '').replace(/"/g, '""')}"`;
+    return `${date},${counterparty},${t.txn_type},${t.direction},${t.amount_cents},${t.fee_cents},${t.category},${t.tax_tag},${t.status},${memo}`;
+  }).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `banking-transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function TxnRow({ txn }: { txn: BankTransaction }) {
   const sign = txn.direction === 'in' ? '+' : '−';
   return (
@@ -226,7 +243,10 @@ export default function BankingDashboardPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 12 }}>
         <section aria-label="Recent movement" className="qp-card">
-          <h2>Recent movement — $0 fees</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <h2 style={{ margin: 0 }}>Recent movement — $0 fees</h2>
+            <button className="qp-btn secondary" style={{ fontSize: 12, padding: '4px 12px' }} onClick={() => exportTransactionsCsv(overview.recent)}>Export CSV</button>
+          </div>
           {overview.recent.map((t) => <TxnRow key={t.id} txn={t} />)}
         </section>
         <section aria-label="AI CFO" className="qp-card">
