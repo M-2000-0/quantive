@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, RotateCcw } from 'lucide-react';
 import { api } from '../api';
 import type { OptimizationJob } from '../types';
 
@@ -23,6 +23,7 @@ function progressPct(job: OptimizationJob): number {
 }
 
 export default function OptimizationsPage() {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<OptimizationJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +143,7 @@ export default function OptimizationsPage() {
             const tone = statusTone(job.status);
             const isActive = !TERMINAL.has(job.status.toLowerCase());
             const isDone = job.status.toLowerCase() === 'completed';
+            const isFailed = job.status.toLowerCase() === 'failed';
             return (
               <li key={job.id} className="panel" style={{ padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -163,9 +165,14 @@ export default function OptimizationsPage() {
                 <div style={{ marginTop: 10, height: 6, borderRadius: 999, background: '#e5e7eb', overflow: 'hidden' }} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`Progress for ${job.name}`}>
                   <div style={{ width: `${isDone ? 100 : pct}%`, height: '100%', background: tone, transition: 'width 0.4s ease' }} />
                 </div>
+                {isFailed && job.error_message && (
+                  <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.15)', fontSize: 12, color: '#991b1b' }}>
+                    {job.error_message}
+                  </div>
+                )}
                 <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <span>{isDone ? '100% — complete' : `${pct}%`}{job.error_message ? ` — ${job.error_message}` : ''}</span>
-                  <span style={{ display: 'flex', gap: 12 }}>
+                  <span>{isDone ? '100% — complete' : `${pct}%`}</span>
+                  <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     {isDone && (
                       <>
                         <a
@@ -182,6 +189,15 @@ export default function OptimizationsPage() {
                           View report
                         </button>
                       </>
+                    )}
+                    {isFailed && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/optimizations/new?portfolio=${job.portfolio_id}`)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                      >
+                        <RotateCcw size={12} /> Retry
+                      </button>
                     )}
                     {isActive && (
                       <button

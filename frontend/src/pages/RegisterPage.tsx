@@ -17,6 +17,8 @@ export default function RegisterPage() {
     setError(null);
     try {
       await api.auth.register({ email, password, name, org_name: orgName });
+      // Clear wizard dismiss so onboarding wizard always shows for new users
+      try { localStorage.removeItem('quantive_wizard_dismissed'); } catch { /* noop */ }
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');

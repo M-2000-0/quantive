@@ -15,6 +15,16 @@ export default function LoginPage() {
     setError(null);
     try {
       await api.auth.login({ email, password });
+      // Check if user has data; if not, show onboarding wizard
+      try {
+        const status = await api.firstRun.quickStartData() as { onboarding: { onboarding_complete: boolean } };
+        if (!status.onboarding.onboarding_complete) {
+          localStorage.removeItem('quantive_wizard_dismissed');
+        }
+      } catch {
+        // If status check fails, clear dismiss to be safe
+        localStorage.removeItem('quantive_wizard_dismissed');
+      }
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed. Verify credentials and try again.');

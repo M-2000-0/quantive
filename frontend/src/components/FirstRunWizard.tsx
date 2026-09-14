@@ -4,6 +4,7 @@ import {
   ArrowRight,
   CheckCircle,
   FileSpreadsheet,
+  LayoutGrid,
   Loader2,
   Rocket,
   Sparkles,
@@ -95,7 +96,7 @@ function formatCurrency(value: number): string {
 // ── Component ───────────────────────────────────────────────────────
 
 export default function FirstRunWizard() {
-  const [step, setStep] = useState<'loading' | 'welcome' | 'creating' | 'ready' | 'optimizing' | 'results' | 'done'>('loading');
+  const [step, setStep] = useState<'loading' | 'welcome' | 'creating' | 'ready' | 'optimizing' | 'results' | 'done' | 'done_hidden'>('loading');
   const [quickStartData, setQuickStartData] = useState<QuickStartData | null>(null);
   const [demoResult, setDemoResult] = useState<DemoPortfolioResult | null>(null);
   const [optimizeResult, setOptimizeResult] = useState<QuickOptimizeResult | null>(null);
@@ -126,7 +127,7 @@ export default function FirstRunWizard() {
     } catch {
       /* storage unavailable */
     }
-    setStep('done');
+    setStep('done_hidden');
   }, [stopPolling]);
 
   // Load initial data
@@ -205,6 +206,10 @@ export default function FirstRunWizard() {
             const savingsData = await api.firstRun.savingsOpportunity(result.portfolio_id) as unknown as SavingsOpportunity;
             setSavings(savingsData);
             setStep('done');
+          } else if (status.status === 'failed') {
+            stopPolling();
+            setError('Optimization failed. You can retry from the dashboard.');
+            setStep('done');
           }
         } catch {
           // ignore poll errors
@@ -219,7 +224,54 @@ export default function FirstRunWizard() {
     }
   }, [demoResult, stopPolling]);
 
-  if (step === 'done') return null;
+  // ── Done: show completion summary ────────────────────────────
+
+  if (step === 'done') {
+    return (
+      <div className="wizard-overlay" style={containerStyle}>
+        <div role="dialog" aria-modal="true" aria-label="Onboarding complete" style={{ ...cardStyle, maxWidth: 520 }}>
+          <button type="button" onClick={() => setStep('done_hidden')} aria-label="Dismiss" style={dismissButtonStyle}>
+            <X size={18} />
+          </button>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ ...checkCircleStyle, background: '#ecfdf5' }}>
+              <CheckCircle size={32} color="#10b981" />
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginTop: 16, marginBottom: 8 }}>
+              You're all set!
+            </h2>
+            <p style={{ color: '#6b7280', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+              Your demo portfolio is loaded and your first optimization is complete.
+              Explore your dashboard to see the full picture.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link
+                to="/dashboard"
+                style={{ ...primaryButtonStyle, textDecoration: 'none' }}
+                onClick={() => {
+                  try { localStorage.setItem(WIZARD_DISMISS_KEY, 'true'); } catch { /* noop */ }
+                }}
+              >
+                <LayoutGrid size={16} />
+                Go to Dashboard
+              </Link>
+              <Link
+                to="/optimizations"
+                style={{ ...ghostButtonStyle, textDecoration: 'none' }}
+                onClick={() => {
+                  try { localStorage.setItem(WIZARD_DISMISS_KEY, 'true'); } catch { /* noop */ }
+                }}
+              >
+                View Optimizations
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'done_hidden') return null;
 
   // ── Loading ──────────────────────────────────────────────────
 
