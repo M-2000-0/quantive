@@ -441,6 +441,8 @@ export const api = {
     portfolioExcel: (portfolioId: string) => `${API_BASE}/exports/portfolio/${portfolioId}.xlsx`,
     optimizationExcel: (jobId: string) => `${API_BASE}/exports/optimization/${jobId}.xlsx`,
     riskExcel: (portfolioId: string) => `${API_BASE}/exports/risk/${portfolioId}.xlsx`,
+    riskPdf: (portfolioId: string) => `${API_BASE}/pdf/risk/${portfolioId}.pdf`,
+    optimizationPdf: (jobId: string) => `${API_BASE}/pdf/optimization/${jobId}.pdf`,
   },
 
   // ── Webhooks ────────────────────────────────────────────────────────

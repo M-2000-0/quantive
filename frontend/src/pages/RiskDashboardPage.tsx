@@ -93,12 +93,20 @@ export default function RiskDashboardPage() {
             </span>
           )}
           {selectedId && (
-            <a
-              href={api.exports.riskExcel(selectedId)}
-              style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 600, color: '#2563eb', textDecoration: 'none' }}
-            >
-              Export risk Excel
-            </a>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <a
+                href={api.exports.riskPdf(selectedId)}
+                style={{ fontSize: 13, fontWeight: 600, color: '#dc2626', textDecoration: 'none' }}
+              >
+                Export PDF
+              </a>
+              <a
+                href={api.exports.riskExcel(selectedId)}
+                style={{ fontSize: 13, fontWeight: 600, color: '#2563eb', textDecoration: 'none' }}
+              >
+                Export Excel
+              </a>
+            </div>
           )}
         </div>
 
