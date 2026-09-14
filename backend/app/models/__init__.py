@@ -366,6 +366,7 @@ from app.models.banking import (  # noqa: E402, F401
     BankTransaction,
     BankTransfer,
     BusinessProfile,
+    QuboFinding,
 )
 from app.models.discovery import (  # noqa: E402, F401
     AssetClass,

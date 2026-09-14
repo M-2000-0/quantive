@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qubo — Business taxes, handled | Quantive</title>
+<meta name="description" content="Qubo is Quantive's AI tax assistant for businesses: automatic categorization, deduction detection, quarterly estimates and CPA-ready reports, year-round.">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="quantive-logo.png">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0A0A0B;color:#F5F5F3;line-height:1.5;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(640px 340px at 12% -4%, rgba(77,141,255,0.10), transparent 65%),
+    radial-gradient(720px 380px at 88% 8%, rgba(255,255,255,0.05), transparent 60%);}
+a{color:inherit;text-decoration:none}
+section{scroll-margin-top:70px}
+::selection{background:rgba(77,141,255,0.35)}
+:root{
+  --bg:#0A0A0B;--surface:rgba(255,255,255,0.035);--surface2:rgba(255,255,255,0.055);
+  --line:rgba(255,255,255,0.08);--line2:rgba(255,255,255,0.13);--line3:rgba(255,255,255,0.18);
+  --text:#F5F5F3;--muted:#8A8A90;--muted2:#5E5E66;--muted3:#3F3F45;
+  --accent:#4D8DFF;--max:1120px;--ease:cubic-bezier(.16,1,.3,1);
+}
+.nav{position:sticky;top:0;z-index:20;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;max-width:var(--max);margin:0 auto;width:100%;background:rgba(10,10,11,0.78);backdrop-filter:blur(16px) saturate(1.15);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:10px}
+.mark{width:46px;height:46px;border-radius:12px;background:#0A0A0B;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden;flex-shrink:0}
+.mark img{width:40px;height:40px;object-fit:contain;display:block}
+.brand{font-size:17px;font-weight:700;letter-spacing:-0.03em}
+.brand span{font-family:'Instrument Serif',serif;font-weight:400;font-style:italic;color:#A8A8AE;font-size:15px;margin-left:4px}
+.links{display:flex;align-items:center;gap:22px}
+.links a{font-size:13px;font-weight:500;color:var(--muted)}
+.links a:hover{color:var(--text)}
+.cta{padding:9px 16px;border-radius:100px;background:#F5F5F3;color:#0A0A0B;font-size:13px;font-weight:650;transition:all .18s var(--ease)}
+.cta:hover{transform:translateY(-1px)}
+.ghost{padding:9px 14px;border-radius:100px;border:1px solid var(--line2);font-size:13px;font-weight:550;background:rgba(255,255,255,0.03)}
+.ghost:hover{background:rgba(255,255,255,0.07)}
+.hero{max-width:var(--max);margin:0 auto;padding:72px 32px 56px;position:relative}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(560px 280px at 30% 20%, rgba(77,141,255,0.12), transparent 70%);}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:100px;border:1px solid var(--line);background:rgba(255,255,255,0.04);font-size:12px;color:var(--muted)}
+.badge i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(77,141,255,0.15)}
+.hero h1{margin-top:22px;font-family:'Instrument Serif',serif;font-size:clamp(48px,7vw,84px);font-weight:400;line-height:0.92;letter-spacing:-0.05em}
+.hero h1 em{font-style:italic;color:#C8C8CE}
+.sub{margin-top:16px;max-width:600px;font-size:17px;line-height:1.65;color:var(--muted)}
+.sub strong{color:var(--text)}
+.actions{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+.btn{padding:12px 20px;border-radius:100px;font-size:14px;font-weight:620;display:inline-flex;align-items:center;gap:7px;transition:all .18s var(--ease);white-space:nowrap}
+.btn-dark{background:#F5F5F3;color:#0A0A0B}
+.btn-dark:hover{transform:translateY(-1px)}
+.btn-line{background:rgba(255,255,255,0.04);color:var(--text);border:1px solid var(--line2)}
+.btn-line:hover{background:rgba(255,255,255,0.07);transform:translateY(-1px)}
+.flow{margin-top:36px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.flow span{padding:8px 14px;border-radius:100px;border:1px solid var(--line);background:var(--surface)}
+.flow b{color:var(--muted2)}
+.section{max-width:var(--max);margin:0 auto;padding:80px 32px;border-top:1px solid var(--line)}
+.eyebrow{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-weight:700;display:flex;align-items:center;gap:8px}
+.eyebrow::before{content:"";width:18px;height:1px;background:var(--line2)}
+.title{margin-top:10px;font-family:'Instrument Serif',serif;font-size:36px;line-height:0.95;letter-spacing:-0.04em;font-weight:400}
+.title em{font-style:italic;color:#C8C8CE}
+.desc{margin-top:10px;max-width:560px;font-size:14px;line-height:1.65;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+.card{padding:22px;border-radius:16px;background:var(--surface);border:1px solid var(--line);transition:all .2s var(--ease)}
+.card:hover{transform:translateY(-2px);border-color:var(--line2);background:var(--surface2)}
+.card-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);background:rgba(255,255,255,0.04);font-size:13px;margin-bottom:14px}
+.card h3{font-size:14px;font-weight:680}
+.card p{margin-top:7px;font-size:13px;line-height:1.6;color:var(--muted)}
+.card ul{margin-top:12px;list-style:none;display:grid;gap:6px}
+.card li{font-size:12px;color:var(--muted2);display:flex;gap:7px;align-items:center}
+.card li::before{content:"—";color:var(--muted3);font-weight:600}
+.box{margin-top:28px;padding:24px;border-radius:16px;border:1px solid rgba(77,141,255,0.3);background:rgba(77,141,255,0.05)}
+.box h3{font-size:14px;font-weight:700}
+.box ul{margin-top:12px;list-style:none;display:grid;gap:8px}
+.box li{font-size:13px;color:var(--muted);line-height:1.6;padding-left:20px;position:relative}
+.box li::before{content:"—";position:absolute;left:0;color:var(--muted2)}
+.box li strong{color:var(--text)}
+.cta-box{margin-top:28px;padding:32px;border-radius:20px;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.cta-box h3{font-family:'Instrument Serif',serif;font-size:26px;font-weight:400;letter-spacing:-0.03em}
+.cta-box p{margin-top:6px;font-size:13px;color:var(--muted)}
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+.price-card{padding:24px;border-radius:16px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;transition:all .2s var(--ease)}
+.price-card:hover{transform:translateY(-2px);border-color:var(--line2)}
+.price-card.featured{border-color:rgba(77,141,255,0.4);background:rgba(77,141,255,0.05)}
+.price-card h4{font-size:14px;font-weight:700}
+.price-card .amount{margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700}
+.price-card .period{font-size:12px;color:var(--muted2)}
+.price-card p{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.6}
+.price-card ul{margin-top:14px;list-style:none;display:grid;gap:7px;flex:1}
+.price-card li{font-size:12.5px;color:var(--muted);display:flex;gap:7px}
+.price-card li::before{content:"✓";color:var(--accent);font-weight:700;font-size:11px}
+.footer{max-width:var(--max);margin:0 auto;padding:32px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--muted2)}
+.footer a{color:var(--muted)}
+.footer a:hover{color:var(--text)}
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .55s var(--ease),transform .55s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+@media (max-width:980px){.cards,.pricing{grid-template-columns:1fr}}
+@media (max-width:900px){.nav{padding:0 18px}.hero,.section{padding-left:18px;padding-right:18px}.links a:not(.cta):not(.ghost){display:none}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="logo" href="index.html"><div class="mark"><img src="quantive-logo.png" alt="Quantive"></div><span class="brand">Quantive <span>Qubo</span></span></a>
+  <div class="links">
+    <a href="index.html">Government</a>
+    <a href="banking.html">Banking</a>
+    <a href="#pricing">Pricing</a>
+    <a href="terms.html">Terms & Privacy</a>
+    <a href="index.html" class="ghost">Quantive Home</a>
+    <a href="#cta" class="cta">Get started →</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="badge reveal"><i></i> Qubo — AI tax intelligence for business</div>
+  <h1 class="reveal">Your taxes,<br><em>handled.</em></h1>
+  <p class="sub reveal">Qubo reads your books year-round: every transaction categorized, every deduction surfaced, every quarter estimated. <strong>April becomes a non-event.</strong></p>
+  <div class="actions reveal">
+    <a href="#cta" class="btn btn-dark">Put taxes on autopilot →</a>
+    <a href="#features" class="btn btn-line">What it does</a>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="reveal"><div class="eyebrow">What Qubo does</div>
+  <h2 class="title">A tax department <em>in your pocket.</em></h2></div>
+  <div class="cards">
+    <div class="card reveal"><div class="card-icon">◈</div><h3>Finds every deduction</h3><p>Scans categorized spending against current tax rules to surface write-offs you'd otherwise miss.</p>
+      <ul><li>Rule-based, jurisdiction-aware</li><li>Every find traces to a versioned rule</li></ul></div>
+    <div class="card reveal"><div class="card-icon">◎</div><h3>Categorizes everything</h3><p>Transactions tagged the instant they land. Books stay close-ready with zero data entry.</p>
+      <ul><li>Instant AI bookkeeping</li><li>One-click correction</li></ul></div>
+    <div class="card reveal"><div class="card-icon">◆</div><h3>Estimates &amp; exports</h3><p>Quarterly set-asides estimated, year-end packaged for your CPA. No shoebox, no scramble.</p>
+      <ul><li>Quarterly tax estimates</li><li>CPA-ready annual export</li></ul></div>
+  </div>
+  <p class="reveal" style="margin-top:20px;font-size:12.5px;color:var(--muted2)">Versioned rules for US, MX and BD tax years — generic guidance elsewhere. Every finding traces to its rule, or it doesn't ship. Your books stay yours. Optional de-identified product analytics are strictly opt-in — see <a href="terms.html" style="text-decoration:underline;color:var(--muted)">Terms &amp; Privacy</a>.</p>
+</section>
+
+<section class="section" id="pricing">
+  <div class="reveal"><div class="eyebrow">Pricing</div>
+  <h2 class="title">Annual access, <em>not per-message.</em></h2>
+  <p class="desc">One subscription to the system. Limits enforced server-side — no surprise bills, ever.</p></div>
+  <div class="pricing">
+    <div class="price-card reveal"><h4>Starter</h4><div class="amount">$2,000</div><div class="period">Per year</div><p>Write-off detection with limits. Useful, deliberately lean.</p>
+      <ul><li>Up to 3 opportunities tracked</li><li>10 documents</li><li>20 questions / month</li><li>Summary report only</li></ul></div>
+    <div class="price-card featured reveal"><h4>Personal</h4><div class="amount">$5,000</div><div class="period">Per year — most popular</div><p>Full tax intelligence: profile, opportunities, documents, annual report.</p>
+      <ul><li>Unlimited opportunities</li><li>Unlimited documents</li><li>Unlimited intelligence</li><li>Annual intelligence report</li></ul></div>
+    <div class="price-card reveal"><h4>Sovereign</h4><div class="amount">$10,000</div><div class="period">Per year</div><p>Everything in Personal, plus market access and CPA-ready export.</p>
+      <ul><li>Gov-grade market access</li><li>Sovereign-mode insights</li><li>CPA-ready export</li><li>Priority intelligence</li></ul></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="reveal"><div class="eyebrow">How it works</div>
+  <h2 class="title">Connected in an <em>afternoon.</em></h2></div>
+  <div class="cards">
+    <div class="card reveal"><div class="card-icon">01</div><h3>Connect your books</h3><p>Banking, invoicing, payroll. Qubo builds your financial profile automatically.</p></div>
+    <div class="card reveal"><div class="card-icon">02</div><h3>Review the finds</h3><p>Deductions and categories surface daily. Approve in one click; Qubo learns.</p></div>
+    <div class="card reveal"><div class="card-icon">03</div><h3>File with confidence</h3><p>Quarterly estimates plus a CPA-ready pack at year end. Nothing needs verification twice.</p></div>
+  </div>
+</section>
+
+<section class="section" id="cta">
+  <div class="cta-box reveal">
+    <div><h3>Stop dreading tax season.</h3><p>Thirty minutes. We connect a sample ledger and show you the deductions hiding in it.</p></div>
+    <a href="index.html#cta" class="btn btn-dark">Schedule a consultation →</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <span>© 2026 Quantive. All rights reserved. — Quantive · Qubo · Quantive Banking</span>
+  <span style="display:flex;gap:16px"><a href="index.html">Home</a><a href="banking.html">Banking</a><a href="terms.html">Terms</a></span>
+</footer>
+
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

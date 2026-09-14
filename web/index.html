@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A0A0B">
 <title>Quantive — Clear decisions for public debt and portfolio risk</title>
 <meta name="description" content="National treasuries and central banks need clear insights when managing high-stakes portfolios. Quantive provides straight decision support without black-box complexity.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +18,25 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0A0A0B;c
 a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%}
 button{font-family:inherit}
+section{scroll-margin-top:70px}
+::selection{background:rgba(77,141,255,0.35)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(700px 360px at 10% -4%, rgba(77,141,255,0.09), transparent 65%),
+    radial-gradient(760px 400px at 90% 6%, rgba(255,255,255,0.045), transparent 60%);}
+.hero{position:relative}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(600px 300px at 28% 22%, rgba(77,141,255,0.11), transparent 70%);}
+.hero h1 em{text-shadow:0 0 44px rgba(245,245,243,0.22)}
+.preview{transition:transform .25s var(--ease), box-shadow .25s var(--ease)}
+.preview:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,0.04) inset, 0 28px 60px rgba(0,0,0,0.45)}
+.chip{position:absolute;z-index:2;padding:8px 13px;border-radius:100px;font-size:11.5px;font-weight:650;letter-spacing:-0.01em;
+  background:rgba(10,10,11,0.85);border:1px solid var(--line2);backdrop-filter:blur(10px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.45);white-space:nowrap}
+.chip-1{top:14px;left:14px}
+.chip-2{bottom:14px;right:14px}
+.chip-3{bottom:14px;left:14px}
+.chip b{color:#F5F5F3}
 
 /* ── Tokens ────────────────────────────────────────────── */
 :root{
@@ -254,6 +274,7 @@ button{font-family:inherit}
   .preview{max-height:none}
   .cards,.steps,.personas,.quotes,.pricing{grid-template-columns:1fr}
   .table-wrap{overflow-x:auto}
+  .chip{display:none}
 }
 @media (max-width:900px){
   .nav{padding:0 18px}
@@ -274,7 +295,7 @@ button{font-family:inherit}
     <a href="#government">Government</a>
     <a href="#business">Businesses</a>
     <a href="banking.html">Banking <span style="font-size:10px;font-weight:800;background:#4D8DFF;color:#0A0A0B;padding:2px 7px;border-radius:100px;vertical-align:middle">NEW</span></a>
-    <a href="#qubo">Qubo</a>
+    <a href="qubo.html">Qubo</a>
     <a href="#pricing">Pricing</a>
     <a href="http://localhost:8000/login" class="ghost">Sign in</a>
     <a href="http://localhost:8000/register" class="cta">Schedule a Consultation →</a>
@@ -304,8 +325,10 @@ button{font-family:inherit}
       <span class="bar-title">12 • 6 ccys</span>
     </div>
     <div class="preview-img">
-      <img src="landing-page-1.png" alt="Quantive dashboard — Portfolio Health 71, Total Debt $557.4B, Risk Profile and Maturity Distribution" loading="eager" onerror="this.onerror=null;this.src='landing%20page%201.png'">
+      <img src="landing-page-1.jpg" width="1536" height="1024" alt="Quantive dashboard — Portfolio Health 71, Total Debt $557.4B, Risk Profile and Maturity Distribution" fetchpriority="high" onerror="this.onerror=null;this.src='landing-page-1.png'">
     </div>
+    <div class="chip chip-1">✓ 200bp shock · modeled in <b>20 min</b></div>
+    <div class="chip chip-2"><b>$557.4B</b> under analysis</div>
   </div>
 </section>
 
@@ -424,35 +447,15 @@ button{font-family:inherit}
   </div>
 </section>
 
-<!-- ── Qubo ─────────────────────────────────────────── -->
+<!-- ── Qubo teaser (full page: qubo.html) ─────────────── -->
 <section class="section" id="qubo">
-  <div class="reveal">
-    <div class="eyebrow">Qubo — aggregated market intelligence</div>
-    <h2 class="title">Patterns,<br><em>not people.</em></h2>
-    <p class="desc">Qubo compiles market activity into aggregated trends that governments use to decide where to invest.</p>
-  </div>
-  <div class="cards">
-    <div class="card reveal">
-      <div class="card-icon">◈</div>
-      <h3>What government receives</h3>
-      <p>De-identified, time-bucketed aggregates for investment planning.</p>
-      <ul><li>Age group / age bracket</li><li>Investing vs spending trend signals</li></ul>
+  <div class="cta-box reveal" style="margin-top:0;border-color:rgba(77,141,255,0.28);background:rgba(77,141,255,0.045)">
+    <div>
+      <div class="eyebrow">Qubo — AI tax intelligence for business</div>
+      <h3 style="margin-top:10px">Taxes, <em style="font-style:italic;color:#C8C8CE">handled.</em></h3>
+      <p style="margin-top:8px;max-width:520px">Qubo finds deductions, categorizes every transaction, and preps your return — year-round, not just April.</p>
     </div>
-    <div class="card reveal reveal-d1">
-      <div class="card-icon">◎</div>
-      <h3>What government never receives</h3>
-      <p>Individual data never leaves the product boundary.</p>
-      <ul><li>No names or contact details</li><li>No conversations or transactions</li></ul>
-    </div>
-    <div class="card reveal reveal-d2">
-      <div class="card-icon">◆</div>
-      <h3>How it flows</h3>
-      <p>Individuals and businesses use Quantive. Qubo aggregates. Planners see only the aggregates.</p>
-      <ul><li>Full contract in the Terms of Service</li></ul>
-    </div>
-  </div>
-  <div class="actions reveal" style="margin-top:20px">
-    <a href="terms.html" class="btn btn-line">Read the privacy contract →</a>
+    <a href="qubo.html" class="btn btn-dark">Open the Qubo page →</a>
   </div>
 </section>
 
@@ -598,7 +601,7 @@ button{font-family:inherit}
 </section>
 
 <!-- ── Final CTA ──────────────────────────────────────── -->
-<section class="section">
+<section class="section" id="cta">
   <div class="cta-box reveal">
     <div>
       <h3>Ready to stop guessing?</h3>

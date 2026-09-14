@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { personalApi } from '../personal/api';
 
-// Qubo product page: live aggregated trends (public) + explicit opt-in (logged in).
-// Privacy contract: only age-bracket aggregates, never names/conversations/records.
+// Qubo product page: AI tax assistant for business + optional aggregate
+// contribution (explicit opt-in, logged in). Full data practices in Terms.
 interface Trend { segment: string; signal: string; direction: string }
 interface PublicTrends {
   is_live: boolean; as_of: string; contributors_total: number;
@@ -62,7 +62,13 @@ export default function QuboPage() {
       </nav>
       <h1>Qubo</h1>
       <p style={{ color: '#4b5563' }}>
-        Qubo compiles market activity into aggregated trends that help governments decide where to invest.
+        Qubo is Quantive's AI tax assistant for businesses — it categorizes spending,
+        surfaces deductions, and keeps your books close-ready year-round.
+      </p>
+      <p style={{ color: '#4b5563' }}>
+        Separately, you may <em>opt in</em> below to contribute de-identified aggregates
+        that help governments decide where to invest. Nothing is shared unless you say so —
+        see <Link to="/terms">Terms of Service</Link> § Qubo &amp; Data.
       </p>
 
       {/* ── Live trends ─────────────────────────────────────────── */}

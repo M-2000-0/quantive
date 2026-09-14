@@ -16,20 +16,23 @@ export default function TermsPage() {
       <h2>1. Products, one enterprise, separate data</h2>
       <p>
         <strong>Quantive</strong> (government / business debt and portfolio platform),{' '}
-        <strong>Qubo</strong> (aggregated market-trend compiler), and{' '}
+        <strong>Qubo</strong> (AI tax assistant for businesses), and{' '}
         <strong>Quantive Personal</strong> (individual tax intelligence) are operated by the same
         enterprise with shared billing and authentication, but <strong>separate databases</strong>.
         Personal data never mixes with sovereign / institutional data.
       </p>
 
-      <h2>2. Qubo &amp; Government Data — privacy contract</h2>
+      <h2>2. Qubo &amp; Data — privacy contract</h2>
       <p>
-        Qubo compiles market activity into aggregated trends that governments use to guide investment.
+        Qubo's job is your taxes. Separately, it operates an <strong>optional
+        aggregate-trends program</strong>: nothing is contributed unless you explicitly opt in
+        (in-app toggle); opt out anytime. Live brackets unlock only above minimum bucket
+        sizes so no individual is identifiable.
       </p>
       <ul>
-        <li><strong>Shared with government:</strong> age group, age bracket, and aggregated signals such as “people are investing or spending more in this type of thing.”</li>
+        <li><strong>Shared, when you opt in:</strong> age group, age bracket, and aggregated signals such as “people are investing or spending more in this type of thing.”</li>
         <li><strong>Never shared:</strong> names, contact details, conversations / message content, individual transactions, or any directly identifiable record.</li>
-        <li>Government receives <em>patterns, not people</em> — time-bucketed, de-identified aggregates only.</li>
+        <li>Recipients see <em>patterns, not people</em> — time-bucketed, de-identified aggregates only.</li>
       </ul>
 
       <h2>3. Quantive Personal plans</h2>

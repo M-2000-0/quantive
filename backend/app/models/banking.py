@@ -102,7 +102,6 @@ Index("ix_bank_transfers_org_idem", BankTransfer.org_id, BankTransfer.idempotenc
 class BusinessProfile(Base):
     """KYB / onboarding profile. One per org. Status machine:
     draft -> pending -> verified | rejected. Only admins can decide."""
-
     __tablename__ = "banking_business_profiles"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -120,3 +119,34 @@ class BusinessProfile(Base):
     decided_at: Mapped[datetime | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=_utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(default=_utcnow, onupdate=_utcnow, nullable=False)
+
+
+class QuboFinding(Base):
+    """Business deduction finding from a Qubo ledger scan.
+
+    Honesty contract (mirrors personal tax_packs): relevance + requirements
+    only. ``amount_cents`` is the outflow that *may* qualify — never a
+    promised saving, never an eligibility guarantee. Every finding traces
+    to a versioned rule (jurisdiction x tax year) or it does not exist."""
+
+    __tablename__ = "qubo_findings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    org_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("bank_accounts.id"), nullable=True)
+    txn_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("bank_transactions.id"), nullable=True)
+    rule_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    jurisdiction: Mapped[str] = mapped_column(String(8), default="US", nullable=False)
+    tax_year: Mapped[int] = mapped_column(Integer, default=2026, nullable=False)
+    category: Mapped[str] = mapped_column(String(64), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    detail: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    amount_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    requirements: Mapped[dict] = mapped_column(SAJSON, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="new", nullable=False)
+    # new | accepted | dismissed
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(default=_utcnow, onupdate=_utcnow, nullable=False)
+
+
+Index("ix_qubo_findings_org_txn_rule", QuboFinding.org_id, QuboFinding.txn_id, QuboFinding.rule_id)

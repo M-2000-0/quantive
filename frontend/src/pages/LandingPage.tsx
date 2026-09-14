@@ -49,16 +49,16 @@ export default function LandingPage() {
 
       {/* ── Qubo strip ────────────────────────────────────────── */}
       <section aria-label="Qubo" className="qp-card" style={{ margin: '16px 0' }}>
-        <h2>Qubo — aggregated market intelligence, privacy by design</h2>
+        <h2>Qubo — AI tax intelligence for business</h2>
         <p className="qp-muted">
-          Qubo compiles market activity into aggregated trends that governments use to decide
-          where to invest. <strong>What government sees:</strong> age group / age bracket and
-          that people are investing or spending more in certain categories.{' '}
-          <strong>What government never sees:</strong> names, conversations, or individual records.
+          Qubo finds deductions, categorizes every transaction, and preps your return —
+          year-round, not just April. Optional de-identified analytics are strictly
+          opt-in — see the <Link to="/terms">Terms</Link>.
         </p>
         <ul className="qp-muted">
-          <li>Shared: age group, age bracket, aggregated investing / spending trends</li>
-          <li>Never shared: names, contact details, conversations, individual transactions</li>
+          <li>Deduction detection against versioned tax rules</li>
+          <li>Instant categorization + quarterly estimates</li>
+          <li>CPA-ready export at year end</li>
         </ul>
         <Link to="/qubo" className="qp-btn secondary" style={{ textDecoration: 'none' }}>Qubo landing →</Link>
       </section>

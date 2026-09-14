@@ -37,6 +37,7 @@ const BankingPage = lazy(() => import('./pages/BankingPage'));
 const BankingDashboardPage = lazy(() => import('./pages/BankingDashboardPage'));
 const BankingTransfersPage = lazy(() => import('./pages/BankingTransfersPage'));
 const BankingOnboardingPage = lazy(() => import('./pages/BankingOnboardingPage'));
+const QuboWorkspacePage = lazy(() => import('./pages/QuboWorkspacePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const EventImpactDashboard = lazy(() => import('./pages/EventImpactDashboard'));
@@ -125,6 +126,7 @@ const NAV_ITEMS = [
   { label: 'Settings', to: '/settings', icon: Settings },
   { label: 'Personal ★', to: '/personal', icon: Sparkles },
   { label: 'Banking', to: '/banking/app', icon: BriefcaseBusiness },
+  { label: 'Qubo Tax', to: '/qubo/workspace', icon: Sparkles },
 ];
 
 function AppLayout() {
@@ -342,6 +344,16 @@ export default function App() {
     <Routes>
       <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
       <Route path="/qubo" element={<PageWrapper><QuboPage /></PageWrapper>} />
+      <Route
+        path="/qubo/workspace"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><QuboWorkspacePage /></PageWrapper>} />
+      </Route>
       <Route path="/terms" element={<PageWrapper><TermsPage /></PageWrapper>} />
       <Route path="/government" element={<PageWrapper><GovernmentPage /></PageWrapper>} />
       <Route path="/business" element={<PageWrapper><BusinessPage /></PageWrapper>} />
