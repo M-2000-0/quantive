@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const FEATURES = [
@@ -20,6 +21,21 @@ const MODEL = [
 ];
 
 export default function BankingPage() {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSubmitting(true);
+    // Simulate submission (no backend endpoint yet)
+    setTimeout(() => {
+      setSubmitted(true);
+      setSubmitting(false);
+    }, 600);
+  }
+
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}>
       <nav aria-label="Banking" style={{ display: 'flex', gap: 12, margin: '12px 0', fontSize: 14 }}>
@@ -92,11 +108,30 @@ export default function BankingPage() {
         </p>
       </section>
 
-      <form onSubmit={(e) => e.preventDefault()} style={{ margin: '16px 0' }}>
-        <label htmlFor="banking-email">Email address</label>
-        <input id="banking-email" type="email" placeholder="you@company.com" />
-        <button type="submit">Join waitlist</button>
-      </form>
+      {submitted ? (
+        <div className="qp-card" style={{ margin: '16px 0', borderColor: '#34d399', textAlign: 'center' }}>
+          <h3 style={{ color: '#065f46' }}>You&apos;re on the list!</h3>
+          <p className="qp-muted">We&apos;ll notify you when Quantive Banking is ready for your business.</p>
+        </div>
+      ) : (
+        <form onSubmit={(e) => void handleSubmit(e)} style={{ margin: '16px 0', display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label htmlFor="banking-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Email address</label>
+            <input
+              id="banking-email"
+              type="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 14 }}
+            />
+          </div>
+          <button type="submit" disabled={submitting} className="qp-btn">
+            {submitting ? 'Joining…' : 'Join waitlist'}
+          </button>
+        </form>
+      )}
       <footer>© Quantive. All rights reserved. <Link to="/terms">Terms of Service</Link></footer>
     </div>
   );
