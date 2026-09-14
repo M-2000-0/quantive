@@ -61,6 +61,7 @@ const InteroperabilityPage = lazy(() => import('./pages/InteroperabilityPage'));
 const DisasterRecoveryPage = lazy(() => import('./pages/DisasterRecoveryPage'));
 const SLAMonitoringPage = lazy(() => import('./pages/SLAMonitoringPage'));
 const EscrowPage = lazy(() => import('./pages/EscrowPage'));
+const ComparePage = lazy(() => import('./pages/ComparePage'));
 const PersonalLayout = lazy(() => import('./personal/PersonalLayout'));
 const PersonalDashboard = lazy(() => import('./personal/pages/DashboardPage'));
 const PersonalOnboarding = lazy(() => import('./personal/pages/OnboardingPage'));
@@ -463,6 +464,7 @@ export default function App() {
       >
         <Route index element={<PageWrapper><OptimizationsPage /></PageWrapper>} />
         <Route path="new" element={<PageWrapper><NewOptimizationPage /></PageWrapper>} />
+        <Route path="compare" element={<PageWrapper><ComparePage /></PageWrapper>} />
       </Route>
       <Route
         path="/transparency-index"

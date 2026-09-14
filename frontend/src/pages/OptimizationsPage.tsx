@@ -28,6 +28,7 @@ export default function OptimizationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const pollRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
@@ -127,9 +128,21 @@ export default function OptimizationsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h1>Optimizations</h1>
-        <Link to="/optimizations/new" className="primary-button" style={{ textDecoration: 'none' }}>
-          New optimization
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {selectedIds.size >= 2 && (
+            <button
+              type="button"
+              onClick={() => navigate(`/optimizations/compare?jobs=${Array.from(selectedIds).join(',')}`)}
+              className="primary-button"
+              style={{ textDecoration: 'none' }}
+            >
+              Compare ({selectedIds.size})
+            </button>
+          )}
+          <Link to="/optimizations/new" className="primary-button" style={{ textDecoration: 'none' }}>
+            New optimization
+          </Link>
+        </div>
       </div>
       {jobs.length === 0 ? (
         <div className="panel" style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>
@@ -147,7 +160,24 @@ export default function OptimizationsPage() {
             return (
               <li key={job.id} className="panel" style={{ padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <strong>{job.name}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {isDone && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(job.id)}
+                        onChange={() => {
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(job.id)) next.delete(job.id); else next.add(job.id);
+                            return next;
+                          });
+                        }}
+                        aria-label={`Select ${job.name} for comparison`}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    )}
+                    <strong>{job.name}</strong>
+                  </div>
                   <span
                     style={{
                       fontSize: 12,
