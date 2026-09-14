@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [marketFetchedAt, setMarketFetchedAt] = useState<Date | null>(null);
   const [marketStale, setMarketStale] = useState(false);
   const [showChartTable, setShowChartTable] = useState(false);
+  const [seedingDemo, setSeedingDemo] = useState(false);
   const [params] = useSearchParams();
   const searchQuery = (params.get('q') ?? '').trim().toLowerCase();
 
@@ -72,6 +73,19 @@ export default function DashboardPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleSeedDemo() {
+    setSeedingDemo(true);
+    setError(null);
+    try {
+      await api.firstRun.createDemoPortfolio();
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Demo seed failed');
+    } finally {
+      setSeedingDemo(false);
+    }
+  }
 
   const filteredTasks = useMemo(() => {
     if (!searchQuery) return tasks;
@@ -156,6 +170,29 @@ export default function DashboardPage() {
         <div role="status" style={{ marginBottom: 12, fontSize: 12, color: '#6b7280' }}>
           Market data as of {marketFetchedAt.toLocaleString()}
         </div>
+      )}
+      {summary && summary.portfolio_count === 0 && (
+        <section className="panel" aria-label="Get started" style={{ marginBottom: 16, borderColor: '#93c5fd', background: '#eff6ff' }}>
+          <div className="panel-header">
+            <h2>Start your first loop</h2>
+          </div>
+          <p style={{ fontSize: 13, color: '#1e40af', margin: '0 0 12px' }}>
+            1. Add a portfolio &nbsp;→&nbsp; 2. Run an optimization &nbsp;→&nbsp; 3. Review risk.
+            Load the demo portfolio or create your own — two minutes either way.
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => void handleSeedDemo()}
+              disabled={seedingDemo}
+            >
+              {seedingDemo ? 'Loading demo…' : 'Load demo portfolio →'}
+            </button>
+            <Link className="soft-button" to="/portfolios">Create portfolio</Link>
+            <Link className="soft-button" to="/optimizations/new">Run optimization</Link>
+          </div>
+        </section>
       )}
       <section className="hero-card">
         <div>

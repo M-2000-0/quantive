@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { api } from '../api';
 import type { Portfolio, RiskSummary } from '../types';
@@ -87,7 +88,17 @@ export default function RiskDashboardPage() {
             ))}
           </select>
           {portfolios.length === 0 && !loading && (
-            <span style={{ fontSize: 13, color: '#6b7280' }}>No portfolios yet — create one to see risk.</span>
+            <span style={{ fontSize: 13, color: '#6b7280' }}>
+              No portfolios yet — <Link to="/portfolios">create one</Link> to see risk.
+            </span>
+          )}
+          {selectedId && (
+            <a
+              href={api.exports.riskExcel(selectedId)}
+              style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 600, color: '#2563eb', textDecoration: 'none' }}
+            >
+              Export risk Excel
+            </a>
           )}
         </div>
 

@@ -27,6 +27,7 @@ import DemoModeBanner from './components/DemoModeBanner';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const PortfoliosPage = lazy(() => import('./pages/PortfoliosPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const QuboPage = lazy(() => import('./pages/QuboPage'));
@@ -101,7 +102,8 @@ function readStoredUser(): { name: string; role: string } | null {
 }
 
 const NAV_ITEMS = [
-  // ── MVP core loop: Overview -> Optimize -> Risk -> Solvers ──
+  // ── MVP core loop: Portfolios -> Overview -> Optimize -> Risk -> Solvers ──
+  { label: 'Portfolios', to: '/portfolios', icon: LayoutGrid },
   { label: 'Overview', to: '/dashboard', icon: LayoutGrid },
   { label: 'Optimizations', to: '/optimizations', icon: BriefcaseBusiness },
   { label: 'Insights', to: '/events', icon: Gauge },
@@ -358,6 +360,16 @@ export default function App() {
       <Route path="/government" element={<PageWrapper><GovernmentPage /></PageWrapper>} />
       <Route path="/business" element={<PageWrapper><BusinessPage /></PageWrapper>} />
       <Route path="/banking" element={<PageWrapper><BankingPage /></PageWrapper>} />
+      <Route
+        path="/portfolios"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><PortfoliosPage /></PageWrapper>} />
+      </Route>
       <Route
         path="/banking/app"
         element={
