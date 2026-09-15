@@ -1410,6 +1410,14 @@ async def sectors_redirect(request: Request):
 
 # ── Fallback ─────────────────────────────────────────────────────────
 
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    chat_html = Path(__file__).parent.parent.parent / "web" / "chat.html"
+    if chat_html.exists():
+        return HTMLResponse(content=chat_html.read_text(encoding="utf-8"))
+    return RedirectResponse("/login", status_code=303)
+
+
 @app.get("/{path:path}", response_class=HTMLResponse)
 async def fallback(request: Request, path: str):
     if path.startswith("api/") or path.startswith("docs") or path.startswith("redoc"):
