@@ -12,8 +12,6 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-font-smoothing:antialiased}
 body{font-family:'Inter',system-ui,sans-serif;background:#0A0A0B;color:#F5F5F3;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-
-/* ── Top bar ─────────────────────────────────────────────────────── */
 .topbar{height:52px;display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(10,10,11,0.85);backdrop-filter:blur(12px);flex-shrink:0}
 .topbar .logo{display:flex;align-items:center;gap:8px}
 .topbar .logo img{width:28px;height:28px;border-radius:6px}
@@ -22,8 +20,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0A0A0B;color:#F5F5F3;h
 .topbar .spacer{flex:1}
 .topbar a{font-size:12px;color:#8A8A90;text-decoration:none;font-weight:500}
 .topbar a:hover{color:#F5F5F3}
-
-/* ── Messages area ───────────────────────────────────────────────── */
 .messages{flex:1;overflow-y:auto;padding:24px 0;scroll-behavior:smooth}
 .messages::-webkit-scrollbar{width:6px}
 .messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
@@ -31,53 +27,34 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0A0A0B;color:#F5F5F3;h
 .msg-row.user{justify-content:flex-end}
 .msg-row.assistant{justify-content:flex-start}
 .msg{max-width:680px;width:100%;padding:14px 18px;border-radius:16px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
-.msg.user{background:var(--accent,#4D8DFF);color:#0A0A0B;border-bottom-right-radius:4px;font-weight:500}
+.msg.user{background:#4D8DFF;color:#0A0A0B;border-bottom-right-radius:4px;font-weight:500}
 .msg.assistant{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-bottom-left-radius:4px;color:#E5E5E3}
 .msg strong{color:#fff;font-weight:650}
 .msg.user strong{color:#0A0A0B}
-
-/* ── Typing indicator ────────────────────────────────────────────── */
 .typing{display:none;padding:6px 20px}
 .typing.show{display:flex}
 .typing-dot{width:7px;height:7px;border-radius:50%;background:#8A8A90;margin:0 3px;animation:bounce .6s infinite alternate}
 .typing-dot:nth-child(2){animation-delay:.15s}
 .typing-dot:nth-child(3){animation-delay:.3s}
 @keyframes bounce{to{opacity:.3;transform:translateY(-3px)}}
-
-/* ── Welcome screen ──────────────────────────────────────────────── */
 .welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center}
 .welcome h1{font-size:28px;font-weight:700;letter-spacing:-0.03em}
 .welcome p{color:#8A8A90;font-size:14px;max-width:420px;line-height:1.6}
 .welcome .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
 .chip{padding:8px 14px;border-radius:100px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);font-size:12px;color:#C8C8CE;cursor:pointer;transition:all .15s}
 .chip:hover{background:rgba(77,141,255,0.12);border-color:rgba(77,141,255,0.3);color:#4D8DFF}
-
-/* ── Input area ──────────────────────────────────────────────────── */
 .input-area{padding:12px 20px 20px;border-top:1px solid rgba(255,255,255,0.06);background:rgba(10,10,11,0.6);backdrop-filter:blur(12px);flex-shrink:0}
 .input-wrap{max-width:680px;margin:0 auto;display:flex;gap:8px;align-items:flex-end}
 .input-wrap textarea{flex:1;resize:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 16px;color:#F5F5F3;font-family:inherit;font-size:14px;line-height:1.5;outline:none;min-height:44px;max-height:160px;transition:border-color .15s}
 .input-wrap textarea:focus{border-color:rgba(77,141,255,0.5)}
 .input-wrap textarea::placeholder{color:#5E5E66}
-.send-btn{width:44px;height:44px;border-radius:12px;border:none;background:var(--accent,#4D8DFF);color:#0A0A0B;cursor:pointer;display:grid;place-items:center;transition:all .15s;flex-shrink:0}
+.send-btn{width:44px;height:44px;border-radius:12px;border:none;background:#4D8DFF;color:#0A0A0B;cursor:pointer;display:grid;place-items:center;transition:all .15s;flex-shrink:0}
 .send-btn:hover{transform:scale(1.05)}
 .send-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .send-btn svg{width:20px;height:20px}
-
-/* ── Auth overlay ────────────────────────────────────────────────── */
-.auth-overlay{position:fixed;inset:0;background:#0A0A0B;display:grid;place-items:center;z-index:100}
-.auth-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:36px;width:360px;text-align:center}
-.auth-box h2{font-size:20px;font-weight:700;margin-bottom:6px}
-.auth-box p{color:#8A8A90;font-size:13px;margin-bottom:20px}
-.auth-box input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#F5F5F3;font-size:14px;outline:none;margin-bottom:10px}
-.auth-box input:focus{border-color:rgba(77,141,255,0.5)}
-.auth-box button{width:100%;padding:10px;border-radius:10px;border:none;background:#4D8DFF;color:#0A0A0B;font-size:14px;font-weight:650;cursor:pointer}
-.auth-box button:hover{opacity:.9}
-.auth-box .error{color:#f87171;font-size:12px;margin-top:8px;display:none}
 </style>
 </head>
 <body>
-
-<!-- Top bar -->
 <div class="topbar">
   <div class="logo">
     <img src="/quantive-logo.png" alt="Q">
@@ -87,12 +64,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0A0A0B;color:#F5F5F3;h
   <a href="/banking">Banking</a>
   <a href="/qubo/workspace" style="margin-left:12px">Qubo</a>
 </div>
-
-<!-- Messages -->
 <div class="messages" id="messages">
   <div class="welcome" id="welcome">
     <h1>What can I help with?</h1>
-    <p>Ask about your balances, transactions, Qubo tax deductions, documents, or quarterly estimates.</p>
+    <p>Ask about balances, transactions, Qubo tax deductions, documents, or quarterly estimates.</p>
     <div class="chips">
       <div class="chip" onclick="sendQuick('What\'s my balance?')">Balance</div>
       <div class="chip" onclick="sendQuick('Show recent transactions')">Transactions</div>
@@ -104,121 +79,44 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0A0A0B;color:#F5F5F3;h
     </div>
   </div>
 </div>
-
-<!-- Typing indicator -->
-<div class="typing" id="typing">
-  <div class="typing-dot"></div>
-  <div class="typing-dot"></div>
-  <div class="typing-dot"></div>
-</div>
-
-<!-- Input -->
+<div class="typing" id="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
 <div class="input-area">
   <div class="input-wrap">
-    <textarea id="input" rows="1" placeholder="Message Quantive…" autofocus></textarea>
+    <textarea id="input" rows="1" placeholder="Message Quantive..." autofocus></textarea>
     <button class="send-btn" id="sendBtn" onclick="send()" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
   </div>
 </div>
-
 <script>
-const API = window.location.protocol === 'file:' ? 'http://localhost:8080' : window.location.origin;
-const msgs = document.getElementById('messages');
-const welcome = document.getElementById('welcome');
-const input = document.getElementById('input');
-const sendBtn = document.getElementById('sendBtn');
-const typing = document.getElementById('typing');
-let history = [];
-let loggedIn = true;
-
-// ── Chat ──────────────────────────────────────────────────────────
-function addMsg(role, content) {
-  if (welcome) welcome.style.display = 'none';
-  const row = document.createElement('div');
-  row.className = 'msg-row ' + role;
-  const bubble = document.createElement('div');
-  bubble.className = 'msg ' + role;
-  bubble.innerHTML = renderMd(content);
-  row.appendChild(bubble);
-  msgs.appendChild(row);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-function renderMd(text) {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:12px">$1</code>')
-    .replace(/\n/g, '<br>');
-}
-
-async function send() {
-  const msg = input.value.trim();
-  if (!msg) return;
-  input.value = '';
-  autoResize();
-  sendBtn.disabled = true;
-  addMsg('user', msg);
-  history.push({ role: 'user', content: msg });
-
-  typing.classList.add('show');
-  msgs.scrollTop = msgs.scrollHeight;
-
-  try {
-    const r = await fetch(API + '/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ message: msg, history }),
-    });
-    if (!r.ok) throw new Error('API ' + r.status);
-    const data = await r.json();
-    addMsg('assistant', data.content);
-    history.push({ role: 'assistant', content: data.content });
-  } catch (e) {
-    // Fallback: client-side responses when backend is unavailable
-    addMsg('assistant', localReply(msg));
-  } finally {
-    typing.classList.remove('show');
-  }
-}
-
-function localReply(msg) {
-  const m = msg.toLowerCase();
-  if (m.match(/hello|hi |hey|morning|afternoon/)) return "Hey! I'm your Quantive assistant. I can help with balances, transactions, Qubo tax deductions, documents, and quarterly estimates. What would you like to know?";
-  if (m.match(/balance|how much|account|funds/)) return "I can't reach the banking API right now, but once connected I'll show your account balances. Try running the backend with `python -m uvicorn app.main:app --port 8080`.";
-  if (m.match(/spend|categories|expense|where/)) return "I'll show your spending breakdown once the API is connected. Top categories typically include Payroll, Software, Utilities, and Travel.";
-  if (m.match(/income|revenue|earned/)) return "I'll pull your income totals from the banking ledger once connected.";
-  if (m.match(/qubo|deduction|tax|write.?off/)) return "Qubo scans your posted outflows against current tax rules (Payroll, Software, Utilities, Travel). Run a scan from the Qubo workspace to find potential deductions.";
-  if (m.match(/quarterly|estimate|set.?aside/)) return "Quarterly estimates are calculated from accepted Qubo deductions at a 25% illustrative rate. Accept some findings first, then check the estimates card.";
-  if (m.match(/document|upload|receipt|file/)) return "Upload supporting documents (receipts, invoices, payroll registers) directly to Qubo findings from the workspace page.";
-  if (m.match(/review|pending|new finding/)) return "Check the Qubo workspace for new findings that need your review — accept or dismiss each one.";
-  if (m.match(/recent|transaction|latest/)) return "I'll show your recent transactions from the banking ledger once the API is connected.";
-  if (m.match(/jurisdiction|country|location/)) return "Your jurisdiction is set in the Qubo workspace dropdown. It defaults to your BusinessProfile country from KYB onboarding.";
-  if (m.match(/help|what can you|commands/)) return "I can help with:\n\n**Banking** — balances, transactions, spending, income\n**Qubo Tax** — deductions, findings, quarterly estimates\n**Documents** — upload status, what's needed\n**Settings** — jurisdiction, country\n\nJust type your question!";
-  return "I'm having trouble reaching the backend. Make sure the API is running at " + API + ". You can start it with:\n\n```\ncd backend\npython -m uvicorn app.main:app --port 8080\n```\n\nOnce connected, I can answer questions about your banking data, Qubo deductions, and more.";
-}
-
-function sendQuick(text) {
-  input.value = text;
-  send();
-}
-
-// ── Auto-resize textarea ──────────────────────────────────────────
-function autoResize() {
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 160) + 'px';
-  sendBtn.disabled = !input.value.trim();
-}
-
-input.addEventListener('input', autoResize);
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-});
-
-// ── Init ──────────────────────────────────────────────────────────
+const msgs=document.getElementById('messages'),welcome=document.getElementById('welcome'),input=document.getElementById('input'),sendBtn=document.getElementById('sendBtn'),typing=document.getElementById('typing');
+let history=[];
+function addMsg(role,content){if(welcome)welcome.style.display='none';const row=document.createElement('div');row.className='msg-row '+role;const b=document.createElement('div');b.className='msg '+role;b.innerHTML=renderMd(content);row.appendChild(b);msgs.appendChild(row);msgs.scrollTop=msgs.scrollHeight}
+function renderMd(t){return t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:12px">$1</code>').replace(/\n/g,'<br>')}
+async function send(){const msg=input.value.trim();if(!msg)return;input.value='';autoResize();sendBtn.disabled=true;addMsg('user',msg);history.push({role:'user',content:msg});typing.classList.add('show');msgs.scrollTop=msgs.scrollHeight;await new Promise(r=>setTimeout(r,400+Math.random()*600));addMsg('assistant',reply(msg));typing.classList.remove('show')}
+function sendQuick(t){input.value=t;send()}
+function autoResize(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,160)+'px';sendBtn.disabled=!input.value.trim()}
+input.addEventListener('input',autoResize);
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
 input.focus();
+function reply(msg){
+  const m=msg.toLowerCase();
+  if(m.match(/\b(hello|hi|hey|gm|good\s*(morning|afternoon|evening))\b/))return"Hey! I'm your Quantive assistant. I can help with:\n\n**Banking** - balances, transactions, spending, income\n**Qubo Tax** - deductions, findings, quarterly estimates\n**Documents** - upload status, what's needed\n**Settings** - jurisdiction, country\n\nWhat would you like to know?";
+  if(m.match(/balance|how much|account|accounts|funds|money/))return"To check your balances, connect to the Quantive API. Once connected, I'll show:\n\n- **Operating account** - day-to-day transactions\n- **Reserve account** - emergency fund\n- **Yield pocket** - earned interest\n\nRun `python -m uvicorn app.main:app --port 8080` to start the backend, then I can pull real data.";
+  if(m.match(/spend|spending|categories|where.*money|expense|expenses|outflow/))return"I'll break down your spending by category once connected. Common business expense categories include:\n\n- **Payroll** - employee wages (often deductible)\n- **Software** - subscriptions and licenses\n- **Utilities** - electricity, internet, phone\n- **Travel** - business trips (high substantiation required)\n- **Office** - rent, supplies, furniture\n\nConnect to the API to see your actual numbers.";
+  if(m.match(/\b(income|revenue|incoming|earned|inflow)\b/))return"I'll pull your income totals from the banking ledger. Income is tracked as incoming transactions with `direction=in`.\n\nConnect to the API to see your actual income data.";
+  if(m.match(/qubo|deduction|deductions|tax|write.?off|tax deduction/))return"**Qubo** scans your posted outflows against current tax rules to find potential deductions.\n\n**How it works:**\n1. Go to **Qubo workspace**\n2. Select your jurisdiction (US/MX/BD)\n3. Click **Scan ledger**\n4. Review findings - Accept or Dismiss each\n\n**Supported categories:**\n- Payroll - wages & salaries\n- Software - subscriptions\n- Utilities - business premises\n- Travel - business trips (high scrutiny)\n\nFindings are *potentially relevant* - never promised savings. Always verify with a qualified professional.";
+  if(m.match(/quarterly|quarter|set.?aside|estimate|estimates|projection/))return"**Quarterly estimates** are calculated from your accepted Qubo findings.\n\n**Formula:**\n- Sum all accepted deduction amounts\n- Apply illustrative 25% effective rate\n- Divide into Q1-Q4 based on transaction dates\n\n**Example:**\n- Q1: $12,000 deductions -> $3,000 set-aside\n- Q2: $8,000 deductions -> $2,000 set-aside\n- Q3: $15,000 deductions -> $3,750 set-aside\n- Q4: $10,000 deductions -> $2,500 set-aside\n- **Annual: $11,250**\n\nNote: This is illustrative. Actual tax liability depends on jurisdiction, income, and other factors.";
+  if(m.match(/document|documents|upload|receipt|receipts|file|files|invoice/))return"**Documents** are attached directly to Qubo findings.\n\n**Supported types:**\n- PDF, JPEG, PNG (receipts, invoices)\n- CSV, Excel (payroll registers, financials)\n- Word docs (contracts, agreements)\n\n**How to upload:**\n1. Go to Qubo workspace\n2. Find a deduction\n3. Click **+ Upload document**\n4. Select your file\n\n**Document categories:**\npayroll_register, w2, invoice, receipt, utility_bill, travel_record\n\nMax file size: 10MB per document.";
+  if(m.match(/review|pending|new finding|findings need|what needs/))return"Check the **Qubo workspace** for new findings that need review.\n\n**Review process:**\n1. Scan your ledger\n2. New findings appear with status `new`\n3. Review each one:\n   - **Accept** - you believe this qualifies\n   - **Dismiss** - doesn't apply or you have doubts\n\nAccepted findings contribute to your quarterly estimates. You can always change your mind later.";
+  if(m.match(/recent|transaction|transactions|latest|activity/))return"I'll show your recent transactions from the banking ledger.\n\n**Transaction fields:**\n- Date & time\n- Counterparty (who you paid/received from)\n- Amount (in cents)\n- Category (auto-categorized)\n- Direction (in/out)\n- Status (posted/pending)\n\nConnect to the API to see your actual transaction history.";
+  if(m.match(/jurisdiction|country|location|where am i/))return"Your **jurisdiction** determines which tax rules Qubo applies.\n\n**Supported:**\n- **US** - IRS rules, full detail\n- **MX** - Mexico rules\n- **BD** - Bangladesh rules\n- **GEN** - Generic guidance (any country)\n\n**How to set:**\n1. Go to Qubo workspace\n2. Use the jurisdiction dropdown\n3. It auto-saves to your BusinessProfile\n\nYour KYB onboarding country is used as the default.";
+  if(m.match(/\bhelp\b|what can you|commands|options|how do|what do you/))return"I'm your Quantive financial assistant. Here's what I can help with:\n\n**Banking**\n- \"What's my balance?\" - account totals\n- \"Show recent transactions\" - latest activity\n- \"Where am I spending?\" - category breakdown\n- \"What's my income?\" - incoming totals\n\n**Qubo Tax**\n- \"Show my deductions\" - findings overview\n- \"What needs review?\" - pending findings\n- \"Quarterly estimates\" - set-aside projections\n- \"Upload status\" - document tracker\n\n**Other**\n- \"What's my jurisdiction?\" - country setting\n- \"Help\" - this message\n\nTip: Click the chips above for quick questions!";
+  if(m.match(/thank|thanks|thx|ty/))return"You're welcome! Let me know if you need anything else.";
+  if(m.match(/who are you|what are you|your name/))return"I'm **Quantive Chat** - your AI financial assistant built into the Quantive platform. I help with banking data, Qubo tax deductions, and financial insights.";
+  if(m.match(/porn|dildo|sex|nsfw|adult/))return"That's a valid tax question! If you're in the adult entertainment industry, business expenses for props, costumes, and equipment **can** potentially be deducted as ordinary and necessary business expenses.\n\n**Key requirements:**\n- Must be ordinary and necessary for your trade\n- Keep receipts and records\n- The expense must be for business use\n\n**Qubo can help:**\n1. Scan your ledger with appropriate jurisdiction\n2. Review findings categorized as business expenses\n3. Upload supporting documents (receipts, invoices)\n\nNote: Tax rules vary by jurisdiction. Always verify with a qualified tax professional for your specific situation.";
+  return"I can help with banking data, Qubo tax deductions, spending breakdowns, quarterly estimates, and document management. Try one of the quick questions above, or ask me anything about your financial data!";
+}
 </script>
 </body>
 </html>
