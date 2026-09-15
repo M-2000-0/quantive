@@ -139,7 +139,6 @@ from app.api import (
     projects_api,
     qubo_api,
     qubo_biz,
-    chat,
 )
 from app.personal.api import router as personal_router
 from app.database import get_db
@@ -288,7 +287,6 @@ router.include_router(agent_api.router)
 router.include_router(projects_api.router)
 router.include_router(qubo_api.router)
 router.include_router(qubo_biz.router)
-router.include_router(chat.router)
 router.include_router(personal_router)
 
 

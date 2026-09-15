@@ -117,6 +117,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not create signal_outcomes table: %s", e)
 
+    # Ensure tax document table exists
+    try:
+        from app.models.banking import TaxDocument
+        TaxDocument.__table__.create(engine, checkfirst=True)
+        print("[OK] Tax document table ready")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create tax_document table: %s", e)
+
     # Ensure market-monitor tables exist (alerts, history, assets, signals)
     try:
         from app.database import Base
@@ -1416,6 +1424,11 @@ async def chat_page(request: Request):
     if chat_html.exists():
         return HTMLResponse(content=chat_html.read_text(encoding="utf-8"))
     return RedirectResponse("/login", status_code=303)
+
+
+# Mount chat API directly on app (not via __init__.py /api/v1 nested router)
+from app.api.chat import router as _chat_router
+app.include_router(_chat_router)
 
 
 @app.get("/{path:path}", response_class=HTMLResponse)
