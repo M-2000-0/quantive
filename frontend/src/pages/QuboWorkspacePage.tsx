@@ -22,8 +22,8 @@ export default function QuboWorkspacePage() {
     setError('');
     try {
       const [ov, list] = await Promise.all([
-        api.banking.qubo.overview() as unknown as QuboOverview,
-        api.banking.qubo.findings(status || undefined) as unknown as { findings: QuboFinding[] },
+        api.banking.qubo.overview(),
+        api.banking.qubo.findings(status || undefined),
       ]);
       setOverview(ov);
       setFindings(list.findings);
@@ -44,7 +44,7 @@ export default function QuboWorkspacePage() {
     setError('');
     setNotice('');
     try {
-      const res = await api.banking.qubo.scan() as unknown as { created: number; scanned_transactions: number; rules_version: string };
+      const res = await api.banking.qubo.scan(jurisdiction);
       setNotice(
         res.created > 0
           ? `Scan complete: ${res.created} new potential deduction${res.created === 1 ? '' : 's'} (${res.rules_version}).`

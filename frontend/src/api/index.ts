@@ -1310,14 +1310,18 @@ export const api = {
       }),
     // ── Qubo Business Tax ──────────────────────────────────────────
     qubo: {
-      overview: () => request<{ findings_count: number; potential_savings_cents: number; rules_version: string; status_counts: Record<string, number> }>('/qubo/business/overview'),
-      scan: () => request<{ scanned: number; new_findings: number; rules_applied: number }>('/qubo/business/scan', { method: 'POST' }),
+      overview: () => request<{ counts: { new: number; accepted: number; dismissed: number }; total: number; potential_new_cents: number; accepted_cents: number; rules_version: string; supported_jurisdictions: string[]; note: string }>('/qubo/business/overview'),
+      scan: (jurisdiction = 'US', taxYear = 2026) =>
+        request<{ scanned_transactions: number; created: number; total: number; rules_version: string; jurisdiction: string; generic_guidance: boolean }>('/qubo/business/scan', {
+          method: 'POST',
+          body: JSON.stringify({ jurisdiction, tax_year: taxYear }),
+        }),
       findings: (status?: string) =>
         request<{ findings: QuboFinding[] }>(`/qubo/business/findings${status ? `?status=${status}` : ''}`),
-      reviewFinding: (id: string, action: 'accept' | 'dismiss') =>
+      reviewFinding: (id: string, status: 'accepted' | 'dismissed') =>
         request<QuboFinding>(`/qubo/business/findings/${id}/review`, {
           method: 'POST',
-          body: JSON.stringify({ action }),
+          body: JSON.stringify({ status }),
         }),
     },
   },
