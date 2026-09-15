@@ -8,16 +8,18 @@ Honesty contract (same as personal tax_packs):
 """
 from __future__ import annotations
 
+import os
 import uuid
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
-from app.models.banking import BankTransaction, BusinessProfile, QuboFinding
+from app.models.banking import BankTransaction, BusinessProfile, QuboFinding, TaxDocument
 from app.security import get_current_user
 
 router = APIRouter(prefix="/api/qubo/business", tags=["qubo-business"])
@@ -384,3 +386,147 @@ def export_findings(
             "docs": "; ".join((f.requirements or {}).get("docs", [])),
         })
     return {"export_format": "csv", "tax_year": TAX_YEAR, "rows": rows}
+
+
+# ── Tax Document Upload ──────────────────────────────────────────────
+
+UPLOAD_DIR = Path(os.environ.get("QUBO_UPLOAD_DIR", "uploads/tax_docs"))
+
+
+def _ensure_upload_dir(org_id: str) -> Path:
+    d = UPLOAD_DIR / org_id
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _serialize_doc(d: TaxDocument) -> dict:
+    return {
+        "id": d.id,
+        "finding_id": d.finding_id,
+        "filename": d.filename,
+        "original_filename": d.original_filename,
+        "mime_type": d.mime_type,
+        "size_bytes": d.size_bytes,
+        "category": d.category,
+        "notes": d.notes,
+        "status": d.status,
+        "created_at": d.created_at.isoformat() if d.created_at else None,
+    }
+
+
+DOC_CATEGORIES = {"payroll_register", "w2", "invoice", "receipt", "utility_bill", "travel_record", "other"}
+
+
+@router.post("/findings/{finding_id}/documents")
+async def upload_document(
+    finding_id: str,
+    file: UploadFile = File(...),
+    category: str = Query(default="other"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Upload a tax document and link it to a finding."""
+    finding = (
+        db.query(QuboFinding)
+        .filter(QuboFinding.id == finding_id, QuboFinding.org_id == user.org_id)
+        .first()
+    )
+    if finding is None:
+        raise HTTPException(status_code=404, detail="Finding not found")
+
+    cat = category if category in DOC_CATEGORIES else "other"
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:  # 10MB limit
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
+
+    doc_id = _uid()
+    ext = Path(file.filename or "file").suffix or ".bin"
+    storage_name = f"{doc_id}{ext}"
+    upload_dir = _ensure_upload_dir(user.org_id)
+    file_path = upload_dir / storage_name
+    file_path.write_bytes(contents)
+
+    doc = TaxDocument(
+        id=doc_id,
+        org_id=user.org_id,
+        finding_id=finding_id,
+        filename=storage_name,
+        original_filename=file.filename or storage_name,
+        mime_type=file.content_type or "application/octet-stream",
+        size_bytes=len(contents),
+        storage_path=str(file_path),
+        category=cat,
+        status="uploaded",
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return _serialize_doc(doc)
+
+
+@router.get("/findings/{finding_id}/documents")
+def list_documents(
+    finding_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all documents uploaded for a finding."""
+    finding = (
+        db.query(QuboFinding)
+        .filter(QuboFinding.id == finding_id, QuboFinding.org_id == user.org_id)
+        .first()
+    )
+    if finding is None:
+        raise HTTPException(status_code=404, detail="Finding not found")
+
+    docs = (
+        db.query(TaxDocument)
+        .filter(TaxDocument.org_id == user.org_id, TaxDocument.finding_id == finding_id)
+        .order_by(TaxDocument.created_at.desc())
+        .all()
+    )
+    return {"documents": [_serialize_doc(d) for d in docs]}
+
+
+@router.get("/documents")
+def list_all_documents(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all tax documents for the org."""
+    docs = (
+        db.query(TaxDocument)
+        .filter(TaxDocument.org_id == user.org_id)
+        .order_by(TaxDocument.created_at.desc())
+        .limit(100)
+        .all()
+    )
+    return {"documents": [_serialize_doc(d) for d in docs]}
+
+
+class DocReviewBody(BaseModel):
+    status: str = Field(pattern="^(reviewed|rejected)$")
+    notes: str = Field(default="")
+
+
+@router.post("/documents/{doc_id}/review")
+def review_document(
+    doc_id: str,
+    body: DocReviewBody,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mark a document as reviewed or rejected."""
+    doc = (
+        db.query(TaxDocument)
+        .filter(TaxDocument.id == doc_id, TaxDocument.org_id == user.org_id)
+        .first()
+    )
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc.status = body.status
+    if body.notes:
+        doc.notes = body.notes
+    db.commit()
+    db.refresh(doc)
+    return _serialize_doc(doc)

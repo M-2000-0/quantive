@@ -150,3 +150,32 @@ class QuboFinding(Base):
 
 
 Index("ix_qubo_findings_org_txn_rule", QuboFinding.org_id, QuboFinding.txn_id, QuboFinding.rule_id)
+
+
+class TaxDocument(Base):
+    """Uploaded tax document linked to a Qubo finding.
+
+    File bytes stored on disk; metadata indexed for search.
+    """
+
+    __tablename__ = "banking_tax_documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    org_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    finding_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(128), default="application/octet-stream", nullable=False)
+    size_bytes: Mapped[int] = mapped_column(default=0, nullable=False)
+    storage_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    category: Mapped[str] = mapped_column(String(64), default="other", nullable=False)
+    # payroll_register, w2, invoice, receipt, utility_bill, travel_record, other
+    notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    extracted: Mapped[dict] = mapped_column(SAJSON, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="uploaded", nullable=False)
+    # uploaded | reviewed | rejected
+    created_at: Mapped[datetime] = mapped_column(default=_utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(default=_utcnow, onupdate=_utcnow, nullable=False)
+
+
+Index("ix_tax_docs_org_finding", TaxDocument.org_id, TaxDocument.finding_id)
