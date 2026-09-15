@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
-from app.models.banking import BankTransaction, QuboFinding
+from app.models.banking import BankTransaction, BusinessProfile, QuboFinding
 from app.security import get_current_user
 
 router = APIRouter(prefix="/api/qubo/business", tags=["qubo-business"])
@@ -111,6 +111,31 @@ def _check_scan_limit(user: User, db: Session) -> None:
         )
 
 
+class SettingsBody(BaseModel):
+    jurisdiction: str = Field(min_length=2, max_length=2)
+
+
+@router.get("/settings")
+def get_settings(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return org-level Qubo settings (jurisdiction from BusinessProfile)."""
+    profile = db.query(BusinessProfile).filter(BusinessProfile.org_id == user.org_id).first()
+    jurisdiction = profile.country.upper() if profile and profile.country else "US"
+    return {"jurisdiction": jurisdiction, "supported_jurisdictions": SUPPORTED_JURISDICTIONS}
+
+
+@router.put("/settings")
+def update_settings(body: SettingsBody, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Save org-level Qubo jurisdiction to BusinessProfile."""
+    jurisdiction = body.jurisdiction.upper()
+    profile = db.query(BusinessProfile).filter(BusinessProfile.org_id == user.org_id).first()
+    if profile:
+        profile.country = jurisdiction
+    else:
+        db.add(BusinessProfile(org_id=user.org_id, country=jurisdiction, legal_name="", jurisdiction_code=jurisdiction))
+    db.commit()
+    return {"jurisdiction": jurisdiction}
+
+
 def match_rules(category: str, direction: str) -> list[dict]:
     """Pure matcher: outflow category -> candidate rules. No DB, fully testable."""
     if direction != "out":
@@ -184,6 +209,11 @@ def overview(user: User = Depends(get_current_user), db: Session = Depends(get_d
 def scan(body: ScanBody, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     _check_scan_limit(user, db)
     jurisdiction = body.jurisdiction.upper()
+    # Default to BusinessProfile.country if jurisdiction is generic US default
+    if jurisdiction == "US":
+        profile = db.query(BusinessProfile).filter(BusinessProfile.org_id == user.org_id).first()
+        if profile and profile.country:
+            jurisdiction = profile.country.upper()
     generic = jurisdiction not in SUPPORTED_JURISDICTIONS
     txns = (
         db.query(BankTransaction)
