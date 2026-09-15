@@ -1327,6 +1327,12 @@ export const api = {
         request<{ quarters: Record<string, { deductions_cents: number; estimated_set_aside_cents: number }>; total_deductions_cents: number; estimated_annual_set_aside_cents: number; effective_rate: number; note: string }>('/qubo/business/quarterly-estimates'),
       exportFindings: (format: 'csv' | 'json' = 'csv') =>
         request<{ export_format: string; tax_year: number; rows?: Record<string, string | number>[]; findings?: QuboFinding[] }>(`/qubo/business/export?format=${format}`),
+      getSettings: () => request<{ jurisdiction: string; supported_jurisdictions: string[] }>('/qubo/business/settings'),
+      updateSettings: (jurisdiction: string) =>
+        request<{ jurisdiction: string }>('/qubo/business/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ jurisdiction }),
+        }),
     },
   },
 };

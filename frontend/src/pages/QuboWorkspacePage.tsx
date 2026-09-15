@@ -38,7 +38,7 @@ export default function QuboWorkspacePage() {
   const [findings, setFindings] = useState<QuboFinding[]>([]);
   const [quarterly, setQuarterly] = useState<QuarterlyData | null>(null);
   const [filter, setFilter] = useState<string>('');
-  const [jurisdiction, setJurisdiction] = useState('US');
+  const [jurisdiction, setJurisdiction] = useState(() => localStorage.getItem('qubo_jurisdiction') || 'US');
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
@@ -48,12 +48,17 @@ export default function QuboWorkspacePage() {
     setLoading(true);
     setError('');
     try {
-      const [ov, list] = await Promise.all([
+      const [ov, list, settings] = await Promise.all([
         api.banking.qubo.overview(),
         api.banking.qubo.findings(status || undefined),
+        api.banking.qubo.getSettings().catch(() => null),
       ]);
       setOverview(ov);
       setFindings(list.findings);
+      if (settings) {
+        setJurisdiction(settings.jurisdiction);
+        localStorage.setItem('qubo_jurisdiction', settings.jurisdiction);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load Qubo workspace');
     } finally {
@@ -125,7 +130,16 @@ export default function QuboWorkspacePage() {
 
       <section aria-label="Scan" className="qp-card" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <label>Jurisdiction
-          <select value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)} style={{ marginLeft: 8 }}>
+          <select
+            value={jurisdiction}
+            onChange={(e) => {
+              const v = e.target.value;
+              setJurisdiction(v);
+              localStorage.setItem('qubo_jurisdiction', v);
+              void api.banking.qubo.updateSettings(v).catch(() => {});
+            }}
+            style={{ marginLeft: 8 }}
+          >
             <option value="US">US</option>
             <option value="MX">MX</option>
             <option value="BD">BD</option>
