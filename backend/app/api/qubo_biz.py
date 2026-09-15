@@ -276,3 +276,81 @@ def review_finding(
     db.commit()
     db.refresh(finding)
     return _serialize(finding)
+
+
+@router.get("/quarterly-estimates")
+def quarterly_estimates(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Calculate quarterly tax set-aside estimates from accepted findings.
+
+    Returns per-quarter breakdown of accepted deduction amounts and
+    estimated set-asides (assumes ~25% effective rate as illustration).
+    """
+    findings = (
+        db.query(QuboFinding)
+        .filter(QuboFinding.org_id == user.org_id, QuboFinding.status == "accepted")
+        .all()
+    )
+    quarters = {"Q1": 0, "Q2": 0, "Q3": 0, "Q4": 0}
+    total_cents = 0
+    for f in findings:
+        total_cents += f.amount_cents
+        month = f.created_at.month if f.created_at else 1
+        if month <= 3:
+            quarters["Q1"] += f.amount_cents
+        elif month <= 6:
+            quarters["Q2"] += f.amount_cents
+        elif month <= 9:
+            quarters["Q3"] += f.amount_cents
+        else:
+            quarters["Q4"] += f.amount_cents
+    effective_rate = 0.25  # illustrative; real rate depends on jurisdiction/income
+    estimated_set_aside = int(total_cents * effective_rate)
+    return {
+        "tax_year": TAX_YEAR,
+        "quarters": {k: {"deductions_cents": v, "estimated_set_aside_cents": int(v * effective_rate)} for k, v in quarters.items()},
+        "total_deductions_cents": total_cents,
+        "estimated_annual_set_aside_cents": estimated_set_aside,
+        "effective_rate": effective_rate,
+        "note": "Illustrative estimate only — actual tax liability depends on jurisdiction, income, and other factors. Consult a qualified professional.",
+    }
+
+
+@router.get("/export")
+def export_findings(
+    format: str = Query(default="csv", pattern="^(csv|json)$"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Export Qubo findings as CSV or JSON for CPA handoff."""
+    findings = (
+        db.query(QuboFinding)
+        .filter(QuboFinding.org_id == user.org_id)
+        .order_by(QuboFinding.created_at.desc())
+        .all()
+    )
+    if format == "json":
+        return {
+            "export_format": "json",
+            "tax_year": TAX_YEAR,
+            "rules_version": RULES_VERSION,
+            "findings": [_serialize(f) for f in findings],
+        }
+    # CSV format — return as array of rows (frontend builds CSV)
+    rows = []
+    for f in findings:
+        rows.append({
+            "date": f.created_at.isoformat() if f.created_at else "",
+            "category": f.category,
+            "title": f.title,
+            "amount_cents": f.amount_cents,
+            "jurisdiction": f.jurisdiction,
+            "tax_year": f.tax_year,
+            "rule_id": f.rule_id,
+            "status": f.status,
+            "requirements": "; ".join((f.requirements or {}).get("requirements", [])),
+            "docs": "; ".join((f.requirements or {}).get("docs", [])),
+        })
+    return {"export_format": "csv", "tax_year": TAX_YEAR, "rows": rows}

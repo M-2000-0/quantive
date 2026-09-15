@@ -7,9 +7,36 @@ import {
   type QuboOverview,
 } from '../api';
 
+type QuarterlyData = {
+  quarters: Record<string, { deductions_cents: number; estimated_set_aside_cents: number }>;
+  total_deductions_cents: number;
+  estimated_annual_set_aside_cents: number;
+  effective_rate: number;
+  note: string;
+};
+
+function exportFindingsCsv(findings: QuboFinding[]) {
+  const header = 'Date,Category,Title,Amount,Jurisdiction,Tax Year,Rule ID,Status,Requirements,Docs\n';
+  const rows = findings.map((f) => {
+    const date = f.created_at ? new Date(f.created_at).toISOString() : '';
+    const title = `"${(f.title || '').replace(/"/g, '""')}"`;
+    const reqs = `"${(f.requirements?.requirements ?? []).join('; ').replace(/"/g, '""')}"`;
+    const docs = `"${(f.requirements?.docs ?? []).join('; ').replace(/"/g, '""')}"`;
+    return `${date},${f.category},${title},${f.amount_cents},${f.jurisdiction},${f.tax_year},${f.rule_id},${f.status},${reqs},${docs}`;
+  }).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `qubo-findings-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function QuboWorkspacePage() {
   const [overview, setOverview] = useState<QuboOverview | null>(null);
   const [findings, setFindings] = useState<QuboFinding[]>([]);
+  const [quarterly, setQuarterly] = useState<QuarterlyData | null>(null);
   const [filter, setFilter] = useState<string>('');
   const [jurisdiction, setJurisdiction] = useState('US');
   const [loading, setLoading] = useState(true);
@@ -39,6 +66,15 @@ export default function QuboWorkspacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
+  async function loadQuarterly() {
+    try {
+      const data = await api.banking.qubo.quarterlyEstimates();
+      setQuarterly(data as unknown as QuarterlyData);
+    } catch {
+      // Silently fail — quarterly is optional
+    }
+  }
+
   async function handleScan() {
     setScanning(true);
     setError('');
@@ -66,6 +102,10 @@ export default function QuboWorkspacePage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Review failed');
     }
+  }
+
+  function handleExport() {
+    exportFindingsCsv(findings);
   }
 
   if (loading && !overview) return <div className="qp-card">Loading Qubo workspace…</div>;
@@ -115,7 +155,7 @@ export default function QuboWorkspacePage() {
         </section>
       )}
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {['', 'new', 'accepted', 'dismissed'].map((s) => (
           <button
             key={s || 'all'}
@@ -126,7 +166,31 @@ export default function QuboWorkspacePage() {
             {s || 'all'}
           </button>
         ))}
+        <span style={{ flex: 1 }} />
+        <button className="qp-btn secondary" onClick={() => void loadQuarterly()}>Quarterly estimates</button>
+        <button className="qp-btn secondary" onClick={handleExport}>Export CSV</button>
       </div>
+
+      {quarterly && (
+        <section aria-label="Quarterly estimates" className="qp-card">
+          <h2>Quarterly set-aside estimates</h2>
+          <p className="qp-muted" style={{ fontSize: 12 }}>Based on {overview?.counts.accepted ?? 0} accepted deductions at {(quarterly.effective_rate * 100).toFixed(0)}% illustrative rate.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 8, marginTop: 8 }}>
+            {Object.entries(quarterly.quarters).map(([q, data]) => (
+              <div key={q} className="qp-card" style={{ textAlign: 'center' }}>
+                <span className="badge">{q}</span>
+                <div style={{ fontSize: 20, fontWeight: 700, marginTop: 6 }}>{centsToUsd(data.estimated_set_aside_cents)}</div>
+                <div className="qp-muted" style={{ fontSize: 11 }}>{centsToUsd(data.deductions_cents)} deductions</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, padding: '8px 0', borderTop: '1px solid #f3f4f6' }}>
+            <span style={{ fontWeight: 650 }}>Annual set-aside</span>
+            <span style={{ fontWeight: 700 }}>{centsToUsd(quarterly.estimated_annual_set_aside_cents)}</span>
+          </div>
+          <p className="qp-muted" style={{ fontSize: 11 }}>{quarterly.note}</p>
+        </section>
+      )}
 
       <section aria-label="Findings" className="qp-card">
         <h2>Findings</h2>

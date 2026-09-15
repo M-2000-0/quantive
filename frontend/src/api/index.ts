@@ -1323,6 +1323,10 @@ export const api = {
           method: 'POST',
           body: JSON.stringify({ status }),
         }),
+      quarterlyEstimates: () =>
+        request<{ quarters: Record<string, { deductions_cents: number; estimated_set_aside_cents: number }>; total_deductions_cents: number; estimated_annual_set_aside_cents: number; effective_rate: number; note: string }>('/qubo/business/quarterly-estimates'),
+      exportFindings: (format: 'csv' | 'json' = 'csv') =>
+        request<{ export_format: string; tax_year: number; rows?: Record<string, string | number>[]; findings?: QuboFinding[] }>(`/qubo/business/export?format=${format}`),
     },
   },
 };
