@@ -1333,6 +1333,23 @@ export const api = {
           method: 'PUT',
           body: JSON.stringify({ jurisdiction }),
         }),
+      uploadDocument: (findingId: string, file: File, category = 'other') => {
+        const form = new FormData();
+        form.append('file', file);
+        return request<{ id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; status: string }>(
+          `/qubo/business/findings/${findingId}/documents?category=${category}`,
+          { method: 'POST', body: form },
+        );
+      },
+      listDocuments: (findingId: string) =>
+        request<{ documents: { id: string; finding_id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; notes: string; status: string; created_at: string }[] }>(`/qubo/business/findings/${findingId}/documents`),
+      listAllDocuments: () =>
+        request<{ documents: { id: string; finding_id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; status: string; created_at: string }[] }>('/qubo/business/documents'),
+      reviewDocument: (docId: string, status: 'reviewed' | 'rejected', notes = '') =>
+        request<{ id: string; status: string }>(`/qubo/business/documents/${docId}/review`, {
+          method: 'POST',
+          body: JSON.stringify({ status, notes }),
+        }),
     },
   },
 };

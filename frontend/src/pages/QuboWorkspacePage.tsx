@@ -15,6 +15,65 @@ type QuarterlyData = {
   note: string;
 };
 
+type DocType = { id: string; finding_id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; notes: string; status: string; created_at: string };
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FindingDocSection({ findingId }: { findingId: string }) {
+  const [docs, setDocs] = useState<DocType[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  async function loadDocs() {
+    try {
+      const res = await api.banking.qubo.listDocuments(findingId);
+      setDocs(res.documents);
+      setLoaded(true);
+    } catch { /* silent */ }
+  }
+
+  useEffect(() => {
+    if (!loaded) void loadDocs();
+  }, [loaded]);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      await api.banking.qubo.uploadDocument(findingId, file, 'other');
+      setLoaded(false);
+    } catch { /* silent */ }
+    setUploading(false);
+    e.target.value = '';
+  }
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      {docs.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+          {docs.map((d) => (
+            <span key={d.id} className="badge" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {d.original_filename} ({formatBytes(d.size_bytes)})
+              <span style={{ color: d.status === 'reviewed' ? '#16a34a' : d.status === 'rejected' ? '#dc2626' : '#9ca3af', fontSize: 10 }}>
+                {d.status}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+      <label style={{ fontSize: 12, cursor: 'pointer', color: '#4D8DFF' }}>
+        {uploading ? 'Uploading…' : '+ Upload document'}
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.csv,.xlsx,.xls,.doc,.docx" onChange={(e) => void handleUpload(e)} style={{ display: 'none' }} />
+      </label>
+    </div>
+  );
+}
+
 function exportFindingsCsv(findings: QuboFinding[]) {
   const header = 'Date,Category,Title,Amount,Jurisdiction,Tax Year,Rule ID,Status,Requirements,Docs\n';
   const rows = findings.map((f) => {
@@ -224,6 +283,7 @@ export default function QuboWorkspacePage() {
                 Needs: {[...(f.requirements?.requirements ?? []), ...(f.requirements?.docs ?? [])].join('; ')}
               </div>
             )}
+            <FindingDocSection findingId={f.id} />
             {f.status === 'new' && (
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <button className="qp-btn" onClick={() => void handleReview(f.id, 'accepted')}>Accept</button>
