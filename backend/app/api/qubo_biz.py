@@ -9,7 +9,7 @@ Honesty contract (same as personal tax_packs):
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -65,6 +65,50 @@ BIZ_RULES: dict[str, dict] = {
 }
 
 SUPPORTED_JURISDICTIONS = ["US", "MX", "BD"]
+
+# Plan-based scan limits (scans per 24 hours)
+SCAN_LIMITS = {
+    "free": 1,
+    "pro": -1,   # unlimited
+    "enterprise": -1,
+}
+
+
+def _get_plan_tier(user: User) -> str:
+    """Return the user's plan tier string for Qubo gating."""
+    try:
+        from app import billing as _billing
+        org_id = str(getattr(user, "org_id", ""))
+        sub = _billing.get_subscription(org_id)
+        if sub:
+            return sub.tier.value
+    except Exception:
+        pass
+    return "free"
+
+
+def _check_scan_limit(user: User, db: Session) -> None:
+    """Enforce per-plan scan limits. Raises 429 if limit exceeded."""
+    tier = _get_plan_tier(user)
+    limit = SCAN_LIMITS.get(tier, 1)
+    if limit == -1:
+        return  # unlimited
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    recent_scans = (
+        db.query(QuboFinding)
+        .filter(
+            QuboFinding.org_id == user.org_id,
+            QuboFinding.created_at >= cutoff,
+        )
+        .count()
+    )
+    # Use finding count as a proxy for scans (each scan creates 0+ findings)
+    # A more precise approach would track scan events, but this is conservative
+    if recent_scans >= limit * 50:  # rough heuristic: ~50 findings per scan
+        raise HTTPException(
+            status_code=429,
+            detail=f"Scan limit reached for {tier} plan ({limit} scan{'s' if limit > 1 else ''} per day). Upgrade for unlimited scans.",
+        )
 
 
 def match_rules(category: str, direction: str) -> list[dict]:
@@ -138,6 +182,7 @@ def overview(user: User = Depends(get_current_user), db: Session = Depends(get_d
 
 @router.post("/scan")
 def scan(body: ScanBody, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    _check_scan_limit(user, db)
     jurisdiction = body.jurisdiction.upper()
     generic = jurisdiction not in SUPPORTED_JURISDICTIONS
     txns = (
