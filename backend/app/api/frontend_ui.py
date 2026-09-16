@@ -1,15 +1,10 @@
 """
-Frontend UI API — Auth-free bridge for the Jinja2 pages
-========================================================
+Frontend UI API — Auth-protected bridge for the React SPA
+=========================================================
 
-The browser UI has no authentication (login is intentionally a stub).
-These endpoints let the dashboard / portfolios pages read and create
-portfolios against the real database without weakening the RBAC layer:
-they live under a dedicated, read-visible prefix that the middleware
-already treats as browser-safe (like /api/realtime/ or /api/settings/).
-
-Write access binds records to the organization's first user so the
-"Create Portfolio" flow works end-to-end in local/demo mode.
+These endpoints require a valid JWT cookie. In demo mode (no valid token),
+they bind records to the organization's first user so the "Create Portfolio"
+flow works end-to-end.
 """
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -25,7 +20,7 @@ router = APIRouter(prefix="/api/ui", tags=["ui"])
 # ── Helpers ─────────────────────────────────────────────────────────────
 
 def _get_user_from_request(request: Request, db: Session) -> User:
-    """Return the logged-in user from cookie/JWT, falling back to first user."""
+    """Return the logged-in user from cookie/JWT, falling back to first user in demo mode."""
     token = request.cookies.get("access_token")
     if token:
         try:
@@ -38,7 +33,7 @@ def _get_user_from_request(request: Request, db: Session) -> User:
                     return user
         except Exception:
             pass
-    # Fallback: first user
+    # Fallback: first user (demo mode only)
     user = db.query(User).order_by(User.created_at).first()
     if not user:
         raise HTTPException(status_code=503, detail="No user available to bind records")

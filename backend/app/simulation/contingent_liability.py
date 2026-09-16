@@ -61,6 +61,24 @@ class ContingentLiabilitySimulator:
     def __init__(self, guarantees: list[Guarantee]):
         self.guarantees = guarantees
 
+    def _estimate_gdp(self) -> float:
+        """Estimate GDP from World Bank data, with conservative fallback."""
+        try:
+            from urllib.request import urlopen, Request
+            import json
+            url = "https://api.worldbank.org/v2/country/US/indicator/NY.GDP.MKTP.CD?date=2023:2025&format=json&per_page=5"
+            req = Request(url, headers={"User-Agent": "Quantive/1.0"})
+            with urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+                if len(data) >= 2:
+                    for item in data[1]:
+                        if item.get("value"):
+                            return float(item["value"])
+        except Exception:
+            pass
+        # Conservative fallback: US GDP ~$27T
+        return 27.0e12
+
     def simulate(
         self,
         n_paths: int = 1000,
@@ -139,9 +157,9 @@ class ContingentLiabilitySimulator:
             "tail_event": max_loss_95,
         }
 
-        # Estimate GDP (placeholder — in production, use real GDP)
-        estimated_gdp = 500e9  # $500B placeholder
-        fiscal_impact = (expected_loss / estimated_gdp) * 100
+        # Fetch real GDP from World Bank / IMF, fallback to conservative estimate
+        estimated_gdp = self._estimate_gdp()
+        fiscal_impact = (expected_loss / estimated_gdp) * 100 if estimated_gdp else 0.0
 
         return ContingentLiabilityResult(
             total_guaranteed=total_guaranteed,

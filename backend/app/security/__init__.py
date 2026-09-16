@@ -103,7 +103,16 @@ def revoke_token(token: str, db: Session) -> None:
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
     db: Session = Depends(get_db),
+    x_api_key: str | None = None,
 ) -> User:
+    # Try API key first (X-API-Key header)
+    if x_api_key:
+        from app.api.api_keys import authenticate_by_api_key
+        api_user = authenticate_by_api_key(x_api_key, db)
+        if api_user:
+            return api_user
+
+    # Fall back to JWT auth
     payload = decode_token(credentials.credentials)
     if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")

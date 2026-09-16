@@ -97,10 +97,41 @@ def create_export(
         config=data.config,
     )
 
-    # In a real app, the data fetcher would query the DB
-    # For now, use a simple placeholder
+    # Fetch the actual resource data for export
     def _fetch_data():
-        return [{"placeholder": "data", "resource": data.resource_type, "id": data.resource_id}]
+        from app.models import Portfolio, DebtInstrument, OptimizationJob
+        resource_data = []
+        if data.resource_type == "portfolio":
+            portfolio = db.query(Portfolio).filter(Portfolio.id == data.resource_id).first()
+            if portfolio:
+                instruments = db.query(DebtInstrument).filter(DebtInstrument.portfolio_id == portfolio.id).all()
+                resource_data = [{
+                    "portfolio_id": portfolio.id,
+                    "name": portfolio.name,
+                    "description": portfolio.description,
+                    "org_id": portfolio.org_id,
+                    "created_at": portfolio.created_at.isoformat(),
+                    "instruments": [{
+                        "name": i.name,
+                        "type": str(i.instrument_type.value) if hasattr(i.instrument_type, "value") else str(i.instrument_type),
+                        "currency": i.currency,
+                        "principal_outstanding": float(i.principal_outstanding),
+                        "coupon_rate": float(i.coupon_rate),
+                        "maturity_date": i.maturity_date,
+                    } for i in instruments],
+                }]
+        elif data.resource_type == "optimization":
+            job = db.query(OptimizationJob).filter(OptimizationJob.id == data.resource_id).first()
+            if job:
+                resource_data = [{
+                    "job_id": job.id,
+                    "name": job.name,
+                    "status": job.status,
+                    "optimization_type": job.optimization_type,
+                    "objectives": job.objectives,
+                    "created_at": job.created_at.isoformat(),
+                }]
+        return resource_data or [{"resource_type": data.resource_type, "id": data.resource_id}]
 
     start_export_job(job["id"], _fetch_data)
     return job

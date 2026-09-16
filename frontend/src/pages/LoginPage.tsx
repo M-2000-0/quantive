@@ -64,7 +64,10 @@ export default function LoginPage() {
             {loading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
-        <Link to="/register">Request access</Link>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 13 }}>
+          <Link to="/forgot-password" style={{ color: 'var(--text2)' }}>Forgot password?</Link>
+          <Link to="/register" style={{ color: 'var(--accent)' }}>Request access</Link>
+        </div>
       </div>
     </div>
   );

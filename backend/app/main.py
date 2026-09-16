@@ -25,6 +25,8 @@ from app.security.middleware import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
 )
+from app.security.per_user_rate_limit import PerUserRateLimitMiddleware
+from app.security.subscription_enforcement import SubscriptionEnforcementMiddleware
 from app.security.rbac_middleware import RBACMiddleware
 from app.security.compression import CompressionMiddleware
 from app.security.threats import ThreatDetectionMiddleware
@@ -124,6 +126,24 @@ async def lifespan(app: FastAPI):
         print("[OK] Tax document table ready")
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not create tax_document table: %s", e)
+
+    # Ensure API keys table exists
+    try:
+        from app.models.extended import ApiKey
+        ApiKey.__table__.create(engine, checkfirst=True)
+        print("[OK] API keys table ready")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create api_keys table: %s", e)
+
+    # Ensure SOC 2 audit tables exist
+    try:
+        from app.security.soc2.audit_log import SOC2AuditEvent
+        from app.security.soc2.evidence_collector import EvidenceRecord
+        SOC2AuditEvent.__table__.create(engine, checkfirst=True)
+        EvidenceRecord.__table__.create(engine, checkfirst=True)
+        print("[OK] SOC 2 audit tables ready")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create SOC 2 tables: %s", e)
 
     # Ensure market-monitor tables exist (alerts, history, assets, signals)
     try:
@@ -369,7 +389,9 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(PerUserRateLimitMiddleware, default_limit=60)
 app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_PER_MINUTE)
+app.add_middleware(SubscriptionEnforcementMiddleware)
 app.add_middleware(ThreatDetectionMiddleware)
 app.add_middleware(RBACMiddleware)
 app.add_middleware(IdempotencyMiddleware)

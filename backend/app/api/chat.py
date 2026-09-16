@@ -6,10 +6,7 @@ rule-based responses that surface real data.
 """
 from __future__ import annotations
 
-import json
 import re
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -17,8 +14,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 from app.models.banking import BankAccount, BankTransaction, QuboFinding, TaxDocument, BusinessProfile
-from app.security import get_current_user
-
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
@@ -29,7 +24,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
-    history: list[ChatMessage] = Field(default_factory=list)
+    history: list[ChatMessage] | None = Field(default=None)  # forwarded for future context use
 
 
 def _cents(n: int) -> str:
@@ -75,14 +70,15 @@ def _answer(user: User, message: str, db: Session) -> str:
             cat_out[t.category] = cat_out.get(t.category, 0) + t.amount_cents
 
     # ── Greeting ────────────────────────────────────────────────────
-    if any(w in msg for w in ("hello", "hi", "hey", "good morning", "good afternoon")):
-        name = profile.legal_name if profile and profile.legal_name else "there"
+    if any(w in msg for w in ("hello", "hi", "hey", "gm", "good morning", "good afternoon", "good evening", "yo", "sup", "greetings", "hola", "hallo")):
+        name = profile.legal_name if profile and profile.legal_name else ""
+        greeting = f"Hey{(' ' + name) if name else ''}!" if name else "Hey!"
         return (
-            f"Hey {name}! I'm your Quantive assistant. I can help with:\n\n"
-            "• **Banking** — balances, transactions, transfers\n"
-            "• **Qubo tax deductions** — scan results, findings, accept/dismiss\n"
-            "• **Documents** — upload status, what's needed\n"
-            "• **Quarterly estimates** — set-asides and projections\n\n"
+            f"{greeting} I'm your Quantive assistant. I can help with:\n\n"
+            "**Banking** - balances, transactions, spending, income\n"
+            "**Qubo Tax** - deductions, findings, quarterly estimates\n"
+            "**Documents** - upload status, what's needed\n"
+            "**Settings** - jurisdiction, country\n\n"
             "What would you like to know?"
         )
 
@@ -104,6 +100,25 @@ def _answer(user: User, message: str, db: Session) -> str:
     # ── Income ──────────────────────────────────────────────────────
     if any(w in msg for w in ("income", "revenue", "incoming", "earned")):
         return f"Total income recorded: **{_cents(total_in)}** from {sum(1 for t in txns if t.direction == 'in')} incoming transactions."
+
+    # ── Adult-industry / NSFW business expense question ──────────────
+    # Must come before the Qubo handler since "write off" also triggers Qubo.
+    if any(w in msg for w in ("porn", "dildo", "sex", "nsfw", "adult", "adult entertainment")):
+        return (
+            "That's a valid tax question! If you're in the adult entertainment industry, business expenses "
+            "for props, costumes, and equipment **can** potentially be deducted as ordinary and necessary business "
+            "expenses.\n\n"
+            "**Key requirements:**\n"
+            "- Must be ordinary and necessary for your trade\n"
+            "- Keep receipts and records\n"
+            "- The expense must be for business use\n\n"
+            "**Qubo can help:**\n"
+            "1. Scan your ledger with the appropriate jurisdiction\n"
+            "2. Review findings categorized as business expenses\n"
+            "3. Upload supporting documents (receipts, invoices)\n\n"
+            "Note: Tax rules vary by jurisdiction. Always verify with a qualified tax professional for your "
+            "specific situation."
+        )
 
     # ── Qubo / deductions ───────────────────────────────────────────
     if any(w in msg for w in ("qubo", "deduction", "deductions", "tax", "write-off", "write off")):

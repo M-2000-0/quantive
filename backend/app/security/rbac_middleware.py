@@ -272,6 +272,65 @@ ROUTE_PERMISSIONS: list[tuple[str, str, str]] = [
     (r"/api/.*soc2.*", "GET", Permission.AUDIT_READ),
     (r"/api/.*soc2.*", "POST", Permission.AUDIT_EXPORT),
 
+    # ── Trading / Market Intelligence ─────────────────────────────────
+    (r"/api/trading/.*", "GET", Permission.MARKET_READ),
+    (r"/api/trading/.*", "POST", Permission.MARKET_WRITE),
+    (r"/api/market-intelligence/.*", "GET", Permission.MARKET_READ),
+    (r"/api/market-pulse/.*", "GET", Permission.MARKET_READ),
+    (r"/api/fintech-tracker/.*", "GET", Permission.MARKET_READ),
+    (r"/api/crypto/.*", "GET", Permission.MARKET_READ),
+    (r"/api/external-factors/.*", "GET", Permission.MARKET_READ),
+    (r"/api/realtime/.*", "GET", Permission.MARKET_READ),
+    (r"/api/earnings.*", "GET", Permission.MARKET_READ),
+    (r"/api/algorithm-marketplace/.*", "GET", Permission.MARKET_READ),
+
+    # ── Screener / Watchlists / Alerts ────────────────────────────────
+    (r"/api/screener.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/alerts.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/alerts.*", "POST", Permission.PORTFOLIO_WRITE),
+
+    # ── Portfolio tools ───────────────────────────────────────────────
+    (r"/api/rebalancing/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/rebalancing/.*", "POST", Permission.PORTFOLIO_WRITE),
+    (r"/api/portfolio-agg/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/assets/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/hybrid/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/hybrid/.*", "POST", Permission.PORTFOLIO_WRITE),
+    (r"/api/circuit-designer/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/circuit-designer/.*", "POST", Permission.PORTFOLIO_WRITE),
+    (r"/api/savings/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/recommendations/.*", "GET", Permission.PORTFOLIO_READ),
+
+    # ── Analytics / Performance / Risk ────────────────────────────────
+    (r"/api/performance/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/risk-parity/.*", "GET", Permission.RISK_READ),
+    (r"/api/advanced-analysis/.*", "GET", Permission.RISK_READ),
+    (r"/api/tax-harvest/.*", "GET", Permission.PORTFOLIO_READ),
+    (r"/api/tax-harvest/.*", "POST", Permission.PORTFOLIO_WRITE),
+
+    # ── Optimization ──────────────────────────────────────────────────
+    (r"/api/optimize-debt/.*", "POST", Permission.OPTIMIZATION_CREATE),
+    (r"/api/optimize-debt/.*", "GET", Permission.OPTIMIZATION_READ),
+    (r"/api/optimizer/.*", "GET", Permission.OPTIMIZATION_READ),
+
+    # ── Simulation ────────────────────────────────────────────────────
+    (r"/api/quantum-simulator/.*", "GET", Permission.SIMULATION_READ),
+    (r"/api/simulation/.*", "GET", Permission.SIMULATION_READ),
+
+    # ── AI Advisor ────────────────────────────────────────────────────
+    (r"/api/ai-advisor/.*", "GET", Permission.REPORT_READ),
+    (r"/api/ai-advisor/.*", "POST", Permission.REPORT_CREATE),
+
+    # ── Briefing / Reports ────────────────────────────────────────────
+    (r"/api/briefing/.*", "GET", Permission.REPORT_READ),
+
+    # ── System / Quantum ──────────────────────────────────────────────
+    (r"/api/error-correction/.*", "GET", Permission.SYSTEM_CONFIG),
+    (r"/api/error-correction/.*", "POST", Permission.SYSTEM_CONFIG),
+
+    # ── Chat ──────────────────────────────────────────────────────────
+    (r"/api/chat.*", "POST", Permission.PORTFOLIO_READ),
+
     # ── WebSocket ─────────────────────────────────────────────────────
     (r"/ws/.*", "GET", Permission.PORTFOLIO_READ),
 ]
@@ -292,7 +351,6 @@ RBAC_BYPASS_PATHS: set[str] = {
     "/api/auth/refresh",
     "/api/auth/logout",
     "/api/health",
-    "/api/chat",
     "/api/billing/webhook",  # Stripe webhooks: HMAC-signed, no session
     "/api/automation/webhooks/lead",  # public lead capture (website forms, n8n)
     "/docs",
@@ -300,47 +358,13 @@ RBAC_BYPASS_PATHS: set[str] = {
     "/openapi.json",
 }
 
-# Prefix patterns that bypass RBAC
+# Prefix patterns that bypass RBAC — ONLY truly public/self-service routes
 RBAC_BYPASS_PREFIXES: list[str] = [
-    "/api/auth/",
-    "/api/exports/",  # Read-only data generation
-    "/api/ai-advisor/",  # Read-only intelligence
-    "/api/simulation/",  # Read-only simulation
-    "/api/optimizer/",  # Read-only optimization
-    "/api/realtime/",  # Market data snapshot
-    "/api/advanced-analysis/",  # Read-only analysis
-    "/api/settings/",  # System config (read-only)
-    "/api/ui/",  # Browser UI bridge (read/create for Jinja2 pages)
-    "/api/external-factors/",  # Read-only external factors analysis
-    "/api/first-run/",  # Onboarding flow
-    "/api/savings/",  # Read-only savings dashboard
-    "/api/market-pulse/",
-    "/api/market/",  # Market data endpoints
-    "/api/briefing/",  # Read-only daily briefing
-    "/api/assets/",  # Read-only asset tracker
-    "/api/hybrid/",  # Hybrid workflow engine
-    "/api/optimize-debt/",  # Quantum debt optimizer
-    "/api/v1/",  # Enterprise sovereign debt engine
-    "/api/circuit-designer/",  # Visual circuit designer
-    "/api/algorithm-marketplace/",  # Algorithm marketplace
-    "/api/error-correction/",  # Error correction layer
-    "/api/quantum-simulator/",  # Quantum simulator
-    "/api/trading/",  # Trading intelligence (stocks, ETFs, sectors, technicals)
-    "/api/market-intelligence/",  # Market launch intelligence
-    "/api/fintech-tracker/",  # FinTech competitive intelligence
-    "/api/crypto/",  # Crypto market data
-    "/api/recommendations/",  # Personalized recommendations
-    "/api/health",  # Health checks
-    "/api/alerts",  # Price alerts
-    "/api/backtest",  # Backtesting engine
-    "/api/earnings",  # Earnings calendar
-    "/api/screener",  # Stock screener & watchlists
-    "/api/rebalancing/",  # Portfolio rebalancing engine
-    "/api/streaming/",  # Live price streaming
-    "/api/portfolio-agg/",  # Portfolio aggregator
-    "/api/performance/",  # Advanced analytics
-    "/api/risk-parity/",  # Advanced analytics
-    "/api/tax-harvest/",  # Advanced analytics
+    "/api/auth/",  # Auth flow (self-service)
+    "/api/settings/",  # System config (read-only, user-scoped)
+    "/api/first-run/",  # Onboarding flow (user-scoped)
+    "/api/exports/",  # Read-only data generation (user-scoped)
+    "/api/health",  # Health probes (liveness, readiness, status)
 ]
 
 

@@ -139,6 +139,8 @@ from app.api import (
     projects_api,
     qubo_api,
     qubo_biz,
+    api_keys,
+    landing,
 )
 from app.personal.api import router as personal_router
 from app.database import get_db
@@ -214,6 +216,7 @@ router.include_router(advanced_analysis.router)
 router.include_router(settings_api.router)
 router.include_router(dashboard.router)
 router.include_router(frontend_ui.router)
+router.include_router(landing.router)
 router.include_router(first_run.router)
 router.include_router(savings_dashboard.router)
 router.include_router(market_pulse.router)
@@ -287,6 +290,7 @@ router.include_router(agent_api.router)
 router.include_router(projects_api.router)
 router.include_router(qubo_api.router)
 router.include_router(qubo_biz.router)
+router.include_router(api_keys.router)
 router.include_router(personal_router)
 
 

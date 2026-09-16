@@ -59,61 +59,61 @@ def test_pricing_page(client):
     assert resp.status_code == 200
 
 
-def test_market_overview(client):
-    resp = client.get("/api/trading/market-overview")
+def test_market_overview(auth_client):
+    resp = auth_client.get("/api/trading/market-overview")
     assert resp.status_code == 200
     body = resp.json()
     stocks = [s for s in body.get("top_stocks", []) if s.get("price", 0) > 0]
     assert len(stocks) > 0
 
 
-def test_top_movers(client):
-    resp = client.get("/api/trading/top-movers")
+def test_top_movers(auth_client):
+    resp = auth_client.get("/api/trading/top-movers")
     assert resp.status_code == 200
     body = resp.json()
     assert len(body.get("gainers", [])) > 0
 
 
-def test_sectors(client):
-    resp = client.get("/api/trading/sectors")
+def test_sectors(auth_client):
+    resp = auth_client.get("/api/trading/sectors")
     assert resp.status_code == 200
     body = resp.json()
     sectors = [s for s in body.get("sectors", []) if s.get("price", 0) > 0]
     assert len(sectors) > 0
 
 
-def test_etfs(client):
-    resp = client.get("/api/trading/etf-overview")
+def test_etfs(auth_client):
+    resp = auth_client.get("/api/trading/etf-overview")
     assert resp.status_code == 200
     body = resp.json()
     etfs = [e for e in body.get("etfs", []) if e.get("price", 0) > 0]
     assert len(etfs) > 0
 
 
-def test_technical_analysis(client):
-    resp = client.get("/api/trading/technical-analysis/NVDA")
+def test_technical_analysis(auth_client):
+    resp = auth_client.get("/api/trading/technical-analysis/NVDA")
     assert resp.status_code == 200
     body = resp.json()
     assert "signal" in body
     assert "technicals" in body
 
 
-def test_options_data(client):
-    resp = client.get("/api/trading/options/NVDA")
+def test_options_data(auth_client):
+    resp = auth_client.get("/api/trading/options/NVDA")
     assert resp.status_code == 200
     body = resp.json()
     assert "options_chain" in body
 
 
-def test_stock_search(client):
-    resp = client.get("/api/trading/search?q=NVIDIA")
+def test_stock_search(auth_client):
+    resp = auth_client.get("/api/trading/search?q=NVIDIA")
     assert resp.status_code == 200
     body = resp.json()
     assert body["count"] > 0
 
 
-def test_backtest_strategies(client):
-    resp = client.get("/api/backtest/strategies")
+def test_backtest_strategies(auth_client):
+    resp = auth_client.get("/api/backtest/strategies")
     assert resp.status_code == 200
     body = resp.json()
     assert len(body["strategies"]) == 4
@@ -130,22 +130,22 @@ def test_backtest_run(auth_client):
     assert "equity_curve" in body
 
 
-def test_earnings_upcoming(client):
-    resp = client.get("/api/earnings/upcoming?days=90")
+def test_earnings_upcoming(auth_client):
+    resp = auth_client.get("/api/earnings/upcoming?days=90")
     assert resp.status_code == 200
     body = resp.json()
     assert body["summary"]["total"] > 0
 
 
-def test_alerts_list(client):
-    resp = client.get("/api/alerts")
+def test_alerts_list(auth_client):
+    resp = auth_client.get("/api/alerts")
     assert resp.status_code == 200
     body = resp.json()
     assert "alerts" in body
 
 
-def test_alerts_check(client):
-    resp = client.get("/api/alerts/check")
+def test_alerts_check(auth_client):
+    resp = auth_client.get("/api/alerts/check")
     assert resp.status_code == 200
     body = resp.json()
     assert "checked" in body
@@ -156,8 +156,8 @@ def test_debug_endpoints_disabled(client):
     assert resp.status_code == 404
 
 
-def test_error_responses_sanitized(client):
-    resp = client.get("/api/trading/stocks/INVALIDSTOCK")
+def test_error_responses_sanitized(auth_client):
+    resp = auth_client.get("/api/trading/stocks/INVALIDSTOCK")
     assert resp.status_code == 404
     body = resp.text.lower()
     assert "traceback" not in body
