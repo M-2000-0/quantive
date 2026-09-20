@@ -65,7 +65,7 @@ export default function LoginPage() {
         gap: 40, alignItems: 'center',
       }}>
         {/* Left — brand context - clean, logo as hero */}
-        <div style={{ padding: '8px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <div style={{ padding: '8px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginLeft: 30 }}>
           <img src="/quantive-logo.png" alt="Quantive" style={{ width: 180, height: 180, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 16px 40px rgba(0,0,0,0.5))', marginBottom: 24 }} />
 
           <h1 style={{
