@@ -65,21 +65,21 @@ export default function LoginPage() {
         gap: 40, alignItems: 'center',
       }}>
         {/* Left — brand context - clean, logo as hero */}
-        <div style={{ padding: '8px 4px' }}>
-          <img src="/quantive-logo.png" alt="Quantive" style={{ width: 140, height: 140, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 12px 32px rgba(0,0,0,0.45))', marginBottom: 24 }} />
+        <div style={{ padding: '8px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <img src="/quantive-logo.png" alt="Quantive" style={{ width: 180, height: 180, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 16px 40px rgba(0,0,0,0.5))', marginBottom: 24 }} />
 
           <h1 style={{
             fontFamily: "'Instrument Serif', serif",
             fontSize: 'clamp(36px, 4.5vw, 48px)', fontWeight: 400, lineHeight: 0.95, letterSpacing: '-0.04em',
-            marginBottom: 12,
+            marginBottom: 12, textAlign: 'center',
           }}>
             Welcome <em style={{ fontStyle: 'italic', color: '#C8C8CE', fontWeight: 400 }}>back.</em>
           </h1>
-          <p style={{ fontSize: 14, lineHeight: 1.6, color: '#8A8A90', maxWidth: 420, marginBottom: 16 }}>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: '#8A8A90', maxWidth: 420, marginBottom: 16, textAlign: 'center' }}>
             Sign in to your sovereign workspace. Every recommendation shows its assumptions — audit-ready, fiscal-rule-aware.
           </p>
 
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: '#5E5E66', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: '#5E5E66', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', justifyContent: 'center' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ SOC 2 READY</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ ENCRYPTED</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ AUDIT TRAILS</span>
