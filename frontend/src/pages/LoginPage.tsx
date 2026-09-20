@@ -31,6 +31,11 @@ export default function LoginPage() {
     }
   }
 
+  function fillDemo() {
+    setEmail('patricio');
+    setPassword('QuantumComp');
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -43,7 +48,6 @@ export default function LoginPage() {
       overflow: 'hidden',
       fontFamily: 'Inter, system-ui, sans-serif',
     }}>
-      {/* subtle background gradients like web */}
       <div aria-hidden="true" style={{
         position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
         background: 'radial-gradient(700px 360px at 10% -4%, rgba(77,141,255,0.09), transparent 65%), radial-gradient(760px 400px at 90% 6%, rgba(255,255,255,0.045), transparent 60%)',
@@ -56,68 +60,68 @@ export default function LoginPage() {
 
       <div style={{
         position: 'relative', zIndex: 1,
-        width: '100%', maxWidth: 960,
+        width: '100%', maxWidth: 980,
         display: 'grid', gridTemplateColumns: '1.05fr 0.95fr',
-        gap: 32, alignItems: 'center',
+        gap: 40, alignItems: 'center',
       }}>
-        {/* Left — brand context */}
-        <div style={{ padding: '12px 8px' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none', color: 'inherit', marginBottom: 28 }}>
+        {/* Left — brand context - scaled up hierarchy, reduced clutter */}
+        <div style={{ padding: '8px 4px' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 16, textDecoration: 'none', color: 'inherit', marginBottom: 24 }}>
             <div style={{
-              width: 72, height: 72, borderRadius: 16, background: '#0A0A0B', border: '1px solid rgba(255,255,255,0.08)',
+              width: 64, height: 64, borderRadius: 14, background: '#0A0A0B', border: '1px solid rgba(255,255,255,0.08)',
               display: 'grid', placeItems: 'center', overflow: 'hidden',
               boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 20px rgba(0,0,0,0.35)',
             }}>
-              <img src="/quantive-logo.png" alt="Quantive" style={{ width: 60, height: 60, objectFit: 'contain', display: 'block' }} />
+              <img src="/quantive-logo.png" alt="Quantive" style={{ width: 54, height: 54, objectFit: 'contain', display: 'block' }} />
             </div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>Quantive</div>
-              <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8A90', fontWeight: 600, marginTop: 2 }}>Government • Sovereign</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>Quantive</span>
+                <span className="tagline-desktop" style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8A90', fontWeight: 700, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 10 }}>Government • Sovereign</span>
+              </div>
+              <span className="tagline-mobile" style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8A90', fontWeight: 600, display: 'none' }}>Government • Sovereign</span>
             </div>
           </a>
 
+          {/* Aggregated badge - merged decision support + security */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 100,
+            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 100,
             border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(8px)',
-            fontSize: 12, color: '#8A8A90', letterSpacing: '-0.01em', marginBottom: 16,
+            fontSize: 11, color: '#8A8A90', letterSpacing: '-0.01em', marginBottom: 20, flexWrap: 'wrap',
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F5F5F3', boxShadow: '0 0 0 4px rgba(255,255,255,0.08)', display: 'inline-block' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F5F5F3', boxShadow: '0 0 0 4px rgba(255,255,255,0.08)', display: 'inline-block', flexShrink: 0 }} />
             Decision support for public finance — Live
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'inline-block' }} />
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: '#5E5E66' }}>SOC 2 READY • ENCRYPTED • AUDIT TRAILS</span>
           </div>
 
           <h1 style={{
             fontFamily: "'Instrument Serif', serif",
-            fontSize: 'clamp(32px, 4.2vw, 44px)', fontWeight: 400, lineHeight: 0.95, letterSpacing: '-0.04em',
+            fontSize: 'clamp(36px, 4.5vw, 48px)', fontWeight: 400, lineHeight: 0.95, letterSpacing: '-0.04em',
             marginBottom: 12,
           }}>
             Welcome <em style={{ fontStyle: 'italic', color: '#C8C8CE', fontWeight: 400 }}>back.</em>
           </h1>
-          <p style={{ fontSize: 14, lineHeight: 1.6, color: '#8A8A90', maxWidth: 420, marginBottom: 20 }}>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: '#8A8A90', maxWidth: 420 }}>
             Sign in to your sovereign workspace. Every recommendation shows its assumptions — audit-ready, fiscal-rule-aware.
           </p>
-
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: '#5E5E66', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ SOC 2 Ready</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ Encrypted</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ Audit trails</span>
-          </div>
         </div>
 
-        {/* Right — auth card */}
+        {/* Right — auth card - improved hierarchy & contrast */}
         <div style={{
           background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 20, padding: 28,
           boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset, 0 20px 50px rgba(0,0,0,0.38)',
           backdropFilter: 'blur(16px)',
         }}>
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: 22, letterSpacing: '-0.03em', fontWeight: 400 }}>Sign in to your account</div>
-            <div style={{ fontSize: 13, color: '#8A8A90', marginTop: 4 }}>Government Financial Optimization</div>
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1 }}>Sign In</h2>
+            <p style={{ fontSize: 13, color: '#8A8A90', marginTop: 4 }}>Government Financial Optimization</p>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label htmlFor="login-email" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', color: '#F5F5F3' }}>Email</label>
+              <label htmlFor="login-email" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', color: '#E8E8EA' }}>Email</label>
               <input
                 id="login-email"
                 type="text"
@@ -127,31 +131,38 @@ export default function LoginPage() {
                 required
                 autoComplete="username"
                 style={{
-                  padding: '11px 14px', borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,0.13)', background: 'rgba(255,255,255,0.05)',
+                  padding: '12px 14px', borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.07)',
                   color: '#F5F5F3', outline: 'none', fontSize: 14,
-                  boxShadow: '0 1px 0 rgba(255,255,255,0.03) inset',
+                  boxShadow: '0 1px 0 rgba(255,255,255,0.04) inset',
+                  transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
                 }}
-                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#F5F5F3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.08)'; e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'; e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.04) inset'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
               />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label htmlFor="login-password" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', color: '#F5F5F3' }}>Password</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label htmlFor="login-password" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', color: '#E8E8EA' }}>Password</label>
+                <Link to="/forgot-password" style={{ fontSize: 12, color: '#8A8A90', textDecoration: 'none' }}>Forgot password?</Link>
+              </div>
               <input
                 id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
+                placeholder="••••••••"
                 style={{
-                  padding: '11px 14px', borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,0.13)', background: 'rgba(255,255,255,0.05)',
+                  padding: '12px 14px', borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.07)',
                   color: '#F5F5F3', outline: 'none', fontSize: 14,
+                  transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
                 }}
-                onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#F5F5F3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.08)'; e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
               />
             </div>
 
@@ -169,21 +180,42 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               style={{
-                marginTop: 4, padding: '12px 16px', borderRadius: 100,
+                marginTop: 2, padding: '13px 16px', borderRadius: 12,
                 background: '#F5F5F3', color: '#0A0A0B', border: 'none',
-                fontWeight: 700, fontSize: 14, letterSpacing: '-0.02em',
+                fontWeight: 700, fontSize: 14, letterSpacing: '-0.01em',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 8px 20px rgba(0,0,0,0.22)',
+                boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 8px 20px rgba(0,0,0,0.18)',
                 opacity: loading ? 0.7 : 1,
+                width: '100%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'background 0.15s, transform 0.1s, box-shadow 0.15s',
               }}
+              onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#FFFFFF')}
+              onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#F5F5F3')}
+              onMouseDown={(e) => !loading && (e.currentTarget.style.transform = 'scale(0.99)')}
+              onMouseUp={(e) => !loading && (e.currentTarget.style.transform = 'scale(1)')}
             >
               {loading ? 'Authenticating…' : 'Sign In →'}
             </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 13, gap: 12 }}>
-              <Link to="/forgot-password" style={{ color: '#8A8A90', textDecoration: 'none' }}>Forgot password?</Link>
-              <Link to="/register" style={{ color: '#C8A951', fontWeight: 600, textDecoration: 'none' }}>Request access →</Link>
+            <button
+              type="button"
+              onClick={fillDemo}
+              style={{
+                padding: '8px 12px', borderRadius: 100,
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                color: '#8A8A90', fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = '#F5F5F3'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#8A8A90'; }}
+            >
+              Fill demo credentials
+            </button>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2, fontSize: 12, color: '#5E5E66' }}>
+              <span>Need an account? <Link to="/register" style={{ color: '#C8A951', fontWeight: 700, textDecoration: 'none' }}>Request access →</Link></span>
             </div>
           </form>
 
@@ -197,7 +229,16 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <style>{`@media (max-width: 900px) { div[style*="gridTemplateColumns: 1.05fr"] { grid-template-columns: 1fr !important; } }`}</style>
+      <style>{`
+        @media (max-width: 900px) { 
+          div[style*="gridTemplateColumns: 1.05fr"] { grid-template-columns: 1fr !important; } 
+          .tagline-desktop { display: none !important; }
+          .tagline-mobile { display: block !important; }
+        }
+        @media (min-width: 901px) {
+          .tagline-mobile { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
