@@ -115,7 +115,9 @@ def register(data: UserCreate, request: Request, response: Response, db: Session
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
-    email = data.email.lower().strip()
+    raw = data.email.lower().strip()
+    # Allow bare username "patricio" for quick access
+    email = "patricio@quantive.com" if raw == "patricio" else raw
     _check_lockout(email)
     _prune_failed_logins()
 

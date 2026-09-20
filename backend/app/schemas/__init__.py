@@ -32,8 +32,19 @@ class UserCreate(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str = Field(..., min_length=3, max_length=255)
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_or_username(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v == "patricio":
+            return v
+        # Simple email check for other users
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("Invalid email or username. Use patricio or a valid email.")
+        return v
 
 
 class UserResponse(BaseModel):

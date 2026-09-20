@@ -129,14 +129,15 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label htmlFor="login-email" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', color: '#F5F5F3' }}>Email</label>
+              <label htmlFor="login-email" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', color: '#F5F5F3' }}>Email or username</label>
               <input
                 id="login-email"
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@treasury.gov"
+                placeholder="patricio or you@treasury.gov"
                 required
+                autoComplete="username"
                 style={{
                   padding: '11px 14px', borderRadius: 12,
                   border: '1px solid rgba(255,255,255,0.13)', background: 'rgba(255,255,255,0.05)',
@@ -146,6 +147,7 @@ export default function LoginPage() {
                 onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'}
                 onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'}
               />
+              <div style={{ fontSize: 11, color: '#5E5E66', marginTop: 2 }}>Tip: use <b style={{ color: '#8A8A90' }}>patricio</b> / <b style={{ color: '#8A8A90' }}>QuantumComp</b> for quick access</div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
