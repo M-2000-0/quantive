@@ -101,14 +101,6 @@ export default function LoginPage() {
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ Encrypted</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ Audit trails</span>
           </div>
-
-          <div style={{
-            marginTop: 28, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.02)', padding: 16,
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em' }}>Sovereign Demo Portfolio</div>
-            <div style={{ fontSize: 12, color: '#8A8A90', marginTop: 4 }}><b style={{ color: '#F5F5F3' }}>$557.4B</b> under analysis • 12 • 6 ccys</div>
-          </div>
         </div>
 
         {/* Right — auth card */}
