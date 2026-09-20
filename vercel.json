@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend && cp frontend/dist/index.html frontend/dist/app.html && cp web/index.html frontend/dist/index.html && cp web/*.png web/*.jpg web/*.jpeg frontend/dist/ 2>/dev/null || true && cp -r web/personal frontend/dist/personal 2>/dev/null || true && cp web/banking.html web/qubo.html web/terms.html web/chat.html frontend/dist/ 2>/dev/null || true && cp web/landing-page-1.jpg web/landing-page-1.png \"web/landing page 1.png\" frontend/dist/ 2>/dev/null || true",
+  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend && cp frontend/dist/index.html frontend/dist/app.html && cp web/index.html frontend/dist/index.html && cp web/*.png web/*.jpg frontend/dist/ 2>/dev/null || true && cp -r web/personal frontend/dist/personal 2>/dev/null || true && cp web/banking.html web/qubo.html web/terms.html web/chat.html frontend/dist/ 2>/dev/null || true && cp web/landing-page-1.jpg frontend/dist/ 2>/dev/null || true",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --prefix frontend",
   "framework": "vite",
