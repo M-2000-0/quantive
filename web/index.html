@@ -297,8 +297,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     <a href="/banking">Banking <span style="font-size:10px;font-weight:800;background:#4D8DFF;color:#0A0A0B;padding:2px 7px;border-radius:100px;vertical-align:middle">NEW</span></a>
     <a href="/qubo">Qubo</a>
     <a href="#pricing">Pricing</a>
-    <a href="http://localhost:8000/login" class="ghost">Sign in</a>
-    <a href="http://localhost:8000/register" class="cta">Schedule a Consultation →</a>
+    <a href="/login" class="ghost">Sign in</a>
+    <a href="/register" class="cta">Schedule a Consultation →</a>
   </div>
 </nav>
 
@@ -443,7 +443,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   </div>
   <div class="actions reveal" style="margin-top:20px">
     <a href="#pricing-personal" class="btn btn-dark">See Personal plans →</a>
-    <a href="http://localhost:8000/dashboard" class="btn btn-line">Open business workspace</a>
+    <a href="/dashboard" class="btn btn-line">Open business workspace</a>
   </div>
 </section>
 
@@ -607,7 +607,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
       <h3>Ready to stop guessing?</h3>
       <p>Schedule a consultation. Thirty minutes. No pitch deck. You describe your portfolio constraints. We show you exactly how Quantive handles them.</p>
     </div>
-    <form class="form" onsubmit="event.preventDefault(); const v=this.email.value.trim(); if(v) location.href='http://localhost:8000/register?email='+encodeURIComponent(v)">
+    <form class="form" onsubmit="event.preventDefault(); const v=this.email.value.trim(); if(v) location.href='/register?email='+encodeURIComponent(v)">
       <input class="input" type="email" name="email" placeholder="you@treasury.gov" required>
       <button class="btn btn-dark" type="submit">Schedule a Consultation</button>
     </form>

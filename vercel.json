@@ -32,14 +32,6 @@
       "destination": "/chat.html"
     },
     {
-      "source": "/personal",
-      "destination": "/personal/index.html"
-    },
-    {
-      "source": "/personal/(.*)",
-      "destination": "/personal/$1"
-    },
-    {
       "source": "/dashboard",
       "destination": "/app.html"
     },
@@ -60,15 +52,7 @@
       "destination": "/app.html"
     },
     {
-      "source": "/government/(.*)",
-      "destination": "/app.html"
-    },
-    {
       "source": "/business",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/business/(.*)",
       "destination": "/app.html"
     },
     {
@@ -88,159 +72,11 @@
       "destination": "/app.html"
     },
     {
-      "source": "/settings",
+      "source": "/personal",
       "destination": "/app.html"
     },
     {
-      "source": "/settings/(.*)",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/events",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/events/(.*)",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/risk-dashboard",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/solver-tournament",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/transparency-index",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/pricing",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/case-studies",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/procurement",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/pilots",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/sovereign-mode",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/audit-trail",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/approvals",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/agent-runs",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/model-validation",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/interoperability",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/disaster-recovery",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/sla",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/escrow",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/pfm-import",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/ai-governance",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/exchange-integration",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/broker-integration",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/regulatory-compliance",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/exchange-due-diligence",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/cybersecurity-privacy",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/validation-vendor-risk",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/sovereign-ai",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/banking/app",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/banking/app/(.*)",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/banking/transfers",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/banking/transfers/(.*)",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/banking/onboarding",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/banking/transactions/(.*)",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/qubo/workspace",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/qubo/workspace/(.*)",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/affiliate",
-      "destination": "/app.html"
-    },
-    {
-      "source": "/affiliate/(.*)",
+      "source": "/personal/(.*)",
       "destination": "/app.html"
     },
     {
