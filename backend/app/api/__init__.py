@@ -152,6 +152,7 @@ from app.api import (
     validation_vendor_api,
     sovereign_ai_api,
     affiliate_api,
+    stubs,
 )
 from app.personal.api import router as personal_router
 from app.database import get_db
@@ -314,6 +315,7 @@ router.include_router(qubo_biz.router)
 router.include_router(api_keys.router)
 router.include_router(affiliate_api.router)
 router.include_router(personal_router)
+router.include_router(stubs.router)
 
 
 @router.get("/api/health")

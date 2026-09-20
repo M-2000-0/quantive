@@ -943,10 +943,10 @@ export const api = {
 
   // ── Sovereign Debt Transparency Index ─────────────────────────────────
   transparencyIndex: {
-    country: (countryCode: string) => request<{ code: string; name: string; overall_score: number; rank: number; categories: Record<string, { score: number; rank: number }>; data_quality: string; last_updated: string }>(`/transparency-index/countries/${countryCode}`),
-    allCountries: () => request<Array<{ code: string; name: string; overall_score: number; rank: number; data_quality: string }>>('/transparency-index/countries'),
-    calculate: (countryCode: string) => request<{ code: string; overall_score: number; categories: Record<string, number>; calculated_at: string }>(`/transparency-index/calculate/${countryCode}`, { method: 'POST' }),
-    globalStats: () => request<{ total_countries: number; avg_score: number; top_performers: Array<{ code: string; name: string; score: number }>; bottom_performers: Array<{ code: string; name: string; score: number }> }>('/transparency-index/stats'),
+    country: (countryCode: string) => request<{ code: string; name: string; overall_score: number; rank: number; categories: Record<string, { score: number; rank: number }>; data_quality: string; last_updated: string }>(`/transparency-index/country/${countryCode}`),
+    allCountries: () => request<Array<{ code: string; name: string; overall_score: number; rank: number; data_quality: string }>>('/transparency-index/rankings'),
+    calculate: (countryCode: string) => request<{ code: string; overall_score: number; categories: Record<string, number>; calculated_at: string }>(`/transparency-index/country/${countryCode}`, { method: 'POST' }),
+    globalStats: () => request<{ total_countries: number; avg_score: number; top_performers: Array<{ code: string; name: string; score: number }>; bottom_performers: Array<{ code: string; name: string; score: number }> }>('/transparency-index/global-stats'),
     batchCalculate: (countryCodes: string[]) =>
       request<{ results: Array<{ code: string; score: number; status: string }>; total: number }>('/transparency-index/batch-calculate', { method: 'POST', body: JSON.stringify({ country_codes: countryCodes }) }),
     compare: (countryCodes: string[]) =>
@@ -975,17 +975,17 @@ export const api = {
 
   // ── Pilot Program ────────────────────────────────────────────────────
   pilotProgram: {
-    dashboard: () => request<{ total_programs: number; active: number; completed: number; metrics: Record<string, number> }>('/pilot-programs/dashboard'),
-    list: () => request<{ programs: PilotProgram[] }>('/pilot-programs/list'),
+    dashboard: () => request<{ total_programs: number; active: number; completed: number; metrics: Record<string, number> }>('/pilot-program/dashboard'),
+    list: () => request<{ programs: PilotProgram[] }>('/pilot-program/pilots'),
     create: (data: { name: string; description?: string; start_date?: string }) =>
-      request<PilotProgram>('/pilot-programs/create', { method: 'POST', body: JSON.stringify(data) }),
-    status: (programId: string) => request<PilotProgram>(`/pilot-programs/${programId}/status`),
+      request<PilotProgram>('/pilot-program/pilots', { method: 'POST', body: JSON.stringify(data) }),
+    status: (programId: string) => request<PilotProgram>(`/pilot-program/pilots/${programId}`),
     transition: (programId: string, status: string, data?: Record<string, unknown>) =>
-      request<PilotProgram>(`/pilot-programs/${programId}/transition`, {
-        method: 'POST',
-        body: JSON.stringify({ new_status: status, ...data }),
+      request<PilotProgram>(`/pilot-program/pilots/${programId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, ...data }),
       }),
-    caseStudy: (programId: string) => request<{ title: string; summary: string; metrics: Record<string, unknown>; lessons: string[] }>(`/pilot-programs/${programId}/case-study`),
+    caseStudy: (programId: string) => request<{ title: string; summary: string; metrics: Record<string, unknown>; lessons: string[] }>(`/pilot-program/pilots/${programId}/generate-case-study`),
   },
 
   // ── Government Relations ─────────────────────────────────────────────
@@ -1055,10 +1055,10 @@ export const api = {
     validate: (data: { content: string; format: string }) =>
       request<{ valid: boolean; errors: string[] }>('/interoperability/validate', { method: 'POST', body: JSON.stringify(data) }),
     parseFpML: (content: string) =>
-      request<{ trades: Record<string, unknown>[]; validation: { valid: boolean; errors: string[] } }>('/interoperability/parse/fpml', { method: 'POST', body: JSON.stringify({ content }) }),
+      request<{ trades: Record<string, unknown>[]; validation: { valid: boolean; errors: string[] } }>('/interoperability/fpml/parse', { method: 'POST', body: JSON.stringify({ content }) }),
     parseXBRL: (content: string) =>
-      request<{ facts: Record<string, unknown>[]; validation: { valid: boolean; errors: string[] } }>('/interoperability/parse/xbrl', { method: 'POST', body: JSON.stringify({ content }) }),
-    supportedFormats: () => request<Array<{ id: string; name: string; extension: string; mime_type: string }>>('/interoperability/supported-formats'),
+      request<{ facts: Record<string, unknown>[]; validation: { valid: boolean; errors: string[] } }>('/interoperability/xbrl/parse', { method: 'POST', body: JSON.stringify({ content }) }),
+    supportedFormats: () => request<Array<{ id: string; name: string; extension: string; mime_type: string }>>('/interoperability/formats'),
   },
 
   // ── Disaster Recovery ────────────────────────────────────────────────
