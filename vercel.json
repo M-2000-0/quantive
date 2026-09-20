@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend && cp frontend/dist/index.html frontend/dist/app.html && cp web/index.html frontend/dist/index.html && cp web/*.html frontend/dist/ && cp web/*.png web/*.jpg frontend/dist/ && cp -r web/personal frontend/dist/",
+  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --prefix frontend",
   "framework": "vite",
@@ -29,6 +29,10 @@
     {
       "source": "/chat",
       "destination": "/chat.html"
+    },
+    {
+      "source": "/(dashboard|login|register|government|business|portfolios|optimizations|settings|personal)(.*)",
+      "destination": "/app.html"
     },
     {
       "source": "/(.*)",
