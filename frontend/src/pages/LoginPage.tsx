@@ -23,7 +23,7 @@ export default function LoginPage() {
       } catch {
         localStorage.removeItem('quantive_wizard_dismissed');
       }
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed. Verify credentials and try again.');
     } finally {
