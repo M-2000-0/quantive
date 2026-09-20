@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend && cp frontend/dist/index.html frontend/dist/app.html && cp web/index.html frontend/dist/index.html && cp web/*.png web/*.jpg frontend/dist/ 2>/dev/null || true && cp -r web/personal frontend/dist/personal 2>/dev/null || true && cp web/banking.html web/qubo.html web/terms.html web/chat.html frontend/dist/ 2>/dev/null || true && cp web/landing-page-1.jpg frontend/dist/ 2>/dev/null || true",
+  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --prefix frontend",
   "framework": "vite",
@@ -11,12 +11,6 @@
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/banking.html", "destination": "/banking.html" },
-    { "source": "/qubo.html", "destination": "/qubo.html" },
-    { "source": "/terms.html", "destination": "/terms.html" },
-    { "source": "/chat.html", "destination": "/chat.html" },
-    { "source": "/personal/(.*)", "destination": "/personal/$1" },
-    { "source": "/(dashboard|login|register|government|business|qubo|terms|portfolios|optimizations|events|risk-dashboard|solver-tournament|transparency-index|pricing|case-studies|procurement|pilots|sovereign-mode|audit-trail|approvals|agent-runs|model-validation|interoperability|disaster-recovery|sla|escrow|banking|pfm-import|ai-governance|exchange-integration|broker-integration|regulatory-compliance|exchange-due-diligence|cybersecurity-privacy|validation-vendor-risk|sovereign-ai)(.*)", "destination": "/app.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
