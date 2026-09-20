@@ -1,9 +1,15 @@
 // Quantive Banking API client. Money crosses the wire as integer cents;
 // centsToUsd() is the only place dollars are rendered.
+import { centsToUsd, dollarsToCents } from '../lib/money';
+
+export { centsToUsd, dollarsToCents };
+
 const API_BASE =
   typeof window !== 'undefined' && (window as unknown as { electronAPI?: { isElectron?: boolean } }).electronAPI?.isElectron
     ? 'http://127.0.0.1:8000/api'
-    : '/api';
+    : (import.meta as any).env?.VITE_API_URL
+      ? `${(import.meta as any).env.VITE_API_URL}/api`
+      : '/api';
 
 function csrfHeaders(method: string): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -35,19 +41,6 @@ async function bRequest<T>(path: string, options: RequestInit = {}): Promise<T> 
     throw new Error(detail);
   }
   return data as T;
-}
-
-export function centsToUsd(cents: number): string {
-  return (cents / 100).toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  });
-}
-
-export function dollarsToCents(dollars: string): number {
-  const n = Number.parseFloat(dollars);
-  if (!Number.isFinite(n) || n <= 0) throw new Error('Enter an amount greater than $0');
-  return Math.round(n * 100);
 }
 
 export interface BankAccount {

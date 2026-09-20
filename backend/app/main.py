@@ -121,7 +121,7 @@ async def lifespan(app: FastAPI):
 
     # Ensure tax document table exists
     try:
-        from app.models.banking import TaxDocument
+        from app.models.qubo_tax import TaxDocument
         TaxDocument.__table__.create(engine, checkfirst=True)
         print("[OK] Tax document table ready")
     except Exception as e:
@@ -158,24 +158,27 @@ async def lifespan(app: FastAPI):
 
     # Ensure user_profiles has the columns added by later model revisions
     # (checkfirst only creates missing tables, not missing columns).
-    try:
-        with engine.connect() as conn:
-            # Reflect current columns on user_profiles
-            cols = {r[1] for r in conn.execute(
-                text("PRAGMA table_info(user_profiles)"
-            )).fetchall()}
-            if "exclusions" not in cols:
-                conn.execute(text(
-                    "ALTER TABLE user_profiles ADD COLUMN exclusions JSON NULL"
-                ))
-                conn.commit()
-                print("[OK] user_profiles.exclusions column added")
-            else:
-                print("[OK] user_profiles.exclusions column present")
-    except Exception as e:
-        logging.getLogger("uvicorn.error").warning(
-            "Could not ensure user_profiles columns: %s", e
-        )
+    if "sqlite" in settings.DATABASE_URL:
+        try:
+            with engine.connect() as conn:
+                # Reflect current columns on user_profiles
+                cols = {r[1] for r in conn.execute(
+                    text("PRAGMA table_info(user_profiles)"
+                )).fetchall()}
+                if "exclusions" not in cols:
+                    conn.execute(text(
+                        "ALTER TABLE user_profiles ADD COLUMN exclusions JSON NULL"
+                    ))
+                    conn.commit()
+                    print("[OK] user_profiles.exclusions column added")
+                else:
+                    print("[OK] user_profiles.exclusions column present")
+        except Exception as e:
+            logging.getLogger("uvicorn.error").warning(
+                "Could not ensure user_profiles columns: %s", e
+            )
+    else:
+        print("[OK] user_profiles columns check skipped (PostgreSQL)")
 
     # Start background alert checker
     try:
@@ -383,6 +386,9 @@ def get_job_status(job_id: str) -> dict:
 api_v1_prefix = "/api/v1"
 app.include_router(router, prefix=api_v1_prefix)
 app.include_router(router)
+
+from app.gov.api import router as gov_router
+app.include_router(gov_router)
 
 app.add_middleware(GlobalExceptionHandler)
 app.add_middleware(SecurityHeadersMiddleware)

@@ -22,6 +22,7 @@ Paid tier stubs (interface ready, implementation needs API keys):
 """
 
 import json
+import os
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -693,6 +694,8 @@ class MarketDataEngine:
 
     def __init__(self, fred_api_key: str = ""):
         self.providers: list[MarketDataProvider] = [
+            BloombergProvider(),       # Tier 0: paid (if configured)
+            RefinitivProvider(),       # Tier 0: paid (if configured)
             FREDProvider(fred_api_key),
             TreasuryProvider(),
             ECBProvider(),
@@ -739,3 +742,136 @@ class MarketDataEngine:
     def health_check(self) -> list[dict]:
         """Check status of all providers."""
         return [p.health_check() for p in self.providers]
+
+
+# ── Paid-Tier Provider Stubs ──────────────────────────────────────────
+# These implement the same interface but require API keys.
+# Set environment variables to activate them.
+
+class BloombergProvider(MarketDataProvider):
+    """Bloomberg B-PIPE / Bloomberg Terminal API.
+
+    Requires:
+      - BLOOMBERG_HOST (e.g. 'blp_api.bloomberg.com')
+      - BLOOMBERG_API_KEY
+
+    Provides: Real-time yields, FX, bond prices, credit spreads.
+    The gold standard for sovereign debt market data.
+    """
+
+    name = "bloomberg"
+
+    def __init__(self):
+        self._host = os.environ.get("BLOOMBERG_HOST", "")
+        self._api_key = os.environ.get("BLOOMBERG_API_KEY", "")
+        self.is_available = bool(self._host and self._api_key)
+
+    def _request(self, path: str) -> Optional[dict]:
+        if not self.is_available:
+            return None
+        try:
+            url = f"https://{self._host}{path}"
+            req = Request(url, headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+            })
+            with urlopen(req, timeout=10) as resp:
+                return json.loads(resp.read().decode())
+        except Exception:
+            return None
+
+    def get_yield_curve(self, country_code: str, date: Optional[str] = None) -> Optional[YieldCurve]:
+        data = self._request(f"/api/yield-curve?country={country_code}")
+        if not data or "curves" not in data:
+            return None
+        points = []
+        for p in data["curves"]:
+            points.append(YieldCurvePoint(
+                maturity_years=p["maturity"],
+                yield_pct=p["yield"],
+                maturity_label=p.get("label", f"{p['maturity']}Y"),
+            ))
+        return YieldCurve(
+            country_code=country_code,
+            date=data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+            source="bloomberg",
+            points=points,
+        )
+
+    def get_fx_rate(self, pair: str, date: Optional[str] = None) -> Optional[FxRate]:
+        data = self._request(f"/api/fx?pair={pair}")
+        if not data or "rate" not in data:
+            return None
+        return FxRate(
+            pair=pair,
+            rate=data["rate"],
+            date=data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+            source="bloomberg",
+        )
+
+    def health_check(self) -> dict:
+        return {"source": "bloomberg", "available": self.is_available, "status": "needs_api_key" if not self.is_available else "ready"}
+
+
+class RefinitivProvider(MarketDataProvider):
+    """Refinitiv (LSEG) Eikon / DataScope API.
+
+    Requires:
+      - REFINITIV_HOST (e.g. 'api.refinitiv.com')
+      - REFINITIV_APP_KEY
+
+    Provides: Real-time and historical market data, news, analytics.
+    """
+
+    name = "refinitiv"
+
+    def __init__(self):
+        self._host = os.environ.get("REFINITIV_HOST", "")
+        self._app_key = os.environ.get("REFINITIV_APP_KEY", "")
+        self.is_available = bool(self._host and self._app_key)
+
+    def _request(self, path: str) -> Optional[dict]:
+        if not self.is_available:
+            return None
+        try:
+            url = f"https://{self._host}{path}"
+            req = Request(url, headers={
+                "Authorization": f"Bearer {self._app_key}",
+                "Content-Type": "application/json",
+            })
+            with urlopen(req, timeout=10) as resp:
+                return json.loads(resp.read().decode())
+        except Exception:
+            return None
+
+    def get_yield_curve(self, country_code: str, date: Optional[str] = None) -> Optional[YieldCurve]:
+        data = self._request(f"/api/v1/yield-curve?country={country_code}")
+        if not data or "curves" not in data:
+            return None
+        points = []
+        for p in data["curves"]:
+            points.append(YieldCurvePoint(
+                maturity_years=p["maturity"],
+                yield_pct=p["yield"],
+                maturity_label=p.get("label", f"{p['maturity']}Y"),
+            ))
+        return YieldCurve(
+            country_code=country_code,
+            date=data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+            source="refinitiv",
+            points=points,
+        )
+
+    def get_fx_rate(self, pair: str, date: Optional[str] = None) -> Optional[FxRate]:
+        data = self._request(f"/api/v1/fx?pair={pair}")
+        if not data or "rate" not in data:
+            return None
+        return FxRate(
+            pair=pair,
+            rate=data["rate"],
+            date=data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+            source="refinitiv",
+        )
+
+    def health_check(self) -> dict:
+        return {"source": "refinitiv", "available": self.is_available, "status": "needs_api_key" if not self.is_available else "ready"}

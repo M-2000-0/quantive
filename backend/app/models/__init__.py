@@ -366,7 +366,17 @@ from app.models.banking import (  # noqa: E402, F401
     BankTransaction,
     BankTransfer,
     BusinessProfile,
+)
+from app.models.qubo_tax import (  # noqa: E402, F401
     QuboFinding,
+    TaxDocument,
+)
+from app.models.affiliate import (  # noqa: E402, F401
+    AffiliateProgram,
+    Commission,
+    Payout,
+    Referral,
+    ReferralClick,
 )
 from app.models.discovery import (  # noqa: E402, F401
     AssetClass,
@@ -389,4 +399,48 @@ from app.models.project import (  # noqa: E402, F401
 )
 from app.models.market import (  # noqa: E402, F401
     MarketSnapshot,
+)
+from app.models.pfm import (  # noqa: E402, F401
+    AuditFinding,
+    BudgetEntry,
+    ExpenditureRecord,
+    FinancialStatement,
+    IFMISConnection,
+    RevenueRecord,
+)
+from app.models.ai_governance import (  # noqa: E402, F401
+    AlgorithmEntry,
+    BiasReport,
+    CrisisScenario,
+    DataLineageRecord,
+    DecisionRecord,
+    ExplainabilityReport,
+    ModelCard,
+    BacktestResult,
+)
+from app.models.exchange_integration import (  # noqa: E402, F401
+    AlgorithmAuditTrail,
+    CCPClearingMember,
+    ComplianceEvent,
+    ComplianceRule,
+    CounterpartyRiskScore,
+    EthicalFirewall,
+    ExchangeConnection,
+    ExchangeConnectorTemplate,
+    InstitutionalCapacityAssessment,
+    MarketDataFeed,
+    RegulatoryReport,
+    RiskAllocation,
+    SmartContractTemplate,
+    TradeOrder,
+)
+from app.models.broker_integration import (  # noqa: E402, F401
+    BestExecutionRecord,
+    BrokerRegistration,
+    ClientKYC,
+    ClientOnboarding,
+    ClientReport,
+    FeeSchedule,
+    TransactionMonitoringRule,
+    TransactionRecord,
 )

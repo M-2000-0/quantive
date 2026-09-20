@@ -39,6 +39,9 @@ beforeEach(() => {
     'fetch',
     vi.fn(async (url: unknown) => {
       const path = String(url);
+      if (path.includes('/settings')) {
+        return { ok: true, status: 200, json: async () => ({ jurisdiction: 'US', supported_jurisdictions: ['US', 'MX', 'BD'] }) };
+      }
       return {
         ok: true,
         status: 200,

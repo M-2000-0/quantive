@@ -17,8 +17,8 @@ export default function LoginPage() {
       await api.auth.login({ email, password });
       // Check if user has data; if not, show onboarding wizard
       try {
-        const status = await api.firstRun.quickStartData() as { onboarding: { onboarding_complete: boolean } };
-        if (!status.onboarding.onboarding_complete) {
+        const status = await api.firstRun.quickStartData() as { portfolios: Array<{ id: string }> };
+        if (!status.portfolios || status.portfolios.length === 0) {
           localStorage.removeItem('quantive_wizard_dismissed');
         }
       } catch {

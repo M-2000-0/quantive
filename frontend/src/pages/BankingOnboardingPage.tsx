@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type BankingProfile } from '../api';
+import { bankingApi, type BusinessProfile } from '../api/banking';
 
 const STATUS_COPY: Record<string, string> = {
   draft: 'Draft — complete the form and submit for KYB review.',
@@ -10,7 +10,7 @@ const STATUS_COPY: Record<string, string> = {
 };
 
 export default function BankingOnboardingPage() {
-  const [profile, setProfile] = useState<BankingProfile | null>(null);
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [status, setStatus] = useState('draft');
   const [form, setForm] = useState({ legal_name: '', dba: '', entity_type: '', country: 'US', industry: '', tax_id_last4: '' });
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function BankingOnboardingPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.banking.profile();
+      const res = await bankingApi.profile();
       setProfile(res.profile);
       setStatus(res.kyb_status);
       if (res.profile) {
@@ -56,7 +56,7 @@ export default function BankingOnboardingPage() {
     setNotice('');
     setSaving(true);
     try {
-      const saved = await api.banking.saveProfile(form);
+      const saved = await bankingApi.saveProfile(form);
       setProfile(saved);
       setStatus(saved.kyb_status);
       setNotice('Profile saved.');
@@ -71,7 +71,7 @@ export default function BankingOnboardingPage() {
     setError('');
     setNotice('');
     try {
-      const submitted = await api.banking.submitProfile();
+      const submitted = await bankingApi.submitProfile();
       setProfile(submitted);
       setStatus(submitted.kyb_status);
       setNotice('Submitted for KYB review.');

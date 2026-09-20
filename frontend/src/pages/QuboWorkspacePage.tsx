@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  api,
+  quboApi,
   centsToUsd,
   type QuboFinding,
   type QuboOverview,
-} from '../api';
+} from '../api/qubo';
 
 type QuarterlyData = {
   quarters: Record<string, { deductions_cents: number; estimated_set_aside_cents: number }>;
@@ -27,13 +27,18 @@ function FindingDocSection({ findingId }: { findingId: string }) {
   const [docs, setDocs] = useState<DocType[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [docError, setDocError] = useState('');
 
   async function loadDocs() {
     try {
-      const res = await api.banking.qubo.listDocuments(findingId);
+      const res = await quboApi.listDocuments(findingId);
       setDocs(res.documents);
       setLoaded(true);
-    } catch { /* silent */ }
+      setDocError('');
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : 'Failed to load documents');
+      setLoaded(true);
+    }
   }
 
   useEffect(() => {
@@ -44,24 +49,52 @@ function FindingDocSection({ findingId }: { findingId: string }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setDocError('');
     try {
-      await api.banking.qubo.uploadDocument(findingId, file, 'other');
+      await quboApi.uploadDocument(findingId, file, 'other');
       setLoaded(false);
-    } catch { /* silent */ }
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : 'Upload failed');
+    }
     setUploading(false);
     e.target.value = '';
   }
 
+  async function handleDelete(docId: string) {
+    try {
+      await quboApi.deleteDocument(docId);
+      setLoaded(false);
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : 'Delete failed');
+    }
+  }
+
   return (
     <div style={{ marginTop: 8 }}>
+      {docError && <div style={{ fontSize: 11, color: '#dc2626', marginBottom: 4 }}>{docError}</div>}
       {docs.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
           {docs.map((d) => (
             <span key={d.id} className="badge" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {d.original_filename} ({formatBytes(d.size_bytes)})
+              <a
+                href={quboApi.downloadDocument(d.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#4D8DFF', textDecoration: 'none' }}
+              >
+                {d.original_filename} ({formatBytes(d.size_bytes)})
+              </a>
               <span style={{ color: d.status === 'reviewed' ? '#16a34a' : d.status === 'rejected' ? '#dc2626' : '#9ca3af', fontSize: 10 }}>
                 {d.status}
               </span>
+              <button
+                type="button"
+                onClick={() => void handleDelete(d.id)}
+                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 10, padding: 0 }}
+                title="Delete document"
+              >
+                ×
+              </button>
             </span>
           ))}
         </div>
@@ -108,9 +141,9 @@ export default function QuboWorkspacePage() {
     setError('');
     try {
       const [ov, list, settings] = await Promise.all([
-        api.banking.qubo.overview(),
-        api.banking.qubo.findings(status || undefined),
-        api.banking.qubo.getSettings().catch(() => null),
+        quboApi.overview(),
+        quboApi.findings(status || undefined),
+        quboApi.getSettings().catch(() => null),
       ]);
       setOverview(ov);
       setFindings(list.findings);
@@ -132,7 +165,7 @@ export default function QuboWorkspacePage() {
 
   async function loadQuarterly() {
     try {
-      const data = await api.banking.qubo.quarterlyEstimates();
+      const data = await quboApi.quarterlyEstimates();
       setQuarterly(data as unknown as QuarterlyData);
     } catch {
       // Silently fail — quarterly is optional
@@ -144,7 +177,7 @@ export default function QuboWorkspacePage() {
     setError('');
     setNotice('');
     try {
-      const res = await api.banking.qubo.scan(jurisdiction);
+      const res = await quboApi.scan(jurisdiction);
       setNotice(
         res.created > 0
           ? `Scan complete: ${res.created} new potential deduction${res.created === 1 ? '' : 's'} (${res.rules_version}).`
@@ -161,7 +194,7 @@ export default function QuboWorkspacePage() {
   async function handleReview(id: string, status: 'accepted' | 'dismissed') {
     setError('');
     try {
-      await api.banking.qubo.reviewFinding(id, status);
+      await quboApi.reviewFinding(id, status);
       await load(filter);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Review failed');
@@ -195,7 +228,7 @@ export default function QuboWorkspacePage() {
               const v = e.target.value;
               setJurisdiction(v);
               localStorage.setItem('qubo_jurisdiction', v);
-              void api.banking.qubo.updateSettings(v).catch(() => {});
+              void quboApi.updateSettings(v).catch(() => {});
             }}
             style={{ marginLeft: 8 }}
           >

@@ -181,7 +181,7 @@ def get_event(
 
 @router.get("/export")
 def export_events(
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
     user: User = Depends(get_current_user),
 ):
     """Export audit events in JSON or CSV format."""

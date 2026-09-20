@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useDemoMode } from '../stores/demoMode';
 
 export default function DemoModeBanner() {
-  const { isDemoMode, exitDemoMode } = useDemoMode();
+  const { isDemoMode, disableDemoMode } = useDemoMode();
   if (!isDemoMode) return null;
   return (
     <div
@@ -24,7 +24,7 @@ export default function DemoModeBanner() {
       </span>
       <button
         type="button"
-        onClick={exitDemoMode}
+        onClick={disableDemoMode}
         style={{ border: '1px solid #fcd34d', background: '#fff', borderRadius: 6, padding: '2px 10px', cursor: 'pointer' }}
       >
         Exit demo

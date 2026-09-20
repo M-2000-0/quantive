@@ -1,8 +1,14 @@
 // Qubo business-tax API client (ledger-backed deduction findings).
+import { centsToUsd, dollarsToCents } from '../lib/money';
+
+export { centsToUsd, dollarsToCents };
+
 const API_BASE =
   typeof window !== 'undefined' && (window as unknown as { electronAPI?: { isElectron?: boolean } }).electronAPI?.isElectron
     ? 'http://127.0.0.1:8000/api'
-    : '/api';
+    : (import.meta as any).env?.VITE_API_URL
+      ? `${(import.meta as any).env.VITE_API_URL}/api`
+      : '/api';
 
 function csrfHeaders(method: string): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -83,9 +89,48 @@ export const quboApi = {
     qRequest<{ findings: QuboFinding[] }>(
       `/qubo/business/findings${status ? `?status=${status}` : ''}`,
     ),
-  review: (id: string, status: 'accepted' | 'dismissed') =>
+  reviewFinding: (id: string, status: 'accepted' | 'dismissed') =>
     qRequest<QuboFinding>(`/qubo/business/findings/${id}/review`, {
       method: 'POST',
       body: JSON.stringify({ status }),
+    }),
+  getSettings: () =>
+    qRequest<{ jurisdiction: string; supported_jurisdictions: string[] }>('/qubo/business/settings'),
+  updateSettings: (jurisdiction: string) =>
+    qRequest<{ jurisdiction: string }>('/qubo/business/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ jurisdiction }),
+    }),
+  quarterlyEstimates: () =>
+    qRequest<{ quarters: Record<string, { deductions_cents: number; estimated_set_aside_cents: number }>; total_deductions_cents: number; estimated_annual_set_aside_cents: number; effective_rate: number; note: string }>('/qubo/business/quarterly-estimates'),
+  exportFindings: (format: 'csv' | 'json' = 'csv') =>
+    qRequest<{ export_format: string; tax_year: number; rows?: Record<string, string | number>[]; findings?: QuboFinding[] }>(`/qubo/business/export?format=${format}`),
+  uploadDocument: (findingId: string, file: File, category = 'other') => {
+    const form = new FormData();
+    form.append('file', file);
+    return qRequest<{ id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; status: string }>(
+      `/qubo/business/findings/${findingId}/documents?category=${category}`,
+      { method: 'POST', body: form },
+    );
+  },
+  listDocuments: (findingId: string) =>
+    qRequest<{ documents: { id: string; finding_id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; notes: string; status: string; created_at: string }[] }>(`/qubo/business/findings/${findingId}/documents`),
+  listAllDocuments: () =>
+    qRequest<{ documents: { id: string; finding_id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; status: string; created_at: string }[] }>('/qubo/business/documents'),
+  reviewDocument: (docId: string, status: 'reviewed' | 'rejected', notes = '') =>
+    qRequest<{ id: string; status: string }>(`/qubo/business/documents/${docId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ status, notes }),
+    }),
+  downloadDocument: (docId: string) => {
+    const csrfMatch = typeof document !== 'undefined'
+      ? document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/)
+      : null;
+    const csrfHeader = csrfMatch ? { 'X-CSRF-Token': decodeURIComponent(csrfMatch[1]) } : {};
+    return `${API_BASE}/qubo/business/documents/${docId}/download${csrfHeader['X-CSRF-Token'] ? '' : ''}`;
+  },
+  deleteDocument: (docId: string) =>
+    qRequest<{ deleted: boolean }>(`/qubo/business/documents/${docId}`, {
+      method: 'DELETE',
     }),
 };

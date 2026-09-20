@@ -84,60 +84,26 @@ def get_system_config():
 
 
 @router.get("/users")
-def get_users():
-    """Get list of users with their roles and last activity."""
+def get_users(db: Session = Depends(get_db)):
+    """Get list of users from the database."""
+    users = db.query(User).order_by(User.created_at).all()
+    roles_dist = {}
+    user_list = []
+    for u in users:
+        role = str(u.role.value) if hasattr(u.role, 'value') else str(u.role)
+        roles_dist[role] = roles_dist.get(role, 0) + 1
+        user_list.append({
+            "id": str(u.id),
+            "email": u.email,
+            "name": u.name,
+            "role": role,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+        })
     return {
-        "users": [
-            {
-                "id": "usr_001",
-                "email": "admin@quantive.gov",
-                "name": "System Administrator",
-                "role": "system_admin",
-                "last_active": "2026-08-30T10:30:00Z",
-                "status": "active",
-            },
-            {
-                "id": "usr_002",
-                "email": "analyst@quantive.gov",
-                "name": "Senior Analyst",
-                "role": "analyst",
-                "last_active": "2026-08-30T09:15:00Z",
-                "status": "active",
-            },
-            {
-                "id": "usr_003",
-                "email": "treasury@quantive.gov",
-                "name": "Treasury Officer",
-                "role": "treasury_officer",
-                "last_active": "2026-08-29T16:45:00Z",
-                "status": "active",
-            },
-            {
-                "id": "usr_004",
-                "email": "auditor@quantive.gov",
-                "name": "External Auditor",
-                "role": "auditor",
-                "last_active": "2026-08-28T14:00:00Z",
-                "status": "active",
-            },
-            {
-                "id": "usr_005",
-                "email": "minister@quantive.gov",
-                "name": "Finance Minister",
-                "role": "minister",
-                "last_active": "2026-08-27T11:30:00Z",
-                "status": "active",
-            },
-        ],
-        "total": 5,
-        "roles_distribution": {
-            "system_admin": 1,
-            "treasury_officer": 1,
-            "analyst": 1,
-            "auditor": 1,
-            "minister": 1,
-            "public_view": 0,
-        },
+        "users": user_list,
+        "total": len(user_list),
+        "roles_distribution": roles_dist,
     }
 
 
@@ -223,69 +189,57 @@ def get_data_sources():
 
 
 @router.get("/audit-summary")
-def get_audit_summary():
-    """Get audit trail summary for the last 30 days."""
+def get_audit_summary(db: Session = Depends(get_db)):
+    """Get real audit trail summary from the database."""
+    from app.models import AuditEvent
+    from datetime import timedelta
+
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    events = db.query(AuditEvent).filter(AuditEvent.created_at >= thirty_days_ago).all()
+
+    by_action = {}
+    for e in events:
+        action = str(e.action) if e.action else "unknown"
+        by_action[action] = by_action.get(action, 0) + 1
+
     return {
         "period": "last_30_days",
-        "total_events": 1_247,
-        "by_action": {
-            "read": 892,
-            "create": 156,
-            "update": 134,
-            "delete": 12,
-            "export": 45,
-            "login": 8,
-        },
-        "by_role": {
-            "system_admin": 234,
-            "treasury_officer": 456,
-            "analyst": 389,
-            "auditor": 112,
-            "minister": 56,
-        },
-        "security_events": {
-            "failed_logins": 3,
-            "permission_denied": 7,
-            "unusual_access": 0,
-        },
-        "recent_events": [
-            {"time": "2026-08-30T10:30:00Z", "user": "admin@quantive.gov", "action": "update", "resource": "system_config"},
-            {"time": "2026-08-30T09:15:00Z", "user": "analyst@quantive.gov", "action": "create", "resource": "optimization"},
-            {"time": "2026-08-30T08:00:00Z", "user": "system", "action": "export", "resource": "imf_mtds"},
-        ],
+        "total_events": len(events),
+        "by_action": by_action,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
 @router.get("/security-status")
-def get_security_status():
-    """Get security posture overview."""
+def get_security_status(db: Session = Depends(get_db)):
+    """Get real security posture from the database."""
+    from app.models import AuditEvent
+    from datetime import timedelta
+
+    twenty_four_h = datetime.now(timezone.utc) - timedelta(hours=24)
+    failed_logins = db.query(AuditEvent).filter(
+        AuditEvent.action == "login_failed",
+        AuditEvent.created_at >= twenty_four_h,
+    ).count()
+
+    total_users = db.query(User).count()
+    active_users = db.query(User).filter(User.is_active == True).count()
+
     return {
         "encryption": {
             "at_rest": "AES-256-GCM + ML-KEM (post-quantum hybrid)",
             "in_transit": "TLS 1.3",
-            "key_rotation": "Every 90 days",
-            "last_rotation": "2026-07-01T00:00:00Z",
         },
         "authentication": {
             "method": "JWT with refresh tokens",
-            "token_expiry": "15 minutes",
-            "refresh_expiry": "7 days",
             "mfa": "TOTP available",
         },
         "rbac": {
-            "roles": 6,
-            "permissions": 30,
-            "active_users": 5,
-            "last_audit": "2026-08-30T00:00:00Z",
-        },
-        "compliance": {
-            "soc2": "In progress",
-            "iso27001": "Planned",
-            "gdpr": "Compliant",
+            "total_users": total_users,
+            "active_users": active_users,
         },
         "threats": {
-            "blocked_last_24h": 12,
-            "active_watchlists": 2,
-            "last_scan": "2026-08-30T06:00:00Z",
+            "failed_logins_24h": failed_logins,
         },
+        "generated_at": datetime.now(timezone.utc).isoformat(),
     }

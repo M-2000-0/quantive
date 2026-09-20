@@ -75,11 +75,11 @@ class MarketDataCache:
 
 
 # TTL constants (seconds)
-TTL_FX_RATES = 5 * 60          # 5 minutes — FX changes frequently
-TTL_YIELD_CURVE = 60 * 60      # 1 hour — updated daily by Treasury
-TTL_INTEREST_RATES = 60 * 60   # 1 hour
+TTL_FX_RATES = 60             # 1 minute — live FX for demo
+TTL_YIELD_CURVE = 60 * 60     # 1 hour — updated daily by Treasury
+TTL_INTEREST_RATES = 60 * 60  # 1 hour
 TTL_ECONOMIC_INDICATORS = 24 * 60 * 60  # 24 hours — slow-moving data
-TTL_BOND_PRICES = 5 * 60       # 5 minutes
+TTL_BOND_PRICES = 60          # 1 minute — live bond prices for demo
 
 
 # Singleton

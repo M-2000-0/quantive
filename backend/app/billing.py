@@ -33,6 +33,9 @@ class PlanTier(str, Enum):
     PERSONAL = "personal"  # Quantive Personal — $5,000/yr annual access (separate product, shared engine)
     PERSONAL_2K = "personal_2k"  # Personal Starter — $2,000/yr, tax write-off only with limits, no Gov Quantive
     PERSONAL_10K = "personal_10k"  # Personal Sovereign — $10,000/yr, Gov-grade Quantive for individuals
+    QUBO_STARTER = "qubo_starter"  # Qubo Tax Starter — $2,000/yr
+    QUBO_PRO = "qubo_pro"  # Qubo Tax Pro — $5,000/yr
+    QUBO_SOVEREIGN = "qubo_sovereign"  # Qubo Tax Sovereign — $10,000/yr
 
 
 PLAN_DETAILS = {
@@ -190,6 +193,72 @@ PLAN_DETAILS = {
             "personal_asks_per_month": -1,
             "personal_gov_access": 1,
             "personal_annual_report": 1,
+        },
+    },
+    # ── Qubo Tax Plans ─────────────────────────────────────────────────
+    # Monthly price = yearly / 11 to incentivize annual billing
+    PlanTier.QUBO_STARTER: {
+        "name": "Qubo Tax Starter",
+        "price_monthly": 182,   # $2,000 / 11
+        "price_yearly": 2000,
+        "stripe_price_monthly": os.environ.get("STRIPE_QUBO_STARTER_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_QUBO_STARTER_YEARLY_PRICE_ID", ""),
+        "features": [
+            "5 scans per day",
+            "Business deduction detection",
+            "Quarterly tax estimates",
+            "CSV/JSON export for CPA",
+            "Up to 50 document uploads",
+            "Email support",
+        ],
+        "limits": {
+            "qubo_scans_per_day": 5,
+            "qubo_max_documents": 50,
+            "qubo_max_findings": 500,
+        },
+    },
+    PlanTier.QUBO_PRO: {
+        "name": "Qubo Tax Pro",
+        "price_monthly": 455,   # $5,000 / 11
+        "price_yearly": 5000,
+        "stripe_price_monthly": os.environ.get("STRIPE_QUBO_PRO_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_QUBO_PRO_YEARLY_PRICE_ID", ""),
+        "features": [
+            "Unlimited scans",
+            "Business deduction detection",
+            "Quarterly tax estimates with custom rates",
+            "CSV/JSON/Excel export for CPA",
+            "Unlimited document uploads",
+            "Document OCR extraction",
+            "Priority support",
+            "Multi-jurisdiction support",
+        ],
+        "limits": {
+            "qubo_scans_per_day": -1,
+            "qubo_max_documents": -1,
+            "qubo_max_findings": -1,
+        },
+    },
+    PlanTier.QUBO_SOVEREIGN: {
+        "name": "Qubo Tax Sovereign",
+        "price_monthly": 909,   # $10,000 / 11
+        "price_yearly": 10000,
+        "stripe_price_monthly": os.environ.get("STRIPE_QUBO_SOVEREIGN_MONTHLY_PRICE_ID", ""),
+        "stripe_price_yearly": os.environ.get("STRIPE_QUBO_SOVEREIGN_YEARLY_PRICE_ID", ""),
+        "features": [
+            "Everything in Qubo Tax Pro",
+            "Custom tax rule engine",
+            "API access for integrations",
+            "Dedicated account manager",
+            "On-premise deployment option",
+            "SLA guarantee (99.9%)",
+            "SSO / SAML",
+            "Audit logging",
+        ],
+        "limits": {
+            "qubo_scans_per_day": -1,
+            "qubo_max_documents": -1,
+            "qubo_max_findings": -1,
         },
     },
 }

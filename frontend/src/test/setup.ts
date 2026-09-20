@@ -1,37 +1,55 @@
-import '@testing-library/jest-dom/vitest';
+import '@testing-library/jest-dom';
+import { cleanup } from '@testing-library/react';
+import { afterEach, vi } from 'vitest';
 
-// Mock matchMedia for components that use media queries (theme toggle)
-Object.defineProperty(window, 'matchMedia', {
+afterEach(() => {
+  cleanup();
+});
+
+// Mock fetch globally
+const mockFetch = vi.fn();
+mockFetch.mockResolvedValue({
+  ok: true,
+  status: 200,
+  json: async () => ({}),
+  headers: new Headers(),
+});
+Object.defineProperty(globalThis, 'fetch', { value: mockFetch, writable: true });
+
+// Mock document.cookie
+Object.defineProperty(document, 'cookie', {
+  value: '',
   writable: true,
-  value: (query: string) => ({
+});
+
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => { store[key] = value; },
+    removeItem: (key: string) => { delete store[key]; },
+    clear: () => { store = {}; },
+    get length() { return Object.keys(store).length; },
+    key: (i: number) => Object.keys(store)[i] || null,
+  };
+})();
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+// Mock matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  }),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
 });
 
-// Mock IntersectionObserver for components that lazy-load
-class MockIntersectionObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-Object.defineProperty(window, 'IntersectionObserver', {
-  writable: true,
-  value: MockIntersectionObserver,
-});
-
-// Mock scrollTo
-window.scrollTo = () => {};
-
-// Suppress console.error in tests (optional — remove if you want full output)
-// const originalError = console.error;
-// console.error = (...args: unknown[]) => {
-//   if (typeof args[0] === 'string' && args[0].includes('Warning:')) return;
-//   originalError(...args);
-// };
+// Mock window.location
+delete (window as any).location;
+(window as any).location = { href: '/', pathname: '/', assign: vi.fn(), reload: vi.fn(), replace: vi.fn() };

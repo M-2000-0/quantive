@@ -46,7 +46,7 @@ jobs:
       - name: Security audit
         run: |
           cd frontend
-          npm audit --audit-level=high || true
+          npm audit --audit-level=high
       - name: Lint
         run: |
           cd frontend
@@ -59,6 +59,10 @@ jobs:
         run: |
           cd frontend
           npm run build
+      - name: Unit tests
+        run: |
+          cd frontend
+          npx vitest run --reporter=verbose
 
   test:
     name: Unit Tests
@@ -95,11 +99,11 @@ jobs:
       - name: Dependency audit
         run: |
           cd backend
-          pip-audit || true
+          pip-audit
       - name: Basic security scan
         run: |
           cd backend
-          bandit -r app/ -ll --skip B101,B311 || true
+          bandit -r app/ -ll --skip B101,B311
 
   build:
     name: Build & Verify

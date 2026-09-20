@@ -190,7 +190,7 @@ describe('demoData', () => {
   });
 
   it('portfolios have realistic data', () => {
-    DEMO_PORTFOLIOS.forEach((p) => {
+    DEMO_PORTFOLIOS.forEach((p: any) => {
       expect(p.totalPrincipal).toBeGreaterThan(0);
       expect(p.instrumentCount).toBeGreaterThan(0);
       expect(p.avgYield).toBeGreaterThan(0);
@@ -282,27 +282,23 @@ describe('DemoModeProvider', () => {
     renderWithDemoMode(<TestComponent />);
     expect(demoState).not.toBeNull();
     expect(demoState!.isDemoMode).toBe(false);
-    expect(demoState!.demoUser.id).toBe('demo-user-001');
-    expect(demoState!.demoUser.role).toBe('admin');
   });
 
-  it('enterDemoMode sets demo mode', () => {
+  it('enableDemoMode sets demo mode', () => {
     let demoState: ReturnType<typeof useDemoMode> | null = null;
 
     function TestComponent() {
       demoState = useDemoMode();
       return (
-        <button onClick={demoState.enterDemoMode}>Enter Demo</button>
+        <button onClick={demoState.enableDemoMode}>Enter Demo</button>
       );
     }
 
     renderWithDemoMode(<TestComponent />);
     expect(demoState!.isDemoMode).toBe(false);
-    // Simulate entering demo mode
-    demoState!.enterDemoMode();
-    // Note: localStorage and state updates happen async
-    expect(typeof demoState!.enterDemoMode).toBe('function');
-    expect(typeof demoState!.exitDemoMode).toBe('function');
+    demoState!.enableDemoMode();
+    expect(typeof demoState!.enableDemoMode).toBe('function');
+    expect(typeof demoState!.disableDemoMode).toBe('function');
   });
 });
 

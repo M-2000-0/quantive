@@ -174,33 +174,12 @@ def generate_llm_market_summary(
     fx_rates: list[dict] | None = None,
     interest_rates: list[dict] | None = None,
     news_digest: dict | None = None,
-    provider: str = "ollama",
-    model: str = "llama3",
+    provider: str = "template",
+    model: str = "template",
 ) -> Optional[str]:
-    """Generate an LLM-powered market summary (if LLM is available).
+    """Generate a market summary using rule-based analysis.
 
-    Falls back to rule-based summary if LLM is unavailable.
+    External LLM providers removed — all analysis uses our own engine.
     """
     structured = generate_market_summary(yield_curve, fx_rates, interest_rates, news_digest)
-
-    try:
-        from app.optimization.policy_engine import _call_llm
-        prompt = f"""Generate a professional market summary for a government Debt Management Office.
-
-Key data:
-{structured['summary_text']}
-
-Write a concise 3-4 paragraph market briefing that:
-1. Summarizes current market conditions
-2. Highlights key risks and opportunities
-3. Notes any actionable insights for sovereign debt management
-
-Use professional, authoritative tone. Avoid speculation."""
-
-        result = _call_llm(prompt, provider=provider, model=model)
-        if result:
-            return result
-    except Exception as e:
-        logger.debug(f"LLM summary unavailable: {e}")
-
     return structured["summary_text"]

@@ -3,7 +3,9 @@
 const API_BASE =
   typeof window !== 'undefined' && (window as any).electronAPI?.isElectron
     ? 'http://127.0.0.1:8000/api'
-    : '/api';
+    : (import.meta as any).env?.VITE_API_URL
+      ? `${(import.meta as any).env.VITE_API_URL}/api`
+      : '/api';
 
 function csrf(): string {
   if (typeof document === 'undefined') return '';

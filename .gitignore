@@ -33,6 +33,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.vercel
 
 # vercel
 .vercel
@@ -100,3 +101,6 @@ backend/quantive.db.bak
 /fix_engine*.py
 /rewrite_engine.py
 /test_mc*.py
+
+# ML models, training data, vector DB
+backend/data/

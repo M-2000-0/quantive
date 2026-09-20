@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
-from app.models.banking import BankAccount, BankTransaction, QuboFinding, TaxDocument, BusinessProfile
+from app.models.banking import BankAccount, BankTransaction, BusinessProfile
+from app.models.qubo_tax import QuboFinding, TaxDocument
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 

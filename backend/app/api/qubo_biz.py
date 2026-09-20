@@ -14,12 +14,14 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
-from app.models.banking import BankTransaction, BusinessProfile, QuboFinding, TaxDocument
+from app.models.banking import BankTransaction, BusinessProfile
+from app.models.qubo_tax import QuboFinding, TaxDocument
 from app.security import get_current_user
 
 router = APIRouter(prefix="/api/qubo/business", tags=["qubo-business"])
@@ -69,9 +71,15 @@ BIZ_RULES: dict[str, dict] = {
 SUPPORTED_JURISDICTIONS = ["US", "MX", "BD"]
 
 # Plan-based scan limits (scans per 24 hours)
+# Qubo-specific plans take priority; platform plans fallback to legacy limits
 SCAN_LIMITS = {
+    # Qubo Tax dedicated plans
+    "qubo_starter": 5,
+    "qubo_pro": -1,     # unlimited
+    "qubo_sovereign": -1,
+    # Platform plans (legacy fallback)
     "free": 1,
-    "pro": -1,   # unlimited
+    "pro": -1,          # unlimited
     "enterprise": -1,
 }
 
@@ -490,18 +498,74 @@ def list_documents(
 
 @router.get("/documents")
 def list_all_documents(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List all tax documents for the org."""
+    """List all tax documents for the org with pagination."""
+    total = db.query(TaxDocument).filter(TaxDocument.org_id == user.org_id).count()
     docs = (
         db.query(TaxDocument)
         .filter(TaxDocument.org_id == user.org_id)
         .order_by(TaxDocument.created_at.desc())
-        .limit(100)
+        .offset(offset)
+        .limit(limit)
         .all()
     )
-    return {"documents": [_serialize_doc(d) for d in docs]}
+    return {
+        "documents": [_serialize_doc(d) for d in docs],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/documents/{doc_id}/download")
+def download_document(
+    doc_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Download a tax document file."""
+    doc = (
+        db.query(TaxDocument)
+        .filter(TaxDocument.id == doc_id, TaxDocument.org_id == user.org_id)
+        .first()
+    )
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    file_path = Path(doc.storage_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    return FileResponse(
+        path=str(file_path),
+        filename=doc.original_filename,
+        media_type=doc.mime_type,
+    )
+
+
+@router.delete("/documents/{doc_id}")
+def delete_document(
+    doc_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete a tax document."""
+    doc = (
+        db.query(TaxDocument)
+        .filter(TaxDocument.id == doc_id, TaxDocument.org_id == user.org_id)
+        .first()
+    )
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    # Delete file from disk
+    file_path = Path(doc.storage_path)
+    if file_path.exists():
+        file_path.unlink()
+    db.delete(doc)
+    db.commit()
+    return {"deleted": True}
 
 
 class DocReviewBody(BaseModel):

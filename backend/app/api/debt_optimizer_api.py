@@ -186,9 +186,12 @@ def _execute_optimization(request: OptimizationRequest) -> dict:
 
         # Decode solution into actionable allocations
         # Generate binary solution from quantum weights
-        x_binary = [1 if w > 0.1 else 0 for w in [0.3, 0.2, 0.1, 0.4, 0.2, 0.3, 0.1, 0.2, 0.3,
-                                                     0.1, 0.1, 0.0, 0.2, 0.1, 0.1, 0.0, 0.0, 0.1,
-                                                     0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]]
+        weights = quantum_result.best_parameters if hasattr(quantum_result, 'best_parameters') and quantum_result.best_parameters else []
+        if not weights:
+            # Fallback: derive from cost function evaluation
+            n = len(request.instruments) if request.instruments else 6
+            weights = [1.0 / n] * n
+        x_binary = [1 if w > 0.1 else 0 for w in weights]
         decoded = decode_solution(x_binary, qubo, request.total_target_issuance)
 
         optimization_output = {

@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     DEBUG: bool = False
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:8080,null"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:8080"
     RATE_LIMIT_PER_MINUTE: int = 2000
     # IPs/CIDRs of trusted reverse proxies (e.g. the LB/nginx in front of the
     # app). X-Forwarded-For is only honored when the direct TCP peer is

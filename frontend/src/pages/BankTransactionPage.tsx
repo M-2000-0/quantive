@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { api, centsToUsd, type BankAccount, type BankTransaction } from '../api';
+import { bankingApi, centsToUsd, type BankAccount, type BankTransaction } from '../api/banking';
 
 const CATEGORIES = [
   'payroll', 'rent', 'software', 'utilities', 'travel',
@@ -26,10 +26,10 @@ export default function BankTransactionPage() {
     try {
       // We need to find which account this transaction belongs to.
       // Fetch all accounts, then search each for the transaction.
-      const { accounts } = await api.banking.accounts();
+      const { accounts } = await bankingApi.accounts();
       for (const acct of accounts) {
         try {
-          const { transactions } = await api.banking.accountTxns(acct.id, 100);
+          const { transactions } = await bankingApi.accountTxns(acct.id, 100);
           const found = transactions.find((t) => t.id === id);
           if (found) {
             setAccount(acct);
@@ -61,7 +61,7 @@ export default function BankTransactionPage() {
     setSaving(true);
     setSaveNotice('');
     try {
-      const updated = await api.banking.categorize(id, { category, tax_tag: taxTag });
+      const updated = await bankingApi.categorize(id, { category, tax_tag: taxTag });
       setTxn(updated);
       setSaveNotice('Saved');
     } catch (e) {

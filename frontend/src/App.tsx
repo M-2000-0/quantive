@@ -33,6 +33,15 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const QuboPage = lazy(() => import('./pages/QuboPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const GovernmentPage = lazy(() => import('./pages/GovernmentPage'));
+const PFMImportPage = lazy(() => import('./pages/PFMImportPage'));
+const AIGovernancePage = lazy(() => import('./pages/AIGovernancePage'));
+const ExchangeIntegrationPage = lazy(() => import('./pages/ExchangeIntegrationPage'));
+const BrokerIntegrationPage = lazy(() => import('./pages/BrokerIntegrationPage'));
+const RegulatoryCompliancePage = lazy(() => import('./pages/RegulatoryCompliancePage'));
+const ExchangeDueDiligencePage = lazy(() => import('./pages/ExchangeDueDiligencePage'));
+const CybersecurityPrivacyPage = lazy(() => import('./pages/CybersecurityPrivacyPage'));
+const ValidationVendorPage = lazy(() => import('./pages/ValidationVendorPage'));
+const SovereignAIPage = lazy(() => import('./pages/SovereignAIPage'));
 const BusinessPage = lazy(() => import('./pages/BusinessPage'));
 const BankingPage = lazy(() => import('./pages/BankingPage'));
 const BankingDashboardPage = lazy(() => import('./pages/BankingDashboardPage'));
@@ -40,6 +49,7 @@ const BankingTransfersPage = lazy(() => import('./pages/BankingTransfersPage'));
 const BankingOnboardingPage = lazy(() => import('./pages/BankingOnboardingPage'));
 const BankTransactionPage = lazy(() => import('./pages/BankTransactionPage'));
 const QuboWorkspacePage = lazy(() => import('./pages/QuboWorkspacePage'));
+const AffiliateDashboardPage = lazy(() => import('./pages/AffiliateDashboardPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const EventImpactDashboard = lazy(() => import('./pages/EventImpactDashboard'));
@@ -104,14 +114,13 @@ function readStoredUser(): { name: string; role: string } | null {
 }
 
 const NAV_ITEMS = [
-  // ── MVP core loop: Portfolios -> Overview -> Optimize -> Risk -> Solvers ──
+  // ── Debt Optimizer ──────────────────────────────────────────────────
   { label: 'Portfolios', to: '/portfolios', icon: LayoutGrid },
   { label: 'Overview', to: '/dashboard', icon: LayoutGrid },
   { label: 'Optimizations', to: '/optimizations', icon: BriefcaseBusiness },
   { label: 'Insights', to: '/events', icon: Gauge },
   { label: 'Risk', to: '/risk-dashboard', icon: ShieldCheck },
   { label: 'Solvers', to: '/solver-tournament', icon: Sparkles },
-  // ── Extended (defer for MVP, kept for deep-link compat) ──
   { label: 'Transparency Index', to: '/transparency-index', icon: LayoutGrid },
   { label: 'Pricing', to: '/pricing', icon: LayoutGrid },
   { label: 'Case Studies', to: '/case-studies', icon: LayoutGrid },
@@ -128,9 +137,13 @@ const NAV_ITEMS = [
   { label: 'Escrow', to: '/escrow', icon: BriefcaseBusiness },
   { label: 'Security', to: '/settings', icon: ShieldCheck },
   { label: 'Settings', to: '/settings', icon: Settings },
-  { label: 'Personal ★', to: '/personal', icon: Sparkles },
-  { label: 'Banking', to: '/banking/app', icon: BriefcaseBusiness },
-  { label: 'Qubo Tax', to: '/qubo/workspace', icon: Sparkles },
+  // ── Banking ─────────────────────────────────────────────────────────
+  { label: 'Banking', to: '/banking/app', icon: BriefcaseBusiness, product: 'banking' },
+  // ── Qubo Tax ────────────────────────────────────────────────────────
+  { label: 'Qubo Tax', to: '/qubo/workspace', icon: Sparkles, product: 'qubo' },
+  { label: 'Affiliates', to: '/affiliate', icon: Sparkles, product: 'qubo' },
+  // ── Personal ────────────────────────────────────────────────────────
+  { label: 'Personal ★', to: '/personal', icon: Sparkles, product: 'personal' },
 ];
 
 function AppLayout() {
@@ -358,8 +371,27 @@ export default function App() {
       >
         <Route index element={<PageWrapper><QuboWorkspacePage /></PageWrapper>} />
       </Route>
+      <Route
+        path="/affiliate"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><AffiliateDashboardPage /></PageWrapper>} />
+      </Route>
       <Route path="/terms" element={<PageWrapper><TermsPage /></PageWrapper>} />
       <Route path="/government" element={<PageWrapper><GovernmentPage /></PageWrapper>} />
+      <Route path="/pfm-import" element={<PageWrapper><PFMImportPage /></PageWrapper>} />
+      <Route path="/ai-governance" element={<PageWrapper><AIGovernancePage /></PageWrapper>} />
+      <Route path="/exchange-integration" element={<PageWrapper><ExchangeIntegrationPage /></PageWrapper>} />
+      <Route path="/broker-integration" element={<PageWrapper><BrokerIntegrationPage /></PageWrapper>} />
+      <Route path="/regulatory-compliance" element={<PageWrapper><RegulatoryCompliancePage /></PageWrapper>} />
+      <Route path="/exchange-due-diligence" element={<PageWrapper><ExchangeDueDiligencePage /></PageWrapper>} />
+      <Route path="/cybersecurity-privacy" element={<PageWrapper><CybersecurityPrivacyPage /></PageWrapper>} />
+      <Route path="/validation-vendor-risk" element={<PageWrapper><ValidationVendorPage /></PageWrapper>} />
+      <Route path="/sovereign-ai" element={<PageWrapper><SovereignAIPage /></PageWrapper>} />
       <Route path="/business" element={<PageWrapper><BusinessPage /></PageWrapper>} />
       <Route path="/banking" element={<PageWrapper><BankingPage /></PageWrapper>} />
       <Route

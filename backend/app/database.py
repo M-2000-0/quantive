@@ -33,6 +33,8 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_recycle=3600,
     pool_timeout=30,
+    pool_size=20 if "postgresql" in settings.DATABASE_URL else 5,
+    max_overflow=10 if "postgresql" in settings.DATABASE_URL else 5,
 )
 
 

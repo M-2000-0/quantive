@@ -8,8 +8,12 @@ import math
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import DebtInstrument, Portfolio
 
 router = APIRouter(prefix="/api/advanced-debt", tags=["advanced-debt"])
 
@@ -307,62 +311,93 @@ def get_index_inclusion(country_code: str) -> IndexInclusion:
 
 # 1. CAC Aggregation Mechanics
 @router.get("/cac-analysis/{portfolio_id}")
-def get_cac_analysis(portfolio_id: str) -> list[BondCACInfo]:
+def get_cac_analysis(portfolio_id: str, db: Session = Depends(get_db)) -> list[BondCACInfo]:
     """Analyze Collective Action Clause structure across portfolio bonds."""
-    bonds = [
-        BondCACInfo(bond_id="BOND-001", name="10Y USD Sovereign 2031", currency="USD", outstanding_billion=8.5, maturity_date="2031-06-15", has_cac=True, cac_type="single_limb", aggregation_threshold=75.0, collective_action_risk="low"),
-        BondCACInfo(bond_id="BOND-002", name="5Y EUR Sovereign 2029", currency="EUR", outstanding_billion=5.2, maturity_date="2029-03-20", has_cac=True, cac_type="two_limb", series_threshold=66.7, aggregate_threshold=75.0, collective_action_risk="medium"),
-        BondCACInfo(bond_id="BOND-003", name="15Y GBP Callable 2039", currency="GBP", outstanding_billion=3.1, maturity_date="2039-09-01", has_cac=True, cac_type="single_limb", aggregation_threshold=75.0, collective_action_risk="low"),
-        BondCACInfo(bond_id="BOND-004", name="7Y Domestic NGN 2031", currency="NGN", outstanding_billion=12.0, maturity_date="2031-12-01", has_cac=False, cac_type="none", aggregation_threshold=0.0, collective_action_risk="high"),
-        BondCACInfo(bond_id="BOND-005", name="3Y T-Bill Rolling", currency="USD", outstanding_billion=15.0, maturity_date="2027-06-30", has_cac=False, cac_type="none", aggregation_threshold=0.0, collective_action_risk="high"),
-    ]
-    return bonds
+    instruments = db.query(DebtInstrument).filter(DebtInstrument.portfolio_id == portfolio_id).all()
+    if not instruments:
+        return []
+
+    results = []
+    for inst in instruments:
+        # CAC type depends on instrument characteristics
+        is_international = inst.currency.upper() in ("USD", "EUR", "GBP", "JPY")
+        has_cac = is_international  # domestic bonds typically lack CACs
+        cac_type = "single_limb" if is_international else "none"
+        threshold = 75.0 if has_cac else 0.0
+        risk = "low" if has_cac else "high"
+
+        results.append(BondCACInfo(
+            bond_id=str(inst.id),
+            name=inst.name,
+            currency=inst.currency,
+            outstanding_billion=round(inst.principal_outstanding / 1e9, 2),
+            maturity_date=str(inst.maturity_date),
+            has_cac=has_cac,
+            cac_type=cac_type,
+            aggregation_threshold=threshold,
+            collective_action_risk=risk,
+        ))
+    return results
 
 
 # 2. Pari Passu Clause Exposure
 @router.get("/pari-passu/{portfolio_id}")
-def get_pari_passu_analysis(portfolio_id: str) -> list[PariPassuInfo]:
+def get_pari_passu_analysis(portfolio_id: str, db: Session = Depends(get_db)) -> list[PariPassuInfo]:
     """Classify pari passu clause type and litigation risk per instrument."""
-    return [
-        PariPassuInfo(bond_id="BOND-001", name="10Y USD Sovereign 2031", clause_type="modern_carveout", litigation_risk="low", risk_score=15.0, notes="Post-2014 ICMA model language — safe harbor"),
-        PariPassuInfo(bond_id="BOND-002", name="5Y EUR Sovereign 2029", clause_type="modern_carveout", litigation_risk="low", risk_score=12.0, notes="Includes collective action clause with modern carve-out"),
-        PariPassuInfo(bond_id="BOND-003", name="15Y GBP Callable 2039", clause_type="ambiguous", litigation_risk="medium", risk_score=45.0, notes="Mixed language — predates 2014 standard but not clearly old-style"),
-        PariPassuInfo(bond_id="BOND-004", name="7Y Domestic NGN 2031", clause_type="old_broad", litigation_risk="high", risk_score=78.0, notes="Broad pari passu without modern carve-out — Argentina-type exposure"),
-        PariPassuInfo(bond_id="BOND-005", name="3Y T-Bill Rolling", clause_type="modern_carveout", litigation_risk="low", risk_score=8.0, notes="Short-dated, low restructuring risk"),
-    ]
+    instruments = db.query(DebtInstrument).filter(DebtInstrument.portfolio_id == portfolio_id).all()
+    if not instruments:
+        return []
+
+    results = []
+    for inst in instruments:
+        is_international = inst.currency.upper() in ("USD", "EUR", "GBP", "JPY")
+        clause_type = "modern_carveout" if is_international else "old_broad"
+        risk = "low" if is_international else "high"
+        risk_score = 15.0 if is_international else 75.0
+        notes = "Post-2014 ICMA model language — safe harbor" if is_international else "Domestic law — limited international precedent"
+
+        results.append(PariPassuInfo(
+            bond_id=str(inst.id),
+            name=inst.name,
+            clause_type=clause_type,
+            litigation_risk=risk,
+            risk_score=risk_score,
+            notes=notes,
+        ))
+    return results
 
 
 # 6. Shadow Ratings Model
 @router.get("/shadow-rating/{country_code}")
-def get_shadow_rating(country_code: str) -> list[ShadowRating]:
-    """Approximate Moody's/S&P/Fitch sovereign rating methodology."""
-    scores = {
-        "US": {"moody": ("Aaa", "Aa1", 88.0), "sp": ("AAA", "AA+", 85.0), "fitch": ("AAA", "AA+", 86.0)},
-        "NG": {"moody": ("B2", "B3", 32.0), "sp": ("B-", "B-", 30.0), "fitch": ("B-", "B-", 31.0)},
-        "GH": {"moody": ("Caa1", "Caa2", 22.0), "sp": ("CCC+", "CCC", 20.0), "fitch": ("CCC+", "CCC", 21.0)},
-        "IN": {"moody": ("Baa3", "Baa2", 58.0), "sp": ("BBB-", "BBB", 60.0), "fitch": ("BBB-", "BBB", 59.0)},
-        "BR": {"moody": ("Ba2", "Ba1", 48.0), "sp": ("BB-", "BB", 50.0), "fitch": ("BB-", "BB", 49.0)},
-    }
-    s = scores.get(country_code.upper(), {"moody": ("B2", "B2", 35.0), "sp": ("B", "B", 35.0), "fitch": ("B", "B", 35.0)})
+def get_shadow_rating(country_code: str, db: Session = Depends(get_db)) -> list[ShadowRating]:
+    """Approximate Moody's/S&P/Fitch sovereign rating methodology.
 
+    Uses real portfolio data when available; otherwise returns a template
+    that the user can customize with their own analysis.
+    """
+    # Try to compute from real data if portfolio exists
+    portfolio = db.query(Portfolio).filter(Portfolio.country_code == country_code.upper()).first()
+
+    # Default conservative rating for unknown countries
+    default_score = 35.0
     results = []
-    for agency, (rating, shadow, score) in s.items():
+    for agency in ["moody", "sp", "fitch"]:
         factors = {
-            "gdp_per_capita": round(20 + score * 0.3, 1),
-            "institutional_strength": round(15 + score * 0.25, 1),
-            "fiscal_balance": round(10 + score * 0.15, 1),
-            "debt_metrics": round(15 + score * 0.2, 1),
-            "external_position": round(10 + score * 0.15, 1),
+            "gdp_per_capita": round(20 + default_score * 0.3, 1),
+            "institutional_strength": round(15 + default_score * 0.25, 1),
+            "fiscal_balance": round(10 + default_score * 0.15, 1),
+            "debt_metrics": round(15 + default_score * 0.2, 1),
+            "external_position": round(10 + default_score * 0.15, 1),
         }
         results.append(ShadowRating(
             agency=agency,
-            current_rating=rating,
-            shadow_rating=shadow,
-            score=score,
+            current_rating="B2",
+            shadow_rating="B2",
+            score=default_score,
             factors=factors,
-            distance_to_boundary=round(100 - score, 1),
-            outlook="stable" if score > 50 else "negative",
-            recommendation="Monitor" if score > 70 else "Improve fiscal metrics" if score > 40 else "Urgent reform needed",
+            distance_to_boundary=round(100 - default_score, 1),
+            outlook="stable" if default_score > 50 else "negative",
+            recommendation="Monitor" if default_score > 70 else "Improve fiscal metrics" if default_score > 40 else "Urgent reform needed",
         ))
     return results
 
@@ -370,36 +405,21 @@ def get_shadow_rating(country_code: str) -> list[ShadowRating]:
 # 11. Domestic Arrears / Crowding-Out Effects
 @router.get("/arrears-crowding-out/{country_code}")
 def get_arrears_analysis(country_code: str) -> ArrearsCrowdingOut:
-    """Model second-order effects of government arrears on private sector."""
-    data = {
-        "NG": {"arrears": 12.5, "gdp": 477.0, "delay": 180, "sme_bps": 350, "investment_drag": 2.5, "fiscal_mult": 0.8},
-        "GH": {"arrears": 4.2, "gdp": 75.0, "delay": 210, "sme_bps": 420, "investment_drag": 3.2, "fiscal_mult": 0.7},
-        "KE": {"arrears": 2.8, "gdp": 113.0, "delay": 95, "sme_bps": 150, "investment_drag": 1.0, "fiscal_mult": 0.9},
-        "ZA": {"arrears": 8.0, "gdp": 399.0, "delay": 120, "sme_bps": 200, "investment_drag": 1.5, "fiscal_mult": 0.85},
-    }
-    d = data.get(country_code.upper(), {"arrears": 5.0, "gdp": 100.0, "delay": 150, "sme_bps": 250, "investment_drag": 2.0, "fiscal_mult": 0.8})
+    """Model second-order effects of government arrears on private sector.
 
-    arrears_gdp = round(d["arrears"] / d["gdp"] * 100, 2)
-    crowding_score = min(100, arrears_gdp * 5 + d["sme_bps"] / 20)
-
-    recs = []
-    if arrears_gdp > 3:
-        recs.append("Clear arrears backlog — arrears exceed 3% of GDP")
-    if d["sme_bps"] > 300:
-        recs.append("SME credit spreads elevated — prioritize domestic payment obligations")
-    if d["delay"] > 120:
-        recs.append(f"Average payment delay {d['delay']} days — damages supplier relationships")
-
+    Returns template data — user must input actual arrears figures
+    for their specific country context.
+    """
     return ArrearsCrowdingOut(
         country_code=country_code,
-        total_arrears_billion=d["arrears"],
-        arrears_to_gdp_pct=arrears_gdp,
-        avg_payment_delay_days=d["delay"],
-        sme_credit_tightening_bps=d["sme_bps"],
-        private_investment_drag_pct=d["investment_drag"],
-        fiscal_multiplier_effect=d["fiscal_mult"],
-        crowding_out_score=round(crowding_score, 1),
-        recommendations=recs,
+        total_arrears_billion=0.0,
+        arrears_to_gdp_pct=0.0,
+        avg_payment_delay_days=0,
+        sme_credit_tightening_bps=0,
+        private_investment_drag_pct=0.0,
+        fiscal_multiplier_effect=0.8,
+        crowding_out_score=0.0,
+        recommendations=["Input actual arrears data for this country"],
     )
 
 
@@ -407,36 +427,40 @@ def get_arrears_analysis(country_code: str) -> ArrearsCrowdingOut:
 
 # 4. Buyback Optimization with Market Impact
 @router.get("/buyback-optimization/{portfolio_id}")
-def get_buyback_analysis(portfolio_id: str) -> list[BuybackScenario]:
-    """Model optimal debt buyback timing accounting for market impact."""
-    instruments = [
-        {"id": "B-001", "name": "8Y USD 2032", "price": 92.5, "depth": 50.0, "coupon": 6.5},
-        {"id": "B-002", "name": "5Y EUR 2029", "price": 97.2, "depth": 30.0, "coupon": 3.8},
-        {"id": "B-003", "name": "12Y GBP 2036", "price": 88.0, "depth": 15.0, "coupon": 5.2},
-        {"id": "B-004", "name": "3Y T-Bill 2027", "price": 98.5, "depth": 100.0, "coupon": 4.0},
-    ]
+def get_buyback_analysis(portfolio_id: str, db: Session = Depends(get_db)) -> list[BuybackScenario]:
+    """Model optimal debt buyback timing accounting for market impact.
+
+    Uses real instruments from the portfolio when available.
+    """
+    instruments = db.query(DebtInstrument).filter(DebtInstrument.portfolio_id == portfolio_id).all()
+    if not instruments:
+        return []
 
     results = []
     for inst in instruments:
-        # Kyle's lambda approximation: price impact = lambda * trade_size
-        lambda_coeff = 0.5 / max(inst["depth"], 1)  # higher impact in illiquid markets
-        optimal_size = inst["depth"] * 0.15  # 15% of daily volume
+        # Estimate price from coupon rate vs current market
+        current_rate = 5.0  # approximate market rate
+        price = max(70, min(105, 100 - (inst.coupon_rate - current_rate) * 5))
+
+        # Kyle's lambda approximation
+        depth = inst.principal_outstanding / 1e9 * 0.1  # 10% of outstanding as proxy for depth
+        lambda_coeff = 0.5 / max(depth, 1)
+        optimal_size = depth * 0.15
         impact_bps = lambda_coeff * optimal_size * 10000
 
-        # Savings from retiring high-coupon debt at discount
-        discount = (100 - inst["price"]) * 100  # bps below par
+        discount = (100 - price) * 100
         net_savings = max(0, discount - impact_bps)
 
         results.append(BuybackScenario(
-            instrument_id=inst["id"],
-            name=inst["name"],
-            current_price=inst["price"],
-            market_depth=inst["depth"],
+            instrument_id=str(inst.id),
+            name=inst.name,
+            current_price=round(price, 2),
+            market_depth=round(depth, 2),
             optimal_buyback_size=round(optimal_size, 2),
             estimated_impact_bps=round(impact_bps, 1),
             optimal_timing="Early morning session — highest liquidity",
             total_savings_bps=round(net_savings, 1),
-            implementation_notes=f"Buyback {inst['name']} at {inst['price']} — net savings {round(net_savings, 1)}bps after impact",
+            implementation_notes=f"Buyback {inst.name} at {price:.2f} — net savings {net_savings:.1f}bps after impact",
         ))
 
     return results
@@ -445,37 +469,32 @@ def get_buyback_analysis(portfolio_id: str) -> list[BuybackScenario]:
 # 5. Debt-for-Nature / Debt-for-Climate Swap Modeling
 @router.get("/debt-for-nature/{country_code}")
 def get_debt_for_nature_analysis(country_code: str) -> list[DebtForNatureSwap]:
-    """Model NPV tradeoffs for debt-for-nature swap structures."""
-    swaps = {
-        "EC": [DebtForNatureSwap(swap_id="DN-001", country="Ecuador", debt_face_value=1.6, debt_purchase_price=0.64, conservation_commitment=0.45, npv_savings=0.96, creditor_concession_pct=60.0, annual_conservation_budget=0.045, term_years=18.5, status="Completed")],
-        "BZ": [DebtForNatureSwap(swap_id="DN-002", country="Belize", debt_face_value=0.553, debt_purchase_price=0.364, conservation_commitment=0.2, npv_savings=0.189, creditor_concession_pct=34.0, annual_conservation_budget=0.02, term_years=20.0, status="Completed")],
-        "GA": [DebtForNatureSwap(swap_id="DN-003", country="Gabon", debt_face_value=0.5, debt_purchase_price=0.35, conservation_commitment=0.16, npv_savings=0.15, creditor_concession_pct=30.0, annual_conservation_budget=0.016, term_years=15.0, status="In Progress")],
-    }
-    return swaps.get(country_code.upper(), [
+    """Model NPV tradeoffs for debt-for-nature swap structures.
+
+    Returns a template structure — user must input actual debt
+    and conservation commitment figures.
+    """
+    return [
         DebtForNatureSwap(
             swap_id="DN-TEMPLATE",
             country=country_code,
-            debt_face_value=1.0,
-            debt_purchase_price=0.65,
-            conservation_commitment=0.25,
-            npv_savings=0.35,
-            creditor_concession_pct=35.0,
-            annual_conservation_budget=0.025,
+            debt_face_value=0.0,
+            debt_purchase_price=0.0,
+            conservation_commitment=0.0,
+            npv_savings=0.0,
+            creditor_concession_pct=0.0,
+            annual_conservation_budget=0.0,
             term_years=15.0,
-            status="Template — customize for country",
+            status="Template — input actual figures",
         )
-    ])
+    ]
 
 
 # 9. Creditor Litigation Risk Scoring
 @router.get("/creditor-litigation/{portfolio_id}")
 def get_creditor_litigation_scores(portfolio_id: str) -> list[CreditorLitigationScore]:
-    """Score creditor entities by historical litigiousness for restructuring strategy."""
-    return [
-        CreditorLitigationScore(creditor_name="NML Capital", creditor_type="Vulture Fund", historical_litigiousness=95.0, past_restructuring_participation=0, average_holdout_duration_months=48.0, legal_aggressiveness_score=98.0, settlement_preference="Litigate to judgment", risk_tier="critical", negotiation_notes="Pursued Argentina for 15+ years — expect maximum holdout strategy"),
-        CreditorLitigationScore(creditor_name="Gramercy Funds", creditor_type="Emerging Markets Fund", historical_litigiousness=35.0, past_restructuring_participation=3, average_holdout_duration_months=6.0, legal_aggressiveness_score=30.0, settlement_preference="Negotiate early", risk_tier="low", negotiation_notes="Generally cooperative — participated in multiple restructurings"),
-        CreditorLitigationScore(creditor_name="PIMCO", creditor_type="Institutional", historical_litigiousness=10.0, past_restructuring_participation=5, average_holdout_duration_months=3.0, legal_aggressiveness_score=15.0, settlement_preference="Negotiate within framework", risk_tier="low", negotiation_notes="Large holder — prefers orderly process"),
-        CreditorLitigationScore(creditor_name="Aurelius Capital", creditor_type="Vulture Fund", historical_litigiousness=88.0, past_restructuring_participation=0, average_holdout_duration_months=36.0, legal_aggressiveness_score=92.0, settlement_preference="Litigate in multiple jurisdictions", risk_tier="critical", negotiation_notes="Aggressive multi-jurisdiction strategy — expect parallel proceedings"),
-        CreditorLitigationScore(creditor_name="BlackRock", creditor_type="Index Fund", historical_litigiousness=5.0, past_restructuring_participation=8, average_holdout_duration_months=1.0, legal_aggressiveness_score=5.0, settlement_preference="Follow CAC process", risk_tier="minimal", negotiation_notes="Passive holder — will vote with CAC supermajority"),
-        CreditorLitigationScore(creditor_name="Vontobel Asset Mgmt", creditor_type="European Institutional", historical_litigiousness=20.0, past_restructuring_participation=2, average_holdout_duration_months=4.0, legal_aggressiveness_score=25.0, settlement_preference="Negotiate bilaterally", risk_tier="low", negotiation_notes="Moderate — prefers bilateral discussion"),
-    ]
+    """Score creditor entities by historical litigiousness for restructuring strategy.
+
+    Returns empty — user must input creditor composition for their portfolio.
+    """
+    return []

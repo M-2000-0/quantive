@@ -84,27 +84,11 @@ def system_status():
     except Exception as e:
         status["components"]["duckdb"] = {"status": "error", "error": str(e)}
 
-    # Check Ollama
-    try:
-        from app.data.ollama_rag import OllamaClient
-        ollama = OllamaClient()
-        available = ollama.is_available()
-        models = ollama.list_models() if available else []
-        status["components"]["ollama"] = {
-            "status": "connected" if available else "disconnected",
-            "models": models,
-        }
-    except Exception as e:
-        status["components"]["ollama"] = {"status": "error", "error": str(e)}
+    # Check Ollama — removed (external LLM dependency eliminated)
+    status["components"]["ollama"] = {"status": "removed", "message": "External LLM dependencies removed — using own AI engine"}
 
-    # Check ChromaDB
-    try:
-        from app.data.ollama_rag import SovereignDebtRAG
-        rag = SovereignDebtRAG()
-        stats = rag.get_stats()
-        status["components"]["chromadb"] = {"status": "operational", "stats": stats}
-    except Exception as e:
-        status["components"]["chromadb"] = {"status": "error", "error": str(e)}
+    # Check ChromaDB — removed (external RAG dependency eliminated)
+    status["components"]["chromadb"] = {"status": "removed", "message": "External RAG dependencies removed — using own AI engine"}
 
     # Check quantum
     try:
@@ -323,30 +307,33 @@ def simulate_stress(request: SimulateRequest, user=Depends(get_current_user)):
 
 @router.post("/report")
 def generate_report(request: ReportRequest):
-    """Generate LLM policy briefing (air-gapped via Ollama)."""
+    """Generate policy briefing using our own template engine."""
     start = time.time()
 
     try:
-        from app.data.ollama_rag import OllamaRAGEngine, brief_to_dict
+        from app.optimization.policy_engine import generate_policy_brief
 
-        engine = OllamaRAGEngine()
-        try:
-            brief = engine.generate_policy_brief(
-                portfolio_data=request.portfolio_data,
-                yield_data=request.yield_data,
-                macro_data=request.macro_data,
-                optimization_result=request.optimization_result,
-                stress_test_result=request.stress_test_result,
-            )
-        except Exception as inner_e:
-            # Fallback to template if Ollama fails
-            brief = engine._generate_template_brief(
-                request.portfolio_data, request.yield_data, request.macro_data,
-                request.optimization_result, request.stress_test_result,
-            )
+        brief = generate_policy_brief(
+            optimization_result=request.optimization_result or {},
+            monte_carlo_results={},
+            covariance_data={},
+            cost_of_service=request.portfolio_data or {},
+            macro_data=request.macro_data or {},
+            model_provider="template",
+        )
 
         elapsed = time.time() - start
-        result = brief_to_dict(brief)
+        result = {
+            "executive_summary": brief.executive_summary,
+            "key_recommendations": brief.key_recommendations,
+            "risk_assessment": brief.risk_assessment,
+            "issuance_strategy": brief.issuance_strategy,
+            "cost_savings_analysis": brief.cost_savings_analysis,
+            "stress_test_interpretation": brief.stress_test_interpretation,
+            "confidence_level": brief.confidence_level,
+            "caveats": brief.caveats,
+            "model_used": brief.model_used,
+        }
         result["elapsed_seconds"] = round(elapsed, 3)
 
         return {"status": "success", "report": result}

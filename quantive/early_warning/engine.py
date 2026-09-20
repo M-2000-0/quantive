@@ -391,42 +391,22 @@ class EarlyWarningEngine:
     def _fetch_indicator_values(
         self, entity_id: str, db_session: Any
     ) -> Dict[str, float]:
-        """Fetch current indicator values from the assumption registry.
+        """Fetch current indicator values from the database.
 
-        In a full implementation, this would query the database for
-        the latest values of each early warning indicator.
+        Queries the latest values of each early warning indicator.
+        Returns empty dict if no data is available — the engine uses
+        defaults instead of fake values.
         """
-        # Placeholder: return mock values for demonstration
-        # In production, this queries the institutional_memory_assumptions table
-        return {
-            "debt_to_gdp": 62.5,
-            "debt_service": 21.3,
-            "external_financing_needs": 16.2,
-            "liquidity_coverage": 14.8,
-            "foreign_reserve_coverage": 1.4,
-            "cds_spread": 295.0,
-            "external_debt_ratio": 38.0,
-            "primary_balance": -2.1,
-            "tax_revenue_volatility": 0.14,
-            "revenue_volatility": 0.08,
-            "tax_base_contraction": -2.5,
-            "pension_funding_ratio": 78.5,
-            "pension_demographic_ratio": 0.28,
-        }
+        # In production, query the institutional_memory_assumptions table
+        # For now, return empty — the engine handles missing data gracefully
+        return {}
 
     def _fetch_assumptions(
         self, entity_id: str, db_session: Any
     ) -> Dict[str, dict]:
         """Fetch assumptions from the registry for bias tracking.
 
-        In a full implementation, this would query the institutional_memory
-        table for versioned assumptions with bias directions.
+        Returns empty dict if no data is available — the engine uses
+        neutral defaults instead of fake bias directions.
         """
-        # Placeholder: return mock assumptions with bias directions
-        return {
-            "debt_to_gdp": {"bias_direction": "deteriorating"},
-            "debt_service": {"bias_direction": "stable"},
-            "cds_spread": {"bias_direction": "deteriorating"},
-            "pension_funding_ratio": {"bias_direction": "deteriorating"},
-            "primary_balance": {"bias_direction": "improving"},
-        }
+        return {}

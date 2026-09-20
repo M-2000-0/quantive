@@ -126,6 +126,7 @@ from app.api import (
     daily_digest_api,
     weekly_digest_api,
     automation_api,
+    prediction_api,
     transparency_index,
     pricing,
     sovereign_mode,
@@ -141,6 +142,16 @@ from app.api import (
     qubo_biz,
     api_keys,
     landing,
+    pfm_import,
+    ai_governance_api,
+    exchange_integration_api,
+    broker_integration_api,
+    regulatory_compliance_api,
+    exchange_due_diligence_api,
+    cybersecurity_privacy_api,
+    validation_vendor_api,
+    sovereign_ai_api,
+    affiliate_api,
 )
 from app.personal.api import router as personal_router
 from app.database import get_db
@@ -233,6 +244,7 @@ router.include_router(trading_intelligence.router)
 router.include_router(alerts_api.router)
 router.include_router(metrics_api.router)
 router.include_router(versioning_api.router)
+router.include_router(prediction_api.router)
 router.include_router(price_alerts.router)
 router.include_router(backtesting.router)
 router.include_router(earnings_calendar.router)
@@ -276,6 +288,15 @@ router.include_router(pricing.router)
 router.include_router(sovereign_mode.router)
 router.include_router(pilot_program.router)
 router.include_router(government_relations.router)
+router.include_router(pfm_import.router)
+router.include_router(ai_governance_api.router)
+router.include_router(exchange_integration_api.router)
+router.include_router(broker_integration_api.router)
+router.include_router(regulatory_compliance_api.router)
+router.include_router(exchange_due_diligence_api.router)
+router.include_router(cybersecurity_privacy_api.router)
+router.include_router(validation_vendor_api.router)
+router.include_router(sovereign_ai_api.router)
 router.include_router(immutable_audit_api.router)
 router.include_router(approval_workflow_api.router)
 router.include_router(model_validation_api.router)
@@ -291,6 +312,7 @@ router.include_router(projects_api.router)
 router.include_router(qubo_api.router)
 router.include_router(qubo_biz.router)
 router.include_router(api_keys.router)
+router.include_router(affiliate_api.router)
 router.include_router(personal_router)
 
 

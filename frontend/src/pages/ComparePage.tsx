@@ -50,7 +50,7 @@ function formatNumber(value: unknown): string {
 }
 
 function MetricRow({ label, values }: { label: string; values: (string | number)[] }) {
-  const best = values.reduce((b, v, i) => (typeof v === 'number' && v < (typeof values[b] === 'number' ? (values[b] as number) : Infinity) ? i : b), 0);
+  const best = values.reduce<number>((b, v, i) => (typeof v === 'number' && (typeof values[b] !== 'number' || v < (values[b] as number)) ? i : b), 0);
   return (
     <tr>
       <td style={{ fontSize: 13, fontWeight: 500, padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>{label}</td>

@@ -69,27 +69,11 @@ def generate_policy_brief(
             cost_of_service, macro_data,
         )
 
-    # Build structured prompt for LLM
-    prompt = _build_llm_prompt(
+    # External LLM providers removed — all generation uses our own template engine
+    return _generate_template_brief(
         optimization_result, monte_carlo_results, covariance_data,
         cost_of_service, macro_data,
     )
-
-    try:
-        if model_provider == "openai":
-            return _call_openai(prompt, api_key)
-        elif model_provider == "anthropic":
-            return _call_anthropic(prompt, api_key)
-        elif model_provider == "ollama":
-            return _call_ollama(prompt)
-    except Exception as e:
-        # Fallback to template
-        brief = _generate_template_brief(
-            optimization_result, monte_carlo_results, covariance_data,
-            cost_of_service, macro_data,
-        )
-        brief.caveats.append(f"LLM generation failed ({model_provider}: {e}), using template fallback")
-        return brief
 
 
 def _build_llm_prompt(

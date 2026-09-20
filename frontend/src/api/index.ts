@@ -1,6 +1,8 @@
 const API_BASE = typeof window !== 'undefined' && (window as any).electronAPI?.isElectron
   ? 'http://127.0.0.1:8000/api'
-  : '/api';
+  : (import.meta as any).env?.VITE_API_URL
+    ? `${(import.meta as any).env.VITE_API_URL}/api`
+    : '/api';
 
 function getCsrfToken(): string {
   if (typeof document === 'undefined') return '';
@@ -107,128 +109,8 @@ import type {
   AgentRun, AgentTool, ProjectSummary,
 } from '../types';
 
-// ── Banking Types ────────────────────────────────────────────────────
-export interface BankAccount {
-  id: string;
-  name: string;
-  account_type: 'operating' | 'reserve' | 'yield';
-  currency: string;
-  balance_cents: number;
-  status: string;
-  created_at: string | null;
-}
-
-export interface BankTransaction {
-  id: string;
-  account_id: string;
-  direction: 'in' | 'out';
-  txn_type: string;
-  amount_cents: number;
-  fee_cents: number;
-  counterparty: string;
-  memo: string;
-  category: string;
-  tax_tag: string;
-  status: 'posted' | 'pending';
-  transfer_id: string | null;
-  created_at: string | null;
-}
-
-export interface BankTransfer {
-  id: string;
-  from_account_id: string;
-  to_account_id: string | null;
-  amount_cents: number;
-  fee_cents: number;
-  status: string;
-  counterparty: string;
-  memo: string;
-  idempotency_key: string | null;
-  created_at: string | null;
-  transactions: BankTransaction[];
-}
-
-export interface BankingOverview {
-  total_balance_cents: number;
-  fees_paid_30d_cents: number;
-  moved_30d_cents: number;
-  projected_net_90d_cents: number;
-  forecast_basis: string;
-  pending_count: number;
-  pending_cents: number;
-  accounts: BankAccount[];
-  recent: BankTransaction[];
-}
-
-export interface BankingInsight {
-  id: string;
-  title: string;
-  body: string;
-  severity: 'info' | 'warn';
-}
-
-export interface BankingProfile {
-  org_id: string;
-  legal_name: string;
-  dba: string;
-  entity_type: string;
-  country: string;
-  industry: string;
-  tax_id_last4: string;
-  kyb_status: 'draft' | 'pending' | 'verified' | 'rejected';
-  kyb_notes: string;
-  submitted_at: string | null;
-  decided_at: string | null;
-}
-
-export interface QuboFinding {
-  id: string;
-  org_id: string;
-  account_id: string | null;
-  txn_id: string | null;
-  rule_id: string;
-  rules_version: string;
-  jurisdiction: string;
-  tax_year: number;
-  category: string;
-  title: string;
-  detail: string;
-  amount_cents: number;
-  requirements: { requirements: string[]; docs: string[]; sources: string[] };
-  status: 'new' | 'accepted' | 'dismissed';
-  created_at: string | null;
-  updated_at: string | null;
-}
-
-export interface QuboOverview {
-  counts: { new: number; accepted: number; dismissed: number };
-  total: number;
-  potential_new_cents: number;
-  accepted_cents: number;
-  rules_version: string;
-  supported_jurisdictions: string[];
-  note: string;
-}
-
-export interface QuboScanResult {
-  scanned_transactions: number;
-  created: number;
-  total: number;
-  rules_version: string;
-  jurisdiction: string;
-  generic_guidance: boolean;
-}
-
-// Banking money helpers (integer cents on the wire)
-export function centsToUsd(cents: number): string {
-  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-}
-
-export function dollarsToCents(dollars: string): number {
-  const n = Number.parseFloat(dollars);
-  if (!Number.isFinite(n) || n <= 0) throw new Error('Enter an amount greater than $0');
-  return Math.round(n * 100);
-}
+// Re-export money utilities from shared lib for backward compatibility
+export { centsToUsd, dollarsToCents } from '../lib/money';
 
 export const api = {
   // ── Generic request helper (used by feature components) ─────────
@@ -1274,83 +1156,6 @@ export const api = {
       documents: number;
       documents_by_folder: Record<string, number>;
     }>(`/projects/${projectId}`),
-  },
-
-  // ── Banking (Q Banking) ───────────────────────────────────────────
-  banking: {
-    overview: () => request<BankingOverview>('/banking/overview'),
-    accounts: () => request<{ accounts: BankAccount[] }>('/banking/accounts'),
-    openAccount: (body: { name: string; account_type: string }) =>
-      request<BankAccount>('/banking/accounts', { method: 'POST', body: JSON.stringify(body) }),
-    accountDetail: (id: string) => request<BankAccount>(`/banking/accounts/${id}`),
-    accountTxns: (id: string, limit = 25) =>
-      request<{ account: BankAccount; transactions: BankTransaction[] }>(
-        `/banking/accounts/${id}/transactions?limit=${limit}`,
-      ),
-    transfers: (limit = 25) =>
-      request<{ transfers: BankTransfer[] }>(`/banking/transfers?limit=${limit}`),
-    createTransfer: (body: {
-      from_account_id: string;
-      to_account_id?: string | null;
-      counterparty?: string;
-      amount_cents: number;
-      memo?: string;
-      idempotency_key?: string;
-    }) => request<BankTransfer>('/banking/transfers', { method: 'POST', body: JSON.stringify(body) }),
-    seed: () => request<BankAccount>('/banking/seed', { method: 'POST' }),
-    profile: () => request<{ profile: BankingProfile | null; kyb_status: string }>('/banking/profile'),
-    saveProfile: (body: Partial<BankingProfile>) =>
-      request<BankingProfile>('/banking/profile', { method: 'PUT', body: JSON.stringify(body) }),
-    submitProfile: () => request<BankingProfile>('/banking/profile/submit', { method: 'POST' }),
-    insights: () => request<{ insights: BankingInsight[]; disclaimer: string }>('/banking/insights'),
-    categorize: (id: string, body: { category: string; tax_tag: string }) =>
-      request<BankTransaction>(`/banking/transactions/${id}/categorize`, {
-        method: 'POST',
-        body: JSON.stringify(body),
-      }),
-    // ── Qubo Business Tax ──────────────────────────────────────────
-    qubo: {
-      overview: () => request<{ counts: { new: number; accepted: number; dismissed: number }; total: number; potential_new_cents: number; accepted_cents: number; rules_version: string; supported_jurisdictions: string[]; note: string }>('/qubo/business/overview'),
-      scan: (jurisdiction = 'US', taxYear = 2026) =>
-        request<{ scanned_transactions: number; created: number; total: number; rules_version: string; jurisdiction: string; generic_guidance: boolean }>('/qubo/business/scan', {
-          method: 'POST',
-          body: JSON.stringify({ jurisdiction, tax_year: taxYear }),
-        }),
-      findings: (status?: string) =>
-        request<{ findings: QuboFinding[] }>(`/qubo/business/findings${status ? `?status=${status}` : ''}`),
-      reviewFinding: (id: string, status: 'accepted' | 'dismissed') =>
-        request<QuboFinding>(`/qubo/business/findings/${id}/review`, {
-          method: 'POST',
-          body: JSON.stringify({ status }),
-        }),
-      quarterlyEstimates: () =>
-        request<{ quarters: Record<string, { deductions_cents: number; estimated_set_aside_cents: number }>; total_deductions_cents: number; estimated_annual_set_aside_cents: number; effective_rate: number; note: string }>('/qubo/business/quarterly-estimates'),
-      exportFindings: (format: 'csv' | 'json' = 'csv') =>
-        request<{ export_format: string; tax_year: number; rows?: Record<string, string | number>[]; findings?: QuboFinding[] }>(`/qubo/business/export?format=${format}`),
-      getSettings: () => request<{ jurisdiction: string; supported_jurisdictions: string[] }>('/qubo/business/settings'),
-      updateSettings: (jurisdiction: string) =>
-        request<{ jurisdiction: string }>('/qubo/business/settings', {
-          method: 'PUT',
-          body: JSON.stringify({ jurisdiction }),
-        }),
-      uploadDocument: (findingId: string, file: File, category = 'other') => {
-        const form = new FormData();
-        form.append('file', file);
-        return request<{ id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; status: string }>(
-          `/qubo/business/findings/${findingId}/documents?category=${category}`,
-          { method: 'POST', body: form },
-        );
-      },
-      listDocuments: (findingId: string) =>
-        request<{ documents: { id: string; finding_id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; notes: string; status: string; created_at: string }[] }>(`/qubo/business/findings/${findingId}/documents`),
-      listAllDocuments: () =>
-        request<{ documents: { id: string; finding_id: string; filename: string; original_filename: string; mime_type: string; size_bytes: number; category: string; status: string; created_at: string }[] }>('/qubo/business/documents'),
-      reviewDocument: (docId: string, status: 'reviewed' | 'rejected', notes = '') =>
-        request<{ id: string; status: string }>(`/qubo/business/documents/${docId}/review`, {
-          method: 'POST',
-          body: JSON.stringify({ status, notes }),
-        }),
-    },
   },
 };
 

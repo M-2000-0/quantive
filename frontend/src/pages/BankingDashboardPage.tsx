@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  api,
+  bankingApi,
   centsToUsd,
   type BankingInsight,
   type BankingOverview,
   type BankTransaction,
-} from '../api';
+} from '../api/banking';
 
 function exportTransactionsCsv(transactions: BankTransaction[]) {
   const header = 'Date,Counterparty,Type,Direction,Amount,Fee,Category,Tax Tag,Status,Memo\n';
@@ -60,7 +60,7 @@ function OpenAccountModal({ onClose, onCreated }: { onClose: () => void; onCreat
     setSubmitting(true);
     setError('');
     try {
-      await api.banking.openAccount({ name: name.trim(), account_type: accountType });
+      await bankingApi.openAccount({ name: name.trim(), account_type: accountType });
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to open account');
@@ -149,7 +149,7 @@ export default function BankingDashboardPage() {
     setLoading(true);
     setError('');
     try {
-      const [ov, ins] = await Promise.all([api.banking.overview(), api.banking.insights()]);
+      const [ov, ins] = await Promise.all([bankingApi.overview(), bankingApi.insights()]);
       setOverview(ov);
       setInsights(ins.insights);
       setDisclaimer(ins.disclaimer);
@@ -168,7 +168,7 @@ export default function BankingDashboardPage() {
     setSeeding(true);
     setError('');
     try {
-      await api.banking.seed();
+      await bankingApi.seed();
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Seed failed');

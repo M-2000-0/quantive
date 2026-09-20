@@ -99,6 +99,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.default_window = window_seconds
         self._requests: dict[str, list[float]] = defaultdict(list)
         self._lock = threading.Lock()
+        # Try Redis for cross-worker rate limiting
+        self._redis = None
+        try:
+            import redis as _redis
+            from app.config import get_settings as _gs
+            _s = _gs()
+            # Only use Redis if a non-SQLite DATABASE_URL hints at production
+            if "postgresql" in _s.DATABASE_URL:
+                self._redis = _redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
+                self._redis.ping()
+        except Exception:
+            self._redis = None
 
     def _get_client_ip(self, request: Request) -> str:
         return get_client_ip(request)
@@ -115,8 +127,30 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         client_ip = self._get_client_ip(request)
         max_req, window = self._get_limit(request.url.path)
-        now = time.time()
 
+        # Redis-backed rate limiting (works across workers)
+        if self._redis:
+            try:
+                bucket_key = f"rl:{client_ip}:{request.url.path}"
+                now = time.time()
+                pipe = self._redis.pipeline()
+                pipe.zremrangebyscore(bucket_key, 0, now - window)
+                pipe.zadd(bucket_key, {str(now): now})
+                pipe.expire(bucket_key, window)
+                results = pipe.execute()
+                request_count = results[1]  # cardinality after zadd
+                if request_count > max_req:
+                    retry_after = window
+                    return JSONResponse(
+                        status_code=429,
+                        content={"detail": "Rate limit exceeded", "retry_after": retry_after, "limit": max_req},
+                        headers={"Retry-After": str(retry_after)},
+                    )
+                return await call_next(request)
+            except Exception:
+                pass  # Fall back to in-memory
+
+        now = time.time()
         with self._lock:
             # Cleanup old entries for this IP (sliding window)
             bucket_key = f"{client_ip}:{request.url.path}"
