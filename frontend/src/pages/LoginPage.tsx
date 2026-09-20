@@ -76,7 +76,7 @@ export default function LoginPage() {
             Welcome <em style={{ fontStyle: 'italic', color: '#C8C8CE', fontWeight: 400 }}>back.</em>
           </h1>
           <p style={{ fontSize: 14, lineHeight: 1.6, color: '#8A8A90', maxWidth: 420, marginBottom: 16, textAlign: 'center' }}>
-            Sign in to your sovereign workspace. Every recommendation shows its assumptions — audit-ready, fiscal-rule-aware.
+            Sign in to your sovereign workspace. Every recommendation shows its assumptions. Audit-ready, fiscal-rule-aware.
           </p>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: '#5E5E66', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', justifyContent: 'center' }}>
