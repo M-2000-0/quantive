@@ -1,6 +1,5 @@
 {
-  "cleanUrls": true,
-  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend && cp frontend/dist/index.html frontend/dist/app.html && cp web/index.html frontend/dist/index.html && cp web/*.png web/*.jpg frontend/dist/ 2>/dev/null || true && cp web/*.html frontend/dist/ 2>/dev/null || true && cp -r web/personal frontend/dist/ 2>/dev/null || true",
+  "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend && cp frontend/dist/index.html frontend/dist/app.html && cp web/index.html frontend/dist/index.html && cp web/*.html frontend/dist/ && cp web/*.png web/*.jpg frontend/dist/ && cp -r web/personal frontend/dist/",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --prefix frontend",
   "framework": "vite",
@@ -14,6 +13,22 @@
     {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
+    },
+    {
+      "source": "/banking",
+      "destination": "/banking.html"
+    },
+    {
+      "source": "/qubo",
+      "destination": "/qubo.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/chat",
+      "destination": "/chat.html"
     },
     {
       "source": "/(.*)",
