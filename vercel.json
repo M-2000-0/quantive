@@ -2,27 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/app/vercel_app.py",
-      "use": "@vercel/python",
-      "config": { "maxDuration": 30 }
+      "src": "api/index.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/app/vercel_app.py"
-    },
-    {
-      "src": "/docs",
-      "dest": "backend/app/vercel_app.py"
-    },
-    {
-      "src": "/redoc",
-      "dest": "backend/app/vercel_app.py"
-    },
-    {
-      "src": "/openapi.json",
-      "dest": "backend/app/vercel_app.py"
-    }
+    { "src": "/(.*)", "dest": "api/index.py" }
   ]
 }

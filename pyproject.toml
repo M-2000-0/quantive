@@ -34,4 +34,4 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.vercel]
-entrypoint = "backend.app.vercel_app:app"
+entrypoint = "api/index.py"
