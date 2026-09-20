@@ -62,16 +62,16 @@ export default function LoginPage() {
       }}>
         {/* Left — brand context */}
         <div style={{ padding: '12px 8px' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit', marginBottom: 28 }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none', color: 'inherit', marginBottom: 28 }}>
             <div style={{
-              width: 48, height: 48, borderRadius: 12, background: '#0A0A0B', border: '1px solid rgba(255,255,255,0.08)',
+              width: 72, height: 72, borderRadius: 16, background: '#0A0A0B', border: '1px solid rgba(255,255,255,0.08)',
               display: 'grid', placeItems: 'center', overflow: 'hidden',
-              boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 16px rgba(0,0,0,0.35)',
+              boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 20px rgba(0,0,0,0.35)',
             }}>
-              <img src="/quantive-logo.png" alt="Quantive" style={{ width: 40, height: 40, objectFit: 'contain', display: 'block' }} />
+              <img src="/quantive-logo.png" alt="Quantive" style={{ width: 60, height: 60, objectFit: 'contain', display: 'block' }} />
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>Quantive</div>
+              <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>Quantive</div>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8A90', fontWeight: 600, marginTop: 2 }}>Government • Sovereign</div>
             </div>
           </a>
@@ -104,14 +104,10 @@ export default function LoginPage() {
 
           <div style={{
             marginTop: 28, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(255,255,255,0.02)', padding: 12,
-            display: 'flex', alignItems: 'center', gap: 12,
+            background: 'rgba(255,255,255,0.02)', padding: 16,
           }}>
-            <img src="/landing-page-1.jpg" alt="Sovereign demo preview" style={{ width: 88, height: 64, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }} onError={(e) => (e.currentTarget.style.display = 'none')} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em' }}>Sovereign Demo Portfolio</div>
-              <div style={{ fontSize: 12, color: '#8A8A90', marginTop: 2 }}><b style={{ color: '#F5F5F3' }}>$557.4B</b> under analysis • 12 • 6 ccys</div>
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em' }}>Sovereign Demo Portfolio</div>
+            <div style={{ fontSize: 12, color: '#8A8A90', marginTop: 4 }}><b style={{ color: '#F5F5F3' }}>$557.4B</b> under analysis • 12 • 6 ccys</div>
           </div>
         </div>
 
