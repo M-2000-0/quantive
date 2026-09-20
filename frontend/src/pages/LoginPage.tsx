@@ -67,20 +67,8 @@ export default function LoginPage() {
         {/* Left — brand context - scaled up hierarchy, reduced clutter */}
         <div style={{ padding: '8px 4px' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 16, textDecoration: 'none', color: 'inherit', marginBottom: 24 }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: 14, background: '#0A0A0B', border: '1px solid rgba(255,255,255,0.08)',
-              display: 'grid', placeItems: 'center', overflow: 'hidden',
-              boxShadow: '0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 20px rgba(0,0,0,0.35)',
-            }}>
-              <img src="/quantive-logo.png" alt="Quantive" style={{ width: 54, height: 54, objectFit: 'contain', display: 'block' }} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>Quantive</span>
-                <span className="tagline-desktop" style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8A90', fontWeight: 700, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 10 }}>Government • Sovereign</span>
-              </div>
-              <span className="tagline-mobile" style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8A90', fontWeight: 600, display: 'none' }}>Government • Sovereign</span>
-            </div>
+            <img src="/quantive-logo.png" alt="Quantive" style={{ width: 80, height: 80, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.35))' }} />
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>Quantive</div>
           </a>
 
           {/* Aggregated badge - merged decision support + security */}
@@ -229,16 +217,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 900px) { 
-          div[style*="gridTemplateColumns: 1.05fr"] { grid-template-columns: 1fr !important; } 
-          .tagline-desktop { display: none !important; }
-          .tagline-mobile { display: block !important; }
-        }
-        @media (min-width: 901px) {
-          .tagline-mobile { display: none !important; }
-        }
-      `}</style>
+      <style>{`@media (max-width: 900px) { div[style*="gridTemplateColumns: 1.05fr"] { grid-template-columns: 1fr !important; } }`}</style>
     </div>
   );
 }
