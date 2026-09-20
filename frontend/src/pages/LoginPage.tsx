@@ -64,24 +64,9 @@ export default function LoginPage() {
         display: 'grid', gridTemplateColumns: '1.05fr 0.95fr',
         gap: 40, alignItems: 'center',
       }}>
-        {/* Left — brand context - scaled up hierarchy, reduced clutter */}
+        {/* Left — brand context - clean, logo as hero */}
         <div style={{ padding: '8px 4px' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 16, textDecoration: 'none', color: 'inherit', marginBottom: 24 }}>
-            <img src="/quantive-logo.png" alt="Quantive" style={{ width: 80, height: 80, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.35))' }} />
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>Quantive</div>
-          </a>
-
-          {/* Aggregated badge - merged decision support + security */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 100,
-            border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(8px)',
-            fontSize: 11, color: '#8A8A90', letterSpacing: '-0.01em', marginBottom: 20, flexWrap: 'wrap',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F5F5F3', boxShadow: '0 0 0 4px rgba(255,255,255,0.08)', display: 'inline-block', flexShrink: 0 }} />
-            Decision support for public finance — Live
-            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'inline-block' }} />
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: '#5E5E66' }}>SOC 2 READY • ENCRYPTED • AUDIT TRAILS</span>
-          </div>
+          <img src="/quantive-logo.png" alt="Quantive" style={{ width: 140, height: 140, objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 12px 32px rgba(0,0,0,0.45))', marginBottom: 24 }} />
 
           <h1 style={{
             fontFamily: "'Instrument Serif', serif",
@@ -90,9 +75,15 @@ export default function LoginPage() {
           }}>
             Welcome <em style={{ fontStyle: 'italic', color: '#C8C8CE', fontWeight: 400 }}>back.</em>
           </h1>
-          <p style={{ fontSize: 14, lineHeight: 1.6, color: '#8A8A90', maxWidth: 420 }}>
+          <p style={{ fontSize: 14, lineHeight: 1.6, color: '#8A8A90', maxWidth: 420, marginBottom: 16 }}>
             Sign in to your sovereign workspace. Every recommendation shows its assumptions — audit-ready, fiscal-rule-aware.
           </p>
+
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: '#5E5E66', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ SOC 2 READY</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ ENCRYPTED</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>◆ AUDIT TRAILS</span>
+          </div>
         </div>
 
         {/* Right — auth card - improved hierarchy & contrast */}
