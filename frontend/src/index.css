@@ -711,8 +711,8 @@ button.bar-wrap:hover .bar, button.bar-wrap:focus-visible .bar { filter: brightn
   pointer-events: none; z-index: 0;
 }
 .liquid-orb:nth-of-type(1) { width: 420px; height: 420px; background: #c8a951; top: -120px; left: -120px; }
-.liquid-orb:nth-of-type(2) { width: 360px; height: 360px; background: #60a5fa; bottom: -120px; right: -80px; }
-.liquid-orb:nth-of-type(3) { width: 280px; height: 280px; background: #c084fc; top: 40%; left: 60%; }
+.liquid-orb:nth-of-type(2) { width: 360px; height: 360px; background: #a08a3c; bottom: -120px; right: -80px; }
+.liquid-orb:nth-of-type(3) { width: 280px; height: 280px; background: #b8943f; top: 40%; left: 60%; }
 .auth-page {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   padding: 24px; position: relative; overflow: hidden;
