@@ -58,10 +58,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 async function handleResponse<T>(response: Response, path: string): Promise<T> {
   if (response.status === 401) {
-    // Clear cookies via logout endpoint
+    // On the login page, surface the backend error message (e.g. "Invalid email or password")
+    // instead of redirecting in a loop.
+    if (window.location.pathname === '/login') {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.detail || 'Invalid email or password');
+    }
+    // Everywhere else: clear session and redirect to login.
     fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     window.location.href = '/login';
-    throw new Error('Unauthorized');
+    throw new Error('Session expired. Please sign in again.');
   }
 
   if (response.status === 204) return undefined as T;
@@ -965,18 +971,38 @@ export const api = {
     availableOptimizations: () => request<Array<{ id: string; name: string; description: string; base_price: number }>>('/pricing/optimizations'),
   },
 
+  // ── Government Engine (DSA, Stress, Maturity, Fiscal, Audit) ─────────
+  gov: {
+    analyzeDSA: (data: {
+      debt_stock: number; gdp_nominal: number; exports: number; revenue: number;
+      debt_service: number; interest_payments: number; principal_repayments: number;
+      gross_financing_needs: number; country_type: string;
+    }) => request<{
+      risk_rating: string; risk_color: string; risk_label: string;
+      indicators: Record<string, number>;
+      recommendations: Array<{ priority: string; area: string; recommendation: string; rationale: string }>;
+      projections: Array<{ year: number; debt_gdp: number }>;
+    }>('/gov/dsa/analyze', { method: 'POST', body: JSON.stringify(data) }),
+    getStressScenarios: () => request<{ scenarios: Array<{ id: string; name: string; severity: string; shocks: Record<string, unknown> }> }>('/gov/stress/scenarios'),
+    runStress: (data: { baseline: Record<string, unknown>; shocks: Record<string, unknown> }) =>
+      request<Record<string, unknown>>('/gov/stress/run', { method: 'POST', body: JSON.stringify(data) }),
+    getMaturityProfile: () => request<Record<string, unknown>>('/gov/maturity/profile'),
+    getFiscalDashboard: (year: number) => request<Record<string, unknown>>(`/gov/fiscal/dashboard/${year}`),
+    getAuditLog: (limit?: number) => request<{ entries: Array<Record<string, unknown>> }>(`/gov/audit/log?limit=${limit || 50}`),
+  },
+
   // ── Sovereign Mode ───────────────────────────────────────────────────
   sovereignMode: {
-    status: () => request<{ enabled: boolean; activated_at: string | null; security_level: string; features: string[] }>('/sovereign-mode/status'),
+    status: (countryCode: string = 'US') => request<{ enabled: boolean; activated_at: string | null; security_level: string; features: string[] }>(`/sovereign-mode/status/${countryCode}`),
     enable: () => request<{ enabled: boolean; activated_at: string; security_level: string }>('/sovereign-mode/enable', { method: 'POST' }),
     disable: () => request<{ enabled: boolean; deactivated_at: string }>('/sovereign-mode/disable', { method: 'POST' }),
-    securityChecklist: () => request<{ items: Array<{ id: string; name: string; description: string; status: string; last_verified: string | null }>; score: number; total: number; passed: number }>('/sovereign-mode/security-checklist'),
+    securityChecklist: () => request<{ checklist: Array<{ category: string; items: Array<{ id: string; name: string; description: string; status: string; last_verified: string | null }> }>; total_items: number; required_items: number }>('/sovereign-mode/security-checklist'),
   },
 
   // ── Pilot Program ────────────────────────────────────────────────────
   pilotProgram: {
-    dashboard: () => request<{ total_programs: number; active: number; completed: number; metrics: Record<string, number> }>('/pilot-program/dashboard'),
-    list: () => request<{ programs: PilotProgram[] }>('/pilot-program/pilots'),
+    dashboard: () => request<{ summary: { total_pilots: number; active_pilots: number; completed_pilots: number; converted_pilots: number; conversion_rate: number; total_debt_managed: number; total_conversion_value: number }; status_counts: Record<string, number>; tier_counts: Record<string, number>; top_pilots: PilotProgram[] }>('/pilot-program/dashboard'),
+    list: () => request<{ pilots: PilotProgram[] }>('/pilot-program/pilots'),
     create: (data: { name: string; description?: string; start_date?: string }) =>
       request<PilotProgram>('/pilot-program/pilots', { method: 'POST', body: JSON.stringify(data) }),
     status: (programId: string) => request<PilotProgram>(`/pilot-program/pilots/${programId}`),
@@ -1016,16 +1042,16 @@ export const api = {
     query: (params: { event_type?: string; actor_id?: string; start_date?: string; end_date?: string; limit?: number }) => {
       const qs = new URLSearchParams();
       Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') qs.set(k, String(v)); });
-      return request<ImmutableAuditEvent[]>(`/immutable-audit/events?${qs.toString()}`);
+      return request<{ total: number; events: ImmutableAuditEvent[] }>(`/immutable-audit/events?${qs.toString()}`);
     },
     export: (eventId: string) => request<{ event: ImmutableAuditEvent; certificate: string }>(`/immutable-audit/export/${eventId}`),
   },
 
   // ── Approval Workflow ────────────────────────────────────────────────
   approvalWorkflow: {
-    request: (data: { type: string; data: Record<string, unknown>; justification?: string }) =>
+    request: (data: { transaction_type: string; transaction_id: string; metadata?: Record<string, unknown> }) =>
       request<ApprovalRequest>('/approval-workflow/request', { method: 'POST', body: JSON.stringify(data) }),
-    pending: () => request<ApprovalRequest[]>('/approval-workflow/pending'),
+    pending: () => request<{ total: number; requests: ApprovalRequest[] }>('/approval-workflow/pending'),
     approve: (requestId: string, data: { comments?: string }) =>
       request<ApprovalRequest>(`/approval-workflow/${requestId}/approve`, { method: 'POST', body: JSON.stringify(data) }),
     deny: (requestId: string, data: { reason: string; comments?: string }) =>
@@ -1037,27 +1063,33 @@ export const api = {
 
   // ── Model Validation ─────────────────────────────────────────────────
   modelValidation: {
-    validate: (data: { strategy_id: string; portfolio_data: Record<string, unknown>; validation_type?: string }) =>
-      request<ValidationResult>('/model-validation/validate', { method: 'POST', body: JSON.stringify(data) }),
-    validateOptimality: (solutionId: string) =>
-      request<ValidationResult>(`/model-validation/${solutionId}/validate-optimality`, { method: 'POST' }),
-    validateStability: (solutionId: string) =>
-      request<ValidationResult>(`/model-validation/${solutionId}/validate-stability`, { method: 'POST' }),
-    backtest: (solutionId: string) =>
-      request<{ results: ValidationResult[]; summary: Record<string, unknown> }>(`/model-validation/${solutionId}/backtest`, { method: 'POST' }),
+    validateFeasibility: (data: { model_type: string; allocations: Record<string, number>; constraints?: Record<string, unknown> }) =>
+      request<ValidationResult>('/model-validation/validate/feasibility', { method: 'POST', body: JSON.stringify(data) }),
+    validateOptimality: (data: { model_type: string; solution_value: number; best_known_value: number }) =>
+      request<ValidationResult>('/model-validation/validate/optimality', { method: 'POST', body: JSON.stringify(data) }),
+    validateStability: (data: { model_type: string; runs: Array<Record<string, unknown>> }) =>
+      request<ValidationResult>('/model-validation/validate/stability', { method: 'POST', body: JSON.stringify(data) }),
+    backtest: (solutionId: string, data: { model_type: string; historical_data: Array<Record<string, unknown>>; strategy: Record<string, unknown> }) =>
+      request<{ results: ValidationResult[]; summary: Record<string, unknown> }>(`/model-validation/${solutionId}/backtest`, { method: 'POST', body: JSON.stringify(data) }),
     history: (solutionId: string) => request<ValidationResult[]>(`/model-validation/${solutionId}/history`),
   },
 
   // ── Interoperability ─────────────────────────────────────────────────
   interoperability: {
-    convert: (data: { content: string; from_format: string; to_format: string }) =>
-      request<{ result: string; format: string }>('/interoperability/convert', { method: 'POST', body: JSON.stringify(data) }),
-    validate: (data: { content: string; format: string }) =>
-      request<{ valid: boolean; errors: string[] }>('/interoperability/validate', { method: 'POST', body: JSON.stringify(data) }),
+    convert: (data: { data: Record<string, unknown>; source_format: string; target_format: string }) =>
+      request<{ result: string; source_format: string; target_format: string }>('/interoperability/convert', { method: 'POST', body: JSON.stringify(data) }),
+    validate: (data: { data: string; format: string }) =>
+      request<{ is_valid: boolean; format: string }>('/interoperability/validate', { method: 'POST', body: JSON.stringify(data) }),
     parseFpML: (content: string) =>
-      request<{ trades: Record<string, unknown>[]; validation: { valid: boolean; errors: string[] } }>('/interoperability/fpml/parse', { method: 'POST', body: JSON.stringify({ content }) }),
+      request<{ instrument: Record<string, unknown> }>('/interoperability/fpml/parse', {
+        method: 'POST',
+        body: (() => { const fd = new FormData(); fd.append('fpml_xml', content); return fd; })(),
+      }),
     parseXBRL: (content: string) =>
-      request<{ facts: Record<string, unknown>[]; validation: { valid: boolean; errors: string[] } }>('/interoperability/xbrl/parse', { method: 'POST', body: JSON.stringify({ content }) }),
+      request<{ facts: Record<string, unknown>[] }>('/interoperability/xbrl/parse', {
+        method: 'POST',
+        body: (() => { const fd = new FormData(); fd.append('xbrl_xml', content); return fd; })(),
+      }),
     supportedFormats: () => request<Array<{ id: string; name: string; extension: string; mime_type: string }>>('/interoperability/formats'),
   },
 
@@ -1081,25 +1113,32 @@ export const api = {
   // ── SLA Monitoring ───────────────────────────────────────────────────
   sla: {
     compliance: () => request<SLACompliance>('/sla/compliance'),
-    recordUptime: (data: { service: string; uptime_pct: number; response_time_ms: number }) =>
-      request<{ recorded: boolean; timestamp: string }>('/sla/uptime', { method: 'POST', body: JSON.stringify(data) }),
-    reportIncident: (data: { type: string; severity: string; description: string; affected_services: string[] }) =>
+    recordUptime: (data: { uptime_percent: number; response_time_p50: number; response_time_p95: number; response_time_p99: number }) =>
+      request<{ message: string }>('/sla/uptime', { method: 'POST', body: JSON.stringify(data) }),
+    reportIncident: (data: { incident_id: string; severity: string; metric_name: string; expected_value: number; actual_value: number; breach_duration_minutes: number; root_cause?: string }) =>
       request<SLABreach>('/sla/incident', { method: 'POST', body: JSON.stringify(data) }),
     resolveIncident: (breachId: string, remediation: string) =>
       request<SLABreach>(`/sla/incident/${breachId}/resolve`, {
         method: 'POST',
         body: JSON.stringify({ remediation }),
       }),
-    getBreaches: (days?: number) => request<SLABreach[]>(`/sla/breaches?days=${days || 30}`),
+    getBreaches: (days?: number) => request<{ breaches: SLABreach[]; total: number; period_days: number }>(`/sla/breaches?days=${days || 30}`),
     getCredits: () => request<{ credits: Array<{ id: string; amount: number; reason: string; date: string }>; total_owed: number }>('/sla/credits'),
     documentation: () => request<{ services: Array<{ name: string; uptime_target: number; response_time_target: number; penalties: string }> }>('/sla/documentation'),
   },
 
   // ── Escrow ───────────────────────────────────────────────────────────
   escrow: {
-    createAgreement: (data: { name: string; source_code_url?: string; version?: string }) =>
+    createAgreement: (data: {
+      depositor: { name: string; role: string; address: string; contact_name: string; contact_email: string; contact_phone?: string };
+      beneficiary: { name: string; role: string; address: string; contact_name: string; contact_email: string; contact_phone?: string };
+      escrow_agent: { name: string; role: string; address: string; contact_name: string; contact_email: string; contact_phone?: string };
+      software_description: string;
+      version: string;
+      repository_url: string;
+    }) =>
       request<EscrowAgreement>('/escrow/agreements', { method: 'POST', body: JSON.stringify(data) }),
-    listAgreements: () => request<EscrowAgreement[]>('/escrow/agreements'),
+    listAgreements: () => request<{ agreements: EscrowAgreement[]; total: number }>('/escrow/agreements'),
     getAgreement: (agreementId: string) => request<EscrowAgreement & { releases: Array<{ condition: string; evidence: string; released_at: string }> }>(`/escrow/agreements/${agreementId}`),
     triggerRelease: (agreementId: string, condition: string, evidence: string) =>
       request<{ released: boolean; timestamp: string }>(`/escrow/agreements/${agreementId}/trigger`, {

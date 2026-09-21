@@ -35,7 +35,10 @@ export default function SovereignModePage() {
       ]);
 
       if (configData) setConfig(configData);
-      if (checklistData?.items) setChecklist(checklistData.items);
+      if (checklistData?.checklist) {
+        const allItems = checklistData.checklist.flatMap((cat: any) => cat.items || []);
+        setChecklist(allItems);
+      }
     } catch (e) {
       console.error('Failed to load sovereign mode:', e);
     } finally {

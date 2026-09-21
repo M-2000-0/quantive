@@ -17,10 +17,11 @@ export default function ApprovalWorkflowPage() {
     setLoading(true);
     try {
       const data = await api.approvalWorkflow.pending();
+      const pendingList = data?.requests || [];
       setRequests(
         filter === 'pending'
-          ? (data || [])
-          : (data || []).filter(r => r.status === filter)
+          ? pendingList
+          : pendingList.filter(r => r.status === filter)
       );
     } catch (e) {
       console.error('Failed to load approval requests:', e);

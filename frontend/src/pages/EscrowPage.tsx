@@ -32,7 +32,7 @@ export default function EscrowPage() {
     setLoading(true);
     try {
       const data = await api.escrow.listAgreements();
-      setAgreements(data || []);
+      setAgreements(data?.agreements || []);
     } catch (e) {
       console.error('Failed to load agreements:', e);
     } finally {
@@ -47,9 +47,30 @@ export default function EscrowPage() {
   const createAgreement = async () => {
     try {
       await api.escrow.createAgreement({
-        name: formData.software_description || 'Unnamed Agreement',
-        source_code_url: formData.repository_url || undefined,
-        version: formData.version || undefined,
+        depositor: {
+          name: formData.depositor_name || 'Depositor',
+          role: 'depositor',
+          address: formData.depositor_address || '100 Default Street',
+          contact_name: formData.depositor_contact_name || 'Contact',
+          contact_email: formData.depositor_contact_email || 'contact@example.com',
+        },
+        beneficiary: {
+          name: formData.beneficiary_name,
+          role: 'beneficiary',
+          address: formData.beneficiary_address,
+          contact_name: formData.beneficiary_contact_name,
+          contact_email: formData.beneficiary_contact_email,
+        },
+        escrow_agent: {
+          name: formData.escrow_agent_name,
+          role: 'escrow_agent',
+          address: formData.escrow_agent_address,
+          contact_name: formData.escrow_agent_contact_name,
+          contact_email: formData.escrow_agent_contact_email,
+        },
+        software_description: formData.software_description || 'Government debt management software',
+        version: formData.version || '1.0.0',
+        repository_url: formData.repository_url || 'https://github.com/example/repo',
       });
       setShowCreateForm(false);
       void loadAgreements();

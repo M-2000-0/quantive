@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-
-const API = import.meta.env.VITE_API_URL || '';
+import { api } from '../api';
 
 interface DSAResult {
   risk_rating: string;
@@ -49,18 +48,16 @@ export default function GovernmentPage() {
   const runDSA = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/gov/dsa/analyze`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dsaForm),
-      });
-      if (res.ok) setDsaResult(await res.json());
+      const result = await api.gov.analyzeDSA(dsaForm);
+      setDsaResult(result);
     } catch {}
     setLoading(false);
   };
 
   const loadScenarios = async () => {
     try {
-      const res = await fetch(`${API}/api/gov/stress/scenarios`);
-      if (res.ok) { const d = await res.json(); setScenarios(d.scenarios || []); }
+      const d = await api.gov.getStressScenarios();
+      setScenarios(d.scenarios || []);
     } catch {}
   };
 
@@ -68,33 +65,30 @@ export default function GovernmentPage() {
     setLoading(true);
     try {
       const scenario = scenarios.find((s: any) => s.id === scenarioId);
-      const res = await fetch(`${API}/api/gov/stress/run`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ baseline, shocks: scenario?.shocks || {} }),
-      });
-      if (res.ok) setStressResult(await res.json());
+      const result = await api.gov.runStress({ baseline, shocks: scenario?.shocks || {} });
+      setStressResult(result);
     } catch {}
     setLoading(false);
   };
 
   const loadMaturity = async () => {
     try {
-      const res = await fetch(`${API}/api/gov/maturity/profile`);
-      if (res.ok) setMaturity(await res.json());
+      const result = await api.gov.getMaturityProfile();
+      setMaturity(result);
     } catch {}
   };
 
   const loadFiscal = async () => {
     try {
-      const res = await fetch(`${API}/api/gov/fiscal/dashboard/2025`);
-      if (res.ok) setFiscal(await res.json());
+      const result = await api.gov.getFiscalDashboard(2025);
+      setFiscal(result);
     } catch {}
   };
 
   const loadAudit = async () => {
     try {
-      const res = await fetch(`${API}/api/gov/audit/log?limit=50`);
-      if (res.ok) { const d = await res.json(); setAuditLog(d.entries || []); }
+      const d = await api.gov.getAuditLog(50);
+      setAuditLog(d.entries || []);
     } catch {}
   };
 

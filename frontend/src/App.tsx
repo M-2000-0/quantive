@@ -382,7 +382,16 @@ export default function App() {
         <Route index element={<PageWrapper><AffiliateDashboardPage /></PageWrapper>} />
       </Route>
       <Route path="/terms" element={<PageWrapper><TermsPage /></PageWrapper>} />
-      <Route path="/government" element={<PageWrapper><GovernmentPage /></PageWrapper>} />
+      <Route
+        path="/government"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PageWrapper><GovernmentPage /></PageWrapper>} />
+      </Route>
       <Route path="/pfm-import" element={<PageWrapper><PFMImportPage /></PageWrapper>} />
       <Route path="/ai-governance" element={<PageWrapper><AIGovernancePage /></PageWrapper>} />
       <Route path="/exchange-integration" element={<PageWrapper><ExchangeIntegrationPage /></PageWrapper>} />

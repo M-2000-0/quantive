@@ -19,16 +19,16 @@ export default function ModelValidationPage() {
       let result;
       switch (type) {
         case 'feasibility':
-          result = await api.modelValidation.validate({ strategy_id: solutionId, portfolio_data: {} });
+          result = await api.modelValidation.validateFeasibility({ model_type: 'milp', allocations: { default: 1.0 } });
           break;
         case 'optimality':
-          result = await api.modelValidation.validateOptimality(solutionId);
+          result = await api.modelValidation.validateOptimality({ model_type: 'milp', solution_value: 1.0, best_known_value: 1.0 });
           break;
         case 'stability':
-          result = await api.modelValidation.validateStability(solutionId);
+          result = await api.modelValidation.validateStability({ model_type: 'milp', runs: [{ solution_id: solutionId }] });
           break;
         default:
-          result = await api.modelValidation.validate({ strategy_id: solutionId, portfolio_data: {} });
+          result = await api.modelValidation.validateFeasibility({ model_type: 'milp', allocations: { default: 1.0 } });
       }
       setValidations(prev => [result, ...prev]);
     } catch (e) {
@@ -42,7 +42,11 @@ export default function ModelValidationPage() {
     if (!solutionId) return;
     setLoading(true);
     try {
-      const result = await api.modelValidation.backtest(solutionId);
+      const result = await api.modelValidation.backtest(solutionId, {
+        model_type: 'milp',
+        historical_data: [{ solution_id: solutionId }],
+        strategy: { solution_id: solutionId },
+      });
       setBacktestResult(result);
     } catch (e) {
       console.error('Backtest failed:', e);

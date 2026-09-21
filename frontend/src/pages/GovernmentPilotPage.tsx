@@ -8,10 +8,13 @@ import { api } from '../api';
 import type { PilotProgram } from '../types';
 
 interface PilotSummary {
-  total_programs: number;
-  active: number;
-  completed: number;
-  metrics: Record<string, number>;
+  total_pilots: number;
+  active_pilots: number;
+  completed_pilots: number;
+  converted_pilots: number;
+  conversion_rate: number;
+  total_debt_managed: number;
+  total_conversion_value: number;
 }
 
 export default function GovernmentPilotPage() {
@@ -26,11 +29,11 @@ export default function GovernmentPilotPage() {
     try {
       const [dashData, pilotList] = await Promise.all([
         api.pilotProgram.dashboard().catch(() => null),
-        api.pilotProgram.list().catch(() => ({ programs: [] })),
+        api.pilotProgram.list().catch(() => ({ pilots: [] })),
       ]);
 
-      if (dashData) setSummary(dashData);
-      if (pilotList?.programs) setPilots(pilotList.programs);
+      if (dashData?.summary) setSummary(dashData.summary);
+      if (pilotList?.pilots) setPilots(pilotList.pilots);
     } catch (e) {
       console.error('Failed to load pilots:', e);
     } finally {
@@ -44,7 +47,7 @@ export default function GovernmentPilotPage() {
 
   const filteredPilots = pilots.filter(p => {
     if (filter !== 'all' && p.status !== filter) return false;
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !p.country_name.toLowerCase().includes(search.toLowerCase()) && !p.government_entity.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -113,7 +116,7 @@ export default function GovernmentPilotPage() {
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Active Pilots</div>
-                  <div className="text-2xl font-bold text-slate-900">{summary.active}</div>
+                  <div className="text-2xl font-bold text-slate-900">{summary.active_pilots}</div>
                 </div>
               </div>
             </div>
@@ -124,7 +127,7 @@ export default function GovernmentPilotPage() {
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Total Programs</div>
-                  <div className="text-2xl font-bold text-slate-900">{summary.total_programs}</div>
+                  <div className="text-2xl font-bold text-slate-900">{summary.total_pilots}</div>
                 </div>
               </div>
             </div>
@@ -135,7 +138,7 @@ export default function GovernmentPilotPage() {
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Completed</div>
-                  <div className="text-2xl font-bold text-slate-900">{summary.completed}</div>
+                  <div className="text-2xl font-bold text-slate-900">{summary.completed_pilots}</div>
                 </div>
               </div>
             </div>
@@ -145,8 +148,8 @@ export default function GovernmentPilotPage() {
                   <Calendar className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <div className="text-sm text-slate-500">Metrics</div>
-                  <div className="text-2xl font-bold text-slate-900">{Object.keys(summary.metrics).length}</div>
+                  <div className="text-sm text-slate-500">Conversion Rate</div>
+                  <div className="text-2xl font-bold text-slate-900">{summary.conversion_rate}%</div>
                 </div>
               </div>
             </div>
@@ -211,9 +214,9 @@ export default function GovernmentPilotPage() {
                       🏛️
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900">{pilot.name}</h3>
+                      <h3 className="font-semibold text-slate-900">{pilot.government_entity}</h3>
                       <div className="text-sm text-slate-500">
-                        {pilot.participants} participants
+                        {pilot.country_name} · {pilot.entity_type}
                       </div>
                     </div>
                   </div>

@@ -741,12 +741,27 @@ export interface PricingResult {
 
 export interface PilotProgram {
   id: string;
-  name: string;
+  country_code: string;
+  country_name: string;
+  government_entity: string;
+  entity_type: string;
+  contact_name: string;
+  contact_email: string;
+  total_debt_outstanding: number;
+  annual_issuance: number;
+  currency: string;
+  debt_to_gdp: number;
+  portfolio_tier: string;
   status: string;
   start_date: string;
   end_date: string | null;
-  participants: number;
-  metrics: Record<string, unknown>;
+  financing_cost_reduction_bps: number;
+  risk_score_improvement_pct: number;
+  user_adoption_rate_pct: number;
+  conversion_status: string;
+  conversion_value_usd: number;
+  case_study_published: boolean;
+  created_at: string;
 }
 
 // ── Government Relations Types ───────────────────────────────────────

@@ -30,10 +30,12 @@ export default function InteroperabilityPage() {
     setError('');
     setOutputContent('');
     try {
+      let parsedData: Record<string, unknown>;
+      try { parsedData = JSON.parse(inputContent); } catch { parsedData = { raw: inputContent }; }
       const result = await api.interoperability.convert({
-        content: inputContent,
-        from_format: sourceFormat,
-        to_format: targetFormat,
+        data: parsedData,
+        source_format: sourceFormat,
+        target_format: targetFormat,
       });
       setOutputContent(result.result || JSON.stringify(result, null, 2));
     } catch (e: any) {
@@ -49,7 +51,7 @@ export default function InteroperabilityPage() {
     setError('');
     try {
       const result = await api.interoperability.validate({
-        content: inputContent,
+        data: inputContent,
         format: sourceFormat,
       });
       setValidationResult(result);
@@ -205,13 +207,13 @@ export default function InteroperabilityPage() {
             </div>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                {validationResult.valid ? (
+                {validationResult.is_valid ? (
                   <CheckCircle className="w-6 h-6 text-emerald-500" />
                 ) : (
                   <AlertTriangle className="w-6 h-6 text-red-500" />
                 )}
-                <span className={`font-medium ${validationResult.valid ? 'text-emerald-700' : 'text-red-700'}`}>
-                  {validationResult.valid ? 'Document is valid' : 'Document has errors'}
+                <span className={`font-medium ${validationResult.is_valid ? 'text-emerald-700' : 'text-red-700'}`}>
+                  {validationResult.is_valid ? 'Document is valid' : 'Document has errors'}
                 </span>
               </div>
               {validationResult.errors && validationResult.errors.length > 0 && (

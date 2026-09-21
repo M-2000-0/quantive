@@ -42,8 +42,7 @@ export default function ProcurementDashboardPage() {
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const [complianceData, pilotData, transparencyData, securityData, slaData, drData] = await Promise.all([
-        api.transparencyIndex.globalStats().catch(() => null),
+      const [pilotData, transparencyData, securityData, slaData, drData] = await Promise.all([
         api.pilotProgram.dashboard().catch(() => null),
         api.transparencyIndex.globalStats().catch(() => null),
         api.sovereignMode.securityChecklist().catch(() => null),
@@ -51,18 +50,20 @@ export default function ProcurementDashboardPage() {
         api.disasterRecovery.status().catch(() => null),
       ]);
 
-      if (pilotData) setPilots({
-        total_programs: pilotData.total_programs || 0,
-        active: pilotData.active || 0,
-        completed: pilotData.completed || 0,
-        metrics: pilotData.metrics || {},
+      if (pilotData?.summary) setPilots({
+        total_programs: pilotData.summary.total_pilots || 0,
+        active: pilotData.summary.active_pilots || 0,
+        completed: pilotData.summary.completed_pilots || 0,
       });
       if (transparencyData) setTransparency({
         total_countries: transparencyData.total_countries || 0,
         average_score: transparencyData.avg_score || 0,
         leaders_count: transparencyData.top_performers?.length || 0,
       });
-      if (securityData) setSecurityChecklist(Array.isArray(securityData.items) ? [{ category: 'Security', items: securityData.items.map((i: any) => ({ item: i.name || i.id, status: i.status })) }] : []);
+      if (securityData?.checklist) setSecurityChecklist(securityData.checklist.map((cat: any) => ({
+        category: cat.category,
+        items: (cat.items || []).map((i: any) => ({ item: i.name || i.id, status: i.status })),
+      })));
       if (slaData) setSlaStatus(slaData);
       if (drData) setDrStatus(drData);
     } catch (e) {

@@ -28,7 +28,7 @@ export default function AuditTrailPage() {
       if (filters.end_date) params.end_date = filters.end_date;
 
       const data = await api.immutableAudit.query(params);
-      setEvents(data || []);
+      setEvents(data?.events || []);
     } catch (e) {
       console.error('Failed to load audit events:', e);
     } finally {
