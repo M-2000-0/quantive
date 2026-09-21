@@ -1,0 +1,8 @@
+{
+  "vocab_size": 1375,
+  "d_model": 192,
+  "n_heads": 6,
+  "n_layers": 4,
+  "d_ff": 512,
+  "max_seq": 47
+}
