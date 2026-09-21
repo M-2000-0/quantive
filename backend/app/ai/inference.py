@@ -1,6 +1,6 @@
-"""Local inference engine for sovereign debt AI.
+"""Local inference engine for Quantive AI.
 
-Uses the custom-trained SovereignGPT model (no HuggingFace downloads).
+Uses the custom-trained QuantiveAI model (no HuggingFace downloads).
 All inference runs on CPU with PyTorch.
 """
 
@@ -14,12 +14,12 @@ import math
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-MODEL_DIR = Path(__file__).parent.parent.parent / "data" / "training" / "models" / "sovereign_gpt_v2"
+MODEL_DIR = Path(__file__).parent.parent.parent / "data" / "training" / "models" / "quantive_ai_v1"
 
 
 # ── Model Architecture (must match training script) ───────────────────
 
-class SovereignGPT(nn.Module):
+class QuantiveAI(nn.Module):
     def __init__(self, vocab_size=5000, d_model=192, n_heads=6, n_layers=4, d_ff=512, max_seq=512):
         super().__init__()
         self.config = {
@@ -124,9 +124,9 @@ class KnowledgeRetriever:
 class InferenceEngine:
     """Thread-safe local inference engine.
 
-    Primary: RAG extraction (coherent, factually grounded).
-    Secondary: TinyLlama (high-quality, requires download).
-    Fallback: SovereignGPT custom model (domain-specific but less coherent).
+    Primary: QuantiveAI (custom-trained, domain-specific).
+    Secondary: RAG extraction (coherent, factually grounded from knowledge base).
+    Tertiary: TinyLlama (high-quality, requires download).
     """
 
     def __init__(self):
@@ -148,7 +148,7 @@ class InferenceEngine:
                 return False
             checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
             config = checkpoint['config']
-            self._model = SovereignGPT(**config)
+            self._model = QuantiveAI(**config)
             self._model.load_state_dict(checkpoint['model_state_dict'])
             self._model.eval()
             tok_data = checkpoint['tokenizer']
@@ -162,11 +162,48 @@ class InferenceEngine:
     def generate(self, prompt: str, max_new_tokens: int = 150, temperature: float = 0.8) -> Dict[str, Any]:
         """Generate text from a prompt.
 
-        Primary: RAG extraction (coherent, factually grounded).
-        Secondary: TinyLlama (high-quality, requires download).
-        Fallback: SovereignGPT custom model.
+        Primary: QuantiveAI (custom-trained, domain-specific).
+        Secondary: RAG extraction (coherent, factually grounded from knowledge base).
+        Tertiary: TinyLlama (high-quality, requires download).
         """
-        # Try coherent responder first (always works, no model loading needed)
+        # Try QuantiveAI first (custom-trained model)
+        with self._lock:
+            if self._ensure_loaded():
+                try:
+                    start = time.time()
+                    model_max_seq = self._model.config.get('max_seq', 512)
+                    max_input = min(256, model_max_seq - 10)
+                    ids = self._tokenizer.encode(prompt[:max_input * 4], max_length=max_input)
+                    input_t = torch.tensor([ids], dtype=torch.long)
+
+                    with torch.no_grad():
+                        for _ in range(min(max_new_tokens, 200)):
+                            logits = self._model(input_t)
+                            next_logits = logits[:, -1, :] / max(temperature, 0.01)
+                            probs = F.softmax(next_logits, dim=-1)
+                            next_token = torch.multinomial(probs, 1)
+                            input_t = torch.cat([input_t, next_token], dim=1)
+                            if input_t.shape[1] >= model_max_seq:
+                                break
+                            if next_token.item() == self._tokenizer.word2idx.get('<EOS>', 3):
+                                break
+
+                    generated = self._tokenizer.decode(input_t[0].tolist())
+                    elapsed = time.time() - start
+                    n_tokens = input_t.shape[1] - len(ids)
+
+                    if generated.strip():
+                        return {
+                            "text": generated,
+                            "model": "quantive_ai",
+                            "tokens_generated": n_tokens,
+                            "latency_ms": round(elapsed * 1000),
+                            "tokens_per_second": round(n_tokens / max(elapsed, 0.001), 1),
+                        }
+                except Exception:
+                    pass
+
+        # Fallback to RAG extraction (always works, no model loading needed)
         try:
             from app.ai.coherent import get_responder
             if self._coherent is None:
@@ -176,7 +213,7 @@ class InferenceEngine:
         except Exception:
             pass
 
-        # Try TinyLlama (higher quality if available)
+        # Fallback to TinyLlama (higher quality if available)
         try:
             from app.ai.tiny_llama import get_tinyllama
             if self._tinyllama is None:
@@ -187,44 +224,27 @@ class InferenceEngine:
         except Exception:
             pass
 
-        # Fallback to SovereignGPT
-        with self._lock:
-            if not self._ensure_loaded():
-                return {"text": "I can provide information from my knowledge base. Please ask a specific question about sovereign debt, bonds, or fiscal policy.", "model": "fallback"}
-
-            start = time.time()
-            model_max_seq = self._model.config.get('max_seq', 512)
-            max_input = min(256, model_max_seq - 10)
-            ids = self._tokenizer.encode(prompt[:max_input * 4], max_length=max_input)
-            input_t = torch.tensor([ids], dtype=torch.long)
-
-            with torch.no_grad():
-                for _ in range(min(max_new_tokens, 200)):
-                    logits = self._model(input_t)
-                    next_logits = logits[:, -1, :] / max(temperature, 0.01)
-                    probs = F.softmax(next_logits, dim=-1)
-                    next_token = torch.multinomial(probs, 1)
-                    input_t = torch.cat([input_t, next_token], dim=1)
-                    if input_t.shape[1] >= model_max_seq:
-                        break
-                    if next_token.item() == self._tokenizer.word2idx.get('<EOS>', 3):
-                        break
-
-            generated = self._tokenizer.decode(input_t[0].tolist())
-            elapsed = time.time() - start
-            n_tokens = input_t.shape[1] - len(ids)
-
-            return {
-                "text": generated,
-                "model": "sovereign_gpt",
-                "tokens_generated": n_tokens,
-                "latency_ms": round(elapsed * 1000),
-                "tokens_per_second": round(n_tokens / max(elapsed, 0.001), 1),
-            }
+        return {"text": "I can provide information from my knowledge base. Please ask a specific question about sovereign debt, bonds, or fiscal policy.", "model": "fallback"}
 
     def query_with_rag(self, question: str, max_new_tokens: int = 200, temperature: float = 0.7) -> Dict[str, Any]:
-        """RAG query: retrieve context, then generate coherent answer."""
-        # Try coherent responder first
+        """RAG query: retrieve context, then generate answer.
+        
+        Primary: QuantiveAI with RAG context.
+        Secondary: RAG extraction (coherent, factually grounded).
+        Tertiary: TinyLlama with RAG context.
+        """
+        sources = self._retriever.retrieve(question, top_k=3)
+        context = "\n".join([s["text"][:300] for s in sources[:3]])
+
+        # Try QuantiveAI with RAG context first
+        prompt = f"Context: {context}\n\nQuestion: {question}\nAnswer:"
+        result = self.generate(prompt, max_new_tokens=max_new_tokens, temperature=temperature)
+        if result.get("model") == "quantive_ai":
+            result["sources"] = sources
+            result["query"] = question
+            return result
+
+        # Fallback to coherent responder
         try:
             from app.ai.coherent import get_responder
             if self._coherent is None:
@@ -235,10 +255,7 @@ class InferenceEngine:
         except Exception:
             pass
 
-        # Try TinyLlama with RAG context
-        sources = self._retriever.retrieve(question, top_k=3)
-        context = "\n".join([s["text"][:300] for s in sources[:3]])
-
+        # Fallback to TinyLlama with RAG context
         try:
             from app.ai.tiny_llama import get_tinyllama
             if self._tinyllama is None:
@@ -252,10 +269,6 @@ class InferenceEngine:
         except Exception:
             pass
 
-        # Fallback to SovereignGPT RAG
-        context = "\n".join([s["text"][:300] for s in sources[:3]])
-        prompt = f"Context: {context}\n\nQuestion: {question}\nAnswer:"
-        result = self.generate(prompt, max_new_tokens=max_new_tokens, temperature=temperature)
         result["sources"] = sources
         result["query"] = question
         return result
@@ -270,7 +283,7 @@ class InferenceEngine:
 
         return {
             "model_loaded": self._model is not None,
-            "model_name": "sovereign_gpt + rag_extraction + tinyllama",
+            "model_name": "quantive_ai + rag_extraction + tinyllama",
             "parameters_m": round(sum(p.numel() for p in self._model.parameters()) / 1e6, 1) if self._model else 0,
             "load_time": round(time.time() - self._load_time, 1) if self._load_time else None,
             "knowledge_chunks": 24,

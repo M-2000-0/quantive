@@ -163,6 +163,53 @@ def update_portfolio(
     return PortfolioResponse.model_validate(portfolio)
 
 
+@router.post("/{portfolio_id}/clone", response_model=PortfolioResponse, status_code=201)
+def clone_portfolio(
+    portfolio_id: str,
+    data: dict = {},
+    user: User = Depends(require_portfolio_access(PortfolioRole.VIEWER)),
+    db: Session = Depends(get_db),
+):
+    """Clone a portfolio with all its instruments."""
+    source = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    new_name = data.get("name", f"{source.name} (Copy)")
+    new_portfolio = Portfolio(
+        name=new_name,
+        description=source.description,
+        org_id=source.org_id,
+        created_by=user.id,
+    )
+    db.add(new_portfolio)
+    db.flush()
+
+    for inst in source.instruments:
+        new_inst = DebtInstrument(
+            portfolio_id=new_portfolio.id,
+            name=inst.name,
+            instrument_type=inst.instrument_type,
+            currency=inst.currency,
+            principal_outstanding=inst.principal_outstanding,
+            coupon_rate=inst.coupon_rate,
+            maturity_date=inst.maturity_date,
+            issue_date=inst.issue_date,
+            is_callable=inst.is_callable,
+            call_date=inst.call_date,
+            call_price=inst.call_price,
+            spread_bps=inst.spread_bps,
+            data_quality=inst.data_quality,
+        )
+        db.add(new_inst)
+
+    db.commit()
+    db.refresh(new_portfolio)
+
+    log_audit_event(db, user, "portfolio.cloned", "portfolio", new_portfolio.id)
+    return PortfolioResponse.model_validate(new_portfolio)
+
+
 @router.delete("/{portfolio_id}/instruments/{instrument_id}", status_code=204)
 def delete_instrument(
     portfolio_id: str,

@@ -151,7 +151,7 @@ def pretrain_model(
         import torch.nn as nn
         import math
 
-        class SovereignGPT(nn.Module):
+        class QuantiveAI(nn.Module):
             def __init__(self, config):
                 super().__init__()
                 self.config = config
@@ -193,7 +193,7 @@ def pretrain_model(
                 return logits
 
         # Build model
-        model = SovereignGPT(config)
+        model = QuantiveAI(config)
         total_params = sum(p.numel() for p in model.parameters())
 
         return {

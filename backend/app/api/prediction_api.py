@@ -23,8 +23,14 @@ from app.security import get_current_user
 
 router = APIRouter(prefix="/api/predictions", tags=["Predictions"])
 
-REPORT_DIR = Path(__file__).parent.parent / "data" / "reports"
-REPORT_DIR.mkdir(parents=True, exist_ok=True)
+# Use /tmp on Vercel (read-only /var/task)
+_base_report_dir = Path(os.environ.get("REPORT_DIR", "/tmp/reports")) if os.getenv("VERCEL") or os.getenv("VERCEL_ENV") else Path(__file__).parent.parent / "data" / "reports"
+try:
+    _base_report_dir.mkdir(parents=True, exist_ok=True)
+    REPORT_DIR = _base_report_dir
+except OSError:
+    REPORT_DIR = Path("/tmp/reports")
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 _report_cache = {}
 _report_lock = threading.Lock()

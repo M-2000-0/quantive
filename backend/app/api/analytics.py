@@ -1,5 +1,7 @@
 """Portfolio analytics API endpoints."""
+import sys
 from datetime import date
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -7,6 +9,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Portfolio, User
 from app.security import get_current_user
+
+repo_root = str(Path(__file__).resolve().parents[3])
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
 
 router = APIRouter(prefix="/api/portfolios", tags=["analytics"])
 
@@ -28,6 +34,16 @@ def _portfolio_to_quantive(portfolio: Portfolio):
         except ValueError:
             ccy = Currency.USD
 
+        try:
+            maturity = date.fromisoformat(inst.maturity_date) if inst.maturity_date else date(2030, 12, 31)
+        except (ValueError, TypeError):
+            maturity = date(2030, 12, 31)
+
+        try:
+            issue = date.fromisoformat(inst.issue_date) if inst.issue_date else date(2020, 1, 1)
+        except (ValueError, TypeError):
+            issue = date(2020, 1, 1)
+
         instruments.append(DebtInstrument(
             id=inst.id,
             name=inst.name,
@@ -35,8 +51,8 @@ def _portfolio_to_quantive(portfolio: Portfolio):
             principal=inst.principal_outstanding,
             coupon=inst.coupon_rate,
             rate_type=rate_type,
-            maturity_date=date.fromisoformat(inst.maturity_date),
-            issue_date=date.fromisoformat(inst.issue_date),
+            maturity_date=maturity,
+            issue_date=issue,
             callable=inst.is_callable,
             liquidity=0.5,
             market_capacity=inst.principal_outstanding,

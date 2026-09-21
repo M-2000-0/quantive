@@ -1,4 +1,4 @@
-"""Expand SovereignGPT knowledge base with more comprehensive domain knowledge.
+"""Expand Quantive AI knowledge base with more comprehensive domain knowledge.
 
 Run: python scripts/expand_knowledge_base.py
 """
@@ -281,7 +281,7 @@ Treasuries reflects growth differentials and risk premiums."""),
 
 def main():
     print("=" * 60)
-    print("EXPANDING SOVEREIGNGPT KNOWLEDGE BASE")
+    print("EXPANDING QUANTIVE AI KNOWLEDGE BASE")
     print("=" * 60)
 
     initial_count = get_count()

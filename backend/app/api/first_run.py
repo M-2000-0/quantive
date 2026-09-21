@@ -361,6 +361,10 @@ def get_quick_start_data(
         fx_rates = {"status": "unavailable"}
         interest_rates = {"status": "unavailable"}
 
+    # Get demo portfolio stats from user's existing instruments
+    from app.models import DebtInstrument as DebtInstrumentModel
+    demo_instruments = db.query(DebtInstrumentModel).all()
+
     return {
         "onboarding": status.model_dump(),
         "market": {
@@ -368,7 +372,7 @@ def get_quick_start_data(
             "fx_rates": fx_rates,
             "interest_rates": interest_rates,
         },
-        "demo_instruments_count": len(DEMO_INSTRUMENTS),
-        "demo_total_debt": sum(i["principal_outstanding"] for i in DEMO_INSTRUMENTS),
-        "demo_currencies": list(set(i["currency"] for i in DEMO_INSTRUMENTS)),
+        "demo_instruments_count": len(demo_instruments),
+        "demo_total_debt": sum(float(inst.principal_outstanding) for inst in demo_instruments),
+        "demo_currencies": list(set(inst.currency for inst in demo_instruments)),
     }

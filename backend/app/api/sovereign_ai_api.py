@@ -82,7 +82,7 @@ def query_api(req: QueryRequest, db=Depends(get_db), user=Depends(get_current_us
         "answer": result.get("text", ""),
         "sources": result.get("sources", []),
         "knowledge_base_size": 24,
-        "model": result.get("model", "sovereign_gpt"),
+        "model": result.get("model", "quantive_ai"),
         "latency_ms": result.get("latency_ms", 0),
     }
 
@@ -167,4 +167,4 @@ def load_model(db=Depends(get_db), user=Depends(get_current_user)):
     from app.ai.inference import get_engine
     engine = get_engine()
     ok = engine._ensure_loaded()
-    return {"status": "loaded" if ok else "error", "model": "sovereign_gpt"}
+    return {"status": "loaded" if ok else "error", "model": "quantive_ai"}

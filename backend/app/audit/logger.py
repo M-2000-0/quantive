@@ -3,8 +3,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-AUDIT_BASE_DIR = Path(__file__).parent.parent / "logs" / "audit"
-AUDIT_BASE_DIR.mkdir(parents=True, exist_ok=True)
+import os
+_base_audit = Path(os.environ.get("AUDIT_DIR", "/tmp/audit")) if os.getenv("VERCEL") or os.getenv("VERCEL_ENV") else Path(__file__).parent.parent / "logs" / "audit"
+try:
+    _base_audit.mkdir(parents=True, exist_ok=True)
+    AUDIT_BASE_DIR = _base_audit
+except OSError:
+    AUDIT_BASE_DIR = Path("/tmp/audit")
+    AUDIT_BASE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class AuditLogger:

@@ -45,7 +45,7 @@ try:
     from app.ai.inference import get_engine
     engine = get_engine()
     ok = engine._ensure_loaded()
-    checks.append(("AI Model", ok, "SovereignGPT loaded" if ok else "Not found"))
+    checks.append(("AI Model", ok, "QuantiveAI loaded" if ok else "Not found"))
 except Exception as e:
     checks.append(("AI Model", False, str(e)))
 

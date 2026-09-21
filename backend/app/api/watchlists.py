@@ -1,4 +1,5 @@
 """Watchlists API — CRUD for monitoring watchlists."""
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -35,7 +36,7 @@ class WatchlistResponse(BaseModel):
     description: str
     is_default: bool
     item_count: int = 0
-    created_at: str
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -47,7 +48,7 @@ class WatchlistItemResponse(BaseModel):
     resource_id: str
     alert_threshold: Optional[dict]
     notes: str
-    created_at: str
+    created_at: datetime
 
     class Config:
         from_attributes = True

@@ -156,17 +156,19 @@ def verify_mfa(
         return {"verified": True, "method": "totp"}
 
     # Try backup codes
-    code_hashes = json.loads(mfa_config.backup_code_hashes)
-    for i, stored_hash in enumerate(code_hashes):
-        if stored_hash and verify_backup_code(stored_hash, data.code):
-            # Remove used backup code
-            code_hashes[i] = None
-            mfa_config.backup_code_hashes = json.dumps(code_hashes)
-            from datetime import datetime, timezone
-            mfa_config.last_used_at = datetime.now(timezone.utc)
-            db.commit()
-            log_audit_event(db, user, "mfa.verified", "user", user.id, metadata={"method": "backup_code"})
-            return {"verified": True, "method": "backup_code"}
+    try:
+        code_hashes = json.loads(mfa_config.backup_code_hashes) if mfa_config.backup_code_hashes else []
+    except (json.JSONDecodeError, TypeError):
+        code_hashes = []
+    idx = verify_backup_code(data.code, code_hashes)
+    if idx is not None:
+        code_hashes[idx] = None
+        mfa_config.backup_code_hashes = json.dumps(code_hashes)
+        from datetime import datetime, timezone
+        mfa_config.last_used_at = datetime.now(timezone.utc)
+        db.commit()
+        log_audit_event(db, user, "mfa.verified", "user", user.id, metadata={"method": "backup_code"})
+        return {"verified": True, "method": "backup_code"}
 
     log_audit_event(db, user, "mfa.verification_failed", "user", user.id)
     raise HTTPException(status_code=400, detail="Invalid code.")
@@ -179,7 +181,11 @@ def mfa_status(user: User = Depends(get_current_user), db: Session = Depends(get
     if not mfa_config:
         return MFAStatusResponse(enabled=False)
 
-    backup_codes_remaining = sum(1 for h in json.loads(mfa_config.backup_code_hashes) if h is not None)
+    try:
+        hashes = json.loads(mfa_config.backup_code_hashes) if mfa_config.backup_code_hashes else []
+    except (json.JSONDecodeError, TypeError):
+        hashes = []
+    backup_codes_remaining = sum(1 for h in hashes if h is not None)
     return MFAStatusResponse(
         enabled=mfa_config.enabled,
         backup_codes_remaining=backup_codes_remaining,

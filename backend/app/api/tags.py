@@ -1,4 +1,5 @@
 """Tags API — CRUD for tags and tagging resources."""
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -20,7 +21,7 @@ class TagResponse(BaseModel):
     id: str
     name: str
     color: str
-    created_at: str
+    created_at: datetime
 
     class Config:
         from_attributes = True
