@@ -31,7 +31,7 @@
       "destination": "/chat.html"
     },
     {
-      "source": "/(dashboard|login|register|government|business|portfolios|optimizations|settings|personal)(.*)",
+      "source": "/(dashboard|login|register|government|business|portfolios|optimizations|settings|personal|banking/app|banking/transfers|banking/onboarding)(.*)",
       "destination": "/app.html"
     },
     {

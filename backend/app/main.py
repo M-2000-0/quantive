@@ -39,7 +39,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 PUBLIC_PATHS = {
     "/", "/login", "/register", "/forgot-password", "/reset-password",
     "/landing", "/pricing", "/demo", "/logout",
-    "/qubo", "/terms", "/government", "/business",
+    "/qubo", "/terms", "/government", "/business", "/banking",
 }
 PUBLIC_PREFIXES = ("/static", "/api/", "/docs", "/redoc")
 
@@ -269,6 +269,58 @@ async def lifespan(app: FastAPI):
         print("[OK] Quantive Personal tables ready (separate DB)")
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not create Personal tables: %s", e)
+
+    # ── Auto-seed demo user if missing ──────────────────────────────────
+    try:
+        from app.database import SessionLocal
+        from app.models import User, Organization
+        from app.security import hash_password
+        import secrets as _secrets
+        from datetime import datetime, timezone, timedelta
+
+        db = SessionLocal()
+        try:
+            pat = db.query(User).filter(User.email == "patricio@quantive.com").first()
+            if not pat:
+                org = Organization(name="Patricio's Organization")
+                db.add(org)
+                db.flush()
+                user = User(
+                    email="patricio@quantive.com",
+                    password_hash=hash_password("QuantumComp"),
+                    name="Patricio",
+                    role="admin",
+                    is_active=True,
+                    email_verified=True,
+                    org_id=org.id,
+                )
+                db.add(user)
+                db.flush()
+                now = datetime.now(timezone.utc)
+                from app.models.billing import SubscriptionRow
+                sub = SubscriptionRow(
+                    id=_secrets.token_urlsafe(16),
+                    org_id=org.id,
+                    user_id=user.id,
+                    tier="enterprise",
+                    billing_cycle="yearly",
+                    stripe_customer_id="",
+                    stripe_subscription_id="",
+                    status="active",
+                    current_period_start=now.isoformat(),
+                    current_period_end=(now + timedelta(days=365)).isoformat(),
+                    created_at=now.isoformat(),
+                    updated_at=now.isoformat(),
+                )
+                db.add(sub)
+                db.commit()
+                print("[OK] Demo user patricio@quantive.com seeded")
+            else:
+                print("[OK] Demo user patricio@quantive.com already exists")
+        finally:
+            db.close()
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Demo user seed skipped: %s", e)
 
     yield
 
