@@ -83,6 +83,11 @@ const PersonalIntelligence = lazy(() => import('./personal/pages/IntelligencePag
 const PersonalReports = lazy(() => import('./personal/pages/ReportsPage'));
 const PersonalPricing = lazy(() => import('./personal/pages/PricingPage'));
 const PersonalGov = lazy(() => import('./personal/pages/GovInsightsPage'));
+const PersonalCompliance = lazy(() => import('./personal/pages/CompliancePage'));
+const PersonalRecommendations = lazy(() => import('./personal/pages/RecommendationsPage'));
+const PersonalProjection = lazy(() => import('./personal/pages/ProjectionPage'));
+const PersonalConnections = lazy(() => import('./personal/pages/ConnectionsPage'));
+const PersonalTransactions = lazy(() => import('./personal/pages/TransactionsPage'));
 
 function isAuthenticated(): boolean {
   try {
@@ -674,6 +679,11 @@ export default function App() {
         <Route path="documents" element={<PageWrapper><PersonalDocuments /></PageWrapper>} />
         <Route path="intelligence" element={<PageWrapper><PersonalIntelligence /></PageWrapper>} />
         <Route path="gov" element={<PageWrapper><PersonalGov /></PageWrapper>} />
+        <Route path="compliance" element={<PageWrapper><PersonalCompliance /></PageWrapper>} />
+        <Route path="recommendations" element={<PageWrapper><PersonalRecommendations /></PageWrapper>} />
+        <Route path="projection" element={<PageWrapper><PersonalProjection /></PageWrapper>} />
+        <Route path="connections" element={<PageWrapper><PersonalConnections /></PageWrapper>} />
+        <Route path="transactions" element={<PageWrapper><PersonalTransactions /></PageWrapper>} />
         <Route path="reports" element={<PageWrapper><PersonalReports /></PageWrapper>} />
         <Route path="pricing" element={<PageWrapper><PersonalPricing /></PageWrapper>} />
       </Route>

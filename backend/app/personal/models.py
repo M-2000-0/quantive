@@ -147,3 +147,118 @@ class PersonalAudit(PersonalBase):
     entity_id: Mapped[str] = mapped_column(String(64), default="")
     meta: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class FinancialConnection(PersonalBase):
+    """Connected financial account (bank, brokerage, payroll, etc.)."""
+
+    __tablename__ = "personal_financial_connections"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("fc"))
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), default="plaid")  # plaid, manual, csv
+    institution_name: Mapped[str] = mapped_column(String(128), default="")
+    institution_id: Mapped[str] = mapped_column(String(64), default="")
+    account_type: Mapped[str] = mapped_column(String(32), default="checking")  # checking, savings, credit, investment, loan, payroll
+    account_name: Mapped[str] = mapped_column(String(128), default="")
+    account_mask: Mapped[str] = mapped_column(String(16), default="")  # last 4 digits
+    access_token: Mapped[str] = mapped_column(Text, default="")  # encrypted
+    item_id: Mapped[str] = mapped_column(String(128), default="")  # Plaid item_id
+    status: Mapped[str] = mapped_column(String(24), default="active")  # active, disconnected, error
+    balance_current: Mapped[int] = mapped_column(default=0)  # cents
+    balance_available: Mapped[int] = mapped_column(default=0)  # cents
+    last_sync: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class Transaction(PersonalBase):
+    """Financial transaction with tax tagging."""
+
+    __tablename__ = "personal_transactions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("txn"))
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    connection_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    plaid_txn_id: Mapped[str] = mapped_column(String(128), default="")  # Plaid transaction ID
+    date: Mapped[str] = mapped_column(String(16), nullable=False)  # YYYY-MM-DD
+    name: Mapped[str] = mapped_column(String(256), default="")
+    merchant_name: Mapped[str] = mapped_column(String(256), default="")
+    amount: Mapped[int] = mapped_column(default=0)  # cents, negative = outflow
+    category: Mapped[str] = mapped_column(String(64), default="uncategorized")
+    tax_tag: Mapped[str] = mapped_column(String(48), default="review")  # deductible, taxable-revenue, tax-paid, rental, etc.
+    confidence: Mapped[str] = mapped_column(String(32), default="auto")  # auto, manual, verified
+    notes: Mapped[str] = mapped_column(Text, default="")
+    excluded: Mapped[bool] = mapped_column(Boolean, default=False)  # user excluded from tax analysis
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+Index("ix_personal_txn_user_date", Transaction.user_id, Transaction.date)
+
+
+class ComplianceAlert(PersonalBase):
+    """Compliance monitoring alerts."""
+
+    __tablename__ = "personal_compliance_alerts"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("ca"))
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    alert_type: Mapped[str] = mapped_column(String(48), nullable=False)  # withholding, estimated_tax, document_missing, state_filing, audit_risk
+    severity: Mapped[str] = mapped_column(String(16), default="info")  # info, warning, critical
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+    amount: Mapped[int] = mapped_column(default=0)  # cents, relevant amount
+    due_date: Mapped[str] = mapped_column(String(16), default="")
+    action_url: Mapped[str] = mapped_column(String(200), default="")
+    acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class TaxProjection(PersonalBase):
+    """Tax projection snapshots."""
+
+    __tablename__ = "personal_tax_projections"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("tp"))
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    tax_year: Mapped[int] = mapped_column(default=2026)
+    ytd_income: Mapped[int] = mapped_column(default=0)  # cents
+    ytd_withholding: Mapped[int] = mapped_column(default=0)  # cents
+    projected_total_income: Mapped[int] = mapped_column(default=0)  # cents
+    projected_total_tax: Mapped[int] = mapped_column(default=0)  # cents
+    estimated_quarterly: Mapped[int] = mapped_column(default=0)  # cents
+    bracket: Mapped[str] = mapped_column(String(16), default="")  # e.g. "22%"
+    marginal_rate: Mapped[float] = mapped_column(default=0.0)
+    effective_rate: Mapped[float] = mapped_column(default=0.0)
+    standard_deduction: Mapped[int] = mapped_column(default=0)  # cents
+    itemized_deductions: Mapped[int] = mapped_column(default=0)  # cents
+    use_standard: Mapped[bool] = mapped_column(default=True)
+    detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Recommendation(PersonalBase):
+    """Personalized tax-saving recommendations."""
+
+    __tablename__ = "personal_recommendations"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("rec"))
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    tax_year: Mapped[int] = mapped_column(default=2026)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str] = mapped_column(String(64), default="")
+    priority: Mapped[str] = mapped_column(String(16), default="medium")  # high, medium, low
+    type: Mapped[str] = mapped_column(String(32), default="immediate")  # immediate, behavioral, year_end, strategic, compliance
+    why: Mapped[str] = mapped_column(Text, default="")
+    estimated_savings_min: Mapped[int] = mapped_column(default=0)  # cents
+    estimated_savings_max: Mapped[int] = mapped_column(default=0)  # cents
+    confidence: Mapped[str] = mapped_column(String(16), default="medium")  # high, medium, low
+    irc_section: Mapped[str] = mapped_column(String(64), default="")
+    action_steps: Mapped[list] = mapped_column(JSON, default=list)
+    risks: Mapped[list] = mapped_column(JSON, default=list)
+    deadline: Mapped[str] = mapped_column(String(16), default="")
+    status: Mapped[str] = mapped_column(String(24), default="new")  # new, viewed, accepted, implemented, dismissed
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)

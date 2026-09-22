@@ -551,3 +551,253 @@ def personal_billing(user=Depends(get_current_user)):
             "plans": plans,
             "current_limits": current_plan.get("limits", {}) if current_plan else {},
             "gov_access": bool((current_plan.get("limits", {}) or {}).get("personal_gov_access"))}
+
+
+# ── Financial Connections ─────────────────────────────────────────────
+
+@router.get("/connections")
+def list_connections(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """List all connected financial accounts."""
+    from app.personal.plaid_gateway import get_connections
+    uid = _uid(user)
+    return {"connections": get_connections(uid, db)}
+
+
+@router.post("/connections/plaid/link-token")
+def create_plaid_link_token(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Create a Plaid Link token for connecting bank accounts."""
+    from app.personal.plaid_gateway import create_link_token
+    uid = _uid(user)
+    return create_link_token(uid)
+
+
+@router.post("/connections/plaid/exchange")
+def exchange_plaid_token(payload: dict, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Exchange Plaid public token for access token."""
+    from app.personal.plaid_gateway import exchange_public_token
+    uid = _uid(user)
+    public_token = payload.get("public_token", "")
+    if not public_token:
+        raise HTTPException(400, "public_token required")
+    result = exchange_public_token(uid, public_token, db)
+    _audit(db, uid, "connection.plaid_exchange", "connection", result.get("connection_id", ""), {"demo": result.get("demo_mode", False)})
+    return result
+
+
+@router.post("/connections/{connection_id}/sync")
+def sync_connection(connection_id: str, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Sync transactions from a connected account."""
+    from app.personal.plaid_gateway import sync_transactions
+    result = sync_transactions(connection_id, db)
+    if "error" in result:
+        raise HTTPException(404, result["error"])
+    return result
+
+
+@router.delete("/connections/{connection_id}")
+def disconnect_account(connection_id: str, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Disconnect a financial account."""
+    from app.personal.plaid_gateway import disconnect_connection
+    uid = _uid(user)
+    if not disconnect_connection(connection_id, db):
+        raise HTTPException(404, "Connection not found")
+    _audit(db, uid, "connection.disconnect", "connection", connection_id, {})
+    return {"ok": True}
+
+
+# ── Transactions ─────────────────────────────────────────────────────
+
+@router.get("/transactions")
+def list_transactions(user=Depends(get_current_user), db: Session = Depends(get_personal_db),
+                      limit: int = 50, offset: int = 0, category: str = "", tax_tag: str = ""):
+    """List transactions with optional filtering."""
+    from app.personal.models import Transaction as TxnModel
+    uid = _uid(user)
+    q = db.query(TxnModel).filter(TxnModel.user_id == uid)
+    if category:
+        q = q.filter(TxnModel.category == category)
+    if tax_tag:
+        q = q.filter(TxnModel.tax_tag == tax_tag)
+    total = q.count()
+    txns = q.order_by(TxnModel.date.desc()).offset(offset).limit(limit).all()
+    return {
+        "transactions": [
+            {
+                "id": t.id, "date": t.date, "name": t.name, "merchant_name": t.merchant_name,
+                "amount": t.amount, "category": t.category, "tax_tag": t.tax_tag,
+                "confidence": t.confidence, "notes": t.notes, "excluded": t.excluded,
+                "connection_id": t.connection_id,
+            }
+            for t in txns
+        ],
+        "total": total, "limit": limit, "offset": offset,
+    }
+
+
+@router.put("/transactions/{txn_id}/categorize")
+def categorize_transaction(txn_id: str, payload: dict, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Manually categorize a transaction."""
+    from app.personal.models import Transaction as TxnModel
+    uid = _uid(user)
+    txn = db.query(TxnModel).filter(TxnModel.id == txn_id, TxnModel.user_id == uid).first()
+    if not txn:
+        raise HTTPException(404, "Transaction not found")
+    if "tax_tag" in payload:
+        txn.tax_tag = payload["tax_tag"]
+        txn.confidence = "manual"
+    if "category" in payload:
+        txn.category = payload["category"]
+    if "notes" in payload:
+        txn.notes = payload["notes"]
+    if "excluded" in payload:
+        txn.excluded = payload["excluded"]
+    db.commit()
+    return {"ok": True, "tax_tag": txn.tax_tag, "category": txn.category}
+
+
+@router.get("/transactions/summary")
+def transaction_summary(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get transaction summary by category and tax tag."""
+    from app.personal.models import Transaction as TxnModel
+    from sqlalchemy import func
+    uid = _uid(user)
+    year_start = f"{datetime.now(timezone.utc).year}-01-01"
+
+    by_category = db.query(
+        TxnModel.category, func.count(TxnModel.id), func.sum(TxnModel.amount)
+    ).filter(
+        TxnModel.user_id == uid, TxnModel.date >= year_start, TxnModel.excluded == False
+    ).group_by(TxnModel.category).all()
+
+    by_tax_tag = db.query(
+        TxnModel.tax_tag, func.count(TxnModel.id), func.sum(TxnModel.amount)
+    ).filter(
+        TxnModel.user_id == uid, TxnModel.date >= year_start, TxnModel.excluded == False
+    ).group_by(TxnModel.tax_tag).all()
+
+    return {
+        "by_category": [{"category": c, "count": n, "total": t or 0} for c, n, t in by_category],
+        "by_tax_tag": [{"tax_tag": t, "count": n, "total": s or 0} for t, n, s in by_tax_tag],
+    }
+
+
+# ── Compliance Monitoring ────────────────────────────────────────────
+
+@router.get("/compliance/status")
+def compliance_status(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get compliance monitoring status."""
+    from app.personal.compliance import get_compliance_status
+    uid = _uid(user)
+    return get_compliance_status(uid, db)
+
+
+@router.get("/compliance/withholding")
+def compliance_withholding(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Analyze withholding adequacy."""
+    from app.personal.compliance import analyze_withholding
+    uid = _uid(user)
+    return analyze_withholding(uid, db)
+
+
+@router.post("/compliance/alerts/{alert_id}/acknowledge")
+def acknowledge_alert(alert_id: str, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Acknowledge a compliance alert."""
+    from app.personal.models import ComplianceAlert
+    uid = _uid(user)
+    alert = db.query(ComplianceAlert).filter(
+        ComplianceAlert.id == alert_id, ComplianceAlert.user_id == uid
+    ).first()
+    if not alert:
+        raise HTTPException(404, "Alert not found")
+    alert.acknowledged = True
+    db.commit()
+    return {"ok": True}
+
+
+# ── Tax Projection ───────────────────────────────────────────────────
+
+@router.get("/projection")
+def tax_projection(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get current tax projection."""
+    from app.personal.tax_projection import project_annual
+    uid = _uid(user)
+    return project_annual(uid, db)
+
+
+@router.get("/projection/ytd")
+def projection_ytd(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get year-to-date income and withholding."""
+    from app.personal.tax_projection import get_ytd_data
+    uid = _uid(user)
+    return get_ytd_data(uid, db)
+
+
+@router.post("/projection/what-if")
+def projection_what_if(payload: dict, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Run what-if tax scenarios."""
+    from app.personal.tax_projection import what_if
+    uid = _uid(user)
+    scenario = {
+        "additional_income": payload.get("additional_income", 0),
+        "additional_deductions": payload.get("additional_deductions", 0),
+        "roth_conversion": payload.get("roth_conversion", 0),
+        "capital_gain": payload.get("capital_gain", 0),
+        "capital_loss": payload.get("capital_loss", 0),
+    }
+    return what_if(uid, db, scenario)
+
+
+@router.post("/projection/save")
+def save_projection(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Save current projection snapshot."""
+    from app.personal.tax_projection import save_projection
+    uid = _uid(user)
+    tp = save_projection(uid, db)
+    return {"id": tp.id, "tax_year": tp.tax_year, "projected_total_tax": tp.projected_total_tax}
+
+
+# ── Recommendations ──────────────────────────────────────────────────
+
+@router.get("/recommendations")
+def list_recommendations(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get personalized tax recommendations."""
+    from app.personal.recommendation_engine import generate_recommendations
+    from app.personal.models import Recommendation as RecModel
+    uid = _uid(user)
+    # Check if recommendations exist, generate if not
+    existing = db.query(RecModel).filter(
+        RecModel.user_id == uid, RecModel.status == "new"
+    ).count()
+    if existing == 0:
+        recs = generate_recommendations(uid, db)
+    else:
+        recs = db.query(RecModel).filter(
+            RecModel.user_id == uid, RecModel.status != "dismissed"
+        ).order_by(RecModel.priority).all()
+    return {
+        "recommendations": [
+            {
+                "id": r.id, "title": r.title, "category": r.category,
+                "priority": r.priority, "type": r.type, "why": r.why,
+                "estimated_savings_min": r.estimated_savings_min,
+                "estimated_savings_max": r.estimated_savings_max,
+                "confidence": r.confidence, "irc_section": r.irc_section,
+                "action_steps": r.action_steps, "risks": r.risks,
+                "deadline": r.deadline, "status": r.status,
+            }
+            for r in recs
+        ],
+        "total": len(recs),
+    }
+
+
+@router.post("/recommendations/{rec_id}/status")
+def update_recommendation(rec_id: str, payload: dict, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Update recommendation status (viewed, accepted, implemented, dismissed)."""
+    from app.personal.recommendation_engine import update_recommendation_status
+    uid = _uid(user)
+    status = payload.get("status", "viewed")
+    rec = update_recommendation_status(rec_id, status, uid, db)
+    if not rec:
+        raise HTTPException(404, "Recommendation not found")
+    return {"ok": True, "status": rec.status}

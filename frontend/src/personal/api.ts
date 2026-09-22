@@ -95,4 +95,47 @@ export const personalApi = {
       method: 'POST', body: JSON.stringify({ opt_in, age_bracket }),
     }),
   quboTrends: () => req<{ is_live: boolean; trends: { segment: string; signal: string; direction: string }[]; contributors_total: number; your_bracket: string | null; opt_in: boolean }>('/personal/qubo/trends'),
+
+  // ── Financial Connections ──────────────────────────────────────────
+  connections: () => req<{ connections: any[] }>('/personal/connections'),
+  createLinkToken: () => req<{ link_token: string; expires_at: number; demo_mode: boolean }>('/personal/connections/plaid/link-token', { method: 'POST', body: '{}' }),
+  exchangeToken: (public_token: string) =>
+    req<any>('/personal/connections/plaid/exchange', { method: 'POST', body: JSON.stringify({ public_token }) }),
+  syncConnection: (id: string) =>
+    req<any>(`/personal/connections/${id}/sync`, { method: 'POST', body: '{}' }),
+  disconnectConnection: (id: string) =>
+    req(`/personal/connections/${id}`, { method: 'DELETE' }),
+
+  // ── Transactions ──────────────────────────────────────────────────
+  transactions: (params?: { limit?: number; offset?: number; category?: string; tax_tag?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.offset) qs.set('offset', String(params.offset));
+    if (params?.category) qs.set('category', params.category);
+    if (params?.tax_tag) qs.set('tax_tag', params.tax_tag);
+    const q = qs.toString();
+    return req<{ transactions: any[]; total: number; limit: number; offset: number }>(`/personal/transactions${q ? '?' + q : ''}`);
+  },
+  categorizeTransaction: (id: string, data: { tax_tag?: string; category?: string; notes?: string; excluded?: boolean }) =>
+    req<any>(`/personal/transactions/${id}/categorize`, { method: 'PUT', body: JSON.stringify(data) }),
+  transactionSummary: () => req<{ by_category: any[]; by_tax_tag: any[] }>('/personal/transactions/summary'),
+
+  // ── Compliance ────────────────────────────────────────────────────
+  complianceStatus: () => req<{ score: number; analysis: any; alerts: any[]; uncategorized_txns: number }>('/personal/compliance/status'),
+  complianceWithholding: () => req<any>('/personal/compliance/withholding'),
+  acknowledgeAlert: (id: string) =>
+    req(`/personal/compliance/alerts/${id}/acknowledge`, { method: 'POST', body: '{}' }),
+
+  // ── Tax Projection ────────────────────────────────────────────────
+  projection: () => req<any>('/personal/projection'),
+  projectionYtd: () => req<any>('/personal/projection/ytd'),
+  whatIf: (scenario: { additional_income?: number; additional_deductions?: number; roth_conversion?: number; capital_gain?: number; capital_loss?: number }) =>
+    req<any>('/personal/projection/what-if', { method: 'POST', body: JSON.stringify(scenario) }),
+  saveProjection: () =>
+    req<any>('/personal/projection/save', { method: 'POST', body: '{}' }),
+
+  // ── Recommendations ───────────────────────────────────────────────
+  recommendations: () => req<{ recommendations: any[]; total: number }>('/personal/recommendations'),
+  updateRecommendation: (id: string, status: string) =>
+    req<any>(`/personal/recommendations/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
 };
