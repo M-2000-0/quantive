@@ -22,7 +22,7 @@ export default function CaseStudyGeneratorPage() {
     setLoading(true);
     try {
       const data = await api.pilotProgram.list();
-      setPilots((data.programs || []).filter(p => p.status === 'active'));
+      setPilots((data.pilots || []).filter((p: any) => p.status === 'active'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load pilots');
     } finally {
@@ -120,9 +120,9 @@ export default function CaseStudyGeneratorPage() {
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">🏛️</span>
                         <div className="flex-1">
-                          <div className="font-medium text-slate-900">{pilot.name}</div>
+                          <div className="font-medium text-slate-900">{pilot.government_entity}</div>
                           <div className="text-sm text-slate-500">
-                            {pilot.participants} participants
+                            {pilot.country_name}
                           </div>
                           <div className="text-xs text-slate-400">
                             {pilot.start_date}
@@ -149,7 +149,7 @@ export default function CaseStudyGeneratorPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Participants</span>
                     <span className="font-bold text-emerald-600">
-                      {selectedPilot.participants}
+                      {selectedPilot.conversion_status}
                     </span>
                   </div>
                   <div className="flex justify-between">

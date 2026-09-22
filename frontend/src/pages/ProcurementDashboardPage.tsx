@@ -54,6 +54,7 @@ export default function ProcurementDashboardPage() {
         total_programs: pilotData.summary.total_pilots || 0,
         active: pilotData.summary.active_pilots || 0,
         completed: pilotData.summary.completed_pilots || 0,
+        metrics: {},
       });
       if (transparencyData) setTransparency({
         total_countries: transparencyData.total_countries || 0,

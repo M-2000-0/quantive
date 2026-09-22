@@ -24,7 +24,7 @@ export default function SLAMonitoringPage() {
       ]);
 
       if (complianceData) setCompliance(complianceData);
-      if (breachesData) setBreaches(breachesData?.breaches || []);
+      if (breachesData) setBreaches(Array.isArray(breachesData) ? breachesData : (breachesData?.breaches || []));
       if (creditsData) setCredits(creditsData);
       if (docData) setDocumentation(docData);
     } catch (e) {
