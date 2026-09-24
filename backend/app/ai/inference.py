@@ -227,16 +227,30 @@ class InferenceEngine:
         return {"text": "I can provide information from my knowledge base. Please ask a specific question about sovereign debt, bonds, or fiscal policy.", "model": "fallback"}
 
     def query_with_rag(self, question: str, max_new_tokens: int = 200, temperature: float = 0.7) -> Dict[str, Any]:
-        """RAG query: retrieve context, then generate answer.
-        
-        Primary: QuantiveAI with RAG context.
-        Secondary: RAG extraction (coherent, factually grounded).
-        Tertiary: TinyLlama with RAG context.
+        """RAG query: retrieve context, then construct the answer.
+
+        Primary: coherent RAG extraction — grammatical, factually grounded
+        sentences drawn from the user's knowledge base, with citations.
+        Fallback: QuantiveAI fine-tuned model (kept for offline/no-KB cases).
         """
-        sources = self._retriever.retrieve(question, top_k=3)
+        sources = self._retriever.retrieve(question, top_k=5)
         context = "\n".join([s["text"][:300] for s in sources[:3]])
 
-        # Try QuantiveAI with RAG context first
+        # Grounded extraction first: it cites real knowledge-base content.
+        try:
+            from app.ai.coherent import get_responder
+            if self._coherent is None:
+                self._coherent = get_responder()
+            result = self._coherent.respond(question, top_k=5, max_sentences=6)
+            if result.get("text", "").strip():
+                result.setdefault("model", "rag_grounded")
+                result["sources"] = sources
+                result["query"] = question
+                return result
+        except Exception:
+            pass
+
+        # Fallback: fine-tuned model with RAG context
         prompt = f"Context: {context}\n\nQuestion: {question}\nAnswer:"
         result = self.generate(prompt, max_new_tokens=max_new_tokens, temperature=temperature)
         if result.get("model") == "quantive_ai":

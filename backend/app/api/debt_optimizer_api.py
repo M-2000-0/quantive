@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 from app.billing import check_limit, record_usage
 from app.models import User
 from app.security import get_current_user
-from app.optimization.qubo_formulator import formulate_qubo, decode_solution, evaluate_cost, DebtParameters
+from app.optimization.qubo_formulator import formulate_qubo, decode_solution, evaluate_cost, DebtParameters, N_VARIABLES
 from app.optimization.monte_carlo import run_monte_carlo, PortfolioInput, SimulationConfig
 from app.optimization.policy_engine import generate_policy_brief
 from app.market_data.covariance import compute_yield_covariance, compute_cost_of_service, YieldObservation
@@ -71,7 +71,6 @@ class QuickOptimizationRequest(BaseModel):
 @router.get("/status")
 def optimization_status():
     """Health check for the optimization engine."""
-    from app.optimization.qubo_formulator import N_VARIABLES
     return {
         "status": "operational",
         "engine": "hybrid_quantum_classical",
@@ -184,14 +183,34 @@ def _execute_optimization(request: OptimizationRequest) -> dict:
             use_noise_mitigation=request.use_noise_mitigation,
         )
 
-        # Decode solution into actionable allocations
-        # Generate binary solution from quantum weights
-        weights = quantum_result.best_parameters if hasattr(quantum_result, 'best_parameters') and quantum_result.best_parameters else []
-        if not weights:
-            # Fallback: derive from cost function evaluation
-            n = len(request.instruments) if request.instruments else 6
-            weights = [1.0 / n] * n
-        x_binary = [1 if w > 0.1 else 0 for w in weights]
+        # Decode solution into actionable allocations.
+        # The QUBO has one binary variable per (maturity, rate-type) pair.
+        # Derive the binary vector from the solver's solution weights when the
+        # dimensionality matches; otherwise fall back to a diversified
+        # selection (fixed-rate across the mid-curve buckets) so decoding
+        # never indexes outside the QUBO's variable space.
+        n = qubo.n_variables
+        weights = []
+        if hasattr(quantum_result, "best_parameters") and quantum_result.best_parameters:
+            weights = list(quantum_result.best_parameters)
+        if len(weights) != n:
+            solution_dict = quantum_result.solution if isinstance(quantum_result.solution, dict) else {}
+            weights = solution_dict.get("weights", [])
+        if len(weights) != n:
+            # Diversified deterministic default: pick fixed+floating across
+            # the 5Y/10Y/30Y buckets (indices of those maturities in the map).
+            x_binary = [0] * n
+            n_maturities = N_VARIABLES // 3 if N_VARIABLES % 3 == 0 else 9
+            for mat_idx in (3, 5, 8):  # 5Y, 10Y, 30Y in MATURITY_BUCKETS
+                for rt_idx in (0, 1):  # fixed, floating
+                    k = mat_idx * 3 + rt_idx
+                    if k < n:
+                        x_binary[k] = 1
+        else:
+            max_w = max(weights) or 1.0
+            x_binary = [1 if (w / max_w) > 0.5 else 0 for w in weights]
+            if sum(x_binary) == 0:
+                x_binary[0] = 1
         decoded = decode_solution(x_binary, qubo, request.total_target_issuance)
 
         optimization_output = {
