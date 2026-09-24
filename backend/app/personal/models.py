@@ -262,3 +262,58 @@ class Recommendation(PersonalBase):
     status: Mapped[str] = mapped_column(String(24), default="new")  # new, viewed, accepted, implemented, dismissed
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class RecommendationFeedback(PersonalBase):
+    """User feedback on recommendations for learning and outcome tracking."""
+
+    __tablename__ = "personal_recommendation_feedback"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("fb"))
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    recommendation_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    feedback_type: Mapped[str] = mapped_column(String(32), nullable=False)  # thumbs_up, thumbs_down, implemented, dismissed
+    comment: Mapped[str] = mapped_column(Text, default="")
+    actual_savings: Mapped[int] = mapped_column(default=0)  # cents, if user reports actual outcome
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class NotificationPreference(PersonalBase):
+    """User notification preferences."""
+
+    __tablename__ = "personal_notification_preferences"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("np"))
+    user_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    email_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    push_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    estimated_tax_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    deduction_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    year_end_sprint: Mapped[bool] = mapped_column(Boolean, default=True)
+    withholding_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    filing_deadline_alerts: Mapped[bool] = mapped_column(Boolean, default=True)
+    quiet_hours_start: Mapped[str] = mapped_column(String(8), default="22:00")
+    quiet_hours_end: Mapped[str] = mapped_column(String(8), default="08:00")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class SprintAction(PersonalBase):
+    """Year-end Tax Sprint action tracking."""
+
+    __tablename__ = "personal_sprint_actions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: _id("sp"))
+    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    tax_year: Mapped[int] = mapped_column(default=2026)
+    action_id: Mapped[str] = mapped_column(String(64), nullable=False)  # e.g. "roth_conversion", "hsa_top_up"
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str] = mapped_column(String(64), default="")
+    deadline: Mapped[str] = mapped_column(String(16), default="")
+    estimated_savings: Mapped[int] = mapped_column(default=0)  # cents
+    status: Mapped[str] = mapped_column(String(24), default="available")  # available, started, completed, expired
+    priority: Mapped[str] = mapped_column(String(16), default="medium")
+    irc_section: Mapped[str] = mapped_column(String(64), default="")
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)

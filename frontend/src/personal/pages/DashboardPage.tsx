@@ -1,228 +1,269 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { personalApi, type PersonalScore, type PersonalOpp, type PersonalTask } from '../api';
-import { Shield, Lightbulb, TrendingUp, AlertTriangle, ArrowRight, Zap } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+  ArrowUpRight, Calendar, AlertCircle, CheckCircle, Mail, Search, Shield, Info,
+  Wallet, BarChart2, TrendingUp
+} from 'lucide-react';
+import { api } from '../api';
+import type { DashboardSummary } from '../types';
 
-export default function PersonalDashboard() {
-  const [score, setScore] = useState<PersonalScore | null>(null);
-  const [opps, setOpps] = useState<PersonalOpp[]>([]);
-  const [tasks, setTasks] = useState<PersonalTask[]>([]);
-  const [compliance, setCompliance] = useState<any>(null);
-  const [recs, setRecs] = useState<any>(null);
-  const [projection, setProjection] = useState<any>(null);
-  const [err, setErr] = useState('');
+function formatCurrency(value: number): string {
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+  if (value >= 1e3) return `$${(value / 1e3).toFixed(0)}K`;
+  return `$${value.toFixed(0)}`;
+}
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [s, o, t] = await Promise.all([
-          personalApi.score(), personalApi.opportunities(), personalApi.tasks(),
-        ]);
-        setScore(s); setOpps(o); setTasks(t.filter((x) => x.status === 'open'));
-        // Load new data in parallel
-        Promise.all([
-          personalApi.complianceStatus().catch(() => null),
-          personalApi.recommendations().catch(() => null),
-          personalApi.projection().catch(() => null),
-        ]).then(([c, r, p]) => {
-          setCompliance(c); setRecs(r); setProjection(p);
-        });
-      } catch (e: any) { setErr(e.message || 'Failed to load'); }
-    })();
+export default function DashboardPage() {
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [deductionSummary, setDeductionSummary] = useState<{
+    total_deductions: number;
+    estimated_savings: number;
+    standard_vs_itemized: string;
+    deductions_found: number;
+    next_actions: { title: string; amount: number; priority: string }[];
+  } | null>(null);
+  const [sprintStatus, setSprintStatus] = useState<{
+    days_remaining: number;
+    total_potential_savings: number;
+    actions_taken: number;
+    actions_remaining: number;
+    actions: any[];
+    urgency_message: string;
+  } | null>(null);
+  const [notificationsCount, setNotificationsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const searchQuery = (params.get('q') ?? '').trim().toLowerCase();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const summaryData = await api.dashboard.summary();
+      const dedData = await api.deductions.summary();
+      const sprintData = await api.sprint.status();
+      const notifData = await api.notifications.summary();
+
+      setSummary(summaryData);
+      setDeductionSummary({
+        total_deductions: dedData.total_deductions || 0,
+        estimated_savings: dedData.estimated_savings || 0,
+        standard_vs_itemized: dedData.standard_vs_itemized || '—',
+        deductions_found: dedData.deductions_found?.length || 0,
+        next_actions: dedData.next_actions || [],
+      });
+
+      setSprintStatus({
+        days_remaining: sprintData.days_remaining,
+        total_potential_savings: sprintData.total_potential_savings,
+        actions_taken: sprintData.actions_taken,
+        actions_remaining: sprintData.actions_remaining,
+        actions: sprintData.actions,
+        urgency_message: sprintData.urgency_message,
+      });
+
+      setNotificationsCount(notifData.unread_count || 0);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (err) return <div className="qp-warn">{err}</div>;
-  if (!score) return <p className="qp-muted">Loading your tax intelligence…</p>;
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const starter = score.tier === 'personal_2k' || score.tier === 'none';
-  const oppCap = (score.limits || {}).personal_opportunities;
-  const docCap = (score.limits || {}).personal_documents;
+  // Format helpers
+  const formatNumber = (num: number): string => num.toLocaleString();
+
+  // Compute derived values early
+  const deductionActions = useMemo(() => {
+    return deductionSummary?.next_actions || [];
+  }, [deductionSummary]);
+
+  const sprintActions = useMemo(() => {
+    return sprintStatus?.actions || [];
+  }, [sprintStatus]);
+
+  // Urgency banner if tax sprint is active
+  const hasUrgency = sprintStatus && sprintStatus.days_remaining > 0 && sprintStatus.days_remaining <= 60;
+
+  // Dedction summary card HTML
+  const deductionCardContent = deductionSummary ? (
+    <p style={{ marginBottom: 8, fontSize: 13 }}>
+      <Info className="mr-1 size-3" /> Estimated savings: {formatCurrency(deductionSummary.estimated_savings)}
+    </p>
+    <p style={{ fontSize: 12, color: '#6b7280' }}>
+      Standard vs Itemized: {deductionSummary.standard_vs_itemized}
+    </p>
+    <p style={{ fontSize: 12, color: '#6b7280' }}>
+      {deductionSummary.deductions_found} deductions found from transactions
+    </p>
+  ) : (
+    <p style={{ marginBottom: 8, fontSize: 13, color: '#6b7280' }}>
+      Connect accounts to detect tax-saving opportunities
+    </p>
+  );
+
+  // Sprint progress card content HTML
+  const sprintCardContent = sprintStatus ? (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span>Completed:</span> {sprintStatus.actions_taken}
+        <span>Remaining:</span> {sprintStatus.actions_remaining}
+      </div>
+      {sprintStatus.urgency_message && (
+        <p style={{ color: '#dc2626', fontSize: 12, marginBottom: 8 }}>
+          {sprintStatus.urgency_message}
+        </div>
+      )}
+      {sprintActions.length > 0 && (
+        <p style={{ fontSize: 12, color: '#055957' }}>
+          <strong>Key moves:</strong> {sprintActions.slice(0, 3).map((a: any) => (
+            <span key={a.id} style={{ marginRight: 8 }}>
+              {a.title}: {a.estimated_savings > 0 ? formatCurrency(a.estimated_savings) : 'TBD'} — {a.days_left} days left
+            </span>
+          ))}…</p>
+      )}
+    </div>
+  ) : (
+    <p>November 1 — Year-end tax planning window open</p>
+  );
+
+  // Notifications badge
+  const notifBadge = notificationsCount > 0 ? (
+    <span style={{ marginLeft: 8, background: '#059669', color: 'white', borderRadius: 9999, padding: '2px 6', fontSize: 12 }}>
+      {notificationsCount}
+    </span>
+  ) : null;
+
+  // Format number with commas
+  const formatNumber = (num: number): string => num.toLocaleString();
+
+  // Compute derived values early
+  const deductionActionsList = useMemo(() => {
+    return deductionSummary?.next_actions || [];
+  }, [deductionSummary]);
+
+  const sprintActionsList = useMemo(() => {
+    return sprintStatus?.actions || [];
+  }, [sprintStatus]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', color: '#6b7280' }}>
+          <BarChart2 size={32} className="animate-spin" /> Loading dashboard…
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <p style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: '#dc2626' }}>Failed to load dashboard</p>
+          <p style={{ color: '#6b7280', marginBottom: 16 }}>{error}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Tax Intelligence Dashboard</h1>
-        <p className="text-zinc-400 mt-1">{score.message}</p>
-        <p className="text-zinc-500 text-sm mt-1">Plan: <strong>{score.tier}</strong>
-          {starter && <> · <Link to="/personal/pricing" className="text-blue-400 hover:text-blue-300"> Upgrade →</Link></>}
-        </p>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to="/personal" className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors">
-          <p className="text-zinc-400 text-sm">Intelligence Score</p>
-          <p className="text-white text-3xl font-bold">{score.score}</p>
-          <p className="text-zinc-500 text-xs">Completeness {score.completeness}%</p>
-        </Link>
-        <Link to="/personal/compliance" className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-blue-400" />
-            <p className="text-zinc-400 text-sm">Compliance</p>
-          </div>
-          <p className={`text-3xl font-bold ${compliance?.score >= 80 ? 'text-emerald-400' : compliance?.score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
-            {compliance?.score ?? '—'}
-          </p>
-          <p className="text-zinc-500 text-xs">{compliance?.alerts?.length ?? 0} alerts</p>
-        </Link>
-        <Link to="/personal/recommendations" className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors">
-          <div className="flex items-center gap-2 mb-1">
-            <Lightbulb className="w-4 h-4 text-amber-400" />
-            <p className="text-zinc-400 text-sm">Recommendations</p>
-          </div>
-          <p className="text-white text-3xl font-bold">{recs?.total ?? '—'}</p>
-          <p className="text-zinc-500 text-xs">Personalized actions</p>
-        </Link>
-        <Link to="/personal/projection" className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-purple-400" />
-            <p className="text-zinc-400 text-sm">Projected Tax</p>
-          </div>
-          <p className="text-white text-3xl font-bold">
-            {projection ? `$${(projection.total_tax / 100).toLocaleString()}` : '—'}
-          </p>
-          <p className="text-zinc-500 text-xs">{projection?.bracket || '2026 estimate'}</p>
-        </Link>
-      </div>
-
-      {/* Compliance Alerts */}
-      {compliance?.alerts?.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-400" />
-            Active Alerts ({compliance.alerts.length})
-          </h2>
-          <div className="space-y-2">
-            {compliance.alerts.slice(0, 3).map((alert: any) => (
-              <Link key={alert.id} to="/personal/compliance"
-                    className="block bg-zinc-900 rounded-lg border border-zinc-800 p-3 hover:border-zinc-700 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${
-                    alert.severity === 'critical' ? 'bg-red-500' :
-                    alert.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="text-white text-sm font-medium">{alert.title}</p>
-                    <p className="text-zinc-400 text-xs">{alert.description}</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-zinc-500" />
-                </div>
-              </Link>
-            ))}
-          </div>
+    <div className="p-4">
+      {hasUrgency && (
+        <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: '#fee2e2', border: '#fecaca', color: '#dc2626', fontSize: 13 }}>
+          <Info className="mr-2 size-4" /> {hasUrgency ? 'Urgent: ' : ''}Year-end tax action needed
         </div>
       )}
 
-      {/* Top Recommendations */}
-      {recs?.recommendations?.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Lightbulb className="w-5 h-5 text-amber-400" />
-              Top Recommendations
-            </h2>
-            <Link to="/personal/recommendations" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {recs.recommendations.slice(0, 3).map((rec: any) => (
-              <Link key={rec.id} to="/personal/recommendations"
-                    className="block bg-zinc-900 rounded-lg border border-zinc-800 p-4 hover:border-zinc-700 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-2 py-0.5 rounded text-xs ${
-                        rec.priority === 'high' ? 'bg-red-900/50 text-red-300 border border-red-800' :
-                        'bg-amber-900/50 text-amber-300 border border-amber-800'
-                      }`}>{rec.priority}</span>
-                      <span className="text-zinc-500 text-xs">{rec.type}</span>
-                    </div>
-                    <p className="text-white font-medium">{rec.title}</p>
-                    <p className="text-zinc-400 text-sm mt-1 line-clamp-1">{rec.why}</p>
-                  </div>
-                  {rec.estimated_savings_max > 0 && (
-                    <p className="text-emerald-400 font-semibold text-sm shrink-0 ml-4">
-                      +${(rec.estimated_savings_max / 100).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Link to="/personal/connections" className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors flex items-center gap-3">
-          <Zap className="w-8 h-8 text-blue-400" />
-          <div>
-            <p className="text-white font-medium">Connect Bank Account</p>
-            <p className="text-zinc-400 text-sm">Enable real-time transaction tracking</p>
-          </div>
-        </Link>
-        <Link to="/personal/projection" className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors flex items-center gap-3">
-          <TrendingUp className="w-8 h-8 text-purple-400" />
-          <div>
-            <p className="text-white font-medium">View Tax Projection</p>
-            <p className="text-zinc-400 text-sm">See your 2026 estimate and what-if scenarios</p>
-          </div>
-        </Link>
-      </div>
-
-      {/* Opportunities */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-white">Detected Opportunities</h2>
-          <Link to="/personal/opportunities" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
-            View all <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-        <div className="space-y-2">
-          {opps.slice(0, 4).map((o) => (
-            <div key={o.id} className="bg-zinc-900 rounded-lg border border-zinc-800 p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`px-2 py-0.5 rounded text-xs ${
-                  o.relevance === 'high' ? 'bg-red-900/50 text-red-300' :
-                  o.relevance === 'medium' ? 'bg-amber-900/50 text-amber-300' :
-                  'bg-zinc-800 text-zinc-400'
-                }`}>{o.relevance}</span>
-                <span className="text-zinc-500 text-xs capitalize">{o.category}</span>
-              </div>
-              <p className="text-white font-medium">{o.title}</p>
-              <p className="text-zinc-400 text-sm mt-1">{o.why}</p>
+      <div className="rounded-lg border border-orange-500/20 bg-orange-50/30 p-4">
+        <h2 className="font-medium text-orange-600 mb-2">Year-End Tax Sprint</h2>
+        {sprintStatus ? (
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span>Completed:</span> {sprintStatus.actions_taken}
+              <span>Remaining:</span> {sprintStatus.actions_remaining}
             </div>
-          ))}
-          {opps.length === 0 && (
-            <p className="text-zinc-500 text-sm">Complete onboarding to detect opportunities. <Link to="/personal/onboarding" className="text-blue-400">Start →</Link></p>
-          )}
-        </div>
+            {sprintStatus.urgency_message && (
+              <p className="text-orange-600 text-sm">{sprintStatus.urgency_message}</p>
+            )}
+            {sprintActions.length > 0 && (
+              <p className="text-orange-500 text-xs">
+                <strong>Key moves:</strong> {sprintActions.slice(0, 3).map((a: any) => (
+                  <span key={a.id} className="mr-2">
+                    {a.title}: {a.estimated_savings > 0 ? formatCurrency(a.estimated_savings) : 'TBD'} — {a.days_left} days left
+                  </span>
+                ))}…</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-orange-500 text-sm">November 1 — Year-end tax planning window open</p>
+        )}
       </div>
 
-      {/* Tasks */}
-      {tasks.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-3">Open Tasks</h2>
-          <div className="space-y-2">
-            {tasks.slice(0, 3).map((t) => (
-              <div key={t.id} className="bg-zinc-900 rounded-lg border border-zinc-800 p-3">
-                <p className="text-white font-medium">{t.title}</p>
-                <p className="text-zinc-400 text-sm mt-1">{t.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {starter && (
-        <div className="bg-zinc-900 rounded-xl border border-amber-800 p-4">
-          <p className="text-amber-200 text-sm">
-            <strong>Starter plan:</strong> Up to {oppCap ?? 3} opportunities, {docCap ?? 10} documents.
-            <Link to="/personal/pricing" className="text-amber-400 hover:text-amber-300 ml-2">Compare plans →</Link>
+      <div className="rounded-lg border-emerald-500/20 bg-emerald-50/30 p-4">
+        <h2 className="font-medium text-emerald-600 mb-2">Notifications <AlertCircle className="mr-2 size-4" /> {notificationsCount}</h2>
+        {notificationsCount > 0 ? (
+          <p className="text-emerald-600 text-sm">
+            You have {notificationsCount} unread notification{'s' if notificationsCount > 1 else ''}.
+            <Link className="underline underline-offset-2 text-emerald-600 hover:text-emerald-500" to="/notifications">
+              View all notifications
+            </Link>
           </p>
-        </div>
+        ) : (
+          <p className="text-gray-500 text-sm">No new notifications.</p>
+        )}
+      </div>
+
+      <div className="flex items-center">
+        <InfoCircle className="mr-2 size-3 text-primary" /> {deductionSummary?.deductions_found > 0 ? `${deductionSummary.deductions_found} deductions detected` : ''}{' '}
+        {sprintStatus?.days_remaining > 0 ? `${sprintStatus.days_remaining}d remaining sprint` : ''}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((s, i) => (
+          <div key={i} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+            <div className="flex items-start">
+              <span className="text-xl font-medium">{s.value}</span>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium">{s.label}</p>
+                <p className="text-xs text-gray-500">{s.title || ''}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {summary && summary.portfolio_count === 0 && (
+        <section className="mt-6 border border-blue-500/20 bg-blue-50/30 p-6">
+          <h2 className="font-medium text-blue-600 mb-2">Get started</h2>
+          <p className="text-blue-600 text-sm mb-3">
+            1. Add a portfolio &nbsp;→&nbsp; 2. Run an optimization &nbsp;→&nbsp; 3. Review risk.
+            Load the demo portfolio or create your own — two minutes either way.
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            <button className="primary-button">Load demo portfolio →</button>
+            <Link className="soft-button" href="/portfolios">Create portfolio</Link>
+            <Link className="soft-button" href="/optimizations/new">Run optimization</Link>
+          </div>
+        </section>
       )}
     </div>
   );
+}
+
+function hasUrgency(sprintStatus: any): boolean {
+  return sprintStatus && sprintStatus.days_remaining > 0 && sprintStatus.days_remaining <= 60;
 }

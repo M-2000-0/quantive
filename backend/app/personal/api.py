@@ -801,3 +801,164 @@ def update_recommendation(rec_id: str, payload: dict, user=Depends(get_current_u
     if not rec:
         raise HTTPException(404, "Recommendation not found")
     return {"ok": True, "status": rec.status}
+
+
+# ── Recommendation Feedback ───────────────────────────────────────
+
+@router.post("/recommendations/{rec_id}/feedback")
+def submit_feedback(rec_id: str, payload: dict, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Submit feedback on a recommendation (thumbs_up, thumbs_down, implemented, dismissed)."""
+    from app.personal.models import RecommendationFeedback, Recommendation as RecModel
+    uid = _uid(user)
+    feedback_type = payload.get("feedback_type", "")
+    if feedback_type not in ("thumbs_up", "thumbs_down", "implemented", "dismissed"):
+        raise HTTPException(400, "Invalid feedback_type")
+    rec = db.query(RecModel).filter(RecModel.id == rec_id, RecModel.user_id == uid).first()
+    if not rec:
+        raise HTTPException(404, "Recommendation not found")
+    fb = RecommendationFeedback(
+        user_id=uid,
+        recommendation_id=rec_id,
+        feedback_type=feedback_type,
+        comment=payload.get("comment", ""),
+        actual_savings=payload.get("actual_savings", 0),
+    )
+    db.add(fb)
+    if feedback_type == "implemented":
+        rec.status = "implemented"
+    elif feedback_type == "dismissed":
+        rec.status = "dismissed"
+    db.commit()
+    _audit(db, uid, "recommendation.feedback", "recommendation", rec_id, {"feedback": feedback_type})
+    return {"ok": True}
+
+
+@router.get("/recommendations/feedback-stats")
+def feedback_stats(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get feedback statistics for the user's recommendations."""
+    from app.personal.models import RecommendationFeedback, Recommendation as RecModel
+    uid = _uid(user)
+    total = db.query(RecModel).filter(RecModel.user_id == uid).count()
+    implemented = db.query(RecModel).filter(RecModel.user_id == uid, RecModel.status == "implemented").count()
+    dismissed = db.query(RecModel).filter(RecModel.user_id == uid, RecModel.status == "dismissed").count()
+    feedbacks = db.query(RecommendationFeedback).filter(RecommendationFeedback.user_id == uid).all()
+    thumbs_up = sum(1 for f in feedbacks if f.feedback_type == "thumbs_up")
+    thumbs_down = sum(1 for f in feedbacks if f.feedback_type == "thumbs_down")
+    return {
+        "total_recommendations": total,
+        "implemented": implemented,
+        "dismissed": dismissed,
+        "thumbs_up": thumbs_up,
+        "thumbs_down": thumbs_down,
+        "acceptance_rate": round(implemented / max(total, 1) * 100, 1),
+    }
+
+
+# ── Deduction Detector ────────────────────────────────────────────
+
+@router.post("/deductions/scan")
+def scan_deductions(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Scan transactions for deduction opportunities."""
+    from app.personal.deduction_detector import get_deduction_summary
+    uid = _uid(user)
+    return get_deduction_summary(uid, db)
+
+
+@router.get("/api/personal/deductions/summary")
+def deduction_summary(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get deduction detection summary for dashboard."""
+    from app.personal.deduction_detector import get_deduction_summary
+    uid = _uid(user)
+    return get_deduction_summary(uid, db)
+
+
+@router.post("/api/personal/deductions/claim")
+def claim_deduction(payload: dict, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Mark a deduction as claimed (adds to profile facts)."""
+    from app.personal.models import ProfileFact
+    uid = _uid(user)
+    category = payload.get("category", "")
+    amount = payload.get("amount", 0)
+    irc_section = payload.get("irc_section", "")
+    if not category:
+        raise HTTPException(400, "category required")
+    fact = ProfileFact(
+        user_id=uid,
+        category="deduction_claimed",
+        key=category,
+        value=str(amount),
+        value_json={"amount": amount, "irc_section": irc_section},
+        source="deduction_detector",
+        confidence="user_reported",
+    )
+    db.add(fact)
+    db.commit()
+    _audit(db, uid, "deduction.claimed", "deduction", category, {"amount": amount, "irc": irc_section})
+    return {"ok": True}
+
+
+# ── Year-End Tax Sprint ───────────────────────────────────────────
+
+@router.get("/sprint/status")
+def sprint_status(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get Tax Sprint status (year-end countdown dashboard)."""
+    from app.personal.tax_sprint import get_sprint_status
+    uid = _uid(user)
+    return get_sprint_status(uid, db)
+
+
+@router.get("/sprint/actions")
+def sprint_actions(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get available Tax Sprint actions."""
+    from app.personal.tax_sprint import get_sprint_actions
+    uid = _uid(user)
+    return {"actions": get_sprint_actions(uid, db)}
+
+
+@router.post("/sprint/actions/{action_id}/progress")
+def update_sprint_progress(action_id: str, payload: dict, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Update sprint action progress (started, completed)."""
+    from app.personal.tax_sprint import update_sprint_progress
+    uid = _uid(user)
+    status = payload.get("status", "started")
+    result = update_sprint_progress(uid, action_id, status, db)
+    if not result:
+        raise HTTPException(404, "Sprint action not found")
+    return {"ok": True, "status": status}
+
+
+@router.get("/sprint/summary")
+def sprint_summary(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get sprint summary stats for dashboard header."""
+    from app.personal.tax_sprint import get_sprint_summary
+    uid = _uid(user)
+    return get_sprint_summary(uid, db)
+
+
+# ── Notifications ─────────────────────────────────────────────────
+
+@router.get("/notifications")
+def list_notifications(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get all notifications for the user."""
+    from app.personal.notifications import generate_notifications
+    uid = _uid(user)
+    return {"notifications": generate_notifications(uid, db)}
+
+
+@router.get("/notifications/summary")
+def notification_summary(user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Get notification summary stats."""
+    from app.personal.notifications import get_notification_summary
+    uid = _uid(user)
+    return get_notification_summary(uid, db)
+
+
+@router.post("/notifications/{notif_id}/read")
+def mark_notification_read(notif_id: str, user=Depends(get_current_user), db: Session = Depends(get_personal_db)):
+    """Mark a notification as read."""
+    from app.personal.notifications import mark_notification_read
+    uid = _uid(user)
+    ok = mark_notification_read(notif_id, uid, db)
+    if not ok:
+        raise HTTPException(404, "Notification not found")
+    return {"ok": True}

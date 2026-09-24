@@ -40,6 +40,9 @@ PUBLIC_PATHS = {
     "/", "/login", "/register", "/forgot-password", "/reset-password",
     "/landing", "/pricing", "/demo", "/logout",
     "/qubo", "/terms", "/government", "/business", "/banking",
+    "/deductions", "/deductions/scan", "/deductions/summary", "/deductions/claim",
+    "/sprint", "/sprint/status", "/sprint/actions", "/sprint/summary",
+    "/notifications", "/notifications/summary",
 }
 PUBLIC_PREFIXES = ("/static", "/api/", "/docs", "/redoc")
 
