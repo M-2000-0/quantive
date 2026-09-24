@@ -69,9 +69,12 @@ export default function AIGovernancePage() {
   };
 
   const approveDecision = async (decisionId: string) => {
+    const csrfMatch = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    const csrf = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
     await fetch(`/api/ai-governance/decisions/${decisionId}/act`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
       body: JSON.stringify({
         human_decision: 'approved',
         decision_rationale: 'Reviewed and approved by authorized decision-maker',
@@ -81,9 +84,12 @@ export default function AIGovernancePage() {
   };
 
   const rejectDecision = async (decisionId: string) => {
+    const csrfMatch = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    const csrf = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
     await fetch(`/api/ai-governance/decisions/${decisionId}/act`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
       body: JSON.stringify({
         human_decision: 'rejected',
         decision_rationale: 'Rejected — requires revised analysis',

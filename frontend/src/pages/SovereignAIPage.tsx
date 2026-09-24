@@ -51,9 +51,16 @@ export default function SovereignAIPage() {
     setLoading(true);
 
     try {
+      // Include CSRF token — required by backend CSRFMiddleware on POST.
+      const csrfMatch = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+      const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
       const res = await fetch('/api/ai/query', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         body: JSON.stringify({ query, n_results: 5, use_local_model: true }),
       });
       const data = await res.json();

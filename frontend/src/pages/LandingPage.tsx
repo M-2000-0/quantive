@@ -28,9 +28,12 @@ export default function LandingPage() {
     if (!email) return;
     setSubmitting(true);
     try {
+      const csrfMatch = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+      const csrf = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
       await fetch('/api/landing/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
         body: JSON.stringify({ email }),
       });
     } catch {

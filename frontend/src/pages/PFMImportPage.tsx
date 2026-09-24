@@ -59,8 +59,12 @@ export default function PFMImportPage() {
     if (fiscalYear) formData.append('fiscal_year', fiscalYear);
 
     try {
+      const csrfMatch = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+      const csrf = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
       const res = await fetch(`/api/pfm/import/${selectedType}`, {
         method: 'POST',
+        credentials: 'include',
+        headers: { ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
         body: formData,
       });
       const data = await res.json();

@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import {
-  ArrowUpRight, Calendar, AlertCircle, CheckCircle, Mail, Search, Shield, Info,
-  Wallet, BarChart2, TrendingUp
-} from 'lucide-react';
-import { api } from '../api';
-import type { DashboardSummary } from '../types';
+import { AlertCircle, BarChart2, Info } from 'lucide-react';
+import { personalApi } from '../api';
+import type { PersonalScore, PersonalTask } from '../api';
 
 function formatCurrency(value: number): string {
   if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
@@ -15,56 +11,21 @@ function formatCurrency(value: number): string {
 }
 
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [deductionSummary, setDeductionSummary] = useState<{
-    total_deductions: number;
-    estimated_savings: number;
-    standard_vs_itemized: string;
-    deductions_found: number;
-    next_actions: { title: string; amount: number; priority: string }[];
-  } | null>(null);
-  const [sprintStatus, setSprintStatus] = useState<{
-    days_remaining: number;
-    total_potential_savings: number;
-    actions_taken: number;
-    actions_remaining: number;
-    actions: any[];
-    urgency_message: string;
-  } | null>(null);
-  const [notificationsCount, setNotificationsCount] = useState(0);
+  const [score, setScore] = useState<PersonalScore | null>(null);
+  const [tasks, setTasks] = useState<PersonalTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [params] = useSearchParams();
-  const searchQuery = (params.get('q') ?? '').trim().toLowerCase();
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const summaryData = await api.dashboard.summary();
-      const dedData = await api.deductions.summary();
-      const sprintData = await api.sprint.status();
-      const notifData = await api.notifications.summary();
-
-      setSummary(summaryData);
-      setDeductionSummary({
-        total_deductions: dedData.total_deductions || 0,
-        estimated_savings: dedData.estimated_savings || 0,
-        standard_vs_itemized: dedData.standard_vs_itemized || '—',
-        deductions_found: dedData.deductions_found?.length || 0,
-        next_actions: dedData.next_actions || [],
-      });
-
-      setSprintStatus({
-        days_remaining: sprintData.days_remaining,
-        total_potential_savings: sprintData.total_potential_savings,
-        actions_taken: sprintData.actions_taken,
-        actions_remaining: sprintData.actions_remaining,
-        actions: sprintData.actions,
-        urgency_message: sprintData.urgency_message,
-      });
-
-      setNotificationsCount(notifData.unread_count || 0);
+      const [scoreData, tasksData] = await Promise.all([
+        personalApi.score(),
+        personalApi.tasks(),
+      ]);
+      setScore(scoreData);
+      setTasks(tasksData || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load dashboard');
     } finally {
@@ -76,81 +37,7 @@ export default function DashboardPage() {
     void load();
   }, [load]);
 
-  // Format helpers
-  const formatNumber = (num: number): string => num.toLocaleString();
-
-  // Compute derived values early
-  const deductionActions = useMemo(() => {
-    return deductionSummary?.next_actions || [];
-  }, [deductionSummary]);
-
-  const sprintActions = useMemo(() => {
-    return sprintStatus?.actions || [];
-  }, [sprintStatus]);
-
-  // Urgency banner if tax sprint is active
-  const hasUrgency = sprintStatus && sprintStatus.days_remaining > 0 && sprintStatus.days_remaining <= 60;
-
-  // Dedction summary card HTML
-  const deductionCardContent = deductionSummary ? (
-    <p style={{ marginBottom: 8, fontSize: 13 }}>
-      <Info className="mr-1 size-3" /> Estimated savings: {formatCurrency(deductionSummary.estimated_savings)}
-    </p>
-    <p style={{ fontSize: 12, color: '#6b7280' }}>
-      Standard vs Itemized: {deductionSummary.standard_vs_itemized}
-    </p>
-    <p style={{ fontSize: 12, color: '#6b7280' }}>
-      {deductionSummary.deductions_found} deductions found from transactions
-    </p>
-  ) : (
-    <p style={{ marginBottom: 8, fontSize: 13, color: '#6b7280' }}>
-      Connect accounts to detect tax-saving opportunities
-    </p>
-  );
-
-  // Sprint progress card content HTML
-  const sprintCardContent = sprintStatus ? (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span>Completed:</span> {sprintStatus.actions_taken}
-        <span>Remaining:</span> {sprintStatus.actions_remaining}
-      </div>
-      {sprintStatus.urgency_message && (
-        <p style={{ color: '#dc2626', fontSize: 12, marginBottom: 8 }}>
-          {sprintStatus.urgency_message}
-        </div>
-      )}
-      {sprintActions.length > 0 && (
-        <p style={{ fontSize: 12, color: '#055957' }}>
-          <strong>Key moves:</strong> {sprintActions.slice(0, 3).map((a: any) => (
-            <span key={a.id} style={{ marginRight: 8 }}>
-              {a.title}: {a.estimated_savings > 0 ? formatCurrency(a.estimated_savings) : 'TBD'} — {a.days_left} days left
-            </span>
-          ))}…</p>
-      )}
-    </div>
-  ) : (
-    <p>November 1 — Year-end tax planning window open</p>
-  );
-
-  // Notifications badge
-  const notifBadge = notificationsCount > 0 ? (
-    <span style={{ marginLeft: 8, background: '#059669', color: 'white', borderRadius: 9999, padding: '2px 6', fontSize: 12 }}>
-      {notificationsCount}
-    </span>
-  ) : null;
-
-  // Format number with commas
-  const formatNumber = (num: number): string => num.toLocaleString();
-
-  // Compute derived values early
-  const deductionActionsList = useMemo(() => {
-    return deductionSummary?.next_actions || [];
-  }, [deductionSummary]);
-
-  const sprintActionsList = useMemo(() => {
-    return sprintStatus?.actions || [];
-  }, [sprintStatus]);
+  const openTasks = useMemo(() => tasks.filter((t) => t.status !== 'closed'), [tasks]);
 
   if (loading) {
     return (
@@ -180,90 +67,92 @@ export default function DashboardPage() {
     );
   }
 
+  const statCards = [
+    { label: 'Tax Score', value: score ? `${score.score}/100` : '—' },
+    { label: 'Open Actions', value: String(score?.open_actions ?? openTasks.length) },
+    { label: 'Opportunities', value: String(score?.opportunities ?? 0) },
+    { label: 'Document Gaps', value: String(score?.doc_gaps ?? 0) },
+  ];
+
   return (
-    <div className="p-4">
-      {hasUrgency && (
-        <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: '#fee2e2', border: '#fecaca', color: '#dc2626', fontSize: 13 }}>
-          <Info className="mr-2 size-4" /> {hasUrgency ? 'Urgent: ' : ''}Year-end tax action needed
+    <div style={{ padding: 16, maxWidth: 1100, margin: '0 auto' }}>
+      {score?.message && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: '12px 16px',
+            borderRadius: 8,
+            background: '#ecfdf5',
+            border: '1px solid #a7f3d0',
+            color: '#047857',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <Info size={16} style={{ marginRight: 8 }} /> {score.message}
         </div>
       )}
 
-      <div className="rounded-lg border border-orange-500/20 bg-orange-50/30 p-4">
-        <h2 className="font-medium text-orange-600 mb-2">Year-End Tax Sprint</h2>
-        {sprintStatus ? (
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between items-center">
-              <span>Completed:</span> {sprintStatus.actions_taken}
-              <span>Remaining:</span> {sprintStatus.actions_remaining}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        {statCards.map((s) => (
+          <div key={s.label} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16, background: '#fff' }}>
+            <div style={{ fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {s.label}
             </div>
-            {sprintStatus.urgency_message && (
-              <p className="text-orange-600 text-sm">{sprintStatus.urgency_message}</p>
-            )}
-            {sprintActions.length > 0 && (
-              <p className="text-orange-500 text-xs">
-                <strong>Key moves:</strong> {sprintActions.slice(0, 3).map((a: any) => (
-                  <span key={a.id} className="mr-2">
-                    {a.title}: {a.estimated_savings > 0 ? formatCurrency(a.estimated_savings) : 'TBD'} — {a.days_left} days left
-                  </span>
-                ))}…</p>
-            )}
-          </div>
-        ) : (
-          <p className="text-orange-500 text-sm">November 1 — Year-end tax planning window open</p>
-        )}
-      </div>
-
-      <div className="rounded-lg border-emerald-500/20 bg-emerald-50/30 p-4">
-        <h2 className="font-medium text-emerald-600 mb-2">Notifications <AlertCircle className="mr-2 size-4" /> {notificationsCount}</h2>
-        {notificationsCount > 0 ? (
-          <p className="text-emerald-600 text-sm">
-            You have {notificationsCount} unread notification{'s' if notificationsCount > 1 else ''}.
-            <Link className="underline underline-offset-2 text-emerald-600 hover:text-emerald-500" to="/notifications">
-              View all notifications
-            </Link>
-          </p>
-        ) : (
-          <p className="text-gray-500 text-sm">No new notifications.</p>
-        )}
-      </div>
-
-      <div className="flex items-center">
-        <InfoCircle className="mr-2 size-3 text-primary" /> {deductionSummary?.deductions_found > 0 ? `${deductionSummary.deductions_found} deductions detected` : ''}{' '}
-        {sprintStatus?.days_remaining > 0 ? `${sprintStatus.days_remaining}d remaining sprint` : ''}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s, i) => (
-          <div key={i} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
-            <div className="flex items-start">
-              <span className="text-xl font-medium">{s.value}</span>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-medium">{s.label}</p>
-                <p className="text-xs text-gray-500">{s.title || ''}</p>
-              </div>
-            </div>
+            <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>{s.value}</div>
           </div>
         ))}
       </div>
 
-      {summary && summary.portfolio_count === 0 && (
-        <section className="mt-6 border border-blue-500/20 bg-blue-50/30 p-6">
-          <h2 className="font-medium text-blue-600 mb-2">Get started</h2>
-          <p className="text-blue-600 text-sm mb-3">
-            1. Add a portfolio &nbsp;→&nbsp; 2. Run an optimization &nbsp;→&nbsp; 3. Review risk.
-            Load the demo portfolio or create your own — two minutes either way.
+      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16, background: '#fff' }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Open Tasks ({openTasks.length})</h2>
+        {openTasks.length === 0 ? (
+          <p style={{ color: '#6b7280', fontSize: 14 }}>
+            No open tasks right now. Check back after your next transaction sync.
           </p>
-          <div className="flex gap-2 flex-wrap">
-            <button className="primary-button">Load demo portfolio →</button>
-            <Link className="soft-button" href="/portfolios">Create portfolio</Link>
-            <Link className="soft-button" href="/optimizations/new">Run optimization</Link>
-          </div>
-        </section>
-      )}
+        ) : (
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {openTasks.slice(0, 8).map((t) => (
+              <li
+                key={t.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 0',
+                  borderBottom: '1px solid #f3f4f6',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: 14 }}>{t.title}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>{t.reason}</div>
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 9999,
+                    background: t.priority === 'high' ? '#fee2e2' : t.priority === 'medium' ? '#fef3c7' : '#e5e7eb',
+                    color: t.priority === 'high' ? '#b91c1c' : t.priority === 'medium' ? '#92400e' : '#374151',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t.priority}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
-}
-
-function hasUrgency(sprintStatus: any): boolean {
-  return sprintStatus && sprintStatus.days_remaining > 0 && sprintStatus.days_remaining <= 60;
 }

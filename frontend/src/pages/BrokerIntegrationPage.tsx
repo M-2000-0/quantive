@@ -119,9 +119,12 @@ export default function BrokerIntegrationPage() {
 
   const getHeaders = () => {
     const token = localStorage.getItem('access_token');
+    const csrfMatch = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    const csrf = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
     };
   };
 

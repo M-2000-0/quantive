@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { useAuth } from '../stores/auth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,7 +16,9 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await api.auth.login({ email, password });
+      // Persist the user session (localStorage) so ProtectedRoute recognizes it.
+      // Tokens themselves stay in httpOnly cookies set by the backend.
+      await login(email, password);
       try {
         const status = await api.firstRun.quickStartData() as { portfolios: Array<{ id: string }> };
         if (!status.portfolios || status.portfolios.length === 0) {
