@@ -89,7 +89,11 @@ def _compute_avg_maturity(instruments: list) -> float:
 
 
 def _compute_weighted_coupon(instruments: list) -> float:
-    """Compute principal-weighted average coupon rate as percentage."""
+    """Compute principal-weighted average coupon rate as percentage.
+
+    ``coupon_rate`` is stored as a percent (4.25 == 4.25%), so the weighted
+    average is already in percent — no ×100 conversion here.
+    """
     if not instruments:
         return 0.0
     total_principal = 0.0
@@ -99,7 +103,7 @@ def _compute_weighted_coupon(instruments: list) -> float:
         coupon = float(inst.coupon_rate)
         total_principal += principal
         weighted_coupon += coupon * principal
-    return round((weighted_coupon / total_principal) * 100, 2) if total_principal > 0 else 0.0
+    return round(weighted_coupon / total_principal, 2) if total_principal > 0 else 0.0
 
 
 def _compute_maturity_distribution(instruments: list) -> list[MaturityBucket]:

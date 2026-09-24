@@ -7,7 +7,7 @@ rule-based responses that surface real data.
 from __future__ import annotations
 
 import re
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -30,6 +30,38 @@ class ChatRequest(BaseModel):
 
 def _cents(n: int) -> str:
     return f"${n / 100:,.2f}"
+
+
+def _optional_user(
+    request: Request,
+    db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
+) -> User | None:
+    """Optionally resolve the caller from a Bearer header or session cookie.
+
+    Returns None when no (or an invalid) token is present — the endpoint
+    then falls back to the first registered user so the public demo keeps
+    working. Logged-in users get org-scoped answers for *their* data.
+    """
+    token = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+    if not token:
+        token = request.cookies.get("access_token", "")
+    if not token:
+        return None
+    try:
+        from app.security import decode_token
+        payload = decode_token(token)
+        if payload.get("type") != "access":
+            return None
+        return (
+            db.query(User)
+            .filter(User.id == payload.get("sub"), User.is_active.is_(True))
+            .first()
+        )
+    except Exception:
+        return None  # invalid/expired token — treat as anonymous
 
 
 def _answer(user: User, message: str, db: Session) -> str:
@@ -237,10 +269,15 @@ def _answer(user: User, message: str, db: Session) -> str:
 
 
 @router.post("")
-def chat(body: ChatRequest, db: Session = Depends(get_db)):
+def chat(
+    body: ChatRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(_optional_user),
+):
     try:
-        # Use first user for demo/testing (no auth required)
-        user = db.query(User).order_by(User.created_at).first()
+        # Logged-in user's org if we have one; otherwise first user (public demo).
+        user = current_user or db.query(User).order_by(User.created_at).first()
         if not user:
             return {"role": "assistant", "content": "No user found. Please register first."}
         answer = _answer(user, body.message, db)
