@@ -226,12 +226,17 @@ class InferenceEngine:
 
         return {"text": "I can provide information from my knowledge base. Please ask a specific question about sovereign debt, bonds, or fiscal policy.", "model": "fallback"}
 
-    def query_with_rag(self, question: str, max_new_tokens: int = 200, temperature: float = 0.7) -> Dict[str, Any]:
+    def query_with_rag(self, question: str, max_new_tokens: int = 200, temperature: float = 0.7,
+                       context_block: Optional[str] = None) -> Dict[str, Any]:
         """RAG query: retrieve context, then construct the answer.
 
         Primary: coherent RAG extraction — grammatical, factually grounded
         sentences drawn from the user's knowledge base, with citations.
         Fallback: QuantiveAI fine-tuned model (kept for offline/no-KB cases).
+
+        ``context_block`` carries caller-built, user-specific context text
+        (the caller's live portfolio snapshot / rate-shock math) that is
+        prepended to the answer.
         """
         sources = self._retriever.retrieve(question, top_k=5)
         context = "\n".join([s["text"][:300] for s in sources[:3]])
@@ -241,7 +246,8 @@ class InferenceEngine:
             from app.ai.coherent import get_responder
             if self._coherent is None:
                 self._coherent = get_responder()
-            result = self._coherent.respond(question, top_k=5, max_sentences=6)
+            result = self._coherent.respond(question, top_k=5, max_sentences=6,
+                                            context_block=context_block)
             if result.get("text", "").strip():
                 result.setdefault("model", "rag_grounded")
                 result["sources"] = sources

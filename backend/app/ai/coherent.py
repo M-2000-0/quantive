@@ -111,8 +111,14 @@ class CoherentResponder:
 
         return answer
 
-    def respond(self, query: str, top_k: int = 5, max_sentences: int = 5) -> Dict[str, Any]:
-        """Generate a coherent response to a query."""
+    def respond(self, query: str, top_k: int = 5, max_sentences: int = 5,
+                context_block: Optional[str] = None) -> Dict[str, Any]:
+        """Generate a coherent response to a query.
+
+        ``context_block`` is caller-supplied, user-specific context text
+        (e.g. the user's live portfolio snapshot + rate-shock math) that is
+        prepended ahead of the knowledge-base answer.
+        """
         t0 = time.time()
 
         # Live market data takes priority for stock/market questions so the
@@ -140,11 +146,16 @@ class CoherentResponder:
         # Format answer
         answer = self._format_answer(query, sentences, sources)
 
-        # Prepend the live-data block so the number comes first, and label
-        # the knowledge-base text so it reads as related context, not a
-        # non-sequitur under a stock quote.
+        # Prepend caller context (user's portfolio) and live-data blocks so
+        # the specific numbers come first, and label the knowledge-base text
+        # so it reads as related context, not a non-sequitur under a quote.
+        prefix = ""
+        if context_block:
+            prefix += context_block + "\n\n"
         if market_block:
-            answer = market_block + "\n\nFrom the knowledge base:\n" + answer
+            prefix += market_block + "\n\nFrom the knowledge base:\n"
+        if prefix:
+            answer = prefix + answer
 
         elapsed = time.time() - t0
 

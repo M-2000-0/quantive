@@ -76,8 +76,13 @@ def ingest_batch_api(req: IngestBatchRequest, db=Depends(get_db), user=Depends(g
 @router.post("/query")
 def query_api(req: QueryRequest, db=Depends(get_db), user=Depends(get_current_user)):
     from app.ai.inference import get_engine
+    from app.ai.portfolio_context import build_portfolio_context, format_portfolio_context_text
     engine = get_engine()
-    result = engine.query_with_rag(req.query, max_new_tokens=200)
+    ctx = build_portfolio_context(req.query, user, db)
+    context_block = format_portfolio_context_text(ctx) if ctx else None
+    result = engine.query_with_rag(req.query, max_new_tokens=200, context_block=context_block)
+    if ctx:
+        result["portfolio_context"] = ctx
     return {
         "answer": result.get("text", ""),
         "sources": result.get("sources", []),
@@ -148,12 +153,19 @@ def generate_api(req: GenerateRequest, db=Depends(get_db), user=Depends(get_curr
 @router.post("/chat")
 def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user)):
     from app.ai.inference import get_engine
+    from app.ai.portfolio_context import build_portfolio_context, format_portfolio_context_text
     engine = get_engine()
-    return engine.query_with_rag(
+    ctx = build_portfolio_context(req.message, user, db)
+    context_block = format_portfolio_context_text(ctx) if ctx else None
+    result = engine.query_with_rag(
         req.message,
         max_new_tokens=req.max_new_tokens,
         temperature=req.temperature,
+        context_block=context_block,
     )
+    if ctx:
+        result["portfolio_context"] = ctx
+    return result
 
 
 @router.get("/models")

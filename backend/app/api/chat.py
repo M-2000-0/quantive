@@ -115,8 +115,10 @@ def _answer(user: User, message: str, db: Session) -> str:
             "What would you like to know?"
         )
 
-    # ── Balance / accounts ──────────────────────────────────────────
-    if any(w in msg for w in ("balance", "how much", "account", "accounts", "funds")):
+    # ── Balance / accounts (banking cash) ───────────────────────────
+    # "how much" intentionally NOT here — debt questions ("how much do I
+    # owe") route to the portfolio branch below.
+    if any(w in msg for w in ("balance", "account", "accounts", "funds", "cash")):
         if not accounts:
             return "You don't have any accounts yet. Head to **Banking → Open account** to get started."
         lines = [f"**{_c.account_type.title()}** ({_c.name}): **{_cents(_c.balance_cents)}**" for _c in accounts]
@@ -129,6 +131,19 @@ def _answer(user: User, message: str, db: Session) -> str:
         sorted_cats = sorted(cat_out.items(), key=lambda x: -x[1])
         lines = [f"• **{cat}**: {_cents(amt)}" for cat, amt in sorted_cats[:8]]
         return f"Your top spending categories:\n\n" + "\n".join(lines) + f"\n\n**Total outflows: {_cents(total_out)}** across {len(txns)} transactions."
+
+    # ── Portfolio questions (rates scenarios, debt profile) ─────────
+    # Placed after banking branches so cash questions keep their answers,
+    # but before the generic 'how much' fallthrough below.
+    try:
+        from app.ai.portfolio_context import (
+            build_portfolio_context, format_portfolio_context_text,
+        )
+        pctx = build_portfolio_context(message, user, db)
+        if pctx:
+            return format_portfolio_context_text(pctx)
+    except Exception:
+        pass  # never break product chat on the awareness layer
 
     # ── Income ──────────────────────────────────────────────────────
     if any(w in msg for w in ("income", "revenue", "incoming", "earned")):
@@ -212,7 +227,9 @@ def _answer(user: User, message: str, db: Session) -> str:
         return "\n".join(parts)
 
     # ── Findings needing action ─────────────────────────────────────
-    if any(w in msg for w in ("review", "action", "pending", "new findings")):
+    # "action" matched with word boundaries — a plain substring also hits
+    # "trans-action-s" and hijacks "show recent transactions".
+    if any(w in msg for w in ("review", "pending", "new findings")) or re.search(r"\baction\b", msg):
         if not new_findings:
             return "Nothing pending! All findings have been reviewed. Nice work."
         parts = [f"**{len(new_findings)} findings need your review:**\n"]
