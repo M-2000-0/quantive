@@ -4,6 +4,7 @@ import {
   BriefcaseBusiness,
   Gauge,
   LayoutGrid,
+  MessageCircle,
   Plus,
   Search,
   Settings,
@@ -83,6 +84,7 @@ const PersonalIntelligence = lazy(() => import('./personal/pages/IntelligencePag
 const PersonalReports = lazy(() => import('./personal/pages/ReportsPage'));
 const PersonalPricing = lazy(() => import('./personal/pages/PricingPage'));
 const PersonalGov = lazy(() => import('./personal/pages/GovInsightsPage'));
+const AIChatWidget = lazy(() => import('./components/AIChatWidget'));
 const PersonalCompliance = lazy(() => import('./personal/pages/CompliancePage'));
 const PersonalRecommendations = lazy(() => import('./personal/pages/RecommendationsPage'));
 const PersonalProjection = lazy(() => import('./personal/pages/ProjectionPage'));
@@ -123,6 +125,7 @@ const NAV_ITEMS = [
   { label: 'Portfolios', to: '/portfolios', icon: LayoutGrid },
   { label: 'Overview', to: '/dashboard', icon: LayoutGrid },
   { label: 'Optimizations', to: '/optimizations', icon: BriefcaseBusiness },
+  { label: 'AI Advisor', to: '/sovereign-ai', icon: MessageCircle },
   { label: 'Insights', to: '/events', icon: Gauge },
   { label: 'Risk', to: '/risk-dashboard', icon: ShieldCheck },
   { label: 'Solvers', to: '/solver-tournament', icon: Sparkles },
@@ -248,7 +251,6 @@ function AppLayout() {
           </div>
         </div>
       </aside>
-
         <main id="main-content" tabIndex={-1} className="main-panel">
           <header className="topbar">
           <form className="search-box" role="search" onSubmit={submitSearch}>
@@ -344,6 +346,8 @@ function AppLayout() {
 
         <Outlet />
       </main>
+      {/* Global AI chat — reachable from every page */}
+      <AIChatWidget />
     </div>
   );
 }

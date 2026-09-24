@@ -115,6 +115,18 @@ class CoherentResponder:
         """Generate a coherent response to a query."""
         t0 = time.time()
 
+        # Live market data takes priority for stock/market questions so the
+        # assistant answers with real numbers instead of textbook theory.
+        market_block = ""
+        market_ctx = None
+        try:
+            from app.ai.market_context import build_market_context, format_market_context_text
+            market_ctx = build_market_context(query)
+            if market_ctx:
+                market_block = format_market_context_text(market_ctx)
+        except Exception:
+            market_ctx = None
+
         with self._lock:
             retriever = self._get_retriever()
             sources = retriever.retrieve(query, top_k=top_k)
@@ -128,9 +140,15 @@ class CoherentResponder:
         # Format answer
         answer = self._format_answer(query, sentences, sources)
 
+        # Prepend the live-data block so the number comes first, and label
+        # the knowledge-base text so it reads as related context, not a
+        # non-sequitur under a stock quote.
+        if market_block:
+            answer = market_block + "\n\nFrom the knowledge base:\n" + answer
+
         elapsed = time.time() - t0
 
-        return {
+        result = {
             "text": answer,
             "model": "rag-extraction",
             "sources": sources,
@@ -138,6 +156,9 @@ class CoherentResponder:
             "sentences_extracted": len(sentences),
             "latency_ms": round(elapsed * 1000),
         }
+        if market_ctx:
+            result["market_context"] = market_ctx
+        return result
 
     def status(self) -> Dict[str, Any]:
         return {
