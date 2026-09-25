@@ -104,7 +104,8 @@ Scenario: rates rise 50bps (parallel shift) — your book:
 • Most of your book is fixed-rate, so a hike mostly hits you through refinancing at maturity…
 ```
 plus the live snapshot ($1.59B / 10 instruments / USD 60% GBP 31% EUR 9%) and today's Treasury yields.
-**Say:** "It knows the user's actual positions — the 17% repricing share is the floating and short-dated slice of *this* book, and the minus-$98M is a first-order duration impact. Try any number: 25, 100, 200bps — the math re-runs on live positions every time."
+**Say:** "It knows the user's actual positions — the 17% repricing share is the floating and short-dated slice of *this* book, and the minus-$98M is a first-order duration impact."
+**Then — memory moment:** type just **"what about 100bps?"** — no restating the question. The assistant remembers the exchange and returns the 100bps scenario (+$2.6M/yr). "Follow-ups work — the conversation carries context; I never had to repeat myself."
 **Fallback:** if the scenario block is missing (only textbook text), the portfolio snapshot didn't load — refresh the page once (session cookie) and retry; if still generic, the org's portfolio lookup failed, re-run the seeder and re-login.
 
 **Q3 — "Summarize my portfolio"** *(position awareness)*
@@ -167,6 +168,7 @@ plus the live snapshot ($1.59B / 10 instruments / USD 60% GBP 31% EUR 9%) and to
 |---|---|---|
 | "rates rise 50bps?" | live positions | +$1.3M/yr interest, −$98.3M MTM, 17% repricing share |
 | "rates rise 100bps?" | live positions | +$2.6M/yr interest, −$196.7M MTM |
+| follow-up: "what about 100bps?" | conversation memory | resolves to the 100bps scenario, +$2.6M/yr |
 | "Summarize my portfolio" | live positions | $1.59B · 4.38% coupon · 12.4y · USD 60/GBP 31/EUR 9 |
 | "price of Bitcoin/AAPL" | live quotes | real-time price ± day change |
 | "my balances" | banking ledger | $29.44M total across 3 accounts |

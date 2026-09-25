@@ -16,8 +16,10 @@ Endpoints:
   POST /api/ai/models/load     - Load a model
 """
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app.security import get_current_user
@@ -46,10 +48,18 @@ class GenerateRequest(BaseModel):
     max_new_tokens: int = 200
     temperature: float = 0.7
 
+class HistoryTurn(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str = Field(min_length=1, max_length=2000)
+
+
 class ChatRequest(BaseModel):
     message: str
     max_new_tokens: int = 200
     temperature: float = 0.7
+    # Recent conversation turns (oldest→newest). Lets follow-ups like
+    # "what about 100bps?" resolve against the previous exchange.
+    history: Optional[list[HistoryTurn]] = None
 
 class FineTuneRequest(BaseModel):
     dataset_name: str = "sovereign_qa"
@@ -153,16 +163,26 @@ def generate_api(req: GenerateRequest, db=Depends(get_db), user=Depends(get_curr
 @router.post("/chat")
 def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user)):
     from app.ai.inference import get_engine
-    from app.ai.portfolio_context import build_portfolio_context, format_portfolio_context_text
+    from app.ai.portfolio_context import (
+        build_portfolio_context, format_portfolio_context_text, resolve_followup,
+    )
     engine = get_engine()
-    ctx = build_portfolio_context(req.message, user, db)
+    history = [t.model_dump() for t in (req.history or [])][-8:]
+    # Conversation memory: rewrite "what about 100bps?" into a standalone
+    # query that carries the antecedent, so retrieval and the portfolio
+    # classifier see the full intent.
+    resolved = resolve_followup(req.message, history)
+    ctx = build_portfolio_context(resolved, user, db, shock_source=req.message)
     context_block = format_portfolio_context_text(ctx) if ctx else None
     result = engine.query_with_rag(
-        req.message,
+        resolved,
         max_new_tokens=req.max_new_tokens,
         temperature=req.temperature,
         context_block=context_block,
     )
+    result["query"] = req.message
+    if resolved != req.message:
+        result["resolved_query"] = resolved
     if ctx:
         result["portfolio_context"] = ctx
     return result

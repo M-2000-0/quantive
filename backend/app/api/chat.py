@@ -25,7 +25,9 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
-    history: list[ChatMessage] | None = Field(default=None)  # forwarded for future context use
+    # Recent conversation turns (oldest→newest) used to resolve follow-ups
+    # like "what about 100bps?" against the previous exchange.
+    history: list[ChatMessage] | None = Field(default=None)
 
 
 def _cents(n: int) -> str:
@@ -64,7 +66,7 @@ def _optional_user(
         return None  # invalid/expired token — treat as anonymous
 
 
-def _answer(user: User, message: str, db: Session) -> str:
+def _answer(user: User, message: str, db: Session, body: ChatRequest | None = None) -> str:
     msg = message.lower().strip()
 
     # Gather context
@@ -137,9 +139,11 @@ def _answer(user: User, message: str, db: Session) -> str:
     # but before the generic 'how much' fallthrough below.
     try:
         from app.ai.portfolio_context import (
-            build_portfolio_context, format_portfolio_context_text,
+            build_portfolio_context, format_portfolio_context_text, resolve_followup,
         )
-        pctx = build_portfolio_context(message, user, db)
+        hist = [t.model_dump() for t in ((body.history if body else None) or [])][-8:]
+        resolved = resolve_followup(message, hist)
+        pctx = build_portfolio_context(resolved, user, db, shock_source=message)
         if pctx:
             return format_portfolio_context_text(pctx)
     except Exception:
@@ -297,7 +301,7 @@ def chat(
         user = current_user or db.query(User).order_by(User.created_at).first()
         if not user:
             return {"role": "assistant", "content": "No user found. Please register first."}
-        answer = _answer(user, body.message, db)
+        answer = _answer(user, body.message, db, body=body)
         return {"role": "assistant", "content": answer}
     except Exception as e:
         return {"role": "assistant", "content": f"I hit an error: {type(e).__name__}: {e}. Make sure you have data in the system."}

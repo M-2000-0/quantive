@@ -52,6 +52,87 @@ SUMMARY_KEYWORDS = (
 RATE_SHOCK_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:bps|basis\s*points)", re.IGNORECASE)
 
 
+# ── Conversation memory: follow-up resolution ─────────────────────────
+
+# Pronouns/ellipses that signal the message depends on prior context.
+FOLLOWUP_STARTERS = (
+    "what about", "how about", "and for", "and the", "and my", "and our",
+    "now ", "same ", "again", "instead", "rather than", "what if",
+    "repeat", "continue", "go on", "tell me more", "why ", "and that",
+    "compared to", "versus", "vs ", "double it", "triple it", "half that",
+)
+FOLLOWUP_PRONOUNS = ("it", "them", "that", "those", "this", "they")
+
+# Words that mark a brand-new topic even when the message is short
+# (e.g. "what about ethereum?" right after a rates question).
+NEW_TOPIC_MARKERS = (
+    "price", "quote", "stock", "share of", "bitcoin", "btc", "ethereum",
+    "eth", "crypto", "gold", "oil", "who", "when is", "define", "what is",
+    "what are", "explain", "hello", "hi ", "hey",
+)
+
+
+def looks_like_followup(message: str, history: Optional[List[Dict[str, Any]]]) -> bool:
+    """Heuristic: does this message lean on a previous exchange?"""
+    if not history:
+        return False
+    m = (message or "").lower().strip()
+    if not m:
+        return False
+    # Very short messages are almost always follow-ups ("why?", "100bps?")
+    if len(m.split()) <= 4:
+        return True
+    if any(m.startswith(s) for s in FOLLOWUP_STARTERS):
+        return True
+    if any(re.search(rf"\b{re.escape(p)}\b", m) for p in FOLLOWUP_PRONOUNS):
+        # "it/that" with no antecedent inside the message itself
+        if not any(w in m for w in ("my ", "our ", "portfolio", "debt")):
+            return True
+    return False
+
+
+def _prev_user_question(history: List[Dict[str, Any]]) -> str:
+    """Most recent user turn in the history (oldest→newest expected)."""
+    for turn in reversed(history):
+        role = str(turn.get("role", ""))
+        content = str(turn.get("content", "")).strip()
+        if role == "user" and content:
+            return content
+    return ""
+
+
+def resolve_followup(message: str, history: Optional[List[Dict[str, Any]]]) -> str:
+    """Rewrite a contextual message into a standalone query.
+
+    "What happens to my debt if rates rise 50bps?" followed by
+    "what about 100bps?" becomes
+    "What happens to my debt if rates rise 50bps? what about 100bps?"
+    so retrieval, the portfolio classifier and the shock parser all see
+    the antecedents. Fresh-sounding messages pass through untouched.
+    """
+    hist = history or []
+    if not looks_like_followup(message, hist):
+        return message
+    prev = _prev_user_question(hist)
+    if not prev:
+        return message
+    # Topic switch: short market-brand questions ("what about ethereum?")
+    # and definitional questions ("explain debt sustainability") should
+    # NOT inherit the prior debt question.
+    m = (message or "").lower()
+    prev_is_portfolio = is_portfolio_question(prev)
+    if prev_is_portfolio:
+        if any(m.startswith(s) for s in ("explain", "define", "what is", "what are", "who ", "when is")):
+            return message
+        if any(k in m for k in NEW_TOPIC_MARKERS):
+            if not any(k in m for k in ("my ", "our ", "debt", "portfolio", "rate", "bps")):
+                return message
+    # Cap the antecedent so the combined query stays retrieval-friendly.
+    anchor = prev[:220].rstrip()
+    resolved = f"{anchor} {message.strip()}".strip()
+    return resolved[:600]
+
+
 def is_portfolio_question(q: str) -> bool:
     ql = (q or "").lower()
     if any(k in ql for k in PORTFOLIO_KEYWORDS):
@@ -285,10 +366,19 @@ def format_rate_shock_text(snap: Dict[str, Any], shock: Dict[str, Any]) -> str:
 
 # ── Context builder used by chat endpoints ────────────────────────────
 
-def build_portfolio_context(question: str, user, db) -> Optional[Dict[str, Any]]:
+def build_portfolio_context(
+    question: str,
+    user,
+    db,
+    shock_source: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
     """Return portfolio context for a question, or None.
 
     Shape: {"snapshot": {...}, "shock": {...} | None, "rate_shock_bps": ...}
+
+    ``shock_source`` is the text the rate shock is parsed from — pass the
+    *current* message when ``question`` may be a resolved follow-up, so a
+    stale bps number from an earlier turn is never reused.
     """
     if not user or not is_portfolio_question(question):
         return None
@@ -299,7 +389,7 @@ def build_portfolio_context(question: str, user, db) -> Optional[Dict[str, Any]]
     if not snap:
         return None
     ctx: Dict[str, Any] = {"snapshot": snap}
-    bps = extract_rate_shock_bps(question)
+    bps = extract_rate_shock_bps(shock_source or question)
     if bps is not None:
         try:
             ctx["shock"] = compute_rate_shock(snap, bps)

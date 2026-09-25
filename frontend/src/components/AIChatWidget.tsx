@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, Send, X } from 'lucide-react';
+import { MessageCircle, RotateCcw, Send, X } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -7,12 +7,28 @@ interface Message {
   sources?: { text: string; source: string; score: number }[];
 }
 
+interface HistoryTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 const SUGGESTIONS = [
   'How is the market doing today?',
-  'What are current Treasury yields?',
+  'What happens to my debt if rates rise 50bps?',
   'What is the price of Bitcoin?',
   'Explain debt sustainability analysis',
 ];
+
+// Follow-up cues: short questions that only make sense with prior context
+// ("what about 100bps?", "and for EUR?"). We still send the full recent
+// history; the widget uses this only to show the contextual hint chip.
+const FOLLOWUP_HINT_MAX_WORDS = 8;
+
+function looksLikeFollowUp(q: string): boolean {
+  const t = q.trim().toLowerCase();
+  if (t.split(/\s+/).length <= FOLLOWUP_HINT_MAX_WORDS) return true;
+  return /^(what about|and |how about|now |same |repeat|again|what if)/.test(t);
+}
 
 function csrfHeaders(): Record<string, string> {
   const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
@@ -39,12 +55,20 @@ export default function AIChatWidget() {
     setInput('');
     setMessages((m) => [...m, { role: 'user', content: q }]);
     setLoading(true);
+
+    // Send the recent exchange so follow-ups ("what about 100bps?") resolve
+    // against prior context instead of starting cold.
+    const history: HistoryTurn[] = messages
+      .filter((m) => m.content.trim().length > 0)
+      .slice(-6)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 600) }));
+
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         credentials: 'include',
         headers: csrfHeaders(),
-        body: JSON.stringify({ message: q, max_new_tokens: 150 }),
+        body: JSON.stringify({ message: q, max_new_tokens: 150, history }),
       });
       const data = await res.json();
       setMessages((m) => [
@@ -113,13 +137,25 @@ export default function AIChatWidget() {
                 </div>
               </div>
             </div>
-            <button
-              aria-label="Close chat"
-              onClick={() => setOpen(false)}
-              style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 4 }}
-            >
-              <X size={16} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {messages.length > 0 && (
+                <button
+                  aria-label="Reset conversation"
+                  title="Reset conversation"
+                  onClick={() => setMessages([])}
+                  style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 4 }}
+                >
+                  <RotateCcw size={15} />
+                </button>
+              )}
+              <button
+                aria-label="Close chat"
+                onClick={() => setOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 4 }}
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -127,7 +163,7 @@ export default function AIChatWidget() {
             {messages.length === 0 && (
               <div>
                 <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 12 }}>
-                  Ask me about markets, stocks, Treasury yields, sovereign debt — I answer with live data and cite my sources.
+                  Ask me about markets, stocks, Treasury yields, sovereign debt — I answer with live data and cite my sources. I remember our conversation, so follow-ups like “what about 100bps?” work too.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {SUGGESTIONS.map((s) => (
@@ -197,7 +233,7 @@ export default function AIChatWidget() {
 
             {loading && (
               <div style={{ color: '#9ca3af', fontSize: 13, fontStyle: 'italic' }}>
-                Analyzing market data…
+                {lastAnswer ? 'Thinking about your follow-up…' : 'Analyzing market data…'}
               </div>
             )}
           </div>
@@ -210,7 +246,7 @@ export default function AIChatWidget() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about stocks, yields, markets…"
+              placeholder={lastAnswer ? 'Ask a follow-up…' : 'Ask about stocks, yields, markets…'}
               style={{
                 flex: 1, background: '#0d0f13', border: '1px solid #23272e',
                 borderRadius: 8, padding: '9px 12px', color: '#e5e7eb', fontSize: 13, outline: 'none',
