@@ -5,6 +5,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   sources?: { text: string; source: string; score: number }[];
+  suggested_followups?: string[];
 }
 
 interface HistoryTurn {
@@ -85,10 +86,11 @@ export default function AIChatWidget() {
         setConversations(list);
         if (list.length > 0) {
           const r = await fetch(`/api/ai/conversations/${list[0].id}`, { credentials: 'include' });
-          if (r.ok) {
+        if (r.ok) {
             const conv = await r.json();
             setMessages((conv.messages || []).map((m: any) => ({
               role: m.role, content: m.content, sources: m.sources || [],
+              suggested_followups: m.suggested_followups || [],
             })));
             setConversationId(conv.id);
             convIdRef.current = conv.id;
@@ -113,6 +115,7 @@ export default function AIChatWidget() {
         if (!conv) return;
         setMessages((conv.messages || []).map((m: any) => ({
           role: m.role, content: m.content, sources: m.sources || [],
+          suggested_followups: m.suggested_followups || [],
         })));
         setConversationId(conv.id);
         convIdRef.current = conv.id;
@@ -173,6 +176,7 @@ export default function AIChatWidget() {
           role: 'assistant',
           content: data.text || data.answer || "I couldn't generate a response.",
           sources: data.sources || [],
+          suggested_followups: data.suggested_followups || [],
         },
       ]);
       if (data.conversation_id) {
@@ -191,6 +195,12 @@ export default function AIChatWidget() {
   }
 
   const lastAnswer = [...messages].reverse().find((m) => m.role === 'assistant');
+  // Chips belong to the latest answer only — older suggestions stay stored
+  // (they restore with the thread) but don't clutter the thread view.
+  const latestAssistantIdx = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === 'assistant') return i;
+    return -1;
+  })();
 
   return (
     <>
@@ -398,6 +408,30 @@ export default function AIChatWidget() {
             {loading && (
               <div style={{ color: '#9ca3af', fontSize: 13, fontStyle: 'italic' }}>
                 {lastAnswer ? 'Thinking about your follow-up…' : 'Analyzing market data…'}
+              </div>
+            )}
+
+            {!loading && latestAssistantIdx >= 0 && (messages[latestAssistantIdx].suggested_followups || []).length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ color: '#6b7280', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>
+                  SUGGESTED FOLLOW-UPS
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {messages[latestAssistantIdx].suggested_followups!.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => send(s)}
+                      style={{
+                        textAlign: 'left', padding: '6px 10px', borderRadius: 999,
+                        border: '1px solid #2c313a', background: '#161a20',
+                        color: '#c8a951', fontSize: 12, cursor: 'pointer',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))
+                  }
+                </div>
               </div>
             )}
           </div>

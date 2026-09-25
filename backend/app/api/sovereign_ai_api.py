@@ -192,6 +192,24 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
     from app.models import ChatConversation, ChatMessage
     engine = get_engine()
     history = [t.model_dump() for t in (req.history or [])][-8:]
+    if not history and req.conversation_id:
+        # Client sent no history but referenced a stored thread — rebuild the
+        # recent exchange from the DB so follow-ups still resolve.
+        try:
+            prev = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.conversation_id == req.conversation_id)
+                .order_by(ChatMessage.seq.desc())
+                .limit(8)
+                .all()
+            )
+            history = [
+                {"role": m.role, "content": m.content}
+                for m in reversed(prev)
+                if m.role in ("user", "assistant") and m.content
+            ][-8:]
+        except Exception:
+            history = []
     # Conversation memory: rewrite "what about 100bps?" into a standalone
     # query that carries the antecedent, so retrieval and the portfolio
     # classifier see the full intent.
@@ -212,8 +230,17 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
     if ctx:
         result["portfolio_context"] = ctx
 
-    # ── Persist the exchange ──
+    # ── Suggested follow-up chips (deterministic, quotes the user's numbers) ──
     answer = str(result.get("text") or result.get("answer") or "")
+    try:
+        from app.ai.followup_suggestions import suggest_followups
+        result["suggested_followups"] = suggest_followups(
+            req.message, answer, portfolio_context=ctx, user=user, db=db,
+        )
+    except Exception:
+        result["suggested_followups"] = []
+
+    # ── Persist the exchange ──
     sources = result.get("sources") or []
     try:
         conv = None
@@ -248,7 +275,9 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
         ))
         db.add(ChatMessage(
             id=_gen_uuid(), conversation_id=conv.id, org_id=user.org_id,
-            role="assistant", content=answer[:4000], sources=sources[:5], seq=next_seq + 1,
+            role="assistant", content=answer[:4000], sources=sources[:5],
+            suggested_followups=(result.get("suggested_followups") or [])[:3],
+            seq=next_seq + 1,
         ))
         if conv.title in ("", "New conversation"):
             conv.title = (req.message or "New conversation")[:255]
@@ -382,6 +411,7 @@ def get_conversation(
                 "role": m.role,
                 "content": m.content,
                 "sources": m.sources or [],
+                "suggested_followups": m.suggested_followups or [],
                 "created_at": m.created_at.isoformat() if m.created_at else None,
             }
             for m in msgs

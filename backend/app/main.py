@@ -269,6 +269,15 @@ async def lifespan(app: FastAPI):
         from app.models.chat import ChatConversation, ChatMessage
         ChatConversation.__table__.create(engine, checkfirst=True)
         ChatMessage.__table__.create(engine, checkfirst=True)
+        # Additive migration: suggested-follow-up chips on stored answers.
+        with engine.begin() as conn:
+            from sqlalchemy import text as _text
+            try:
+                conn.execute(_text(
+                    "ALTER TABLE chat_messages ADD COLUMN suggested_followups JSON"
+                ))
+            except Exception:
+                pass  # column already exists
         print("[OK] AI chat tables ready")
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not create chat tables: %s", e)

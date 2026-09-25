@@ -44,6 +44,9 @@ class ChatMessage(Base):
     content: Mapped[str] = mapped_column(Text, default="", nullable=False)
     # Citation snippets shown under the answer (stored so reloads keep them)
     sources: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Suggested follow-up questions offered with this answer (chips in the
+    # widget; persisted so restored threads keep their chips).
+    suggested_followups: Mapped[list | None] = mapped_column(JSON, nullable=True)
     # Per-conversation turn order — timestamps tie within one exchange on
     # Windows (coarse clock), so seq is the authoritative ordering key.
     seq: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
