@@ -196,7 +196,9 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
     # query that carries the antecedent, so retrieval and the portfolio
     # classifier see the full intent.
     resolved = resolve_followup(req.message, history)
-    ctx = build_portfolio_context(resolved, user, db, shock_source=req.message)
+    # Chained what-ifs ("and if the euro depreciates 10% on top of that?")
+    # inherit the rate leg from the prior question via the resolved anchor.
+    ctx = build_portfolio_context(resolved, user, db, chat_history=history, shock_source=req.message)
     context_block = format_portfolio_context_text(ctx) if ctx else None
     result = engine.query_with_rag(
         resolved,

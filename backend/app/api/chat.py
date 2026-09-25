@@ -143,7 +143,7 @@ def _answer(user: User, message: str, db: Session, body: ChatRequest | None = No
         )
         hist = [t.model_dump() for t in ((body.history if body else None) or [])][-8:]
         resolved = resolve_followup(message, hist)
-        pctx = build_portfolio_context(resolved, user, db, shock_source=message)
+        pctx = build_portfolio_context(resolved, user, db, chat_history=hist, shock_source=message)
         if pctx:
             return format_portfolio_context_text(pctx)
     except Exception:

@@ -52,6 +52,70 @@ SUMMARY_KEYWORDS = (
 RATE_SHOCK_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:bps|basis\s*points)", re.IGNORECASE)
 
 
+# ── FX shock parsing ("the euro depreciates 10%") ────────────────────
+
+# Spoken/ISO currency names → ISO code. Matched with word boundaries.
+CURRENCY_WORDS = {
+    "eur": "EUR", "euro": "EUR", "euros": "EUR", "eurozone": "EUR",
+    "usd": "USD", "dollar": "USD", "dollars": "USD",
+    "gbp": "GBP", "pound": "GBP", "pounds": "GBP", "sterling": "GBP",
+    "jpy": "JPY", "yen": "JPY",
+    "chf": "CHF", "franc": "CHF", "francs": "CHF",
+    "cad": "CAD", "aud": "AUD", "cny": "CNY", "yuan": "CNY", "renminbi": "CNY",
+}
+
+# Verbs that indicate direction. Depreciation = currency loses value vs USD.
+FX_DEPRECIATION_VERBS = ("depreciat", "weaken", "fall", "falls", "drop", "drops", "slide", "slides", "lose")
+FX_APPRECIATION_VERBS = ("appreciat", "strengthen", "rise", "rises", "gain", "gains", "jump", "jumps")
+
+# "the euro depreciates 10%" / "EUR weakens by 10 percent"
+FX_SHOCK_RE = re.compile(
+    r"\b(eur|euro|euros|eurozone|usd|dollar|dollars|gbp|pound|pounds|sterling|jpy|yen|chf|franc|francs|cad|aud|cny|yuan|renminbi)\b"
+    r"[^.?!]{0,40}?\b(depreciat\w*|appreciat\w*|weaken\w*|strengthen\w*|fall\w*|drop\w*|slide\w*|rise\w*|gain\w*|jump\w*)"
+    r"\s*(?:by\s*)?(\d+(?:\.\d+)?)\s*(?:%|percent)",
+    re.IGNORECASE,
+)
+# Reversed phrasing: "a 10% depreciation of the euro"
+FX_SHOCK_NOUN_RE = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(?:%|percent)\s+"
+    r"(depreciation|appreciation|weakening|strengthening|fall|rise|drop|gain|slide|jump)"
+    r"[^.?!]{0,30}?\b(eur|euro|euros|eurozone|usd|dollar|dollars|gbp|pound|pounds|sterling|jpy|yen|chf|franc|francs|cad|aud|cny|yuan|renminbi)\b",
+    re.IGNORECASE,
+)
+
+
+def _norm_currency(word: str) -> Optional[str]:
+    return CURRENCY_WORDS.get((word or "").lower())
+
+
+def _fx_direction(verb_or_noun: str) -> Optional[str]:
+    v = (verb_or_noun or "").lower()
+    if any(k in v for k in FX_DEPRECIATION_VERBS) or v in ("depreciation", "weakening", "fall", "drop", "slide"):
+        return "depreciate"
+    if any(k in v for k in FX_APPRECIATION_VERBS) or v in ("appreciation", "strengthening", "rise", "gain", "jump"):
+        return "appreciate"
+    return None
+
+
+def extract_fx_shock(q: str) -> Optional[Dict[str, Any]]:
+    """Parse an explicit FX shock, e.g. 'euro depreciates 10%' →
+    {"currency": "EUR", "pct": 10.0, "direction": "depreciate"}."""
+    text = q or ""
+    m = FX_SHOCK_RE.search(text)
+    if m:
+        ccy = _norm_currency(m.group(1))
+        direction = _fx_direction(m.group(2))
+        if ccy and direction:
+            return {"currency": ccy, "pct": float(m.group(3)), "direction": direction}
+    m = FX_SHOCK_NOUN_RE.search(text)
+    if m:
+        ccy = _norm_currency(m.group(3))
+        direction = _fx_direction(m.group(2))
+        if ccy and direction:
+            return {"currency": ccy, "pct": float(m.group(1)), "direction": direction}
+    return None
+
+
 # ── Conversation memory: follow-up resolution ─────────────────────────
 
 # Pronouns/ellipses that signal the message depends on prior context.
@@ -229,6 +293,7 @@ def build_portfolio_snapshot(user, db) -> Optional[Dict[str, Any]]:
     wtd_coupon = weighted_coupon_num / total_principal
     wtd_years = weighted_years_num / total_principal
     near_maturities.sort(key=lambda m: m["years_left"])
+    ccy_usd = {k: round(v, 2) for k, v in ccy_totals.items()}
 
     return {
         "portfolio_count": len(portfolios),
@@ -246,6 +311,8 @@ def build_portfolio_snapshot(user, db) -> Optional[Dict[str, Any]]:
             sorted(type_totals.items(), key=lambda x: -x[1])
         },
         "floating_principal": round(floored_total, 2),
+        # FX shock math consumes absolute USD face values per currency.
+        "currency_exposures_usd": ccy_usd,
         "nearest_maturities": near_maturities[:5],
         "longest_maturity": near_maturities[-1] if near_maturities else None,
     }
@@ -253,7 +320,39 @@ def build_portfolio_snapshot(user, db) -> Optional[Dict[str, Any]]:
 
 # ── Deterministic rate-shock math ─────────────────────────────────────
 
-def compute_rate_shock(snapshot: Dict[str, Any], shock_bps: float) -> Dict[str, Any]:
+def compute_fx_impact(snapshot: Dict[str, Any], currency: str, pct: float, direction: str) -> Dict[str, Any]:
+    """First-order impact of an FX move on the user's currency mix.
+
+    Face value of the named currency's exposure is restated in USD terms:
+    depreciation of X% reduces USD face value by X%; appreciation raises it.
+    MTM ≈ ±pct × exposure (face-value approximation, labeled as such).
+    """
+    mix = snapshot.get("currency_exposures_usd", {}) or {}
+    exposure = float(mix.get(currency, 0.0))  # USD face value of that currency's book
+    total = snapshot["total_principal"]
+    delta = pct / 100.0
+    if direction == "depreciate":
+        new_value = exposure * (1 - delta)
+        mtm = -exposure * delta
+    else:
+        new_value = exposure * (1 + delta)
+        mtm = exposure * delta
+    return {
+        "currency": currency,
+        "pct": pct,
+        "direction": direction,
+        "exposure_usd": round(exposure, 2),
+        "revalued_usd": round(new_value, 2),
+        "mtm_impact": round(mtm, 2),
+        "share_of_book_pct": round((exposure / total * 100) if total else 0.0, 1),
+    }
+
+
+def compute_rate_shock(
+    snapshot: Dict[str, Any],
+    shock_bps: float,
+    fx_shock: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """First-order P&L and carry impact of a parallel rate shift.
 
     - Interest cost: repricing-share approximation. Floating-rate and
@@ -261,6 +360,10 @@ def compute_rate_shock(snapshot: Dict[str, Any], shock_bps: float) -> Dict[str, 
       locked at coupon until maturity.
     - Mark-to-market: ΔP ≈ -D_mod × Δy × P with D_mod ≈ years-to-maturity
       (par-bond approximation), clearly labeled as first-order.
+
+    ``fx_shock`` ({currency, pct, direction}) optionally composes an FX
+    move on top of the rate shock — "rates rise 50bps, and if the euro
+    depreciates 10% on top of that?".
     """
     total = snapshot["total_principal"]
     wtd_coupon = snapshot["wtd_coupon_pct"]
@@ -283,18 +386,32 @@ def compute_rate_shock(snapshot: Dict[str, Any], shock_bps: float) -> Dict[str, 
     # for MTM we use the portfolio weighted average maturity (par-bond approx).
     d_mod = max(snapshot.get("wtd_maturity_years", 0.0), 0.25)
 
-    return {
+    rate_mtm = -d_mod * (delta / 100.0) * total
+    fx_impact = None
+    if fx_shock:
+        try:
+            fx_impact = compute_fx_impact(
+                snapshot, fx_shock["currency"], fx_shock["pct"], fx_shock["direction"]
+            )
+        except Exception:
+            fx_impact = None
+
+    result = {
         "shock_bps": shock_bps,
         "base_annual_interest": round(base_annual, 2),
         "repricing_share_pct": round(repricing_share * 100, 1),
         "annual_interest_delta": round(total * delta / 100.0 * repricing_share, 2),
-        "mtm_impact": round(-d_mod * (delta / 100.0) * total, 2),
+        "mtm_impact": round(rate_mtm, 2),
         "duration_proxy_years": round(d_mod, 2),
         "method": (
             "first-order: floating/short-dated share reprices within a year; "
             "mark-to-market ≈ -D×Δy×P using weighted maturity as duration proxy"
         ),
     }
+    if fx_impact:
+        result["fx_impact"] = fx_impact
+        result["combined_mtm_impact"] = round(rate_mtm + fx_impact["mtm_impact"], 2)
+    return result
 
 
 # ── Formatting ────────────────────────────────────────────────────────
@@ -352,14 +469,25 @@ def format_rate_shock_text(snap: Dict[str, Any], shock: Dict[str, Any]) -> str:
         f"• Mark-to-market on the locked book: {mtm:+,.0f} USD "
         f"(≈ −D×Δy×P, D≈{shock['duration_proxy_years']:.1f}y — first-order estimate)",
     ]
+    if shock.get("fx_impact"):
+        fx = shock["fx_impact"]
+        fdir = "depreciates" if fx["direction"] == "depreciate" else "appreciates"
+        lines.append(
+            f"• Plus FX: the {fx['currency']} {fdir} {fx['pct']:.0f}% → "
+            f"{_fmt_money(fx['exposure_usd'])} exposure becomes "
+            f"{_fmt_money(fx['revalued_usd'])} (face-value MTM {fx['mtm_impact']:+,.0f} USD)"
+        )
+        lines.append(
+            f"• Combined first-order MTM (rates + FX): {shock['combined_mtm_impact']:+,.0f} USD"
+        )
     if shock["repricing_share_pct"] < 50:
         lines.append(
             "• Most of your book is fixed-rate, so a hike mostly hits you through "
-            "refinancing at maturity, not through next year's coupon bill."
+            "refinancing at maturity, and through USD value of non-USD bonds."
         )
     lines.append(
         "Estimates from your live positions — not investment advice. "
-        "A full revaluation would use each bond's duration and curve."
+        "A full revaluation would use each bond's duration, curve and hedges."
     )
     return "\n".join(lines)
 
@@ -370,6 +498,7 @@ def build_portfolio_context(
     question: str,
     user,
     db,
+    chat_history: Optional[List[Dict[str, Any]]] = None,
     shock_source: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Return portfolio context for a question, or None.
@@ -379,6 +508,13 @@ def build_portfolio_context(
     ``shock_source`` is the text the rate shock is parsed from — pass the
     *current* message when ``question`` may be a resolved follow-up, so a
     stale bps number from an earlier turn is never reused.
+
+    Chained what-ifs: "and if the euro depreciates 10% on top of that?" has
+    no bps of its own — the bps comes from the *anchor* (prior question)
+    carried in the resolved query, while the FX shock parses from the
+    current message. When an FX shock is present, the rate bps is searched
+    first in ``shock_source`` then in ``question`` (the anchor), so the two
+    shocks compose instead of the FX move replacing the rate scenario.
     """
     if not user or not is_portfolio_question(question):
         return None
@@ -389,14 +525,49 @@ def build_portfolio_context(
     if not snap:
         return None
     ctx: Dict[str, Any] = {"snapshot": snap}
-    bps = extract_rate_shock_bps(shock_source or question)
+    fx = extract_fx_shock(shock_source or "")
+    if fx:
+        ctx["fx_shock"] = fx
+    bps_source = shock_source or ""
+    if fx and extract_rate_shock_bps(bps_source) is None:
+        # Fall back to the anchor carried in the resolved query; if that
+        # lost the bps (anchor cap), scan the prior user turn directly.
+        if extract_rate_shock_bps(question) is not None:
+            bps_source = question
+        elif chat_history:
+            from_prev = _prev_user_question(chat_history)
+            if from_prev:
+                bps_source = f"{question} {from_prev}"
+    bps = extract_rate_shock_bps(bps_source)
     if bps is not None:
         try:
-            ctx["shock"] = compute_rate_shock(snap, bps)
+            ctx["shock"] = compute_rate_shock(snap, bps, fx_shock=fx)
             ctx["rate_shock_bps"] = bps
         except Exception:
             ctx["shock"] = None
+    elif fx:
+        # FX-only scenario (no rate leg): still expose deterministic numbers.
+        try:
+            ctx["fx_impact"] = compute_fx_impact(
+                snap, fx["currency"], fx["pct"], fx["direction"]
+            )
+        except Exception:
+            ctx["fx_impact"] = None
     return ctx
+
+
+def format_fx_impact_text(snap: Dict[str, Any], fx: Dict[str, Any]) -> str:
+    direction = "depreciates" if fx["direction"] == "depreciate" else "appreciates"
+    sign = "−" if fx["direction"] == "depreciate" else "+"
+    lines = [
+        f"Scenario: the {fx['currency']} {direction} {fx['pct']:.0f}% vs USD — your book:",
+        f"• {fx['currency']} exposure: {_fmt_money(fx['exposure_usd'])} "
+        f"({fx['share_of_book_pct']:.0f}% of the portfolio) → "
+        f"{_fmt_money(fx['revalued_usd'])} in USD terms",
+        f"• Face-value MTM: {sign}{_fmt_money(abs(fx['mtm_impact']))} "
+        "(first-order; ignores convexity and hedge book)",
+    ]
+    return "\n".join(lines)
 
 
 def format_portfolio_context_text(ctx: Dict[str, Any]) -> str:
@@ -404,5 +575,7 @@ def format_portfolio_context_text(ctx: Dict[str, Any]) -> str:
     parts: List[str] = []
     if ctx.get("shock"):
         parts.append(format_rate_shock_text(snap, ctx["shock"]))
+    if ctx.get("fx_impact"):
+        parts.append(format_fx_impact_text(snap, ctx["fx_impact"]))
     parts.append(format_portfolio_snapshot_text(snap))
     return "\n\n".join(p for p in parts if p)

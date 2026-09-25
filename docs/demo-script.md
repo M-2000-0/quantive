@@ -106,6 +106,8 @@ Scenario: rates rise 50bps (parallel shift) — your book:
 plus the live snapshot ($1.59B / 10 instruments / USD 60% GBP 31% EUR 9%) and today's Treasury yields.
 **Say:** "It knows the user's actual positions — the 17% repricing share is the floating and short-dated slice of *this* book, and the minus-$98M is a first-order duration impact."
 **Then — memory moment:** type just **"what about 100bps?"** — no restating the question. The assistant remembers the exchange and returns the 100bps scenario (+$2.6M/yr). "Follow-ups work — the conversation carries context; I never had to repeat myself."
+**Then — chain a second shock:** type **"and if the euro depreciates 10% on top of that?"** — the assistant composes the FX move onto the *same 100bps scenario*: EUR exposure ($140M, ~9% of book) restates to $126M, and a **combined first-order MTM (rates + FX)** line appears. "Rate and currency shocks compose — exactly how a treasury desk stress-tests."
+**Then — persistence moment:** reload the page, reopen the assistant — the full thread is still there (history button top-left of the panel lists and switches earlier conversations). "Conversations survive reloads and are stored per user — nothing to re-ask, nothing lost."
 **Fallback:** if the scenario block is missing (only textbook text), the portfolio snapshot didn't load — refresh the page once (session cookie) and retry; if still generic, the org's portfolio lookup failed, re-run the seeder and re-login.
 
 **Q3 — "Summarize my portfolio"** *(position awareness)*
@@ -169,6 +171,8 @@ plus the live snapshot ($1.59B / 10 instruments / USD 60% GBP 31% EUR 9%) and to
 | "rates rise 50bps?" | live positions | +$1.3M/yr interest, −$98.3M MTM, 17% repricing share |
 | "rates rise 100bps?" | live positions | +$2.6M/yr interest, −$196.7M MTM |
 | follow-up: "what about 100bps?" | conversation memory | resolves to the 100bps scenario, +$2.6M/yr |
+| "and if the euro depreciates 10% on top of that?" | chained FX what-if | same 100bps scenario + EUR −10% → $140M→$126M, combined MTM line (rates + FX) |
+| page reload + reopen assistant | conversation persistence | last thread restored from DB, full history + sources |
 | "Summarize my portfolio" | live positions | $1.59B · 4.38% coupon · 12.4y · USD 60/GBP 31/EUR 9 |
 | "price of Bitcoin/AAPL" | live quotes | real-time price ± day change |
 | "my balances" | banking ledger | $29.44M total across 3 accounts |
