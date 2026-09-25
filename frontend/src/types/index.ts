@@ -462,6 +462,28 @@ export interface DashboardSummary {
   top_currencies: Array<{ currency: string; total_principal: number; percentage: number }>;
 }
 
+export interface WhatIfScenarioRung {
+  label: string;
+  bps: number;
+  annual_interest: number;
+  interest_delta: number;
+  mtm_impact: number;
+}
+
+export interface WhatIfScenarios {
+  scenarios: WhatIfScenarioRung[];
+  base: {
+    total_principal: number;
+    weighted_coupon_pct: number;
+    annual_interest: number;
+    wtd_maturity_years: number;
+    instrument_count: number;
+    repricing_share_pct: number;
+  } | null;
+  currency_exposures: Record<string, number>;
+  note: string;
+}
+
 export interface DashboardTask {
   id: string;
   type: string;

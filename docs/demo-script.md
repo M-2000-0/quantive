@@ -51,6 +51,7 @@
 - Priority task: **"T-Bill Rolling Program matures — USD 60,000,000 · 67 days"**
 - Risk breakdown: Refinancing 17, Currency 40, Interest-rate 24 (all "Low" bands)
 - Market Pulse card with live sentiment
+- **What-if analysis panel**: scenario tabs (Base / +25 / +50 / +100 / +200bps), two charts — annual interest cost and first-order MTM — with a one-sentence readout of the selected shock, e.g. "+100bps: $69.6M → $72.2M (+$2.6M/yr), marks to −$196.7M". Same math as the AI advisor (Appendix C ladder).
 
 **Talking points:**
 
@@ -189,6 +190,7 @@ plus today's Treasury yields. **Chips on screen:** *"…rates rise 75bps on top 
 | "my balances" | banking ledger | $29.44M total across 3 accounts |
 | "Qubo deductions" | findings table | 31 new findings, $302,560 open |
 | "debt sustainability" | knowledge base | cited IMF/DSF prose |
+| dashboard What-if panel → +100bps tab | /api/whatif/scenarios | $69.6M → $72.2M (+$2.6M/yr), MTM −$196.7M — matches AI answer exactly |
 
 ## Appendix C — Live portfolio snapshot & scenario ladder (values at time of writing)
 

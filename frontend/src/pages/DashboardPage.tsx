@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, ChevronRight, Loader2, Wallet } from 'lucide-react';
 import { api } from '../api';
@@ -8,6 +8,7 @@ import DailyBriefing from '../components/DailyBriefing';
 import FirstRunWizard from '../components/FirstRunWizard';
 import MarketPulseWidget from '../components/MarketPulseWidget';
 import SavingsDashboard from '../components/SavingsDashboard';
+import WhatIfPanel from '../components/WhatIfPanel';
 
 function formatCurrency(value: number): string {
   if (value >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
@@ -19,13 +20,13 @@ function formatCurrency(value: number): string {
 
 function riskColor(score: number): string {
   if (score >= 75) return 'red';
-  if (score >= 50) return 'amber';
+  if (score >= 50) return 'blue';
   return 'green';
 }
 
 function riskLabel(score: number): string {
   const c = riskColor(score);
-  return c === 'red' ? 'High' : c === 'amber' ? 'Medium' : 'Low';
+  return c === 'red' ? 'High' : c === 'blue' ? 'Medium' : 'Low';
 }
 
 export default function DashboardPage() {
@@ -41,18 +42,34 @@ export default function DashboardPage() {
   const [params] = useSearchParams();
   const searchQuery = (params.get('q') ?? '').trim().toLowerCase();
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const summaryData = await api.dashboard.summary();
-      const tasksData = await api.dashboard.tasks();
+      // Fetch core data in parallel so one slow endpoint can't stall the other.
+      const [summaryData, tasksData] = await Promise.all([
+        api.dashboard.summary(),
+        api.dashboard.tasks(),
+      ]);
+      if (!mountedRef.current) return;
       setSummary(summaryData);
       setTasks(Array.isArray(tasksData) ? tasksData : []);
       setLastSync(new Date());
-      // Freshness: fetch market snapshot for "as of" timestamp; tolerate failure (cached fallback)
+      // Render the dashboard immediately — market freshness resolves separately
+      // and must never block the page (a hung upstream feed previously left
+      // the dashboard stuck on "Loading dashboard..." forever).
+      setLoading(false);
       try {
         const snap = (await api.market.snapshot()) as unknown as Record<string, unknown>;
+        if (!mountedRef.current) return;
         const raw = (snap['fetched_at'] ?? snap['snapshot_time']) as string | undefined;
         if (raw) {
           const dt = new Date(raw);
@@ -61,12 +78,15 @@ export default function DashboardPage() {
         }
       } catch {
         // Market feed unavailable — dashboard still shows cached portfolio data
-        setMarketStale(true);
+        if (mountedRef.current) setMarketStale(true);
       }
+      return;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load dashboard');
+      if (mountedRef.current) {
+        setError(e instanceof Error ? e.message : 'Failed to load dashboard');
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -162,7 +182,7 @@ export default function DashboardPage() {
   return (
     <div>
       {marketStale && (
-        <div role="status" style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: '#fef3c7', border: '1px solid #fcd34d', fontSize: 13, color: '#92400e' }}>
+        <div role="status" style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--blue-bg)', border: '1px solid rgba(96, 165, 250, 0.25)', fontSize: 13, color: 'var(--text)' }}>
           Market data {marketFetchedAt ? `as of ${marketFetchedAt.toLocaleString()}` : 'unavailable'} — showing cached portfolio data.
         </div>
       )}
@@ -351,21 +371,21 @@ export default function DashboardPage() {
                 <div className="metric-row">
                   <span>Refinancing</span>
                   <strong>{summary.risk_scores.refinancing_risk.toFixed(0)} / 100</strong>
-                  <em style={{ color: riskColor(summary.risk_scores.refinancing_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.refinancing_risk) === 'amber' ? '#d97706' : '#16a34a' }}>
+                  <em style={{ color: riskColor(summary.risk_scores.refinancing_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.refinancing_risk) === 'blue' ? 'var(--blue)' : '#16a34a' }}>
                     {riskLabel(summary.risk_scores.refinancing_risk)}
                   </em>
                 </div>
                 <div className="metric-row">
                   <span>Currency</span>
                   <strong>{summary.risk_scores.currency_risk.toFixed(0)} / 100</strong>
-                  <em style={{ color: riskColor(summary.risk_scores.currency_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.currency_risk) === 'amber' ? '#d97706' : '#16a34a' }}>
+                  <em style={{ color: riskColor(summary.risk_scores.currency_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.currency_risk) === 'blue' ? 'var(--blue)' : '#16a34a' }}>
                     {riskLabel(summary.risk_scores.currency_risk)}
                   </em>
                 </div>
                 <div className="metric-row">
                   <span>Interest rate</span>
                   <strong>{summary.risk_scores.interest_rate_risk.toFixed(0)} / 100</strong>
-                  <em style={{ color: riskColor(summary.risk_scores.interest_rate_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.interest_rate_risk) === 'amber' ? '#d97706' : '#16a34a' }}>
+                  <em style={{ color: riskColor(summary.risk_scores.interest_rate_risk) === 'red' ? '#dc2626' : riskColor(summary.risk_scores.interest_rate_risk) === 'blue' ? 'var(--blue)' : '#16a34a' }}>
                     {riskLabel(summary.risk_scores.interest_rate_risk)}
                   </em>
                 </div>
@@ -378,6 +398,10 @@ export default function DashboardPage() {
       </section>
 
       <FirstRunWizard />
+
+      <section style={{ marginTop: 24 }}>
+        <WhatIfPanel />
+      </section>
 
       <section className="qa-grid-2" style={{ display: 'grid', gap: 20, marginTop: 24 }}>
         <MarketPulseWidget />

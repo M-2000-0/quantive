@@ -24,6 +24,8 @@ function requestInit(options: RequestInit = {}): RequestInit {
   return init;
 }
 
+const REQUEST_TIMEOUT_MS = 20000;
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   // SECURITY: Tokens are in httpOnly/session cookies (sent automatically by browser)
   const init = requestInit(options);
@@ -35,7 +37,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  // Guard against hung requests (e.g. cold serverless backend or slow
+  // upstream market feeds) — fail fast so pages show an error + retry
+  // instead of spinning forever.
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: controller.signal });
+  } catch (e) {
+    window.clearTimeout(timeoutId);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('Request timed out. The server may be waking up — please retry.');
+    }
+    throw e instanceof Error ? e : new Error('Network request failed');
+  }
+  window.clearTimeout(timeoutId);
 
   if (response.status === 403 && !(options as RequestInit & { _retriedCsrf?: boolean })._retriedCsrf) {
     // CSRF token may be missing/expired (e.g. cold start). Refresh the cookie
@@ -72,7 +89,14 @@ async function handleResponse<T>(response: Response, path: string): Promise<T> {
 
   if (response.status === 204) return undefined as T;
 
-  const data = await response.json();
+  let data: any;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(
+      'Unexpected response from the server (is the API running?). Please retry.'
+    );
+  }
   if (!response.ok) {
     const msg = data.detail || 'Request failed';
     if (data.errors) {
@@ -104,6 +128,7 @@ import type {
   RiskSummary, InvestmentScenario, RiskScore, VaRResult,
   Notification, Watchlist, WatchlistItem, Tag, ActivityEvent, Comment,
   ExportJob, DashboardSummary, DashboardTask, PortfolioDetail, BenchmarkRow,
+  WhatIfScenarios,
   ImpactEvent, EventImpactSummary, ImpactedAsset, Opportunity, PurchaseRecord,
   NewsSource, NewsArticle, NewsDigest, NewsStats,
   Task, TaskComment,
@@ -595,8 +620,9 @@ export const api = {
     capabilities: () => request<{ capabilities: Array<{ category: string; examples: string[] }>; supported_countries: string[] }>('/advisor/capabilities'),
   },
 
-  // ── What-If Playground ─────────────────────────────────────────────
+  // ── What-If Playground (adjustment simulator + dashboard shock panel) ─
   whatif: {
+    scenarios: () => request<WhatIfScenarios>('/whatif/scenarios'),
     analyze: (data: { portfolio_id: string; adjustments: Array<{ action: string; amount: number; coupon_rate?: number; tenor_years?: number }> }) =>
       request<{ before: { total_principal: number; weighted_coupon_pct: number; annual_cost: number; num_instruments: number; currency_breakdown: Record<string, { amount: number; pct: number }> }; after: { total_principal: number; weighted_coupon_pct: number; annual_cost: number; num_instruments: number }; impact: { total_change: number; total_change_pct: number; coupon_change_bps: number; annual_cost_change: number; annual_cost_change_pct: number }; adjustments: Array<{ type: string; amount: number; impact: string }>; recommendation: string }>('/whatif/analyze', { method: 'POST', body: JSON.stringify(data) }),
   },

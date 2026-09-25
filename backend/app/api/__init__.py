@@ -227,6 +227,8 @@ router.include_router(realtime.router)
 router.include_router(advanced_analysis.router)
 router.include_router(settings_api.router)
 router.include_router(dashboard.router)
+from app.api import whatif  # noqa: E402
+router.include_router(whatif.router)
 router.include_router(frontend_ui.router)
 router.include_router(landing.router)
 router.include_router(first_run.router)
