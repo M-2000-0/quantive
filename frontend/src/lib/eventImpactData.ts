@@ -95,7 +95,7 @@ export function getSeverityColor(severity: string): string {
     case 'high':
       return '#ea580c';
     case 'medium':
-      return '#d97706';
+      return '#3b82f6';
     default:
       return '#16a34a';
   }

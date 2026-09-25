@@ -46,7 +46,7 @@ interface Methodology {
 const TIER_COLORS: Record<string, string> = {
   leader: 'bg-emerald-100 text-emerald-800',
   advanced: 'bg-blue-100 text-blue-800',
-  developing: 'bg-amber-100 text-amber-800',
+  developing: 'bg-sky-100 text-sky-800',
   emerging: 'bg-orange-100 text-orange-800',
   laggard: 'bg-red-100 text-red-800',
 };
@@ -74,7 +74,7 @@ function formatScore(score: number): string {
 function getScoreColor(score: number): string {
   if (score >= 80) return 'text-emerald-600';
   if (score >= 60) return 'text-blue-600';
-  if (score >= 40) return 'text-amber-600';
+  if (score >= 40) return 'text-sky-600';
   if (score >= 20) return 'text-orange-600';
   return 'text-red-600';
 }
@@ -82,7 +82,7 @@ function getScoreColor(score: number): string {
 function getScoreBg(score: number): string {
   if (score >= 80) return 'bg-emerald-500';
   if (score >= 60) return 'bg-blue-500';
-  if (score >= 40) return 'bg-amber-500';
+  if (score >= 40) return 'bg-sky-500';
   if (score >= 20) return 'bg-orange-500';
   return 'bg-red-500';
 }

@@ -106,7 +106,7 @@ export default function PFMImportPage() {
         <Link to="/sovereign-mode">Sovereign Mode</Link>
       </nav>
 
-      <h1 style={{ color: '#c8a951', marginBottom: 4 }}>PFM Data Import</h1>
+      <h1 style={{ color: '#e8e8ea', marginBottom: 4 }}>PFM Data Import</h1>
       <p style={{ color: '#9ca3af', marginBottom: 24 }}>
         Import government financial management data — budgets, revenue, expenditure, audits, and statements.
       </p>
@@ -115,7 +115,7 @@ export default function PFMImportPage() {
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
           {[
-            { label: 'Budget Entries', value: summary.total_budget_entries, color: '#c8a951' },
+            { label: 'Budget Entries', value: summary.total_budget_entries, color: '#e8e8ea' },
             { label: 'Revenue Records', value: summary.total_revenue_records, color: '#10b981' },
             { label: 'Expenditure Records', value: summary.total_expenditure_records, color: '#3b82f6' },
             { label: 'Audit Findings', value: summary.total_audit_findings, color: '#ef4444' },
@@ -136,7 +136,7 @@ export default function PFMImportPage() {
             onClick={() => { setActiveTab(tab); if (tab === 'data') fetchSummary(); }}
             style={{
               padding: '8px 16px',
-              background: activeTab === tab ? '#c8a951' : 'transparent',
+              background: activeTab === tab ? '#e8e8ea' : 'transparent',
               color: activeTab === tab ? '#000' : '#9ca3af',
               border: 'none',
               borderRadius: 6,
@@ -164,7 +164,7 @@ export default function PFMImportPage() {
                 style={{
                   padding: 12,
                   background: selectedType === dt.key ? '#1a1d24' : '#0d0f13',
-                  border: `1px solid ${selectedType === dt.key ? '#c8a951' : '#1f2937'}`,
+                  border: `1px solid ${selectedType === dt.key ? '#e8e8ea' : '#1f2937'}`,
                   borderRadius: 8,
                   cursor: 'pointer',
                   textAlign: 'left',
@@ -193,7 +193,7 @@ export default function PFMImportPage() {
             <label
               style={{
                 padding: '10px 20px',
-                background: '#c8a951',
+                background: '#e8e8ea',
                 color: '#000',
                 borderRadius: 6,
                 cursor: 'pointer',
@@ -264,7 +264,7 @@ export default function PFMImportPage() {
               { endpoint: '/api/pfm/summary', desc: 'PFM summary' },
             ].map((ep) => (
               <div key={ep.endpoint} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#0d0f13', borderRadius: 6 }}>
-                <code style={{ color: '#c8a951', fontSize: 13 }}>{ep.endpoint}</code>
+                <code style={{ color: '#e8e8ea', fontSize: 13 }}>{ep.endpoint}</code>
                 <span style={{ color: '#6b7280', fontSize: 13 }}>{ep.desc}</span>
               </div>
             ))}
@@ -295,7 +295,7 @@ export default function PFMImportPage() {
               >
                 <div style={{ fontSize: 24, marginBottom: 8 }}>{dt.icon}</div>
                 <div style={{ color: '#e5e7eb', fontSize: 13, fontWeight: 600 }}>{dt.label}</div>
-                <div style={{ color: '#c8a951', fontSize: 12, marginTop: 4 }}>Download CSV</div>
+                <div style={{ color: '#e8e8ea', fontSize: 12, marginTop: 4 }}>Download CSV</div>
               </button>
             ))}
           </div>
@@ -317,7 +317,7 @@ export default function PFMImportPage() {
             <div key={sys.name} style={{ padding: 16, background: '#0d0f13', border: '1px solid #1f2937', borderRadius: 8 }}>
               <div style={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 4 }}>{sys.name}</div>
               <div style={{ color: '#6b7280', fontSize: 13, marginBottom: 8 }}>{sys.desc}</div>
-              <div style={{ color: '#c8a951', fontSize: 12, fontWeight: 600 }}>{sys.status}</div>
+              <div style={{ color: '#e8e8ea', fontSize: 12, fontWeight: 600 }}>{sys.status}</div>
             </div>
           ))}
         </div>

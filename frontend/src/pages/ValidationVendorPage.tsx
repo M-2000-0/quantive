@@ -31,10 +31,10 @@ const CARD = '#111318';
 const BORDER = '#23272e';
 const TEXT = '#e5e7eb';
 const DIM = '#9ca3af';
-const GOLD = '#c8a951';
+const ACCENT = '#e8e8ea';
 const GREEN = '#22c55e';
 const RED = '#ef4444';
-const YELLOW = '#f59e0b';
+const SKY = '#38bdf8';
 const BLUE = '#3b82f6';
 const PURPLE = '#a855f7';
 const CYAN = '#06b6d4';
@@ -43,7 +43,7 @@ function badge(status: string) {
   const m: Record<string, { bg: string; c: string }> = {
     passed: { bg: '#22c55e20', c: GREEN }, active: { bg: '#22c55e20', c: GREEN }, onboarded: { bg: '#22c55e20', c: GREEN },
     failed: { bg: '#ef444420', c: RED }, terminated: { bg: '#ef444420', c: RED },
-    pending: { bg: '#f59e0b20', c: YELLOW }, in_progress: { bg: '#f59e0b20', c: YELLOW }, under_review: { bg: '#f59e0b20', c: YELLOW },
+    pending: { bg: '#38bdf820', c: SKY }, in_progress: { bg: '#38bdf820', c: SKY }, under_review: { bg: '#38bdf820', c: SKY },
     conditional: { bg: '#3b82f620', c: BLUE }, exempted: { bg: '#6b728020', c: DIM },
   };
   const s = m[status] || { bg: '#6b728020', c: DIM };
@@ -51,7 +51,7 @@ function badge(status: string) {
 }
 
 function critBadge(c: string) {
-  const m: Record<string, string> = { critical: RED, high: YELLOW, medium: GOLD, low: GREEN };
+  const m: Record<string, string> = { critical: RED, high: SKY, medium: ACCENT, low: GREEN };
   return <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: `${m[c] || DIM}20`, color: m[c] || DIM, textTransform: 'capitalize' as const }}>{c}</span>;
 }
 
@@ -92,7 +92,7 @@ export default function ValidationVendorPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: TEXT, margin: 0 }}>
-              <span style={{ color: GOLD }}>{'✅'}</span> Independent Validation & Vendor Risk
+              <span style={{ color: ACCENT }}>{'✅'}</span> Independent Validation & Vendor Risk
             </h1>
             <p style={{ fontSize: 13, color: DIM, margin: '4px 0 0 0' }}>
               Model backtesting, champion/challenger testing, third-party due diligence, SLA monitoring
@@ -114,9 +114,9 @@ export default function ValidationVendorPage() {
             {[
               { label: 'Validations Passed', value: dash.validations.passed, color: GREEN },
               { label: 'Validations Failed', value: dash.validations.failed, color: RED },
-              { label: 'Pending Review', value: dash.validations.pending, color: YELLOW },
+              { label: 'Pending Review', value: dash.validations.pending, color: SKY },
               { label: 'Critical Vendors', value: dash.vendors.critical, color: RED },
-              { label: 'Avg Risk Score', value: `${dash.vendors.avg_risk_score}`, color: GOLD },
+              { label: 'Avg Risk Score', value: `${dash.vendors.avg_risk_score}`, color: ACCENT },
               { label: 'Avg Uptime', value: `${dash.vendors.avg_uptime_pct}%`, color: GREEN },
             ].map((m, i) => (
               <div key={i} style={{ padding: '14px 16px', borderRadius: 8, background: CARD, border: `1px solid ${BORDER}` }}>
@@ -129,7 +129,7 @@ export default function ValidationVendorPage() {
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: CARD, borderRadius: 8, padding: 4, border: `1px solid ${BORDER}` }}>
           {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: tab === t.key ? '#c8a95120' : 'transparent', color: tab === t.key ? GOLD : DIM }}>{t.label}</button>
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: tab === t.key ? '#e8e8ea20' : 'transparent', color: tab === t.key ? ACCENT : DIM }}>{t.label}</button>
           ))}
         </div>
 
@@ -160,7 +160,7 @@ export default function ValidationVendorPage() {
                         <div style={{ fontSize: 11, color: DIM }}>{v.category.replace(/_/g, ' ')}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: v.risk_score >= 70 ? RED : v.risk_score >= 40 ? YELLOW : GREEN }}>{v.risk_score}</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: v.risk_score >= 70 ? RED : v.risk_score >= 40 ? SKY : GREEN }}>{v.risk_score}</div>
                         {critBadge(v.criticality)}
                       </div>
                     </div>
@@ -180,12 +180,12 @@ export default function ValidationVendorPage() {
                       <div style={{ fontSize: 11, color: DIM }}>{v.model_name} v{v.model_version}</div>
                       <div style={{ marginTop: 4, display: 'flex', gap: 6 }}>{badge(v.validation_type)} {badge(v.status)}
                         {v.is_champion && <span style={{ padding: '2px 6px', borderRadius: 3, fontSize: 10, background: '#22c55e18', color: GREEN }}>CHAMPION</span>}
-                        {v.is_challenger && <span style={{ padding: '2px 6px', borderRadius: 3, fontSize: 10, background: '#f59e0b18', color: YELLOW }}>CHALLENGER</span>}
+                        {v.is_challenger && <span style={{ padding: '2px 6px', borderRadius: 3, fontSize: 10, background: '#38bdf818', color: SKY }}>CHALLENGER</span>}
                       </div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: 10, color: DIM }}>OOS Sharpe</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: v.out_of_sample_sharpe && v.out_of_sample_sharpe >= 1.0 ? GREEN : YELLOW }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: v.out_of_sample_sharpe && v.out_of_sample_sharpe >= 1.0 ? GREEN : SKY }}>
                         {v.out_of_sample_sharpe ? v.out_of_sample_sharpe.toFixed(2) : '--'}
                       </div>
                     </div>
@@ -208,7 +208,7 @@ export default function ValidationVendorPage() {
                           <div style={{ fontSize: 10, color: DIM }}>{v.sign_off_date}</div>
                         </>
                       ) : (
-                        <div style={{ fontSize: 11, color: YELLOW }}>Awaiting sign-off</div>
+                        <div style={{ fontSize: 11, color: SKY }}>Awaiting sign-off</div>
                       )}
                     </div>
                   </div>
@@ -232,7 +232,7 @@ export default function ValidationVendorPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c', textAlign: 'center' }}>
                         <div style={{ fontSize: 10, color: DIM }}>Risk Score</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: v.overall_risk_score >= 70 ? RED : v.overall_risk_score >= 40 ? YELLOW : GREEN }}>{v.overall_risk_score}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: v.overall_risk_score >= 70 ? RED : v.overall_risk_score >= 40 ? SKY : GREEN }}>{v.overall_risk_score}</div>
                       </div>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c', textAlign: 'center' }}>
                         <div style={{ fontSize: 10, color: DIM }}>Uptime</div>

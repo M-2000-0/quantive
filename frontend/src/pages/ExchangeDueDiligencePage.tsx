@@ -127,10 +127,10 @@ export default function ExchangeDueDiligencePage() {
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
       active: '#22c55e', inactive: '#6b7280', breached: '#ef4444', healthy: '#22c55e',
-      warning: '#f59e0b', critical: '#ef4444', completed: '#22c55e', running: '#3b82f6',
-      killed: '#ef4444', open: '#f59e0b', investigating: '#3b82f6', closed: '#6b7280',
-      verified: '#22c55e', unverified: '#ef4444', pending: '#c8a951', failed: '#ef4444',
-      approved: '#22c55e', rejected: '#ef4444', high: '#ef4444', medium: '#f59e0b', low: '#22c55e',
+      warning: '#38bdf8', critical: '#ef4444', completed: '#22c55e', running: '#3b82f6',
+      killed: '#ef4444', open: '#38bdf8', investigating: '#3b82f6', closed: '#6b7280',
+      verified: '#22c55e', unverified: '#ef4444', pending: '#e8e8ea', failed: '#ef4444',
+      approved: '#22c55e', rejected: '#ef4444', high: '#ef4444', medium: '#38bdf8', low: '#22c55e',
     };
     return (
       <span style={{
@@ -163,7 +163,7 @@ export default function ExchangeDueDiligencePage() {
         <Link to="/cybersecurity-privacy">Cybersecurity & Privacy</Link>
       </nav>
 
-      <h1 style={{ color: '#c8a951', marginBottom: 4 }}>Exchange Due Diligence</h1>
+      <h1 style={{ color: '#e8e8ea', marginBottom: 4 }}>Exchange Due Diligence</h1>
       <p style={{ color: '#9ca3af', marginBottom: 24 }}>
         Pre-trade controls, simulation testing, market surveillance, proof of reserves, and decision audit logs.
       </p>
@@ -172,7 +172,7 @@ export default function ExchangeDueDiligencePage() {
       {dashboard && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
           {[
-            { label: 'Pre-Trade', value: `${dashboard.pre_trade_controls.active}/${dashboard.pre_trade_controls.total}`, sub: `${dashboard.pre_trade_controls.breached} breached`, color: '#c8a951', icon: '🛡️' },
+            { label: 'Pre-Trade', value: `${dashboard.pre_trade_controls.active}/${dashboard.pre_trade_controls.total}`, sub: `${dashboard.pre_trade_controls.breached} breached`, color: '#e8e8ea', icon: '🛡️' },
             { label: 'Simulations', value: `${dashboard.simulations.completed}/${dashboard.simulations.total}`, sub: 'completed', color: '#3b82f6', icon: '🧪' },
             { label: 'Surveillance', value: `${dashboard.surveillance.open}/${dashboard.surveillance.total}`, sub: `${dashboard.surveillance.critical} critical`, color: dashboard.surveillance.critical > 0 ? '#ef4444' : '#22c55e', icon: '👁️' },
             { label: 'Proof of Reserve', value: `${dashboard.proof_of_reserves.verified}/${dashboard.proof_of_reserves.total}`, sub: 'verified', color: '#22c55e', icon: '⛓️' },
@@ -194,7 +194,7 @@ export default function ExchangeDueDiligencePage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid #1f2937', paddingBottom: 8 }}>
         {TABS.map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)} style={{
-            padding: '8px 16px', background: activeTab === tab ? '#c8a951' : 'transparent',
+            padding: '8px 16px', background: activeTab === tab ? '#e8e8ea' : 'transparent',
             color: activeTab === tab ? '#000' : '#9ca3af', border: 'none', borderRadius: 6,
             cursor: 'pointer', fontWeight: 600, textTransform: 'capitalize',
           }}>{tab.replace(/-/g, ' ')}</button>
@@ -231,7 +231,7 @@ export default function ExchangeDueDiligencePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
                     <div>
                       <span style={{ color: '#6b7280' }}>Checks: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>{ctrl.total_checks.toLocaleString()}</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>{ctrl.total_checks.toLocaleString()}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Breaches: </span>
@@ -241,7 +241,7 @@ export default function ExchangeDueDiligencePage() {
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Warning @ </span>
-                      <span style={{ color: '#f59e0b', fontWeight: 600 }}>{ctrl.warning_threshold_pct}%</span>
+                      <span style={{ color: '#38bdf8', fontWeight: 600 }}>{ctrl.warning_threshold_pct}%</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Reject on Breach: </span>
@@ -290,7 +290,7 @@ export default function ExchangeDueDiligencePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
                     <div>
                       <span style={{ color: '#6b7280' }}>Trades: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>{sim.total_trades.toLocaleString()}</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>{sim.total_trades.toLocaleString()}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>PnL: </span>
@@ -308,7 +308,7 @@ export default function ExchangeDueDiligencePage() {
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Win Rate: </span>
-                      <span style={{ color: sim.win_rate_pct > 50 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
+                      <span style={{ color: sim.win_rate_pct > 50 ? '#22c55e' : '#38bdf8', fontWeight: 600 }}>
                         {sim.win_rate_pct}%
                       </span>
                     </div>
@@ -354,17 +354,17 @@ export default function ExchangeDueDiligencePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
                     <div>
                       <span style={{ color: '#6b7280' }}>Confidence: </span>
-                      <span style={{ color: alert.confidence_score > 0.8 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
+                      <span style={{ color: alert.confidence_score > 0.8 ? '#22c55e' : '#38bdf8', fontWeight: 600 }}>
                         {(alert.confidence_score * 100).toFixed(1)}%
                       </span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Price: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>${alert.price_at_detection.toLocaleString()}</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>${alert.price_at_detection.toLocaleString()}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Volume: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>{alert.volume_at_detection.toLocaleString()}</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>{alert.volume_at_detection.toLocaleString()}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Assigned: </span>
@@ -482,19 +482,19 @@ export default function ExchangeDueDiligencePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
                     <div>
                       <span style={{ color: '#6b7280' }}>Qty: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>{log.quantity.toLocaleString()}</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>{log.quantity.toLocaleString()}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Price: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>${log.price.toLocaleString()}</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>${log.price.toLocaleString()}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Value: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>${log.total_value.toLocaleString()}</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>${log.total_value.toLocaleString()}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Confidence: </span>
-                      <span style={{ color: log.confidence_score > 0.8 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
+                      <span style={{ color: log.confidence_score > 0.8 ? '#22c55e' : '#38bdf8', fontWeight: 600 }}>
                         {(log.confidence_score * 100).toFixed(1)}%
                       </span>
                     </div>

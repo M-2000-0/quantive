@@ -252,7 +252,7 @@ export default function BankingDashboardPage() {
         <section aria-label="AI CFO" className="qp-card">
           <h2>AI CFO assistant</h2>
           {insights.map((c) => (
-            <div key={c.id} style={{ padding: '10px 12px', borderRadius: 10, background: c.severity === 'warn' ? '#fef3c7' : '#f0fdf4', marginBottom: 8 }}>
+            <div key={c.id} style={{ padding: '10px 12px', borderRadius: 10, background: c.severity === 'warn' ? '#eff6ff' : '#f0fdf4', marginBottom: 8 }}>
               <div style={{ fontWeight: 650, fontSize: 13 }}>{c.title}</div>
               <div className="qp-muted" style={{ fontSize: 12, marginTop: 4 }}>{c.body}</div>
             </div>

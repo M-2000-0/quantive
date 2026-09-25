@@ -34,7 +34,7 @@ function formatCurrency(value: number): string {
 
 function riskColor(score: number): string {
   if (score >= 75) return '#dc2626';
-  if (score >= 50) return '#d97706';
+  if (score >= 50) return '#3b82f6';
   return '#16a34a';
 }
 
@@ -175,7 +175,7 @@ export default function PortfolioDetailPage() {
           { value: `${s.avg_maturity_years} yr`, label: 'Avg maturity', tone: '#6b7280' },
           { value: `${s.weighted_coupon_pct.toFixed(2)}%`, label: 'Wtd coupon', tone: '#16a34a' },
           { value: `${s.weighted_spread_bps.toFixed(0)} bps`, label: 'Wtd spread', tone: '#6b7280' },
-          { value: `${s.callable_count}`, label: 'Callable', tone: '#d97706' },
+          { value: `${s.callable_count}`, label: 'Callable', tone: '#3b82f6' },
         ].map(({ value, label, tone }) => (
           <article key={label} className="stat-card" style={{ borderTop: `3px solid ${tone}` }}>
             <div className="stat-value" style={{ fontSize: 20 }}>{value}</div>

@@ -62,11 +62,11 @@ export default function ExchangeIntegrationPage() {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      connected: '#22c55e', connecting: '#c8a951', disconnected: '#6b7280',
+      connected: '#22c55e', connecting: '#e8e8ea', disconnected: '#6b7280',
       suspended: '#ef4444', error: '#ef4444',
-      approved: '#22c55e', conditional: '#f59e0b', restricted: '#ef4444', rejected: '#ef4444',
-      pending_approval: '#c8a951', submitted: '#3b82f6', filled: '#22c55e',
-      pending_review: '#c8a951', submitted_draft: '#6b7280',
+      approved: '#22c55e', conditional: '#38bdf8', restricted: '#ef4444', rejected: '#ef4444',
+      pending_approval: '#e8e8ea', submitted: '#3b82f6', filled: '#22c55e',
+      pending_review: '#e8e8ea', submitted_draft: '#6b7280',
     };
     return (
       <span style={{
@@ -87,7 +87,7 @@ export default function ExchangeIntegrationPage() {
         <Link to="/regulatory-compliance">Regulatory Compliance</Link>
       </nav>
 
-      <h1 style={{ color: '#c8a951', marginBottom: 4 }}>Exchange & Broker Integration</h1>
+      <h1 style={{ color: '#e8e8ea', marginBottom: 4 }}>Exchange & Broker Integration</h1>
       <p style={{ color: '#9ca3af', marginBottom: 24 }}>
         RegTech compliance, risk controls, counterparty due diligence, and interoperability for government-exchange partnerships.
       </p>
@@ -99,8 +99,8 @@ export default function ExchangeIntegrationPage() {
             { label: 'Connections', value: `${dashboard.connections.active}/${dashboard.connections.total}`, color: '#22c55e', icon: '🔗' },
             { label: 'Compliance Rules', value: dashboard.compliance.rules, color: '#3b82f6', icon: '📋' },
             { label: 'Open Violations', value: dashboard.compliance.open_violations, color: dashboard.compliance.open_violations > 0 ? '#ef4444' : '#22c55e', icon: '⚠️' },
-            { label: 'Counterparties', value: dashboard.counterparties.total, color: '#c8a951', icon: '🏦' },
-            { label: 'Pending Orders', value: dashboard.orders.pending, color: '#f59e0b', icon: '📊' },
+            { label: 'Counterparties', value: dashboard.counterparties.total, color: '#e8e8ea', icon: '🏦' },
+            { label: 'Pending Orders', value: dashboard.orders.pending, color: '#38bdf8', icon: '📊' },
             { label: 'Firewall Active', value: dashboard.ethical_firewall.active_cooling_off, color: '#8b5cf6', icon: '🛡️' },
           ].map((item) => (
             <div key={item.label} style={{
@@ -118,7 +118,7 @@ export default function ExchangeIntegrationPage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid #1f2937', paddingBottom: 8 }}>
         {TABS.map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)} style={{
-            padding: '8px 16px', background: activeTab === tab ? '#c8a951' : 'transparent',
+            padding: '8px 16px', background: activeTab === tab ? '#e8e8ea' : 'transparent',
             color: activeTab === tab ? '#000' : '#9ca3af', border: 'none', borderRadius: 6,
             cursor: 'pointer', fontWeight: 600, textTransform: 'capitalize',
           }}>{tab}</button>
@@ -299,7 +299,7 @@ export default function ExchangeIntegrationPage() {
               <div key={r.requirement} style={{
                 padding: 16, background: '#0d0f13', border: '1px solid #1f2937', borderRadius: 8,
               }}>
-                <div style={{ color: '#c8a951', fontWeight: 600 }}>{r.authority}</div>
+                <div style={{ color: '#e8e8ea', fontWeight: 600 }}>{r.authority}</div>
                 <div style={{ color: '#e5e7eb', fontSize: 13, marginTop: 4 }}>{r.requirement}</div>
                 <div style={{ color: '#6b7280', fontSize: 12, marginTop: 4 }}>Format: {r.format}</div>
               </div>
@@ -347,7 +347,7 @@ export default function ExchangeIntegrationPage() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 16 }}>
             <div style={{ padding: 16, background: '#0d0f13', border: '1px solid #1f2937', borderRadius: 8 }}>
-              <div style={{ color: '#c8a951', fontWeight: 600, marginBottom: 8 }}>CCP Clearing Members</div>
+              <div style={{ color: '#e8e8ea', fontWeight: 600, marginBottom: 8 }}>CCP Clearing Members</div>
               <div style={{ color: '#6b7280', fontSize: 13 }}>
                 Register CCP memberships (LCH, CME Clearing, ICE Clear) with margin requirements, default fund contributions, and portability settings.
               </div>
@@ -356,7 +356,7 @@ export default function ExchangeIntegrationPage() {
               </div>
             </div>
             <div style={{ padding: 16, background: '#0d0f13', border: '1px solid #1f2937', borderRadius: 8 }}>
-              <div style={{ color: '#c8a951', fontWeight: 600, marginBottom: 8 }}>Smart Contract Templates</div>
+              <div style={{ color: '#e8e8ea', fontWeight: 600, marginBottom: 8 }}>Smart Contract Templates</div>
               <div style={{ color: '#6b7280', fontSize: 13 }}>
                 Pre-built templates for bond issuance, FX swaps, repos with embedded risk controls and human approval gates.
               </div>
@@ -401,7 +401,7 @@ export default function ExchangeIntegrationPage() {
                 <div style={{ fontSize: 24, marginBottom: 4 }}>{dim.icon}</div>
                 <div style={{ color: '#e5e7eb', fontWeight: 600, fontSize: 13 }}>{dim.label}</div>
                 <div style={{ color: '#6b7280', fontSize: 11 }}>{dim.desc}</div>
-                <div style={{ color: '#c8a951', fontSize: 11, marginTop: 4 }}>Weight: {dim.weight}</div>
+                <div style={{ color: '#e8e8ea', fontSize: 11, marginTop: 4 }}>Weight: {dim.weight}</div>
               </div>
             ))}
           </div>
@@ -411,7 +411,7 @@ export default function ExchangeIntegrationPage() {
               {[
                 { rating: 'Excellent', score: '80-100', color: '#22c55e', status: 'Ready' },
                 { rating: 'Good', score: '65-79', color: '#3b82f6', status: 'Ready' },
-                { rating: 'Adequate', score: '50-64', color: '#f59e0b', status: 'Conditional' },
+                { rating: 'Adequate', score: '50-64', color: '#38bdf8', status: 'Conditional' },
                 { rating: 'Weak', score: '35-49', color: '#ef4444', status: 'Not Ready' },
                 { rating: 'Inadequate', score: '0-34', color: '#ef4444', status: 'Not Ready' },
               ].map((r) => (
@@ -439,7 +439,7 @@ export default function ExchangeIntegrationPage() {
           <div style={{
             padding: 20, background: '#0d0f13', border: '1px solid #1f2937', borderRadius: 8, marginBottom: 16,
           }}>
-            <div style={{ color: '#c8a951', fontFamily: 'monospace', fontSize: 13, wordBreak: 'break-all' }}>
+            <div style={{ color: '#e8e8ea', fontFamily: 'monospace', fontSize: 13, wordBreak: 'break-all' }}>
               Event Chain: event_001 → SHA-256 → event_002 → SHA-256 → event_003 → ...
             </div>
             <div style={{ color: '#6b7280', fontSize: 12, marginTop: 8 }}>

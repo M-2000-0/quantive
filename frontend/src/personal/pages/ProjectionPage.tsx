@@ -40,7 +40,7 @@ export default function ProjectionPage() {
         </div>
         <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
           <p className="text-zinc-400 text-sm">Total Tax</p>
-          <p className="text-amber-400 text-2xl font-bold">${(data.total_tax / 100).toLocaleString()}</p>
+          <p className="text-sky-400 text-2xl font-bold">${(data.total_tax / 100).toLocaleString()}</p>
         </div>
         <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
           <p className="text-zinc-400 text-sm">Effective Rate</p>

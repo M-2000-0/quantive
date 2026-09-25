@@ -198,7 +198,7 @@ export default function LoginPage() {
             </button>
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2, fontSize: 12, color: '#5E5E66' }}>
-              <span>Need an account? <Link to="/register" style={{ color: '#C8A951', fontWeight: 700, textDecoration: 'none' }}>Request access →</Link></span>
+              <span>Need an account? <Link to="/register" style={{ color: '#F5F5F3', fontWeight: 700, textDecoration: 'none' }}>Request access →</Link></span>
             </div>
           </form>
 

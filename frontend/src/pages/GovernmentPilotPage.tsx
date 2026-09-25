@@ -56,7 +56,7 @@ export default function GovernmentPilotPage() {
     approved: 'bg-blue-100 text-blue-700',
     active: 'bg-emerald-100 text-emerald-700',
     completed: 'bg-purple-100 text-purple-700',
-    converted: 'bg-amber-100 text-amber-700',
+    converted: 'bg-sky-100 text-sky-700',
     failed: 'bg-red-100 text-red-700',
   };
 
@@ -133,8 +133,8 @@ export default function GovernmentPilotPage() {
             </div>
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-amber-600" />
+                <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-sky-600" />
                 </div>
                 <div>
                   <div className="text-sm text-slate-500">Completed</div>

@@ -141,8 +141,8 @@ export default function DashboardPage() {
                     fontSize: 11,
                     padding: '2px 8px',
                     borderRadius: 9999,
-                    background: t.priority === 'high' ? '#fee2e2' : t.priority === 'medium' ? '#fef3c7' : '#e5e7eb',
-                    color: t.priority === 'high' ? '#b91c1c' : t.priority === 'medium' ? '#92400e' : '#374151',
+                    background: t.priority === 'high' ? '#fee2e2' : t.priority === 'medium' ? '#eff6ff' : '#e5e7eb',
+                    color: t.priority === 'high' ? '#b91c1c' : t.priority === 'medium' ? '#1e40af' : '#374151',
                     whiteSpace: 'nowrap',
                   }}
                 >

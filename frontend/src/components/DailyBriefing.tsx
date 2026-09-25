@@ -74,7 +74,7 @@ function priorityColor(priority: string): string {
   switch (priority) {
     case 'critical': return '#dc2626';
     case 'high': return '#ea580c';
-    case 'medium': return '#d97706';
+    case 'medium': return '#2563eb';
     default: return '#6b7280';
   }
 }
@@ -83,7 +83,7 @@ function priorityBg(priority: string): string {
   switch (priority) {
     case 'critical': return '#fef2f2';
     case 'high': return '#fff7ed';
-    case 'medium': return '#fffbeb';
+    case 'medium': return '#eff6ff';
     default: return '#f9fafb';
   }
 }
@@ -196,7 +196,7 @@ export default function DailyBriefing() {
           <span style={{ fontSize: 11, color: '#6b7280' }}>Critical</span>
         </div>
         <div style={quickStatStyle}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#38bdf8' }}>
             {briefing.upcoming_maturities.length}
           </span>
           <span style={{ fontSize: 11, color: '#6b7280' }}>Maturities (90d)</span>
@@ -219,7 +219,7 @@ export default function DailyBriefing() {
                 key={m.id}
                 style={{
                   ...maturityRowStyle,
-                  borderLeftColor: m.urgency === 'critical' ? '#dc2626' : '#f59e0b' }}
+                  borderLeftColor: m.urgency === 'critical' ? '#dc2626' : '#38bdf8' }}
               >
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, color: '#111827', fontSize: 13 }}>{m.name}</div>
@@ -228,7 +228,7 @@ export default function DailyBriefing() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: m.urgency === 'critical' ? '#dc2626' : '#d97706' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: m.urgency === 'critical' ? '#dc2626' : '#2563eb' }}>
                     {m.days_until_maturity}d
                   </div>
                   <div style={{ fontSize: 10, color: '#9ca3af' }}>{m.maturity_date}</div>

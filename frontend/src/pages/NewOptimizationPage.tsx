@@ -285,7 +285,7 @@ export default function NewOptimizationPage() {
     const sliders = [
       { key: 'financing_cost_weight' as const, label: 'Financing Cost', color: '#2563eb' },
       { key: 'refinancing_risk_weight' as const, label: 'Refinancing Risk', color: '#dc2626' },
-      { key: 'interest_rate_risk_weight' as const, label: 'Interest Rate Risk', color: '#d97706' },
+      { key: 'interest_rate_risk_weight' as const, label: 'Interest Rate Risk', color: '#3b82f6' },
       { key: 'currency_risk_weight' as const, label: 'Currency Risk', color: '#7c3aed' },
     ];
 
@@ -540,7 +540,7 @@ export default function NewOptimizationPage() {
             {[
               { label: 'Financing Cost', value: o.financing_cost_weight, color: '#2563eb' },
               { label: 'Refinancing Risk', value: o.refinancing_risk_weight, color: '#dc2626' },
-              { label: 'Interest Rate', value: o.interest_rate_risk_weight, color: '#d97706' },
+              { label: 'Interest Rate', value: o.interest_rate_risk_weight, color: '#3b82f6' },
               { label: 'Currency', value: o.currency_risk_weight, color: '#7c3aed' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>

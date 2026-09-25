@@ -134,7 +134,7 @@ export default function SLAMonitoringPage() {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="text-sm text-slate-500 mb-1">Credits Owed</div>
-            <div className="text-3xl font-bold text-amber-600">
+            <div className="text-3xl font-bold text-sky-600">
               ${compliance?.credits_owed?.toFixed(2) || '0.00'}
             </div>
           </div>

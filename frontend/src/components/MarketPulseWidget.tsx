@@ -68,7 +68,7 @@ interface MarketPulse {
 function signalColor(signal: string): string {
   switch (signal) {
     case 'positive': return '#10b981';
-    case 'cautious': return '#f59e0b';
+    case 'cautious': return '#38bdf8';
     case 'warning': return '#ef4444';
     default: return '#6b7280';
   }
@@ -77,7 +77,7 @@ function signalColor(signal: string): string {
 function signalBg(signal: string): string {
   switch (signal) {
     case 'positive': return '#ecfdf5';
-    case 'cautious': return '#fffbeb';
+    case 'cautious': return '#eff6ff';
     case 'warning': return '#fef2f2';
     default: return '#f9fafb';
   }
@@ -95,7 +95,7 @@ function signalLabel(signal: string): string {
 function urgencyColor(urgency: string): string {
   switch (urgency) {
     case 'high': return '#ef4444';
-    case 'medium': return '#f59e0b';
+    case 'medium': return '#38bdf8';
     default: return '#6b7280';
   }
 }
@@ -258,9 +258,9 @@ export default function MarketPulseWidget() {
 
       {/* Refinancing Windows */}
       {pulse.refinancing_windows.length > 0 && (
-        <div style={{ ...sectionStyle, background: '#fffbeb', border: '1px solid #fde68a' }}>
+        <div style={{ ...sectionStyle, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
           <div style={sectionHeaderStyle}>
-            <span style={{ ...sectionTitleStyle, color: '#92400e' }}>Refinancing Windows</span>
+            <span style={{ ...sectionTitleStyle, color: '#1e40af' }}>Refinancing Windows</span>
             {pulse.urgent_window_count > 0 && (
               <span style={{ fontSize: 11, fontWeight: 600, color: '#dc2626' }}>
                 {pulse.urgent_window_count} urgent
@@ -279,7 +279,7 @@ export default function MarketPulseWidget() {
                 <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.4, margin: 0 }}>
                   {w.description}
                 </p>
-                <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: '#92400e' }}>
+                <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: '#1e40af' }}>
                   <span>Savings: ~{w.estimated_savings_pct}%</span>
                   <span>Window: {w.window_days} days</span>
                 </div>
@@ -325,7 +325,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 function YieldCurveBadge({ shape }: { shape: string }) {
   const colors: Record<string, { bg: string; fg: string }> = {
     inverted: { bg: '#fef2f2', fg: '#dc2626' },
-    flat: { bg: '#fffbeb', fg: '#d97706' },
+    flat: { bg: '#eff6ff', fg: '#2563eb' },
     normal: { bg: '#ecfdf5', fg: '#059669' },
     steep: { bg: '#eef2ff', fg: '#4f46e5' },
     unknown: { bg: '#f9fafb', fg: '#6b7280' } };
@@ -344,7 +344,7 @@ function TrendIcon({ trend }: { trend: string }) {
     case 'weakening':
       return <TrendingDown size={12} color="#ef4444" />;
     case 'volatile':
-      return <AlertTriangle size={12} color="#f59e0b" />;
+      return <AlertTriangle size={12} color="#38bdf8" />;
     default:
       return <Minus size={12} color="#9ca3af" />;
   }
@@ -395,4 +395,4 @@ const windowCardStyle: React.CSSProperties = {
   background: '#fff',
   padding: 12,
   borderRadius: 8,
-  border: '1px solid #fde68a' };
+  border: '1px solid #bfdbfe' };

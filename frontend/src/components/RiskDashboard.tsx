@@ -18,7 +18,7 @@ const CATEGORY_PANELS: RiskCategoryPanel[] = [
   { id: RiskCategory.CYBER, title: 'Cyber Risk', icon: 'Shield', color: 'cyan' },
   { id: RiskCategory.FISCAL, title: 'Fiscal Risk', icon: 'DollarSign', color: 'red' },
   { id: RiskCategory.CLIMATE, title: 'Climate Risk', icon: 'Sun', color: 'orange' },
-  { id: RiskCategory.INFRASTRUCTURE, title: 'Infrastructure', icon: 'Building', color: 'amber' },
+  { id: RiskCategory.INFRASTRUCTURE, title: 'Infrastructure', icon: 'Building', color: 'sky' },
   { id: RiskCategory.GEOPOLITICAL, title: 'Geopolitical', icon: 'Globe', color: 'purple' },
   { id: RiskCategory.SUPPLY_CHAIN, title: 'Supply Chain', icon: 'Package', color: 'green' },
 ];
@@ -195,7 +195,7 @@ export default function RiskDashboard() {
                                 : key === 'climate'
                                   ? 'orange'
                                   : key === 'infrastructure'
-                                    ? 'amber'
+                                    ? 'sky'
                                     : key === 'geopolitical'
                                       ? 'purple'
                                       : 'green';
@@ -221,7 +221,7 @@ export default function RiskDashboard() {
                         <span className="text-green-400">📈</span>
                       )}
                       {panel.trending === 'stable' && (
-                        <span className="text-yellow-400">➡️</span>
+                        <span className="text-sky-400">➡️</span>
                       )}
                       {panel.trending === 'deteriorating' && (
                         <span className="text-red-400">📉</span>
@@ -248,7 +248,7 @@ export default function RiskDashboard() {
                     : signal.status === 'warning'
                       ? 'bg-orange-500/20 text-orange-400'
                       : signal.status === 'watch'
-                        ? 'bg-yellow-500/20 text-yellow-400'
+                        ? 'bg-sky-500/20 text-sky-400'
                         : 'bg-green-500/20 text-green-400';
 
                 return (
@@ -286,7 +286,7 @@ function getSeverityBadgeClass(severity: string) {
   return {
     critical: 'bg-red-500/20 text-red-400',
     high: 'bg-orange-500/20 text-orange-400',
-    medium: 'bg-amber-500/20 text-amber-400',
+    medium: 'bg-sky-500/20 text-sky-400',
     low: 'bg-green-500/20 text-green-400' }[severity];
 }
 

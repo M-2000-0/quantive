@@ -241,7 +241,7 @@ export default function AffiliateDashboardPage() {
                       <td style={{ padding: '8px 4px', fontWeight: 650 }}>{centsToUsd(c.commission_amount_cents)}</td>
                       <td style={{ padding: '8px 4px' }}>
                         <span className="badge" style={{
-                          color: c.status === 'paid' ? '#16a34a' : c.status === 'approved' ? '#2563eb' : c.status === 'pending' ? '#f59e0b' : '#9ca3af',
+                          color: c.status === 'paid' ? '#16a34a' : c.status === 'approved' ? '#2563eb' : c.status === 'pending' ? '#38bdf8' : '#9ca3af',
                         }}>
                           {c.status}
                         </span>

@@ -173,7 +173,7 @@ export default function SolverTournamentPage() {
                       onClick={() => setSelectedSolver(solver.solver === selectedSolver ? null : solver.solver)}
                       style={{ cursor: 'pointer', background: solver.solver === selectedSolver ? 'rgba(37,99,235,0.05)' : undefined }}
                     >
-                      <td style={{ fontWeight: 700, color: solver.rank === 1 ? '#d97706' : '#6b7280' }}>
+                      <td style={{ fontWeight: 700, color: solver.rank === 1 ? '#3b82f6' : '#6b7280' }}>
                         {solver.rank === 1 ? '🏆' : solver.rank}
                       </td>
                       <td style={{ fontWeight: 600 }}>{solver.solver}</td>
@@ -207,7 +207,7 @@ export default function SolverTournamentPage() {
                             <div style={{
                               height: '100%', borderRadius: 2,
                               width: `${(solver.runtime / maxRuntime) * 100}%`,
-                              background: solver.runtime < maxRuntime * 0.3 ? '#16a34a' : solver.runtime < maxRuntime * 0.7 ? '#d97706' : '#dc2626',
+                              background: solver.runtime < maxRuntime * 0.3 ? '#16a34a' : solver.runtime < maxRuntime * 0.7 ? '#3b82f6' : '#dc2626',
                             }} />
                           </div>
                           <span style={{ fontSize: 12 }}>{formatTime(solver.runtime)}</span>

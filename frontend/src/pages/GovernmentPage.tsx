@@ -102,20 +102,20 @@ export default function GovernmentPage() {
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
       <nav style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-        <Link to="/" style={{ color: '#c8a951' }}>← Home</Link>
-        <Link to="/government" style={{ color: '#c8a951' }}>Government</Link>
+        <Link to="/" style={{ color: '#e8e8ea' }}>← Home</Link>
+        <Link to="/government" style={{ color: '#e8e8ea' }}>Government</Link>
       </nav>
 
-      <h1 style={{ color: '#c8a951', fontSize: 24, marginBottom: 8 }}>Sovereign Debt Management</h1>
+      <h1 style={{ color: '#e8e8ea', fontSize: 24, marginBottom: 8 }}>Sovereign Debt Management</h1>
       <p style={{ color: '#64748b', marginBottom: 24 }}>IMF-compliant DSA, stress testing, maturity analysis, fiscal framework</p>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #1e293b', marginBottom: 24 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
-            background: 'none', border: 'none', color: tab === t.id ? '#c8a951' : '#64748b',
+            background: 'none', border: 'none', color: tab === t.id ? '#e8e8ea' : '#64748b',
             padding: '10px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-            borderBottom: tab === t.id ? '2px solid #c8a951' : '2px solid transparent',
+            borderBottom: tab === t.id ? '2px solid #e8e8ea' : '2px solid transparent',
           }}>{t.label}</button>
         ))}
       </div>
@@ -128,7 +128,7 @@ export default function GovernmentPage() {
               { title: 'Debt/GDP', value: dsaResult ? `${dsaResult.indicators?.debt_gdp}%` : '—', color: dsaResult?.risk_color || '#64748b' },
               { title: 'Risk Rating', value: dsaResult?.risk_label || 'Run DSA', color: dsaResult?.risk_color || '#64748b' },
               { title: 'Stress Test', value: stressResult?.severity_label || 'Run Test', color: stressResult?.severity_color || '#64748b' },
-              { title: 'Avg Maturity', value: maturity?.avg_maturity_years ? `${maturity.avg_maturity_years}yr` : '—', color: '#c8a951' },
+              { title: 'Avg Maturity', value: maturity?.avg_maturity_years ? `${maturity.avg_maturity_years}yr` : '—', color: '#e8e8ea' },
               { title: 'Fiscal Balance', value: fiscal?.budget?.fiscal_balance_gdp_pct ? `${fiscal.budget.fiscal_balance_gdp_pct}% GDP` : '—', color: fiscal?.budget?.fiscal_balance_gdp_pct >= 0 ? '#22c55e' : '#ef4444' },
               { title: 'Audit Events', value: auditLog.length || '—', color: '#64748b' },
             ].map((card, i) => (
@@ -143,7 +143,7 @@ export default function GovernmentPage() {
             <div style={{ background: '#12131a', border: '1px solid #1e293b', borderRadius: 8, padding: 16 }}>
               <h3 style={{ color: '#e2e8f0', fontSize: 14, marginBottom: 12 }}>Policy Recommendations</h3>
               {dsaResult.recommendations.map((rec, i) => (
-                <div key={i} style={{ padding: '8px 12px', background: '#08090c', borderRadius: 6, marginBottom: 8, borderLeft: `3px solid ${rec.priority === 'critical' ? '#ef4444' : rec.priority === 'high' ? '#f59e0b' : '#60a5fa'}` }}>
+                <div key={i} style={{ padding: '8px 12px', background: '#08090c', borderRadius: 6, marginBottom: 8, borderLeft: `3px solid ${rec.priority === 'critical' ? '#ef4444' : rec.priority === 'high' ? '#38bdf8' : '#60a5fa'}` }}>
                   <div style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 600 }}>{rec.recommendation}</div>
                   <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 2 }}>{rec.rationale}</div>
                 </div>
@@ -174,7 +174,7 @@ export default function GovernmentPage() {
               </div>
             ))}
           </div>
-          <button onClick={runDSA} disabled={loading} style={{ padding: '8px 24px', background: '#c8a951', color: '#08090c', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', marginBottom: 24 }}>
+          <button onClick={runDSA} disabled={loading} style={{ padding: '8px 24px', background: '#e8e8ea', color: '#08090c', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', marginBottom: 24 }}>
             {loading ? 'Computing...' : 'Run DSA Analysis'}
           </button>
 
@@ -204,7 +204,7 @@ export default function GovernmentPage() {
                         <div style={{ color: '#94a3b8', fontSize: 10, marginBottom: 4 }}>{p.debt_gdp}%</div>
                         <div style={{
                           width: '100%', height: Math.min(p.debt_gdp * 1.5, 180),
-                          background: p.debt_gdp > 70 ? '#ef4444' : p.debt_gdp > 55 ? '#f59e0b' : '#22c55e',
+                          background: p.debt_gdp > 70 ? '#ef4444' : p.debt_gdp > 55 ? '#38bdf8' : '#22c55e',
                           borderRadius: 4,
                         }} />
                         <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>Y{i}</div>
@@ -245,7 +245,7 @@ export default function GovernmentPage() {
                 style={{ width: '100%', padding: '8px', background: '#08090c', border: '1px solid #1e293b', borderRadius: 4, color: '#e2e8f0', fontSize: 13, marginBottom: 12 }}>
                 {scenarios.map((s: any) => <option key={s.id} value={s.id}>{s.name} ({s.severity})</option>)}
               </select>
-              <button onClick={runStress} disabled={loading} style={{ width: '100%', padding: '10px', background: '#c8a951', color: '#08090c', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={runStress} disabled={loading} style={{ width: '100%', padding: '10px', background: '#e8e8ea', color: '#08090c', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
                 {loading ? 'Running...' : 'Run Stress Test'}
               </button>
             </div>
@@ -266,7 +266,7 @@ export default function GovernmentPage() {
                 <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 150 }}>
                   {stressResult.projections.filter((_: any, i: number) => i % 2 === 0).map((p: any, i: number) => (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{ width: '100%', height: Math.min(p.debt_gdp * 1.2, 140), background: p.debt_gdp > 70 ? '#ef4444' : p.debt_gdp > 55 ? '#f59e0b' : '#22c55e', borderRadius: 4 }} />
+                      <div style={{ width: '100%', height: Math.min(p.debt_gdp * 1.2, 140), background: p.debt_gdp > 70 ? '#ef4444' : p.debt_gdp > 55 ? '#38bdf8' : '#22c55e', borderRadius: 4 }} />
                       <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>Y{p.year}</div>
                     </div>
                   ))}
@@ -289,7 +289,7 @@ export default function GovernmentPage() {
             ].map((c, i) => (
               <div key={i} style={{ background: '#12131a', border: '1px solid #1e293b', borderRadius: 8, padding: 16 }}>
                 <div style={{ color: '#94a3b8', fontSize: 11 }}>{c.label}</div>
-                <div style={{ color: '#c8a951', fontSize: 20, fontWeight: 700 }}>{c.value}</div>
+                <div style={{ color: '#e8e8ea', fontSize: 20, fontWeight: 700 }}>{c.value}</div>
               </div>
             ))}
           </div>
@@ -301,7 +301,7 @@ export default function GovernmentPage() {
               {Object.entries(maturity.buckets || {}).map(([k, v]: [string, any]) => (
                 <div key={k} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{ color: '#94a3b8', fontSize: 10, marginBottom: 4 }}>{v.pct_of_total}%</div>
-                  <div style={{ width: '100%', height: Math.max(v.pct_of_total * 1.8, 4), background: k === '0-1Y' || k === '1-2Y' ? '#ef4444' : k === '2-3Y' || k === '3-5Y' ? '#f59e0b' : '#22c55e', borderRadius: 4 }} />
+                  <div style={{ width: '100%', height: Math.max(v.pct_of_total * 1.8, 4), background: k === '0-1Y' || k === '1-2Y' ? '#ef4444' : k === '2-3Y' || k === '3-5Y' ? '#38bdf8' : '#22c55e', borderRadius: 4 }} />
                   <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>{k}</div>
                 </div>
               ))}

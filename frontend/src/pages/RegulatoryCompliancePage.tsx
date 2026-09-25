@@ -125,12 +125,12 @@ export default function RegulatoryCompliancePage() {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      certified: '#22c55e', expired: '#ef4444', pending: '#c8a951', revoked: '#ef4444',
-      validated: '#22c55e', failed: '#ef4444', in_review: '#f59e0b',
+      certified: '#22c55e', expired: '#ef4444', pending: '#e8e8ea', revoked: '#ef4444',
+      validated: '#22c55e', failed: '#ef4444', in_review: '#38bdf8',
       passed: '#22c55e', failed_test: '#ef4444',
-      settled: '#22c55e', pending_settlement: '#c8a951', failed_settlement: '#ef4444',
+      settled: '#22c55e', pending_settlement: '#e8e8ea', failed_settlement: '#ef4444',
       published: '#22c55e', draft: '#6b7280', archived: '#9ca3af',
-      high: '#ef4444', critical: '#ef4444', medium: '#f59e0b', low: '#22c55e',
+      high: '#ef4444', critical: '#ef4444', medium: '#38bdf8', low: '#22c55e',
     };
     return (
       <span style={{
@@ -162,7 +162,7 @@ export default function RegulatoryCompliancePage() {
         <Link to="/cybersecurity-privacy">Cybersecurity</Link>
       </nav>
 
-      <h1 style={{ color: '#c8a951', marginBottom: 4 }}>Regulatory Compliance</h1>
+      <h1 style={{ color: '#e8e8ea', marginBottom: 4 }}>Regulatory Compliance</h1>
       <p style={{ color: '#9ca3af', marginBottom: 24 }}>
         Certifications, impact assessments, stress testing, settlement compliance, and regulatory disclosures.
       </p>
@@ -173,10 +173,10 @@ export default function RegulatoryCompliancePage() {
           {[
             { label: 'Certifications', value: `${dashboard.certified}/${dashboard.total_certifications}`, color: '#22c55e', icon: '📜' },
             { label: 'Impact Assessments', value: `${dashboard.validated}/${dashboard.total_impact_assessments}`, color: '#3b82f6', icon: '📋' },
-            { label: 'Stress Tests', value: `${dashboard.passed_tests}/${dashboard.total_stress_tests}`, color: dashboard.passed_tests >= dashboard.total_stress_tests ? '#22c55e' : '#f59e0b', icon: '🔬' },
-            { label: 'Settlements', value: `${dashboard.settled}/${dashboard.total_settlements}`, color: '#c8a951', icon: '💰' },
+            { label: 'Stress Tests', value: `${dashboard.passed_tests}/${dashboard.total_stress_tests}`, color: dashboard.passed_tests >= dashboard.total_stress_tests ? '#22c55e' : '#38bdf8', icon: '🔬' },
+            { label: 'Settlements', value: `${dashboard.settled}/${dashboard.total_settlements}`, color: '#e8e8ea', icon: '💰' },
             { label: 'Disclosures', value: `${dashboard.published}/${dashboard.total_disclosures}`, color: '#8b5cf6', icon: '📄' },
-            { label: 'Avg Compliance', value: `${dashboard.avg_compliance_score.toFixed(1)}%`, color: dashboard.avg_compliance_score > 80 ? '#22c55e' : '#f59e0b', icon: '📊' },
+            { label: 'Avg Compliance', value: `${dashboard.avg_compliance_score.toFixed(1)}%`, color: dashboard.avg_compliance_score > 80 ? '#22c55e' : '#38bdf8', icon: '📊' },
           ].map((item) => (
             <div key={item.label} style={{
               padding: 16, background: '#111318', border: '1px solid #1f2937', borderRadius: 8, textAlign: 'center',
@@ -193,7 +193,7 @@ export default function RegulatoryCompliancePage() {
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid #1f2937', paddingBottom: 8 }}>
         {TABS.map((tab) => (
           <button key={tab} onClick={() => setActiveTab(tab)} style={{
-            padding: '8px 16px', background: activeTab === tab ? '#c8a951' : 'transparent',
+            padding: '8px 16px', background: activeTab === tab ? '#e8e8ea' : 'transparent',
             color: activeTab === tab ? '#000' : '#9ca3af', border: 'none', borderRadius: 6,
             cursor: 'pointer', fontWeight: 600, textTransform: 'capitalize',
           }}>{tab.replace(/-/g, ' ')}</button>
@@ -234,11 +234,11 @@ export default function RegulatoryCompliancePage() {
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Data Quality: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>{cert.data_quality_score}%</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>{cert.data_quality_score}%</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Audit Trail: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>{cert.audit_trail_completeness}%</span>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>{cert.audit_trail_completeness}%</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Lineage Verified: </span>
@@ -292,7 +292,7 @@ export default function RegulatoryCompliancePage() {
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Risk Score: </span>
-                      <span style={{ color: item.risk_score > 70 ? '#ef4444' : item.risk_score > 40 ? '#f59e0b' : '#22c55e', fontWeight: 600 }}>
+                      <span style={{ color: item.risk_score > 70 ? '#ef4444' : item.risk_score > 40 ? '#38bdf8' : '#22c55e', fontWeight: 600 }}>
                         {item.risk_score}
                       </span>
                     </div>
@@ -358,7 +358,7 @@ export default function RegulatoryCompliancePage() {
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Flash Crash: </span>
-                      <span style={{ color: '#f59e0b', fontWeight: 600 }}>{test.flash_crash_threshold_bps} bps</span>
+                      <span style={{ color: '#38bdf8', fontWeight: 600 }}>{test.flash_crash_threshold_bps} bps</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
@@ -403,13 +403,13 @@ export default function RegulatoryCompliancePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
                     <div>
                       <span style={{ color: '#6b7280' }}>Amount: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>
                         {s.amount_origin.toLocaleString()} {s.origin_currency}
                       </span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Destination: </span>
-                      <span style={{ color: '#c8a951', fontWeight: 600 }}>
+                      <span style={{ color: '#e8e8ea', fontWeight: 600 }}>
                         {s.amount_destination.toLocaleString()} {s.destination_currency}
                       </span>
                     </div>
@@ -466,7 +466,7 @@ export default function RegulatoryCompliancePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
                     <div>
                       <span style={{ color: '#6b7280' }}>Type: </span>
-                      <span style={{ color: '#c8a951' }}>{d.disclosure_type}</span>
+                      <span style={{ color: '#e8e8ea' }}>{d.disclosure_type}</span>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280' }}>Audience: </span>

@@ -9,7 +9,7 @@ const TERMINAL = new Set(['completed', 'failed', 'cancelled']);
 const statusColor: Record<string, string> = {
   completed: 'bg-emerald-100 text-emerald-700',
   failed: 'bg-red-100 text-red-700',
-  waiting_approval: 'bg-amber-100 text-amber-700',
+  waiting_approval: 'bg-sky-100 text-sky-700',
   running: 'bg-blue-100 text-blue-700',
   queued: 'bg-slate-100 text-slate-600',
   cancelled: 'bg-slate-100 text-slate-500',
@@ -252,8 +252,8 @@ export default function AgentRunsPage() {
                         </pre>
                       )}
                       {s.status === 'waiting_approval' && (
-                        <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                          <p className="text-xs text-amber-800 flex items-center gap-1 mb-2">
+                        <div className="mt-2 p-2 bg-sky-50 border border-sky-200 rounded-lg">
+                          <p className="text-xs text-sky-800 flex items-center gap-1 mb-2">
                             <ShieldAlert className="w-3 h-3" /> Waiting for approval (a colleague must decide — four-eyes)
                           </p>
                           <div className="flex gap-2">

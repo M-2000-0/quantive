@@ -7,9 +7,9 @@ const TAX_TAGS: Record<string, { label: string; color: string }> = {
   'revenue': { label: 'Revenue', color: 'bg-emerald-900 text-emerald-300' },
   'deductible': { label: 'Deductible', color: 'bg-blue-900 text-blue-300' },
   'tax-paid': { label: 'Tax Paid', color: 'bg-purple-900 text-purple-300' },
-  'rental': { label: 'Rental', color: 'bg-amber-900 text-amber-300' },
+  'rental': { label: 'Rental', color: 'bg-sky-900 text-sky-300' },
   'non-deductible': { label: 'Personal', color: 'bg-zinc-800 text-zinc-400' },
-  'review': { label: 'Needs Review', color: 'bg-amber-900 text-amber-300' },
+  'review': { label: 'Needs Review', color: 'bg-sky-900 text-sky-300' },
 };
 
 export default function TransactionsPage() {

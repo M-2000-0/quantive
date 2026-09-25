@@ -135,8 +135,8 @@ export default function ProcurementDashboardPage() {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-amber-600" />
+              <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-sky-600" />
               </div>
               <div>
                 <div className="text-sm text-slate-500">Conversion Rate</div>
@@ -184,7 +184,7 @@ export default function ProcurementDashboardPage() {
               </Link>
               <Link to="/case-studies" className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100">
                 <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-amber-600" />
+                  <FileText className="w-5 h-5 text-sky-600" />
                   <span className="font-medium text-slate-900">Case Studies</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400" />
@@ -229,7 +229,7 @@ export default function ProcurementDashboardPage() {
           {/* SLA Status */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-600" />
+              <Clock className="w-5 h-5 text-sky-600" />
               SLA Commitments
             </h2>
             {slaStatus ? (

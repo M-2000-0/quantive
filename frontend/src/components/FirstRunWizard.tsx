@@ -318,7 +318,7 @@ export default function FirstRunWizard() {
               <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Multiple solver backends, 1K scenarios</p>
             </div>
             <div style={featureCardStyle}>
-              <FileSpreadsheet size={24} color="#f59e0b" />
+              <FileSpreadsheet size={24} color="#38bdf8" />
               <h3 style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginTop: 8 }}>See Savings</h3>
               <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Concrete dollar impact in minutes</p>
             </div>

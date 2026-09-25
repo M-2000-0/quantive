@@ -54,7 +54,7 @@ export default function AuditTrailPage() {
     authentication: 'bg-blue-100 text-blue-700',
     authorization: 'bg-purple-100 text-purple-700',
     data_access: 'bg-emerald-100 text-emerald-700',
-    data_modification: 'bg-amber-100 text-amber-700',
+    data_modification: 'bg-sky-100 text-sky-700',
     system_config: 'bg-red-100 text-red-700',
     ai_decision: 'bg-cyan-100 text-cyan-700',
   };

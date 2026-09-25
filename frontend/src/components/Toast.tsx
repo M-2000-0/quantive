@@ -31,7 +31,7 @@ export function useToast() {
 const VARIANT_STYLES: Record<string, string> = {
   success: 'border-l-4 border-l-emerald-400 bg-emerald-50/90 text-emerald-900',
   error: 'border-l-4 border-l-red-400 bg-red-50/90 text-red-900',
-  warning: 'border-l-4 border-l-amber-400 bg-amber-50/90 text-amber-900',
+  warning: 'border-l-4 border-l-sky-400 bg-sky-50/90 text-sky-900',
   info: 'border-l-4 border-l-blue-400 bg-blue-50/90 text-slate-800',
   queued: 'border-l-4 border-l-slate-400 bg-slate-50/90 text-slate-800',
   running: 'border-l-4 border-l-blue-400 bg-blue-50/90 text-slate-800',

@@ -204,7 +204,7 @@ export default function BrokerIntegrationPage() {
   const kycStatusColor = (status: string) => {
     switch (status) {
       case 'approved': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'pending_documents': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'pending_documents': return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
       case 'under_review': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'rejected': return 'bg-red-500/20 text-red-400 border-red-500/30';
       case 'escalated': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
@@ -215,7 +215,7 @@ export default function BrokerIntegrationPage() {
   const riskColor = (level: string) => {
     switch (level) {
       case 'high': return 'text-red-400';
-      case 'medium': return 'text-yellow-400';
+      case 'medium': return 'text-sky-400';
       case 'low': return 'text-green-400';
       case 'prohibited': return 'text-red-600';
       default: return 'text-zinc-400';
@@ -226,7 +226,7 @@ export default function BrokerIntegrationPage() {
     switch (severity) {
       case 'critical': return 'bg-red-600 text-white';
       case 'high': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'medium': return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
       case 'low': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       default: return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
     }
@@ -236,7 +236,7 @@ export default function BrokerIntegrationPage() {
     switch (stage) {
       case 'active': return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'rejected': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'funding': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'funding': return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
       default: return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
     }
   };
@@ -247,8 +247,8 @@ export default function BrokerIntegrationPage() {
       <div className="border-b border-white/5 px-6 py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500/20 to-sky-600/10 border border-sky-500/20 flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-sky-400" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-white">Broker Integration</h1>
@@ -265,7 +265,7 @@ export default function BrokerIntegrationPage() {
             </button>
             <button
               onClick={() => setShowNewKYC(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-sky-500 hover:bg-sky-400 rounded-lg transition-colors"
             >
               <Plus className="w-4 h-4" />
               New KYC
@@ -283,7 +283,7 @@ export default function BrokerIntegrationPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
                   : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
               }`}
             >
@@ -305,7 +305,7 @@ export default function BrokerIntegrationPage() {
               </div>
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
                 <div className="text-xs text-zinc-500 mb-1">Pending KYC</div>
-                <div className="text-2xl font-bold text-yellow-400">{dashboardData?.summary.kyc_pending || 0}</div>
+                <div className="text-2xl font-bold text-sky-400">{dashboardData?.summary.kyc_pending || 0}</div>
               </div>
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
                 <div className="text-xs text-zinc-500 mb-1">Active Onboarding</div>
@@ -322,7 +322,7 @@ export default function BrokerIntegrationPage() {
               </div>
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
                 <div className="text-xs text-zinc-500 mb-1">Compliance Score</div>
-                <div className="text-2xl font-bold text-amber-400">{dashboardData?.compliance_score || 0}%</div>
+                <div className="text-2xl font-bold text-sky-400">{dashboardData?.compliance_score || 0}%</div>
               </div>
             </div>
 
@@ -339,7 +339,7 @@ export default function BrokerIntegrationPage() {
                           <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${
-                                level === 'high' ? 'bg-red-500' : level === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                level === 'high' ? 'bg-red-500' : level === 'medium' ? 'bg-sky-500' : 'bg-green-500'
                               }`}
                               style={{ width: `${(count / (dashboardData?.summary.kyc_total || 1)) * 100}%` }}
                             />
@@ -378,7 +378,7 @@ export default function BrokerIntegrationPage() {
           <div className="space-y-4">
             {/* New KYC Form */}
             {showNewKYC && (
-              <div className="bg-white/[0.02] border border-amber-500/20 rounded-xl p-6">
+              <div className="bg-white/[0.02] border border-sky-500/20 rounded-xl p-6">
                 <h3 className="text-sm font-medium text-white mb-4">New KYC Record</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
@@ -387,7 +387,7 @@ export default function BrokerIntegrationPage() {
                       type="text"
                       value={newKYC.client_name}
                       onChange={(e) => setNewKYC({ ...newKYC, client_name: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/50"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-sky-500/50"
                       placeholder="e.g. Ministry of Finance"
                     />
                   </div>
@@ -396,7 +396,7 @@ export default function BrokerIntegrationPage() {
                     <select
                       value={newKYC.client_type}
                       onChange={(e) => setNewKYC({ ...newKYC, client_type: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500/50"
                     >
                       <option value="sovereign_wealth">Sovereign Wealth Fund</option>
                       <option value="central_bank">Central Bank</option>
@@ -411,14 +411,14 @@ export default function BrokerIntegrationPage() {
                       type="text"
                       value={newKYC.jurisdiction}
                       onChange={(e) => setNewKYC({ ...newKYC, jurisdiction: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/50"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-sky-500/50"
                       placeholder="e.g. US, GB, SG"
                     />
                   </div>
                   <div className="flex items-end gap-2">
                     <button
                       onClick={createKYC}
-                      className="px-4 py-2 text-sm font-medium text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-black bg-sky-500 hover:bg-sky-400 rounded-lg transition-colors"
                     >
                       Create
                     </button>
@@ -454,8 +454,8 @@ export default function BrokerIntegrationPage() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                            <Building2 className="w-5 h-5 text-amber-400" />
+                          <div className="w-10 h-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-sky-400" />
                           </div>
                           <div>
                             <div className="text-sm font-medium text-white">{kyc.client_name}</div>
@@ -471,7 +471,7 @@ export default function BrokerIntegrationPage() {
                             {kyc.kyc_status.replace(/_/g, ' ')}
                           </div>
                           {kyc.cip_verified && <CheckCircle className="w-4 h-4 text-green-400" />}
-                          {kyc.edd_required && !amlSummary?.edd_status && <AlertTriangle className="w-4 h-4 text-yellow-400" />}
+                          {kyc.edd_required && !amlSummary?.edd_status && <AlertTriangle className="w-4 h-4 text-sky-400" />}
                           <ChevronRight className="w-4 h-4 text-zinc-600" />
                         </div>
                       </div>
@@ -638,12 +638,12 @@ export default function BrokerIntegrationPage() {
                         <div className="flex items-center gap-4">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                             alert.alert_severity === 'high' ? 'bg-red-500/10 border border-red-500/20' :
-                            alert.alert_severity === 'medium' ? 'bg-yellow-500/10 border border-yellow-500/20' :
+                            alert.alert_severity === 'medium' ? 'bg-sky-500/10 border border-sky-500/20' :
                             'bg-blue-500/10 border border-blue-500/20'
                           }`}>
                             <AlertTriangle className={`w-5 h-5 ${
                               alert.alert_severity === 'high' ? 'text-red-400' :
-                              alert.alert_severity === 'medium' ? 'text-yellow-400' :
+                              alert.alert_severity === 'medium' ? 'text-sky-400' :
                               'text-blue-400'
                             }`} />
                           </div>
@@ -711,7 +711,7 @@ export default function BrokerIntegrationPage() {
                           )}
                           <div className={`px-2 py-1 text-xs font-medium rounded border ${
                             reg.status === 'approved' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                            reg.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                            reg.status === 'pending' ? 'bg-sky-500/20 text-sky-400 border-sky-500/30' :
                             'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
                           }`}>
                             {reg.status}
@@ -737,7 +737,7 @@ export default function BrokerIntegrationPage() {
                   <select
                     value={quoteForm.client_type}
                     onChange={(e) => setQuoteForm({ ...quoteForm, client_type: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500/50"
                   >
                     <option value="sovereign_wealth">Sovereign Wealth Fund</option>
                     <option value="central_bank">Central Bank</option>
@@ -751,14 +751,14 @@ export default function BrokerIntegrationPage() {
                     type="number"
                     value={quoteForm.trade_value}
                     onChange={(e) => setQuoteForm({ ...quoteForm, trade_value: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-sky-500/50"
                     placeholder="e.g. 10000000"
                   />
                 </div>
                 <div className="flex items-end">
                   <button
                     onClick={getFeeQuote}
-                    className="px-4 py-2 text-sm font-medium text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-black bg-sky-500 hover:bg-sky-400 rounded-lg transition-colors"
                   >
                     Get Quote
                   </button>
@@ -768,7 +768,7 @@ export default function BrokerIntegrationPage() {
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
                     <div className="text-xs text-zinc-500">Commission</div>
-                    <div className="text-lg font-bold text-amber-400">${feeQuote.commission.toLocaleString()}</div>
+                    <div className="text-lg font-bold text-sky-400">${feeQuote.commission.toLocaleString()}</div>
                   </div>
                   <div className="bg-white/[0.02] border border-white/5 rounded-lg p-3">
                     <div className="text-xs text-zinc-500">Commission (bps)</div>

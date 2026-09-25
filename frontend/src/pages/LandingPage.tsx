@@ -68,7 +68,7 @@ export default function LandingPage() {
           <span style={{ fontWeight: 600, fontSize: 18, letterSpacing: '-0.02em' }}>Quantive</span>
           <span style={{
             fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
-            background: 'var(--yellow-bg)', color: 'var(--yellow)',
+            background: 'var(--blue-bg)', color: 'var(--blue)',
             textTransform: 'uppercase', letterSpacing: '0.05em',
           }}>Public Beta</span>
         </div>
@@ -214,7 +214,7 @@ export default function LandingPage() {
         maxWidth: 900, margin: '0 auto 60px', padding: '0 40px',
       }}>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(200,169,81,0.06), rgba(200,169,81,0.02))',
+          background: 'linear-gradient(135deg, rgba(96,165,250,0.08), rgba(96,165,250,0.03))',
           border: '1px solid var(--border)', borderRadius: 12, padding: 32,
           display: 'flex', alignItems: 'center', gap: 32,
         }}>

@@ -178,17 +178,17 @@ export default function SavingsDashboard() {
         </div>
 
         {/* Optimizations */}
-        <div style={{ ...statCardStyle, background: 'linear-gradient(135deg, #fefce8, #fef3c7)' }}>
+        <div style={{ ...statCardStyle, background: 'linear-gradient(135deg, #eff6ff, #e0e7ff)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Zap size={16} color="#fff" />
             </div>
-            <span style={{ fontSize: 13, color: '#92400e', fontWeight: 500 }}>Optimizations Run</span>
+            <span style={{ fontSize: 13, color: '#1e40af', fontWeight: 500 }}>Optimizations Run</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#78350f' }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#1e3a8a' }}>
             {s?.total_optimizations_completed ?? 0}
           </div>
-          <div style={{ fontSize: 12, color: '#d97706', marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: '#2563eb', marginTop: 4 }}>
             Best: {s?.best_optimization.savings_percentage.toFixed(1)}% savings
           </div>
         </div>

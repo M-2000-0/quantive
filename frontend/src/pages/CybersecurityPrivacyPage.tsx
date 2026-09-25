@@ -48,10 +48,10 @@ const CARD_BG = '#111318';
 const CARD_BORDER = '#23272e';
 const TEXT = '#e5e7eb';
 const TEXT_DIM = '#9ca3af';
-const GOLD = '#c8a951';
+const ACCENT = '#e8e8ea';
 const GREEN = '#22c55e';
 const RED = '#ef4444';
-const YELLOW = '#f59e0b';
+const SKY = '#38bdf8';
 const BLUE = '#3b82f6';
 const PURPLE = '#a855f7';
 const CYAN = '#06b6d4';
@@ -61,9 +61,9 @@ function getStatusBadge(status: string) {
     active: { bg: '#22c55e20', color: GREEN },
     compliant: { bg: '#22c55e20', color: GREEN },
     supported: { bg: '#22c55e20', color: GREEN },
-    paused: { bg: '#f59e0b20', color: YELLOW },
-    in_progress: { bg: '#f59e0b20', color: YELLOW },
-    partial: { bg: '#f59e0b20', color: YELLOW },
+    paused: { bg: '#38bdf820', color: SKY },
+    in_progress: { bg: '#38bdf820', color: SKY },
+    partial: { bg: '#38bdf820', color: SKY },
     non_compliant: { bg: '#ef444420', color: RED },
     error: { bg: '#ef444420', color: RED },
     planned: { bg: '#3b82f620', color: BLUE },
@@ -125,7 +125,7 @@ export default function CybersecurityPrivacyPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: TEXT, margin: 0 }}>
-              <span style={{ color: GOLD }}>{'🛡️'}</span> Cybersecurity, Privacy & Interoperability
+              <span style={{ color: ACCENT }}>{'🛡️'}</span> Cybersecurity, Privacy & Interoperability
             </h1>
             <p style={{ fontSize: 13, color: TEXT_DIM, margin: '4px 0 0 0' }}>
               Real-time regulatory monitoring, AI-specific cybersecurity, GDPR compliance, cross-framework interoperability
@@ -150,7 +150,7 @@ export default function CybersecurityPrivacyPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 24 }}>
             {[
               { label: 'Active Monitors', value: dash.monitoring.active, color: GREEN },
-              { label: 'Security Score', value: `${dash.scores.security}%`, color: GOLD },
+              { label: 'Security Score', value: `${dash.scores.security}%`, color: ACCENT },
               { label: 'Compliant Controls', value: dash.cybersecurity.compliant, color: GREEN },
               { label: 'Privacy Score', value: `${dash.scores.privacy}%`, color: CYAN },
               { label: 'Supported Standards', value: dash.interoperability.supported, color: BLUE },
@@ -168,8 +168,8 @@ export default function CybersecurityPrivacyPage() {
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding: '8px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              background: tab === t.key ? '#c8a95120' : 'transparent',
-              color: tab === t.key ? GOLD : TEXT_DIM,
+              background: tab === t.key ? '#e8e8ea20' : 'transparent',
+              color: tab === t.key ? ACCENT : TEXT_DIM,
               transition: 'all 0.15s',
             }}>{t.label}</button>
           ))}
@@ -214,7 +214,7 @@ export default function CybersecurityPrivacyPage() {
                       <div style={{ fontSize: 10, color: TEXT_DIM }}>thresh: {m.drift_threshold_pct}%</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, color: TEXT_DIM }}>Signals: <span style={{ color: GOLD, fontWeight: 600 }}>{m.total_signals_captured}</span></div>
+                      <div style={{ fontSize: 11, color: TEXT_DIM }}>Signals: <span style={{ color: ACCENT, fontWeight: 600 }}>{m.total_signals_captured}</span></div>
                       <div style={{ fontSize: 11, color: TEXT_DIM }}>Alerts: <span style={{ color: m.total_alerts_fired > 0 ? RED : GREEN, fontWeight: 600 }}>{m.total_alerts_fired}</span></div>
                       <div style={{ fontSize: 11, color: TEXT_DIM }}>Interval: {m.sampling_interval_seconds}s</div>
                     </div>
@@ -241,11 +241,11 @@ export default function CybersecurityPrivacyPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c' }}>
                         <div style={{ fontSize: 10, color: TEXT_DIM }}>Security Score</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: c.security_score >= 80 ? GREEN : c.security_score >= 60 ? YELLOW : RED }}>{c.security_score}%</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: c.security_score >= 80 ? GREEN : c.security_score >= 60 ? SKY : RED }}>{c.security_score}%</div>
                       </div>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c' }}>
                         <div style={{ fontSize: 10, color: TEXT_DIM }}>Adversarial</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: c.adversarial_robustness_score && c.adversarial_robustness_score >= 80 ? GREEN : YELLOW }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: c.adversarial_robustness_score && c.adversarial_robustness_score >= 80 ? GREEN : SKY }}>
                           {c.adversarial_robustness_score ? `${c.adversarial_robustness_score}%` : '--'}
                         </div>
                       </div>
@@ -275,7 +275,7 @@ export default function CybersecurityPrivacyPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>{p.policy_name}</div>
-                        <div style={{ fontSize: 11, color: GOLD, textTransform: 'uppercase' as const, fontWeight: 600 }}>{p.framework}</div>
+                        <div style={{ fontSize: 11, color: ACCENT, textTransform: 'uppercase' as const, fontWeight: 600 }}>{p.framework}</div>
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {p.is_compliant ? getStatusBadge('compliant') : getStatusBadge('non_compliant')}
@@ -284,7 +284,7 @@ export default function CybersecurityPrivacyPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c' }}>
                         <div style={{ fontSize: 10, color: TEXT_DIM }}>Privacy Score</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: p.privacy_score >= 80 ? GREEN : YELLOW }}>{p.privacy_score}%</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: p.privacy_score >= 80 ? GREEN : SKY }}>{p.privacy_score}%</div>
                       </div>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c' }}>
                         <div style={{ fontSize: 10, color: TEXT_DIM }}>Classification</div>
@@ -329,11 +329,11 @@ export default function CybersecurityPrivacyPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c', textAlign: 'center' }}>
                         <div style={{ fontSize: 10, color: TEXT_DIM }}>Compatibility</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: s.compatibility_score >= 80 ? GREEN : YELLOW }}>{s.compatibility_score}%</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: s.compatibility_score >= 80 ? GREEN : SKY }}>{s.compatibility_score}%</div>
                       </div>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c', textAlign: 'center' }}>
                         <div style={{ fontSize: 10, color: TEXT_DIM }}>Messages</div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: GOLD }}>{s.messages_processed}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: ACCENT }}>{s.messages_processed}</div>
                       </div>
                       <div style={{ padding: 8, borderRadius: 6, background: '#08090c', textAlign: 'center' }}>
                         <div style={{ fontSize: 10, color: TEXT_DIM }}>Error Rate</div>

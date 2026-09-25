@@ -100,15 +100,15 @@ export default function AIGovernancePage() {
 
   const getScoreColor = (score: number) => {
     if (score >= 0.8) return '#22c55e';
-    if (score >= 0.6) return '#c8a951';
+    if (score >= 0.6) return '#e8e8ea';
     return '#ef4444';
   };
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
       deployed: '#22c55e', validated: '#3b82f6', draft: '#6b7280',
-      pending_review: '#c8a951', approved: '#22c55e', rejected: '#ef4444',
-      modified: '#f59e0b', under_review: '#3b82f6',
+      pending_review: '#e8e8ea', approved: '#22c55e', rejected: '#ef4444',
+      modified: '#38bdf8', under_review: '#3b82f6',
     };
     return (
       <span style={{
@@ -128,7 +128,7 @@ export default function AIGovernancePage() {
         <Link to="/pfm-import">PFM Import</Link>
       </nav>
 
-      <h1 style={{ color: '#c8a951', marginBottom: 4 }}>AI Governance Framework</h1>
+      <h1 style={{ color: '#e8e8ea', marginBottom: 4 }}>AI Governance Framework</h1>
       <p style={{ color: '#9ca3af', marginBottom: 24 }}>
         Model cards, algorithm register, validation, bias detection, and human-in-the-loop governance.
       </p>
@@ -171,7 +171,7 @@ export default function AIGovernancePage() {
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
-              padding: '8px 16px', background: activeTab === tab ? '#c8a951' : 'transparent',
+              padding: '8px 16px', background: activeTab === tab ? '#e8e8ea' : 'transparent',
               color: activeTab === tab ? '#000' : '#9ca3af', border: 'none', borderRadius: 6,
               cursor: 'pointer', fontWeight: 600, textTransform: 'capitalize',
             }}
@@ -235,7 +235,7 @@ export default function AIGovernancePage() {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     {getStatusBadge(card.status)}
                     {card.human_oversight_required && (
-                      <span style={{ color: '#c8a951', fontSize: 12 }}>👤 HITL</span>
+                      <span style={{ color: '#e8e8ea', fontSize: 12 }}>👤 HITL</span>
                     )}
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function AIGovernancePage() {
           </p>
           <div style={{
             padding: 20, background: '#0d0f13', border: '1px solid #1f2937', borderRadius: 8,
-            fontFamily: 'monospace', color: '#c8a951', fontSize: 13,
+            fontFamily: 'monospace', color: '#e8e8ea', fontSize: 13,
           }}>
             <div>Source → Import → Clean → Normalize → Merge → Model Input → AI Output → Decision</div>
             <div style={{ color: '#6b7280', marginTop: 8 }}>

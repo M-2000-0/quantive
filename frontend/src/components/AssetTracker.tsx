@@ -127,7 +127,7 @@ function fearGreedColor(value: number): string {
 function fearGreedBg(value: number): string {
   if (value <= 20) return '#fef2f2';
   if (value <= 40) return '#fff7ed';
-  if (value <= 60) return '#fefce8';
+  if (value <= 60) return '#eff6ff';
   if (value <= 80) return '#f0fdf4';
   return '#ecfdf5';
 }
@@ -210,11 +210,11 @@ export default function AssetTracker() {
           bg="#fff7ed"
         />
         <SummaryCard
-          icon={<Gem size={16} color="#d97706" />}
+          icon={<Gem size={16} color="#3b82f6" />}
           label="Commodities"
           value={`${data.commodities.tracked_count}`}
           sub="Gold, Oil, Silver & more"
-          bg="#fefce8"
+          bg="#eff6ff"
         />
         <SummaryCard
           icon={<Globe size={16} color="#2563eb" />}

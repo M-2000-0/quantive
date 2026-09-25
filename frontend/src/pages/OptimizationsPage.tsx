@@ -12,7 +12,7 @@ function statusTone(status: string): string {
   if (s === 'failed') return '#dc2626';
   if (s === 'cancelled') return '#6b7280';
   if (s === 'running') return '#2563eb';
-  return '#d97706'; // queued / pending
+  return '#3b82f6'; // queued / pending
 }
 
 function progressPct(job: OptimizationJob): number {

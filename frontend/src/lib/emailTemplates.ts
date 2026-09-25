@@ -23,7 +23,7 @@ const BASE_STYLES = `
  .footer a { color: #64748b; text-decoration: none; }
  .code-box { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; font-family: 'SF Mono', Consolas, monospace; font-size: 24px; font-weight: 700; text-align: center; color: #1e293b; letter-spacing: 4px; margin: 16px 0; }
  .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin: 16px 0; }
- .warning-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin: 16px 0; }
+ .warning-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin: 16px 0; }
  .success-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin: 16px 0; }
 `;
 

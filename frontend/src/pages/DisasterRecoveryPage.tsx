@@ -102,7 +102,7 @@ export default function DisasterRecoveryPage() {
             </button>
             <button
               onClick={() => runTest('full_recovery')}
-              className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700"
+              className="flex items-center gap-2 bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700"
             >
               <Play className="w-4 h-4" />
               Run DR Test
@@ -147,8 +147,8 @@ export default function DisasterRecoveryPage() {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-amber-600" />
+              <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-6 h-6 text-sky-600" />
               </div>
               <div>
                 <div className="text-sm text-slate-500">DR Tests</div>
@@ -181,7 +181,7 @@ export default function DisasterRecoveryPage() {
                         {backup.verified ? (
                           <CheckCircle className="w-4 h-4 text-emerald-500" />
                         ) : (
-                          <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          <AlertTriangle className="w-4 h-4 text-sky-500" />
                         )}
                       </div>
                     </div>
@@ -205,7 +205,7 @@ export default function DisasterRecoveryPage() {
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-3 mb-6">
                     <div
-                      className={`h-3 rounded-full ${compliance.score >= 80 ? 'bg-emerald-500' : compliance.score >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                      className={`h-3 rounded-full ${compliance.score >= 80 ? 'bg-emerald-500' : compliance.score >= 50 ? 'bg-sky-500' : 'bg-red-500'}`}
                       style={{ width: `${compliance.score}%` }}
                     ></div>
                   </div>

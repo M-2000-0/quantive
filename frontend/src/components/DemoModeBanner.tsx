@@ -8,9 +8,9 @@ export default function DemoModeBanner() {
     <div
       role="status"
       style={{
-        background: '#fffbeb',
-        borderBottom: '1px solid #fde68a',
-        color: '#92400e',
+        background: '#eff6ff',
+        borderBottom: '1px solid #bfdbfe',
+        color: '#1e40af',
         fontSize: 13,
         padding: '8px 16px',
         display: 'flex',
@@ -25,7 +25,7 @@ export default function DemoModeBanner() {
       <button
         type="button"
         onClick={disableDemoMode}
-        style={{ border: '1px solid #fcd34d', background: '#fff', borderRadius: 6, padding: '2px 10px', cursor: 'pointer' }}
+        style={{ border: '1px solid #93c5fd', background: '#fff', borderRadius: 6, padding: '2px 10px', cursor: 'pointer' }}
       >
         Exit demo
       </button>

@@ -7,7 +7,7 @@ function severityColor(severity: string): string {
   switch (severity) {
     case 'critical': return '#dc2626';
     case 'high': return '#ea580c';
-    case 'medium': return '#d97706';
+    case 'medium': return '#3b82f6';
     default: return '#16a34a';
   }
 }
@@ -116,7 +116,7 @@ export default function EventImpactDashboard() {
             { value: `${summary.total_events}`, label: 'Total Events', tone: '#2563eb' },
             { value: `${summary.total_positive}`, label: 'Positive Impact', tone: '#16a34a' },
             { value: `${summary.total_negative}`, label: 'Negative Impact', tone: '#dc2626' },
-            { value: `${summary.avg_severity}`, label: 'Avg Severity', tone: '#d97706' },
+            { value: `${summary.avg_severity}`, label: 'Avg Severity', tone: '#3b82f6' },
             { value: `${summary.critical_count}`, label: 'Critical', tone: '#dc2626' },
           ].map(({ value, label, tone }) => (
             <article key={label} className="stat-card" style={{ borderTop: `3px solid ${tone}` }}>

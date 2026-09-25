@@ -18,7 +18,7 @@ const CARD = '#111318';
 const BORDER = '#23272e';
 const TEXT = '#e5e7eb';
 const DIM = '#9ca3af';
-const GOLD = '#c8a951';
+const ACCENT = '#e8e8ea';
 const GREEN = '#22c55e';
 
 export default function SovereignAIPage() {
@@ -87,7 +87,7 @@ export default function SovereignAIPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>
-              <span style={{ color: GOLD }}>{'{'}</span> Sovereign AI Advisor
+              <span style={{ color: ACCENT }}>{'{'}</span> Sovereign AI Advisor
             </h1>
             <p style={{ fontSize: 12, color: DIM, margin: '2px 0 0 0' }}>Local RAG + Fine-tuned model — zero external APIs</p>
           </div>
@@ -104,10 +104,10 @@ export default function SovereignAIPage() {
         {stats && (
           <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
             <div style={{ padding: '8px 14px', borderRadius: 6, background: CARD, border: `1px solid ${BORDER}`, fontSize: 12, color: DIM }}>
-              Knowledge: <span style={{ color: GOLD, fontWeight: 600 }}>{stats.total_chunks}</span> chunks
+              Knowledge: <span style={{ color: ACCENT, fontWeight: 600 }}>{stats.total_chunks}</span> chunks
             </div>
             <div style={{ padding: '8px 14px', borderRadius: 6, background: CARD, border: `1px solid ${BORDER}`, fontSize: 12, color: DIM }}>
-              Sources: <span style={{ color: GOLD, fontWeight: 600 }}>{stats.sources?.length || 0}</span>
+              Sources: <span style={{ color: ACCENT, fontWeight: 600 }}>{stats.sources?.length || 0}</span>
             </div>
           </div>
         )}
@@ -119,8 +119,8 @@ export default function SovereignAIPage() {
                 <div style={{
                   width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, flexShrink: 0,
-                  background: msg.role === 'assistant' ? '#c8a95120' : '#3b82f620',
-                  color: msg.role === 'assistant' ? GOLD : '#3b82f6',
+                  background: msg.role === 'assistant' ? '#e8e8ea20' : '#3b82f620',
+                  color: msg.role === 'assistant' ? ACCENT : '#3b82f6',
                 }}>
                   {msg.role === 'assistant' ? 'AI' : 'U'}
                 </div>
@@ -130,7 +130,7 @@ export default function SovereignAIPage() {
                     <div style={{ marginTop: 8 }}>
                       <button
                         onClick={() => setShowSources(showSources === i ? null : i)}
-                        style={{ fontSize: 11, color: GOLD, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        style={{ fontSize: 11, color: ACCENT, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                       >
                         {msg.sources.length} sources
                       </button>
@@ -153,7 +153,7 @@ export default function SovereignAIPage() {
           ))}
           {loading && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#c8a95120', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: GOLD }}>AI</div>
+              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#e8e8ea20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: ACCENT }}>AI</div>
               <div style={{ fontSize: 13, color: DIM }}>Thinking...</div>
             </div>
           )}
@@ -177,7 +177,7 @@ export default function SovereignAIPage() {
             disabled={loading || !input.trim()}
             style={{
               padding: '10px 20px', borderRadius: 8, border: 'none',
-              background: loading || !input.trim() ? '#23272e' : GOLD,
+              background: loading || !input.trim() ? '#23272e' : ACCENT,
               color: loading || !input.trim() ? DIM : '#08090c',
               fontSize: 13, fontWeight: 600, cursor: loading || !input.trim() ? 'default' : 'pointer',
             }}

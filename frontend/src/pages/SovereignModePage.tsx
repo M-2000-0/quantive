@@ -84,7 +84,7 @@ export default function SovereignModePage() {
         <div className={`rounded-xl p-6 mb-8 ${
           config?.enabled
             ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'
-            : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white'
+            : 'bg-gradient-to-r from-sky-500 to-sky-600 text-white'
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -184,8 +184,8 @@ export default function SovereignModePage() {
 
             <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-amber-600" />
+                <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-sky-600" />
                 </div>
                 <h3 className="font-medium text-slate-900">Compliance</h3>
               </div>
@@ -214,7 +214,7 @@ export default function SovereignModePage() {
                     {item.status === 'passed' || item.status === 'met' ? (
                       <CheckCircle className="w-4 h-4 text-emerald-500" />
                     ) : (
-                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                      <AlertTriangle className="w-4 h-4 text-sky-500" />
                     )}
                     <span>{item.name}</span>
                   </li>
@@ -240,7 +240,7 @@ export default function SovereignModePage() {
                     {item.status === 'passed' || item.status === 'met' ? (
                       <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5" />
                     ) : (
-                      <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5" />
+                      <AlertTriangle className="w-4 h-4 text-sky-500 mt-0.5" />
                     )}
                     <div>
                       <div className="font-medium text-slate-900 text-sm">{item.name}</div>

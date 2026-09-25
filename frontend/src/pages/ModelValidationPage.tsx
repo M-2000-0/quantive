@@ -110,7 +110,7 @@ export default function ModelValidationPage() {
             disabled={!solutionId || loading}
             className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 hover:shadow-md transition-shadow text-left disabled:opacity-50"
           >
-            <BarChart3 className="w-8 h-8 text-amber-600 mb-3" />
+            <BarChart3 className="w-8 h-8 text-sky-600 mb-3" />
             <h3 className="font-semibold text-slate-900">Stability</h3>
             <p className="text-sm text-slate-500 mt-1">Solution robustness test</p>
           </button>
@@ -149,7 +149,7 @@ export default function ModelValidationPage() {
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <div className="text-sm text-slate-500">Score</div>
-                        <div className={`font-bold ${v.score >= 0.8 ? 'text-emerald-600' : v.score >= 0.5 ? 'text-amber-600' : 'text-red-600'}`}>
+                        <div className={`font-bold ${v.score >= 0.8 ? 'text-emerald-600' : v.score >= 0.5 ? 'text-sky-600' : 'text-red-600'}`}>
                           {(v.score * 100).toFixed(1)}%
                         </div>
                       </div>

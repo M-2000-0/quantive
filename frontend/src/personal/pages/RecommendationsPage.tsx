@@ -38,7 +38,7 @@ export default function RecommendationsPage() {
   }
 
   const priorityColor = (p: string) => p === 'high' ? 'text-red-400 bg-red-950/50 border-red-800' :
-    p === 'medium' ? 'text-amber-400 bg-amber-950/50 border-amber-800' : 'text-zinc-400 bg-zinc-800 border-zinc-700';
+    p === 'medium' ? 'text-sky-400 bg-sky-950/50 border-sky-800' : 'text-zinc-400 bg-zinc-800 border-zinc-700';
   const typeIcon = (t: string) => {
     switch (t) {
       case 'compliance': return <AlertCircle className="w-4 h-4" />;
@@ -61,7 +61,7 @@ export default function RecommendationsPage() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'High Priority', count: data.recommendations.filter((r: any) => r.priority === 'high').length, color: 'text-red-400' },
-          { label: 'Medium Priority', count: data.recommendations.filter((r: any) => r.priority === 'medium').length, color: 'text-amber-400' },
+          { label: 'Medium Priority', count: data.recommendations.filter((r: any) => r.priority === 'medium').length, color: 'text-sky-400' },
           { label: 'Potential Savings', count: data.recommendations.reduce((s: number, r: any) => s + (r.estimated_savings_max || 0), 0), color: 'text-emerald-400', isDollar: true },
         ].map((s, i) => (
           <div key={i} className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
@@ -142,7 +142,7 @@ export default function RecommendationsPage() {
                     <p className="text-zinc-400 text-xs uppercase tracking-wide mb-2">Risks to Consider</p>
                     <ul className="space-y-1">
                       {rec.risks.map((risk: string, i: number) => (
-                        <li key={i} className="text-amber-400/80 text-sm flex items-start gap-2">
+                        <li key={i} className="text-sky-400/80 text-sm flex items-start gap-2">
                           <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
                           {risk}
                         </li>
@@ -152,7 +152,7 @@ export default function RecommendationsPage() {
                 )}
 
                 {rec.deadline && (
-                  <div className="flex items-center gap-2 text-amber-400 text-sm">
+                  <div className="flex items-center gap-2 text-sky-400 text-sm">
                     <Clock className="w-4 h-4" />
                     Deadline: {rec.deadline === 'quarterly' ? 'Quarterly payment deadline' : rec.deadline}
                   </div>
