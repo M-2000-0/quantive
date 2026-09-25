@@ -51,7 +51,7 @@
 - Priority task: **"T-Bill Rolling Program matures — USD 60,000,000 · 67 days"**
 - Risk breakdown: Refinancing 17, Currency 40, Interest-rate 24 (all "Low" bands)
 - Market Pulse card with live sentiment
-- **What-if analysis panel**: scenario tabs (Base / +25 / +50 / +100 / +200bps), two charts — annual interest cost and first-order MTM — with a one-sentence readout of the selected shock, e.g. "+100bps: $69.6M → $72.2M (+$2.6M/yr), marks to −$196.7M". Same math as the AI advisor (Appendix C ladder).
+- **What-if analysis panel**: scenario tabs (Base / +25 / +50 / +100 / +200bps), two charts — annual interest cost and first-order MTM — with a one-sentence readout of the selected shock, e.g. "+100bps: $69.6M → $72.2M (+$2.6M/yr), marks to −$120.4M". Same math as the AI advisor (Appendix C ladder).
 
 **Talking points:**
 
@@ -101,7 +101,7 @@
 Scenario: rates rise 50bps (parallel shift) — your book:
 • Repricing share: ~17% of the book (floating-rate + maturities within 2y) resets within the year
 • Annual interest cost: $69.6M → $70.9M (+$1.3M/yr)
-• Mark-to-market on the locked book: -$98.3M (≈ −D×Δy×P, D≈12.4y — first-order estimate)
+• Mark-to-market on the locked book: -$60.2M (≈ Σ −Dᵢ×Δy×Pᵢ, weighted D≈7.6y — per-instrument durations, first-order)
 • Most of your book is fixed-rate, so a hike mostly hits you through refinancing at maturity…
 ```
 **…followed by the live portfolio snapshot, verbatim:**
@@ -117,7 +117,7 @@ Your portfolio (live from your workspace):
 ```
 plus today's Treasury yields. **Chips on screen:** *"…rates rise 75bps on top of that?"*, *"What if rates rise 100bps?"*, *"What happens to my debt if the euro depreciates 10%?"*.
 **Say:** "It knows the user's actual positions — the 17% repricing share is the short end of *this* book: $110M floating-rate plus the 2026–28 maturity wall, whichever is larger, resets within the year. The minus-$98M is a first-order duration impact. Every number comes from the workspace, not a script."
-**Then — memory moment:** type just **"what about 100bps?"** (or click the **What if rates rise 100bps?** chip) — no restating the question. The assistant remembers the exchange and returns the 100bps scenario (+$2.6M/yr, −$196.7M). "Follow-ups work — the conversation carries context; I never had to repeat myself."
+**Then — memory moment:** type just **"what about 100bps?"** (or click the **What if rates rise 100bps?** chip) — no restating the question. The assistant remembers the exchange and returns the 100bps scenario (+$2.6M/yr, −$120.4M). "Follow-ups work — the conversation carries context; I never had to repeat myself."
 **Then — chain a second shock:** type **"and if the euro depreciates 10% on top of that?"** — the assistant composes the FX move onto the *same 100bps scenario*: EUR exposure ($140M, ~9% of book) restates to $126M, and a **combined first-order MTM (rates + FX)** line appears. "Rate and currency shocks compose — exactly how a treasury desk stress-tests."
 **Then — persistence moment:** reload the page, reopen the assistant — the full thread is still there (history button top-left of the panel lists and switches earlier conversations). "Conversations survive reloads and are stored per user — nothing to re-ask, nothing lost."
 **Fallback:** if the scenario block is missing (only textbook text), the portfolio snapshot didn't load — refresh the page once (session cookie) and retry; if still generic, the org's portfolio lookup failed, re-run the seeder and re-login.
@@ -188,10 +188,10 @@ plus today's Treasury yields. **Chips on screen:** *"…rates rise 75bps on top 
 
 | Question | Source | Expected numbers |
 |---|---|---|
-| "rates rise 50bps?" | live positions | +$1.3M/yr interest, −$98.3M MTM, 17% repricing share |
-| "rates rise 100bps?" | live positions | +$2.6M/yr interest, −$196.7M MTM |
+| "rates rise 50bps?" | live positions | +$1.3M/yr interest, −$60.2M MTM, 17% repricing share, D≈7.6y |
+| "rates rise 100bps?" | live positions | +$2.6M/yr interest, −$120.4M MTM |
 | follow-up: "what about 100bps?" | conversation memory | resolves to the 100bps scenario, +$2.6M/yr |
-| "and if the euro depreciates 10% on top of that?" | chained FX what-if | same 100bps scenario + EUR −10% → $140M→$126M, combined MTM line (rates + FX) |
+| "and if the euro depreciates 10% on top of that?" | chained FX what-if | same 100bps scenario + EUR −10% → $140M→$126M, combined MTM −$134.4M (rates + FX) |
 | page reload + reopen assistant | conversation persistence | last thread restored from DB, full history + sources |
 | "Summarize my portfolio" | live positions | $1.59B · 4.38% coupon · 12.4y · USD 60/GBP 31/EUR 9 — full snapshot verbatim in Appendix C |
 | "price of Bitcoin/AAPL" | live quotes | real-time price ± day change |
@@ -201,7 +201,7 @@ plus today's Treasury yields. **Chips on screen:** *"…rates rise 75bps on top 
 | "top Qubo deductions?" | findings table | 31 findings, $302,560 open, largest $821.54 Wages & salaries |
 | "Qubo deductions" | findings table | 31 new findings, $302,560 open |
 | "debt sustainability" | knowledge base | cited IMF/DSF prose |
-| dashboard What-if panel → +100bps tab | /api/whatif/scenarios | $69.6M → $72.2M (+$2.6M/yr), MTM −$196.7M — matches AI answer exactly |
+| dashboard What-if panel → +100bps tab | /api/whatif/scenarios | $69.6M → $72.2M (+$2.6M/yr), MTM −$120.4M — matches AI answer exactly |
 
 ## Appendix C — Live portfolio snapshot & scenario ladder (values at time of writing)
 
@@ -227,25 +227,25 @@ Your portfolio (live from your workspace):
 • Floating-rate exposure: $110.0M
 ```
 
-**Rate-shock ladder (parallel shift, seeded book, ~17% repricing share):**
+**Rate-shock ladder (parallel shift, seeded book, ~17% repricing share, weighted D≈7.6y from per-instrument par-bond durations — floaters at next reset):**
 
 | Shock | Annual interest | Interest Δ/yr | Mark-to-market (first-order) |
 |---|---|---|---|
-| +25bps | $69.6M → $70.3M | +$0.7M | −$49.2M |
-| +50bps | $69.6M → $70.9M | +$1.3M | −$98.3M |
-| +75bps | $69.6M → $71.6M | +$2.0M | −$147.5M |
-| +100bps | $69.6M → $72.2M | +$2.6M | −$196.7M |
-| +200bps | $69.6M → $74.9M | +$5.3M | −$393.4M |
+| +25bps | $69.6M → $70.2M | +$0.7M | −$30.1M |
+| +50bps | $69.6M → $70.9M | +$1.3M | −$60.2M |
+| +75bps | $69.6M → $71.6M | +$2.0M | −$90.3M |
+| +100bps | $69.6M → $72.2M | +$2.6M | −$120.4M |
+| +200bps | $69.6M → $74.9M | +$5.3M | −$240.8M |
 
 **Composed rate + FX scenarios** (EUR −10% = the $140M EUR exposure restates to $126M, −$14.0M face-value MTM, composed onto the rate leg):
 
 | Scenario | Combined first-order MTM (rates + FX) |
 |---|---|
-| +50bps & EUR −10% | −$112.3M |
-| +100bps & EUR −10% | −$210.7M |
-| +200bps & EUR −10% | −$407.4M |
+| +50bps & EUR −10% | −$74.2M |
+| +100bps & EUR −10% | −$134.4M |
+| +200bps & EUR −10% | −$254.8M |
 
-**Method, if asked:** interest delta uses the repricing share — the larger of the floating-rate book and the maturities inside 2 years, ≈17% here; MTM ≈ −D×Δy×P with D proxied by the 12.4y weighted maturity; FX is a face-value revaluation of the currency exposure. All first-order by design — every answer says so on screen.
+**Method, if asked:** interest delta uses the repricing share — the larger of the floating-rate book and the maturities inside 2 years, ≈17% here; MTM sums −Dᵢ×Δy×Pᵢ per instrument with par-bond modified durations (e.g. the T-Bill contributes D≈0.2y, the 2056 gilt D≈19y, floaters D≈0.25y at next reset), giving a principal-weighted D≈7.6y instead of the cruder 12.4y average-maturity proxy; FX is a face-value revaluation of the currency exposure. All first-order by design — every answer says so on screen.
 
 ## Appendix D — One-breath elevator version
 

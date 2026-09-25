@@ -165,6 +165,24 @@ def _prev_user_question(history: List[Dict[str, Any]]) -> str:
     return ""
 
 
+def _anchor_question(history: List[Dict[str, Any]]) -> str:
+    """Anchor for follow-up resolution: the nearest prior user turn that is
+    itself a portfolio question (carries "my debt" style cues). Chained
+    follow-ups ("50bps?" → "what about 100bps?" → "and the euro?") would
+    otherwise anchor on a bare follow-up whose text has no portfolio
+    keywords, breaking classification of the resolved query."""
+    last_user = ""
+    for turn in reversed(history):
+        role = str(turn.get("role", ""))
+        content = str(turn.get("content", "")).strip()
+        if role == "user" and content:
+            if not last_user:
+                last_user = content
+            if is_portfolio_question(content):
+                return content
+    return last_user
+
+
 def resolve_followup(message: str, history: Optional[List[Dict[str, Any]]]) -> str:
     """Rewrite a contextual message into a standalone query.
 
@@ -177,7 +195,7 @@ def resolve_followup(message: str, history: Optional[List[Dict[str, Any]]]) -> s
     hist = history or []
     if not looks_like_followup(message, hist):
         return message
-    prev = _prev_user_question(hist)
+    prev = _anchor_question(hist)
     if not prev:
         return message
     # Topic switch: short market-brand questions ("what about ethereum?")
@@ -226,6 +244,45 @@ def extract_rate_shock_bps(q: str) -> Optional[float]:
     return None
 
 
+# ── Per-instrument duration math ──────────────────────────────────────
+
+# Floating-rate notes reprice at the next reset — standard first-order
+# convention is a quarter-year of rate sensitivity (quarterly coupon).
+FLOATER_DURATION_YEARS = 0.25
+MAX_DURATION_YEARS = 40.0
+
+
+def par_bond_modified_duration(years: float, coupon_pct: float) -> float:
+    """Modified duration of an annual-pay par bond (yield ≈ coupon).
+
+    Closed form: D_mod = (1 − (1+c)^−n) / c with c the per-period coupon
+    rate and n years to maturity; a zero coupon degenerates to n (zero-
+    coupon bond = its own duration). First-order by design — flat curve,
+    no convexity, par discounting.
+    """
+    n = max(min(float(years or 0.0), MAX_DURATION_YEARS), 0.0)
+    c = max(float(coupon_pct or 0.0), 0.0) / 100.0
+    if n <= 0:
+        return 0.0
+    if c <= 0:
+        return n
+    d = (1.0 - (1.0 + c) ** (-n)) / c
+    # Duration can't exceed maturity for a par bond; keep a small floor.
+    return max(min(d, n), 0.05)
+
+
+def instrument_effective_duration(years_left: float, coupon_pct: float, instrument_type: str) -> float:
+    """Effective modified duration for one instrument.
+
+    Floaters sit at the next reset (≈0.25y); fixed-rate instruments use
+    the par-bond closed form on their remaining maturity and coupon.
+    """
+    tname = (instrument_type or "").lower()
+    if "floating" in tname:
+        return FLOATER_DURATION_YEARS
+    return par_bond_modified_duration(years_left, coupon_pct)
+
+
 # ── Portfolio snapshot ────────────────────────────────────────────────
 
 def _parse_date(s: str):
@@ -259,6 +316,7 @@ def build_portfolio_snapshot(user, db) -> Optional[Dict[str, Any]]:
     total_principal = 0.0
     weighted_coupon_num = 0.0
     weighted_years_num = 0.0
+    weighted_duration_num = 0.0
     ccy_totals: Dict[str, float] = {}
     type_totals: Dict[str, float] = {}
     near_maturities: List[Dict[str, Any]] = []
@@ -272,9 +330,11 @@ def build_portfolio_snapshot(user, db) -> Optional[Dict[str, Any]]:
         ccy_totals[inst.currency] = ccy_totals.get(inst.currency, 0.0) + principal
         tname = getattr(inst.instrument_type, "value", str(inst.instrument_type))
         type_totals[tname] = type_totals.get(tname, 0.0) + principal
-        if "floating" in tname:
+        is_floater = "floating" in tname
+        if is_floater:
             floored_total += principal
         mat = _parse_date(inst.maturity_date)
+        years_left = 0.0
         if mat:
             years_left = max(0.0, (mat.replace(tzinfo=timezone.utc) - now).days / 365.25)
             weighted_years_num += years_left * principal
@@ -286,6 +346,8 @@ def build_portfolio_snapshot(user, db) -> Optional[Dict[str, Any]]:
                 "years_left": round(years_left, 2),
                 "coupon": coupon,
             })
+        d_mod = instrument_effective_duration(years_left, coupon, tname)
+        weighted_duration_num += d_mod * principal
 
     if total_principal <= 0:
         return None
@@ -311,6 +373,10 @@ def build_portfolio_snapshot(user, db) -> Optional[Dict[str, Any]]:
             sorted(type_totals.items(), key=lambda x: -x[1])
         },
         "floating_principal": round(floored_total, 2),
+        # Per-instrument modified durations, principal-weighted. Floaters sit
+        # at next reset (0.25y); fixed-rate uses the par-bond closed form.
+        "wtd_duration_years": round(weighted_duration_num / total_principal, 3),
+        "duration_method": "per-instrument par-bond modified duration; floaters at next reset",
         # FX shock math consumes absolute USD face values per currency.
         "currency_exposures_usd": ccy_usd,
         "nearest_maturities": near_maturities[:5],
@@ -358,8 +424,11 @@ def compute_rate_shock(
     - Interest cost: repricing-share approximation. Floating-rate and
       short-dated (<2y) instruments reprice within the year; the rest are
       locked at coupon until maturity.
-    - Mark-to-market: ΔP ≈ -D_mod × Δy × P with D_mod ≈ years-to-maturity
-      (par-bond approximation), clearly labeled as first-order.
+    - Mark-to-market: per-instrument, ΔPᵢ ≈ −Dᵢ × Δy × Pᵢ summed over the
+      book, with Dᵢ the par-bond modified duration (floaters at next
+      reset) — more accurate than a single portfolio-average duration
+      because short and long bonds contribute proportionally to their own
+      sensitivity. Clearly labeled as first-order.
 
     ``fx_shock`` ({currency, pct, direction}) optionally composes an FX
     move on top of the rate shock — "rates rise 50bps, and if the euro
@@ -382,9 +451,17 @@ def compute_rate_shock(
     repricing_share = min(1.0, (max(repricing, near2y)) / total) if total else 0.0
 
     base_annual = total * wtd_coupon / 100.0
-    # Blended duration proxy: weighted maturity of the locked book dominates;
-    # for MTM we use the portfolio weighted average maturity (par-bond approx).
-    d_mod = max(snapshot.get("wtd_maturity_years", 0.0), 0.25)
+
+    # MTM: principal-weighted duration from per-instrument closed forms.
+    # Legacy fallback: snapshots produced before per-instrument durations
+    # existed (no wtd_duration_years key) keep the old average-maturity proxy.
+    wtd_duration = snapshot.get("wtd_duration_years")
+    if wtd_duration is not None:
+        d_mod = max(float(wtd_duration), 0.05)
+        duration_source = "per-instrument"
+    else:
+        d_mod = max(snapshot.get("wtd_maturity_years", 0.0), 0.25)
+        duration_source = "weighted-maturity proxy (legacy)"
 
     rate_mtm = -d_mod * (delta / 100.0) * total
     fx_impact = None
@@ -402,9 +479,14 @@ def compute_rate_shock(
         "repricing_share_pct": round(repricing_share * 100, 1),
         "annual_interest_delta": round(total * delta / 100.0 * repricing_share, 2),
         "mtm_impact": round(rate_mtm, 2),
-        "duration_proxy_years": round(d_mod, 2),
+        "duration_years": round(d_mod, 3),
+        "duration_source": duration_source,
         "method": (
             "first-order: floating/short-dated share reprices within a year; "
+            "mark-to-market ≈ Σ −Dᵢ×Δy×Pᵢ with per-instrument par-bond "
+            "modified durations (floaters at next reset)"
+            if duration_source == "per-instrument"
+            else "first-order: floating/short-dated share reprices within a year; "
             "mark-to-market ≈ -D×Δy×P using weighted maturity as duration proxy"
         ),
     }
@@ -467,7 +549,8 @@ def format_rate_shock_text(snap: Dict[str, Any], shock: Dict[str, Any]) -> str:
         f"{_fmt_money(shock['base_annual_interest'] + interest_delta)} "
         f"({'+' if interest_delta >= 0 else '−'}{_fmt_money(abs(interest_delta))}/yr)",
         f"• Mark-to-market on the locked book: {mtm:+,.0f} USD "
-        f"(≈ −D×Δy×P, D≈{shock['duration_proxy_years']:.1f}y — first-order estimate)",
+        f"(≈ Σ −Dᵢ×Δy×Pᵢ, weighted D≈{shock['duration_years']:.2f}y — "
+        f"{shock.get('duration_source', 'per-instrument')} durations, first-order)",
     ]
     if shock.get("fx_impact"):
         fx = shock["fx_impact"]
@@ -528,17 +611,19 @@ def build_portfolio_context(
     fx = extract_fx_shock(shock_source or "")
     if fx:
         ctx["fx_shock"] = fx
-    bps_source = shock_source or ""
-    if fx and extract_rate_shock_bps(bps_source) is None:
-        # Fall back to the anchor carried in the resolved query; if that
-        # lost the bps (anchor cap), scan the prior user turn directly.
-        if extract_rate_shock_bps(question) is not None:
-            bps_source = question
-        elif chat_history:
-            from_prev = _prev_user_question(chat_history)
-            if from_prev:
-                bps_source = f"{question} {from_prev}"
-    bps = extract_rate_shock_bps(bps_source)
+    # Rate shock: the current message wins. For chained what-ifs ("...and
+    # the euro on top of that?"), inherit the most recent bps the user set —
+    # newest user turn first, then the resolved query's anchor.
+    bps = extract_rate_shock_bps(shock_source or "")
+    if bps is None and fx:
+        for turn in reversed(chat_history or []):
+            if str(turn.get("role", "")) != "user":
+                continue
+            bps = extract_rate_shock_bps(str(turn.get("content") or ""))
+            if bps is not None:
+                break
+    if bps is None and fx:
+        bps = extract_rate_shock_bps(question or "")
     if bps is not None:
         try:
             ctx["shock"] = compute_rate_shock(snap, bps, fx_shock=fx)

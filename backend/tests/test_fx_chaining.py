@@ -15,6 +15,8 @@ SNAP = {
     "total_principal": 1_000_000_000.0,
     "wtd_coupon_pct": 4.5,
     "wtd_maturity_years": 7.0,
+    # Per-instrument duration aggregate (drives MTM when present).
+    "wtd_duration_years": 7.0,
     "floating_principal": 100_000_000.0,
     "currency_exposures_usd": {"USD": 700_000_000.0, "EUR": 200_000_000.0, "GBP": 100_000_000.0},
     "currency_mix": {"USD": 70.0, "EUR": 20.0, "GBP": 10.0},
@@ -77,6 +79,7 @@ def test_fx_on_unheld_currency_is_zero():
 def test_rate_only_unchanged():
     out = compute_rate_shock(SNAP, 50.0)
     assert out["mtm_impact"] == -35_000_000.0  # -D*dy*P = 7*0.005*1B
+    assert out["duration_source"] == "per-instrument"
     assert "fx_impact" not in out
     assert "combined_mtm_impact" not in out
 

@@ -115,8 +115,8 @@ def get_scenarios(
         "currency_exposures": fx,
         "note": (
             "First-order estimates from your live positions — floating/short-dated "
-            "share reprices within a year; MTM ≈ −D×Δy×P using weighted maturity as "
-            "the duration proxy. Not investment advice."
+            "share reprices within a year; MTM ≈ Σ −Dᵢ×Δy×Pᵢ with per-instrument "
+            "par-bond modified durations (floaters at next reset). Not investment advice."
         ),
     }
 
