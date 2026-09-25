@@ -134,6 +134,14 @@ plus today's Treasury yields. **Chips on screen:** *"…rates rise 75bps on top 
 **Expected:** Operating $23.8M / Reserve $4.1M / Yield $1.5M — **Total: $29,436,554**.
 **Say:** "And it reads the banking ledger too — which is where we're going next."
 
+**Q6 (bonus) — "How much runway do I have, and where am I spending the most?"** *(banking awareness)*
+**Expected:** live ledger block — total cash $29.4M across 3 accounts, top spending categories (Tax payment $19.0K, Payroll…), observed burn ≈ $1.29M/mo → **runway ≈ 23 months**. Chips follow: *"Where am I spending the most?"*, *"Show my top Qubo deductions"*, *"What happens to my debt if rates rise 50bps?"*.
+**Say:** "The assistant is the CFO shortcut — cash, burn, and runway from the ledger, no navigation. Runway is observed outflow, honestly labeled."
+
+**Q7 (bonus) — "What are my top Qubo deductions?"** *(tax awareness)*
+**Expected:** 31 findings — 31 new / 0 accepted, **potentially deductible $302,560**, largest findings (Wages & salaries $821.54 each, rule IDs). Honesty note on screen: amounts may qualify, never promised savings.
+**Say:** "Tax angle from the same chat — findings trace to versioned rules, and it never promises a saving. That's the Qubo product speaking through the assistant."
+
 **Fallbacks:** any 403/CSRF glitch — the widget auto-retries; if a message errors, refresh and resend. If answers feel slow (>10s), the embedding model went cold — send one throwaway message before the audience returns.
 
 ---
@@ -188,6 +196,9 @@ plus today's Treasury yields. **Chips on screen:** *"…rates rise 75bps on top 
 | "Summarize my portfolio" | live positions | $1.59B · 4.38% coupon · 12.4y · USD 60/GBP 31/EUR 9 — full snapshot verbatim in Appendix C |
 | "price of Bitcoin/AAPL" | live quotes | real-time price ± day change |
 | "my balances" | banking ledger | $29.44M total across 3 accounts |
+| "How much runway do I have?" | banking ledger | burn ≈ $1.29M/mo → runway ≈ 23 months |
+| "Where am I spending the most?" | banking ledger | top categories: Tax payment $19.0K, Payroll…, total outflows |
+| "top Qubo deductions?" | findings table | 31 findings, $302,560 open, largest $821.54 Wages & salaries |
 | "Qubo deductions" | findings table | 31 new findings, $302,560 open |
 | "debt sustainability" | knowledge base | cited IMF/DSF prose |
 | dashboard What-if panel → +100bps tab | /api/whatif/scenarios | $69.6M → $72.2M (+$2.6M/yr), MTM −$196.7M — matches AI answer exactly |

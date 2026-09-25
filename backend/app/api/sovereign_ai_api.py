@@ -112,10 +112,22 @@ def query_api(req: QueryRequest, db=Depends(get_db), user=Depends(get_current_us
     from app.ai.portfolio_context import build_portfolio_context, format_portfolio_context_text
     engine = get_engine()
     ctx = build_portfolio_context(req.query, user, db)
-    context_block = format_portfolio_context_text(ctx) if ctx else None
+    context_parts = []
+    if ctx:
+        context_parts.append(format_portfolio_context_text(ctx))
+    try:
+        from app.ai.banking_context import build_banking_context, format_banking_context_text
+        bctx = build_banking_context(req.query, user, db)
+        if bctx:
+            context_parts.append(format_banking_context_text(bctx))
+    except Exception:
+        bctx = None
+    context_block = "\n\n".join(context_parts) if context_parts else None
     result = engine.query_with_rag(req.query, max_new_tokens=200, context_block=context_block)
     if ctx:
         result["portfolio_context"] = ctx
+    if bctx:
+        result["banking_context"] = bctx
     return {
         "answer": result.get("text", ""),
         "sources": result.get("sources", []),
@@ -217,7 +229,20 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
     # Chained what-ifs ("and if the euro depreciates 10% on top of that?")
     # inherit the rate leg from the prior question via the resolved anchor.
     ctx = build_portfolio_context(resolved, user, db, chat_history=history, shock_source=req.message)
-    context_block = format_portfolio_context_text(ctx) if ctx else None
+    # Banking/Qubo awareness: same live-data treatment for cash and tax
+    # questions (spending breakdown, runway, top deductions).
+    bctx = None
+    try:
+        from app.ai.banking_context import build_banking_context, format_banking_context_text
+        bctx = build_banking_context(resolved, user, db)
+    except Exception:
+        bctx = None
+    context_parts = []
+    if ctx:
+        context_parts.append(format_portfolio_context_text(ctx))
+    if bctx:
+        context_parts.append(format_banking_context_text(bctx))
+    context_block = "\n\n".join(context_parts) if context_parts else None
     result = engine.query_with_rag(
         resolved,
         max_new_tokens=req.max_new_tokens,
@@ -229,6 +254,8 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
         result["resolved_query"] = resolved
     if ctx:
         result["portfolio_context"] = ctx
+    if bctx:
+        result["banking_context"] = bctx
 
     # ── Suggested follow-up chips (deterministic, quotes the user's numbers) ──
     answer = str(result.get("text") or result.get("answer") or "")

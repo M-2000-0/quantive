@@ -13,6 +13,7 @@ from app.ai.portfolio_context import (
     build_portfolio_snapshot,
     extract_fx_shock,
 )
+from app.ai.banking_context import is_banking_question, is_qubo_question
 
 MAX_SUGGESTIONS = 3
 
@@ -98,6 +99,12 @@ def suggest_followups(
         # Portfolio question without a scenario: offer one + position detail.
         out.append("What happens to my debt if rates rise 50bps?")
         out.append(_maturity_suggestion(snap))
+    elif is_banking_question(question) or is_qubo_question(question):
+        # Cash/tax turn: steer across the finance stack.
+        out.append("Where am I spending the most?")
+        out.append("How much runway do I have?")
+        out.append("Show my top Qubo deductions")
+        out.append("What happens to my debt if rates rise 50bps?")
     else:
         # Not a portfolio question: if the user has a book, steer toward it;
         # otherwise fall back to market questions.
@@ -109,6 +116,7 @@ def suggest_followups(
             if snap2:
                 out.append("What happens to my debt if rates rise 50bps?")
                 out.append("Summarize my portfolio")
+                out.append("How much runway do I have?")
             else:
                 out.extend(MARKET_SUGGESTIONS[:2])
         else:
