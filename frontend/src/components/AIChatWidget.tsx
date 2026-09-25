@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, RotateCcw, Send, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { MessageCircle, MessageSquarePlus, PanelLeft, RotateCcw, Send, Trash2, X } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -10,6 +10,14 @@ interface Message {
 interface HistoryTurn {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface ConversationMeta {
+  id: string;
+  title: string;
+  updated_at: string | null;
+  message_count: number;
+  preview: string;
 }
 
 const SUGGESTIONS = [
@@ -43,11 +51,94 @@ export default function AIChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [conversations, setConversations] = useState<ConversationMeta[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [listOpen, setListOpen] = useState(false);
+  const [loadingThread, setLoadingThread] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const convIdRef = useRef<string | null>(null);
+  // Keeps send()'s history snapshot in sync with async state updates.
+  const messagesRef = useRef<Message[]>([]);
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const refreshConversations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/ai/conversations', { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setConversations(data.conversations || []);
+    } catch { /* offline — keep current list */ }
+  }, []);
+
+  // Restore the most recent conversation when the panel opens so a page
+  // reload never loses the thread.
+  const openPanel = useCallback(async () => {
+    setOpen(true);
+    if (messagesRef.current.length > 0) return; // already showing a thread
+    setLoadingThread(true);
+    try {
+      const res = await fetch('/api/ai/conversations', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        const list: ConversationMeta[] = data.conversations || [];
+        setConversations(list);
+        if (list.length > 0) {
+          const r = await fetch(`/api/ai/conversations/${list[0].id}`, { credentials: 'include' });
+          if (r.ok) {
+            const conv = await r.json();
+            setMessages((conv.messages || []).map((m: any) => ({
+              role: m.role, content: m.content, sources: m.sources || [],
+            })));
+            setConversationId(conv.id);
+            convIdRef.current = conv.id;
+          }
+        }
+      }
+    } catch { /* offline — start fresh */ }
+    finally { setLoadingThread(false); }
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, loading]);
+
+  function switchConversation(id: string) {
+    setListOpen(false);
+    if (id === conversationId) return;
+    setLoadingThread(true);
+    fetch(`/api/ai/conversations/${id}`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((conv) => {
+        if (!conv) return;
+        setMessages((conv.messages || []).map((m: any) => ({
+          role: m.role, content: m.content, sources: m.sources || [],
+        })));
+        setConversationId(conv.id);
+        convIdRef.current = conv.id;
+      })
+      .catch(() => {})
+      .finally(() => setLoadingThread(false));
+  }
+
+  function startNewConversation() {
+    setListOpen(false);
+    setMessages([]);
+    setConversationId(null);
+    convIdRef.current = null;
+  }
+
+  async function deleteConversation(id: string) {
+    try {
+      await fetch(`/api/ai/conversations/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: csrfHeaders(),
+      });
+      setConversations((c) => c.filter((x) => x.id !== id));
+      if (id === convIdRef.current) startNewConversation();
+    } catch { /* leave list as-is */ }
+  }
 
   async function send(text: string) {
     const q = text.trim();
@@ -58,7 +149,7 @@ export default function AIChatWidget() {
 
     // Send the recent exchange so follow-ups ("what about 100bps?") resolve
     // against prior context instead of starting cold.
-    const history: HistoryTurn[] = messages
+    const history: HistoryTurn[] = messagesRef.current
       .filter((m) => m.content.trim().length > 0)
       .slice(-6)
       .map((m) => ({ role: m.role, content: m.content.slice(0, 600) }));
@@ -68,7 +159,12 @@ export default function AIChatWidget() {
         method: 'POST',
         credentials: 'include',
         headers: csrfHeaders(),
-        body: JSON.stringify({ message: q, max_new_tokens: 150, history }),
+        body: JSON.stringify({
+          message: q,
+          max_new_tokens: 150,
+          history,
+          ...(convIdRef.current ? { conversation_id: convIdRef.current } : {}),
+        }),
       });
       const data = await res.json();
       setMessages((m) => [
@@ -79,6 +175,11 @@ export default function AIChatWidget() {
           sources: data.sources || [],
         },
       ]);
+      if (data.conversation_id) {
+        convIdRef.current = data.conversation_id;
+        setConversationId(data.conversation_id);
+      }
+      refreshConversations();
     } catch {
       setMessages((m) => [
         ...m,
@@ -97,7 +198,7 @@ export default function AIChatWidget() {
       {!open && (
         <button
           aria-label="Ask Quantive AI"
-          onClick={() => setOpen(true)}
+          onClick={openPanel}
           style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
             width: 56, height: 56, borderRadius: '50%', border: 'none',
@@ -116,7 +217,7 @@ export default function AIChatWidget() {
         <div
           style={{
             position: 'fixed', bottom: 24, right: 24, zIndex: 1001,
-            width: 380, maxWidth: 'calc(100vw - 32px)', height: 560, maxHeight: 'calc(100vh - 48px)',
+            width: 400, maxWidth: 'calc(100vw - 32px)', height: 560, maxHeight: 'calc(100vh - 48px)',
             background: '#111318', border: '1px solid #23272e', borderRadius: 16,
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
@@ -138,11 +239,27 @@ export default function AIChatWidget() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                aria-label="Conversation history"
+                title="Conversation history"
+                onClick={() => { setListOpen((v) => !v); refreshConversations(); }}
+                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 4 }}
+              >
+                <PanelLeft size={15} />
+              </button>
+              <button
+                aria-label="New conversation"
+                title="New conversation"
+                onClick={startNewConversation}
+                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 4 }}
+              >
+                <MessageSquarePlus size={15} />
+              </button>
               {messages.length > 0 && (
                 <button
                   aria-label="Reset conversation"
                   title="Reset conversation"
-                  onClick={() => setMessages([])}
+                  onClick={startNewConversation}
                   style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 4 }}
                 >
                   <RotateCcw size={15} />
@@ -158,9 +275,56 @@ export default function AIChatWidget() {
             </div>
           </div>
 
+          {/* Conversation list drawer */}
+          {listOpen && (
+            <div style={{ borderBottom: '1px solid #23272e', background: '#0d0f13', maxHeight: 220, overflowY: 'auto' }}>
+              {conversations.length === 0 && (
+                <div style={{ color: '#6b7280', fontSize: 12, padding: 12 }}>
+                  No saved conversations yet.
+                </div>
+              )}
+              {conversations.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 12px',
+                    background: c.id === conversationId ? '#161a20' : 'transparent',
+                    cursor: 'pointer',
+                    borderTop: '1px solid #1a1e24',
+                  }}
+                  onClick={() => switchConversation(c.id)}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      color: c.id === conversationId ? '#c8a951' : '#e5e7eb',
+                      fontSize: 12, fontWeight: 600,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {c.title}
+                    </div>
+                    <div style={{ color: '#6b7280', fontSize: 10 }}>
+                      {c.message_count} messages{c.preview ? ` — ${c.preview}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    aria-label={`Delete conversation ${c.title}`}
+                    onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
+                    style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 4 }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Messages */}
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-            {messages.length === 0 && (
+            {loadingThread && (
+              <div style={{ color: '#9ca3af', fontSize: 13, fontStyle: 'italic' }}>Restoring conversation…</div>
+            )}
+            {!loadingThread && messages.length === 0 && (
               <div>
                 <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 12 }}>
                   Ask me about markets, stocks, Treasury yields, sovereign debt — I answer with live data and cite my sources. I remember our conversation, so follow-ups like “what about 100bps?” work too.

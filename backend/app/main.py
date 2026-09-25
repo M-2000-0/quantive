@@ -264,6 +264,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.getLogger("uvicorn.error").warning("Could not start automation engine: %s", e)
 
+    # Ensure AI chat persistence tables exist (conversations survive reloads)
+    try:
+        from app.models.chat import ChatConversation, ChatMessage
+        ChatConversation.__table__.create(engine, checkfirst=True)
+        ChatMessage.__table__.create(engine, checkfirst=True)
+        print("[OK] AI chat tables ready")
+    except Exception as e:
+        logging.getLogger("uvicorn.error").warning("Could not create chat tables: %s", e)
+
     # Ensure Quantive Personal tables exist in SEPARATE database (never in sovereign DB)
     try:
         from app.personal.database import PersonalBase, personal_engine

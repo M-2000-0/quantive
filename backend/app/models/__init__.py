@@ -361,6 +361,10 @@ from app.models.billing import (  # noqa: E402, F401
     SubscriptionRow,
     UsageRow,
 )
+from app.models.chat import (  # noqa: E402, F401
+    ChatConversation,
+    ChatMessage,
+)
 from app.models.banking import (  # noqa: E402, F401
     BankAccount,
     BankTransaction,

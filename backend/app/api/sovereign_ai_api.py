@@ -20,9 +20,20 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 
 from app.database import get_db
 from app.security import get_current_user
+
+
+def _gen_uuid() -> str:
+    import uuid
+    return str(uuid.uuid4())
+
+
+def _utcnow():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc)
 
 router = APIRouter(prefix="/api/ai", tags=["Sovereign AI"])
 
@@ -60,6 +71,18 @@ class ChatRequest(BaseModel):
     # Recent conversation turns (oldest→newest). Lets follow-ups like
     # "what about 100bps?" resolve against the previous exchange.
     history: Optional[list[HistoryTurn]] = None
+    # Persisted-thread support: attach the turn to a conversation. When
+    # conversation_id is omitted a new thread is created automatically.
+    conversation_id: Optional[str] = None
+
+
+class ConversationSummary(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+    message_count: int
+    preview: str
 
 class FineTuneRequest(BaseModel):
     dataset_name: str = "sovereign_qa"
@@ -166,6 +189,7 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
     from app.ai.portfolio_context import (
         build_portfolio_context, format_portfolio_context_text, resolve_followup,
     )
+    from app.models import ChatConversation, ChatMessage
     engine = get_engine()
     history = [t.model_dump() for t in (req.history or [])][-8:]
     # Conversation memory: rewrite "what about 100bps?" into a standalone
@@ -185,6 +209,56 @@ def chat_api(req: ChatRequest, db=Depends(get_db), user=Depends(get_current_user
         result["resolved_query"] = resolved
     if ctx:
         result["portfolio_context"] = ctx
+
+    # ── Persist the exchange ──
+    answer = str(result.get("text") or result.get("answer") or "")
+    sources = result.get("sources") or []
+    try:
+        conv = None
+        if req.conversation_id:
+            conv = (
+                db.query(ChatConversation)
+                .filter(
+                    ChatConversation.id == req.conversation_id,
+                    ChatConversation.org_id == user.org_id,
+                    ChatConversation.user_id == user.id,
+                )
+                .first()
+            )
+        if conv is None:
+            conv = ChatConversation(
+                id=_gen_uuid(),
+                org_id=user.org_id,
+                user_id=user.id,
+                title=(req.message or "New conversation")[:255],
+            )
+            db.add(conv)
+            db.flush()
+        next_seq = (
+            db.query(func.max(ChatMessage.seq))
+            .filter(ChatMessage.conversation_id == conv.id)
+            .scalar()
+        )
+        next_seq = (next_seq or 0) + 1
+        db.add(ChatMessage(
+            id=_gen_uuid(), conversation_id=conv.id, org_id=user.org_id,
+            role="user", content=(req.message or "")[:4000], seq=next_seq,
+        ))
+        db.add(ChatMessage(
+            id=_gen_uuid(), conversation_id=conv.id, org_id=user.org_id,
+            role="assistant", content=answer[:4000], sources=sources[:5], seq=next_seq + 1,
+        ))
+        if conv.title in ("", "New conversation"):
+            conv.title = (req.message or "New conversation")[:255]
+        conv.updated_at = _utcnow()
+        db.commit()
+        result["conversation_id"] = conv.id
+    except Exception:
+        import logging
+        logging.getLogger("uvicorn.error").exception("Chat conversation persistence failed")
+        db.rollback()
+        # Chat must keep working even if persistence hiccups.
+
     return result
 
 
@@ -200,3 +274,114 @@ def load_model(db=Depends(get_db), user=Depends(get_current_user)):
     engine = get_engine()
     ok = engine._ensure_loaded()
     return {"status": "loaded" if ok else "error", "model": "quantive_ai"}
+
+
+# ── Conversation persistence ─────────────────────────────────────────
+
+@router.get("/conversations")
+def list_conversations(
+    limit: int = Query(default=20, ge=1, le=100),
+    db=Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """List the caller's chat threads, newest activity first."""
+    from app.models import ChatConversation, ChatMessage
+
+    convs = (
+        db.query(ChatConversation)
+        .filter(ChatConversation.org_id == user.org_id, ChatConversation.user_id == user.id)
+        .order_by(ChatConversation.updated_at.desc())
+        .limit(limit)
+        .all()
+    )
+    out = []
+    for c in convs:
+        first_msg = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.conversation_id == c.id, ChatMessage.role == "user")
+            .order_by(ChatMessage.created_at.asc())
+            .first()
+        )
+        count = (
+            db.query(func.count(ChatMessage.id))
+            .filter(ChatMessage.conversation_id == c.id)
+            .scalar()
+        )
+        out.append({
+            "id": c.id,
+            "title": c.title,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+            "message_count": int(count or 0),
+            "preview": (first_msg.content[:80] if first_msg else ""),
+        })
+    return {"conversations": out}
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(
+    conversation_id: str,
+    db=Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Delete a thread and all its messages (org/user scoped)."""
+    from app.models import ChatConversation, ChatMessage
+
+    conv = (
+        db.query(ChatConversation)
+        .filter(
+            ChatConversation.id == conversation_id,
+            ChatConversation.org_id == user.org_id,
+            ChatConversation.user_id == user.id,
+        )
+        .first()
+    )
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    db.query(ChatMessage).filter(ChatMessage.conversation_id == conv.id).delete()
+    db.delete(conv)
+    db.commit()
+    return {"deleted": conversation_id}
+
+
+@router.get("/conversations/{conversation_id}")
+def get_conversation(
+    conversation_id: str,
+    db=Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Fetch one conversation with all its turns (restores the thread)."""
+    from app.models import ChatConversation, ChatMessage
+
+    conv = (
+        db.query(ChatConversation)
+        .filter(
+            ChatConversation.id == conversation_id,
+            ChatConversation.org_id == user.org_id,
+            ChatConversation.user_id == user.id,
+        )
+        .first()
+    )
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    msgs = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.conversation_id == conv.id)
+        .order_by(ChatMessage.seq.asc(), ChatMessage.created_at.asc())
+        .all()
+    )
+    return {
+        "id": conv.id,
+        "title": conv.title,
+        "created_at": conv.created_at.isoformat() if conv.created_at else None,
+        "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+        "messages": [
+            {
+                "role": m.role,
+                "content": m.content,
+                "sources": m.sources or [],
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in msgs
+        ],
+    }
