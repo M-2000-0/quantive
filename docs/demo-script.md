@@ -87,7 +87,7 @@
 
 ## Scene 4 — AI advisor Q&A (4 min) ⭐ centerpiece
 
-**Do:** click the gold **Quantive AI** button (bottom right). Ask these **in this order**, typing them live:
+**Do:** click the gold **Quantive AI** button (bottom right). Ask these **in this order**, typing them live — or clicking the gold **SUGGESTED FOLLOW-UPS** chips the assistant offers under each answer (a chip click sends the question exactly as written). Every number you narrate is in the answer block on screen; the full snapshot and scenario ladder are in **Appendix C**.
 
 **Q1 — "What is the price of Bitcoin?"** *(live market data)*
 **Expected:** `Live market data (fetched just now): • BTC-USD: $84,4xx (▲/▼ x.xx%)` + knowledge-base note + "5 sources" chip.
@@ -95,7 +95,7 @@
 **Fallback:** if quotes fail (provider rate limit), the answer degrades to knowledge-base text — say "the quote provider is rate-limited right now; in production this is our market-data pipeline" and move to Q2, which doesn't depend on third parties.
 
 **Q2 — "What happens to my debt if rates rise 50bps?"** *(portfolio-aware + live yields)* ⭐
-**Expected (seeded book):**
+**Expected (seeded book) — scenario block on screen:**
 ```
 Scenario: rates rise 50bps (parallel shift) — your book:
 • Repricing share: ~17% of the book (floating-rate + maturities within 2y) resets within the year
@@ -103,15 +103,26 @@ Scenario: rates rise 50bps (parallel shift) — your book:
 • Mark-to-market on the locked book: -$98.3M (≈ −D×Δy×P, D≈12.4y — first-order estimate)
 • Most of your book is fixed-rate, so a hike mostly hits you through refinancing at maturity…
 ```
-plus the live snapshot ($1.59B / 10 instruments / USD 60% GBP 31% EUR 9%) and today's Treasury yields.
-**Say:** "It knows the user's actual positions — the 17% repricing share is the floating and short-dated slice of *this* book, and the minus-$98M is a first-order duration impact."
-**Then — memory moment:** type just **"what about 100bps?"** — no restating the question. The assistant remembers the exchange and returns the 100bps scenario (+$2.6M/yr). "Follow-ups work — the conversation carries context; I never had to repeat myself."
+**…followed by the live portfolio snapshot, verbatim:**
+```
+Your portfolio (live from your workspace):
+• Total outstanding: $1.59B across 10 instruments in 3 currencies
+• Weighted coupon: 4.38% → ~$69.6M annual interest
+• Weighted maturity: 12.4 years
+• Currency mix: USD 60%, GBP 31%, EUR 9%
+• Nearest maturity: T-Bill Rolling Program — $60.0M USD on 2026-12-01 (0.2y)
+• Longest: Gilt-Style Long Bond 2056 (GBP) — $500.0M GBP on 2056-01-15
+• Floating-rate exposure: $110.0M
+```
+plus today's Treasury yields. **Chips on screen:** *"…rates rise 75bps on top of that?"*, *"What if rates rise 100bps?"*, *"What happens to my debt if the euro depreciates 10%?"*.
+**Say:** "It knows the user's actual positions — the 17% repricing share is the short end of *this* book: $110M floating-rate plus the 2026–28 maturity wall, whichever is larger, resets within the year. The minus-$98M is a first-order duration impact. Every number comes from the workspace, not a script."
+**Then — memory moment:** type just **"what about 100bps?"** (or click the **What if rates rise 100bps?** chip) — no restating the question. The assistant remembers the exchange and returns the 100bps scenario (+$2.6M/yr, −$196.7M). "Follow-ups work — the conversation carries context; I never had to repeat myself."
 **Then — chain a second shock:** type **"and if the euro depreciates 10% on top of that?"** — the assistant composes the FX move onto the *same 100bps scenario*: EUR exposure ($140M, ~9% of book) restates to $126M, and a **combined first-order MTM (rates + FX)** line appears. "Rate and currency shocks compose — exactly how a treasury desk stress-tests."
 **Then — persistence moment:** reload the page, reopen the assistant — the full thread is still there (history button top-left of the panel lists and switches earlier conversations). "Conversations survive reloads and are stored per user — nothing to re-ask, nothing lost."
 **Fallback:** if the scenario block is missing (only textbook text), the portfolio snapshot didn't load — refresh the page once (session cookie) and retry; if still generic, the org's portfolio lookup failed, re-run the seeder and re-login.
 
 **Q3 — "Summarize my portfolio"** *(position awareness)*
-**Expected:** total, weighted coupon → ~$69.6M annual interest, weighted maturity 12.4y, currency mix, nearest maturity T-Bill 2026-12-01, longest 2056 gilt.
+**Expected:** the exact snapshot block shown under Q2, headed "Your portfolio (live from your workspace)" — total, weighted coupon → ~$69.6M annual interest, weighted maturity 12.4y, currency mix, nearest maturity T-Bill 2026-12-01, longest 2056 gilt, floating exposure $110.0M.
 **Say:** "The same assistant is the analyst's shortcut — no navigation needed, the numbers come from the workspace, not from a slide deck."
 
 **Q4 — "Explain debt sustainability analysis"** *(grounded RAG with citations)*
@@ -173,12 +184,56 @@ plus the live snapshot ($1.59B / 10 instruments / USD 60% GBP 31% EUR 9%) and to
 | follow-up: "what about 100bps?" | conversation memory | resolves to the 100bps scenario, +$2.6M/yr |
 | "and if the euro depreciates 10% on top of that?" | chained FX what-if | same 100bps scenario + EUR −10% → $140M→$126M, combined MTM line (rates + FX) |
 | page reload + reopen assistant | conversation persistence | last thread restored from DB, full history + sources |
-| "Summarize my portfolio" | live positions | $1.59B · 4.38% coupon · 12.4y · USD 60/GBP 31/EUR 9 |
+| "Summarize my portfolio" | live positions | $1.59B · 4.38% coupon · 12.4y · USD 60/GBP 31/EUR 9 — full snapshot verbatim in Appendix C |
 | "price of Bitcoin/AAPL" | live quotes | real-time price ± day change |
 | "my balances" | banking ledger | $29.44M total across 3 accounts |
 | "Qubo deductions" | findings table | 31 new findings, $302,560 open |
 | "debt sustainability" | knowledge base | cited IMF/DSF prose |
 
-## Appendix C — One-breath elevator version
+## Appendix C — Live portfolio snapshot & scenario ladder (values at time of writing)
+
+Every AI answer that touches the user's positions starts from this snapshot — it is rendered verbatim in the chat for "Summarize my portfolio" and appended under every scenario answer. Regenerate after re-seeding with:
+
+```
+cd backend && python -c "from app.database import SessionLocal; from app.models import User; \
+from app.ai.portfolio_context import build_portfolio_snapshot, format_portfolio_snapshot_text; \
+db=SessionLocal(); u=db.query(User).filter(User.email=='demo_stress@test.com').first(); \
+print(format_portfolio_snapshot_text(build_portfolio_snapshot(u, db)))"
+```
+
+**Portfolio snapshot (verbatim on screen):**
+
+```
+Your portfolio (live from your workspace):
+• Total outstanding: $1.59B across 10 instruments in 3 currencies
+• Weighted coupon: 4.38% → ~$69.6M annual interest
+• Weighted maturity: 12.4 years
+• Currency mix: USD 60%, GBP 31%, EUR 9%
+• Nearest maturity: T-Bill Rolling Program — $60.0M USD on 2026-12-01 (0.2y)
+• Longest: Gilt-Style Long Bond 2056 (GBP) — $500.0M GBP on 2056-01-15
+• Floating-rate exposure: $110.0M
+```
+
+**Rate-shock ladder (parallel shift, seeded book, ~17% repricing share):**
+
+| Shock | Annual interest | Interest Δ/yr | Mark-to-market (first-order) |
+|---|---|---|---|
+| +25bps | $69.6M → $70.3M | +$0.7M | −$49.2M |
+| +50bps | $69.6M → $70.9M | +$1.3M | −$98.3M |
+| +75bps | $69.6M → $71.6M | +$2.0M | −$147.5M |
+| +100bps | $69.6M → $72.2M | +$2.6M | −$196.7M |
+| +200bps | $69.6M → $74.9M | +$5.3M | −$393.4M |
+
+**Composed rate + FX scenarios** (EUR −10% = the $140M EUR exposure restates to $126M, −$14.0M face-value MTM, composed onto the rate leg):
+
+| Scenario | Combined first-order MTM (rates + FX) |
+|---|---|
+| +50bps & EUR −10% | −$112.3M |
+| +100bps & EUR −10% | −$210.7M |
+| +200bps & EUR −10% | −$407.4M |
+
+**Method, if asked:** interest delta uses the repricing share — the larger of the floating-rate book and the maturities inside 2 years, ≈17% here; MTM ≈ −D×Δy×P with D proxied by the 12.4y weighted maturity; FX is a face-value revaluation of the currency exposure. All first-order by design — every answer says so on screen.
+
+## Appendix D — One-breath elevator version
 
 "Quantive gives a debt management office its whole position — $1.6B across 10 instruments here — with live risk scoring, a 30-second optimization engine over a thousand Monte Carlo scenarios, and an AI advisor that answers questions like 'what happens to my debt if rates rise 50bps' from your actual book, your live market data, and a cited sovereign-finance knowledge base. Banking and tax sit on the same ledger. All of it runs on-prem."
